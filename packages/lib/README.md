@@ -17,6 +17,23 @@ const page = paginate(['a', 'b', 'c'], { page: 1, pageSize: 2 })
 
 입력 배열을 변경하지 않고 선택한 항목을 새 배열로 반환하며, 순서와 항목의 참조는 유지합니다. 페이지 적용 여부와 페이지 크기는 호출자가 정합니다. Desktop 개발자 작업대는 OCR 목록에만 50개씩 적용하고 로컬 목록은 전체를 사용합니다.
 
+## 값 모양 검사
+
+```ts
+import { exactObject, isNonblankString, listOf, nullable, oneOf } from '@dfragon/lib/utils/shape-check'
+
+const isRow = exactObject({ slotId: isNonblankString, grade: nullable(oneOf('종결', '준종결')) })
+listOf(isRow)([{ slotId: 'WEAPON', grade: null }]) // true
+isRow({ slotId: 'WEAPON', grade: null, extra: 1 }) // 정하지 않은 키가 있어 false
+```
+
+신뢰 경계를 넘어온 값이 정한 모양인지 스키마 라이브러리 없이 확인합니다. 모든 검사는 순수 함수이며 값을 바꾸거나 형 변환하지 않고 `true`, `false`만 돌려줍니다. Desktop의 상세 창 preload처럼 zod 같은 의존성을 같이 묶을 수 없는 곳에서 씁니다.
+
+- `exactObject`, `hasExactKeys`는 배열이 아닌 객체의 own key(symbol 포함)가 정확히 정한 키인지 봅니다.
+- `isFiniteNumber`는 NaN과 무한대를 거절하고, `isNonNegativeSafeInteger`, `isPositiveSafeInteger`는 안전 정수만 받습니다.
+- `isNonblankString`은 공백만 있는 문자열을 거절하고, `isNullableString`은 빈 문자열도 받습니다.
+- `isUtcTimestamp`는 `Z`로 끝나는 ISO 시각 중 실제 날짜만 받아 `2026-02-30T00:00Z`, `24:00`을 거절합니다. `isOffsetTimestamp`는 `±HH:MM` offset도 받습니다.
+
 ## 요청 제한용 IP 키
 
 요청 제한은 같은 접속자의 요청 횟수를 같은 키 아래에 기록해야 합니다. 같은 IP라도 표기가 다르면 별도 접속자로 집계될 수 있습니다. `getIpQuotaKey(peerAddress: string): string`은 이때 사용할 키를 만듭니다. 주소를 해석하는 `ipaddr.js` 의존성과 변환 규칙은 이 함수에서 관리합니다.

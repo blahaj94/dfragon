@@ -1,6 +1,6 @@
+import { isRecord } from '@dfragon/lib/utils/shape-check'
 import table from './enchant-grades.json' with { type: 'json' }
 import type { EnchantGrade, EnchantStatus } from './types.js'
-import { isRecord } from './values.js'
 
 export interface EnchantGradeEntry {
   status: EnchantStatus[]

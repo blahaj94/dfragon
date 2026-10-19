@@ -1,3 +1,4 @@
+import { isFiniteNumber } from '@dfragon/lib/utils/shape-check'
 import type { AuthClock } from '../auth/types'
 import type {
   CharacterSearchRow,
@@ -87,7 +88,7 @@ function displayText(value: CharacterJsonValue | undefined): string | null {
 }
 
 function displayNumber(value: CharacterJsonValue | undefined): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
+  if (isFiniteNumber(value)) {
     return value
   }
 

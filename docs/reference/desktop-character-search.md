@@ -29,7 +29,7 @@ Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-�
 | `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                | XState가 Start별 시작, 종료 수명을 관리하고, factory와 hook은 로컬 관측 revision, 결과 필터, 슬롯별 retry를 연결한다.                                                   |
 | `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `apps/desktop/src/frontend/src/lib/party-recognition.ts`                                     | 이전 검색, 인식 상태를 비우고 begin 완료 뒤 프레임 한 장으로 OCR과 검색을 연결한다. 늦은 begin의 자기 ID 정리와 회차 종료 뒤 결과 차단을 유지한다.                              |
 | `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                                                                                     | 네 슬롯의 상태, 후보, 고정 오류, 수동 retry를 text로 표시한다.                                                                                                          |
-| `apps/desktop/src/backend/character-detail/windows.ts`, `snapshot.ts`                                                                                          | 현재 선택의 기본 정보를 복사하고 캐릭터별 상세 창의 생성, 재사용, 읽기 권한과 종료를 관리한다.                                                                       |
+| `apps/desktop/src/backend/character-detail/windows.ts`, `snapshot.ts`                                                                                          | 현재 선택의 기본 정보와 카드 값을 복사하고 캐릭터별 상세 창의 생성, 재사용, 읽기 권한과 종료를 관리한다.                                                                 |
 | `apps/desktop/src/preload/character-detail.ts`, `common/character-detail.ts`, `apps/desktop/src/frontend/src/pages/character-detail/CharacterSnapshotPage.tsx` | 전용 읽기 bridge의 응답을 검증하고 기본 정보와 조회 시각을 표시한다.                                                                                                 |
 
 `createCaptureSearch`는 호출마다 연결, actor, 관측 상태를 클로저에 보관하고 제어 함수를 반환한다. 표시할 슬롯의 계산은 상태를 변경하지 않는 순수 함수로 분리한다. 캡처 검색 수명은 `idle → starting → active`와 `invalidated`, 최종 `disposed` 상태로 관리한다. 새 begin, end, 무효화, dispose는 이전 시작 actor를 종료한다. 시작 actor는 종료 뒤에도 직접 응답을 기다려 자신이 생성한 늦은 ID만 end하고 호출자에게 null을 반환한다. Main이 종료를 알린 수명은 로컬 상태만 비우며 END를 중복 전송하지 않는다. 슬롯의 관측 revision, clear, 결과 필터, retry 정책은 기존 일반 로직을 유지한다.
@@ -159,13 +159,13 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 ## 캐릭터별 상세 창
 
-식별된 슬롯의 상세 버튼은 `openCharacterDetails({ captureId, slot, requestId })`를 호출한다. Main은 현재 등록된 renderer와 main frame, 정확한 document, 입력 형태를 검사하고 검색 수명의 `selection`으로 선택된 상세를 읽는다. Renderer가 임의 URL, 서버나 캐릭터 ID, 상세 데이터를 지정해 창을 열 수 없다. 새 창을 읽고 표시하기 전에 선택이 바뀌었는지 다시 확인하며, 로딩 중 캡처가 끝나거나 슬롯이 교체되면 해당 창을 표시하지 않는다.
+식별된 슬롯의 상세 버튼은 `openCharacterDetails({ captureId, slot, requestId })`를 호출한다. Main은 현재 등록된 renderer와 main frame, 정확한 document, 입력 형태를 검사하고 검색 수명의 `selection`으로 선택된 상세 응답과 카드 값(`SelectedCharacter`)을 읽는다. Renderer가 임의 URL, 서버나 캐릭터 ID, 상세 데이터를 지정해 창을 열 수 없다. 새 창을 읽고 표시하기 전에 선택이 바뀌었는지 다시 확인하며, 로딩 중 캡처가 끝나거나 슬롯이 교체되면 해당 창을 표시하지 않는다.
 
-`backend/character-detail/windows.ts`는 서버와 캐릭터 ID별로 별도 창을 관리한다. 같은 캐릭터를 다시 열면 기존 창을 복원하고 포커스하며, 최초 선택에서 복사한 기본 정보와 `freshness`를 유지한다. 이미 표시한 창은 캡처 중지나 슬롯 변경 이후에도 그대로 읽을 수 있다. 창을 닫고 현재 선택에서 다시 열면 그 선택에 보관된 정보로 새 snapshot을 만들며 추가 HTTP 조회나 자동 갱신은 하지 않는다. 메인 창의 `closed`에서 모든 상세 창과 reader를 정리한다. 취소된 메인 창 닫기 시도만으로 상세 창을 지우지 않는다.
+`backend/character-detail/windows.ts`는 서버와 캐릭터 ID별로 별도 창을 관리한다. 같은 캐릭터를 다시 열면 기존 창을 복원하고 포커스하며, 최초 선택에서 복사한 기본 정보, 카드 값과 `freshness`를 유지한다. 이미 표시한 창은 캡처 중지나 슬롯 변경 이후에도 그대로 읽을 수 있다. 창을 닫고 현재 선택에서 다시 열면 그 선택에 보관된 정보로 새 snapshot을 만들며 추가 HTTP 조회나 자동 갱신은 하지 않는다. 메인 창의 `closed`에서 모든 상세 창과 reader를 정리한다. 취소된 메인 창 닫기 시도만으로 상세 창을 지우지 않는다.
 
-제품은 고정 `character-detail.html`과 전용 preload를 사용한다. `window.characterDetail.read()`만 노출하며 capture, auth, developer bridge는 포함하지 않는다. Main reader는 등록된 상세 창의 WebContents와 현재 main frame, 정확한 document URL, detached와 destroyed 상태를 매번 검사한다. 별도 메모리 session에서 권한 요청과 미디어 접근을 거절하고, 팝업, 외부 탐색과 redirect, webview를 차단한다. 공급자 전체 JSON은 main에 남기며 상세 renderer에는 검증한 기본 요약과 조회 시각만 복사해 전달한다.
+제품은 고정 `character-detail.html`과 전용 preload를 사용한다. `window.characterDetail.read()`만 노출하며 capture, auth, developer bridge는 포함하지 않는다. Main reader는 등록된 상세 창의 WebContents와 현재 main frame, 정확한 document URL, detached와 destroyed 상태를 매번 검사한다. 별도 메모리 session에서 권한 요청과 미디어 접근을 거절하고, 팝업, 외부 탐색과 redirect, webview를 차단한다. 공급자 전체 JSON은 main에 남기며 상세 renderer에는 검증한 기본 요약과 길드, 메인 카드에 넘긴 카드 값, 조회 시각만 복사해 전달한다. 상세 preload는 sandbox preload라 일반 preload와 모듈을 공유하지 않으므로, 카드 값은 일반 preload의 `characterCardSchema`와 같은 규칙의 전용 검사(`isCharacterDetailCard`)로 받는다.
 
-상세 창은 1280×800(최소 1024×640)이고 메인 창처럼 `titleBarStyle: 'hidden'`과 높이 56의 `titleBarOverlay`로 OS 창 버튼을 화면의 상단 바 `WindowBar` 안에 그린다. 창 버튼과 창 배경 색은 창을 연 순간의 `nativeTheme`으로 정한다. 상세 화면은 시스템 테마로 그리고 테마 전환이 없어 창 색 IPC를 두지 않으며, 상세 preload와 IPC, CSP는 바뀌지 않는다. `CharacterSnapshotPage`는 이미지, 이름, 서버, 모험단, 직업, 전직, 실제 레벨과 명성, 마지막 조회 시각과 정보 유효 시각을 표시한다. 누락된 값은 `정보 없음`으로 표시하며 고정 레벨, 계산한 장비 점수나 예시 마법부여 등급을 넣지 않는다. 기존 `CharacterDetailPage`와 `DetailDeck`의 장비, 서약, 투자 카드 조합은 합성 미리보기로 남는다. 장비 카드 확장과 마법부여 평가는 이 연결에 포함하지 않는다.
+상세 창은 내용 540 × 650의 `frame: false` 창이다. 폭은 고정이고 높이는 480까지 줄일 수 있으며 최대화와 전체 화면은 없다. OS 창 버튼 없이 화면 머리의 끌기 영역과 `닫기` 버튼(`window.close()`)을 쓰고, 창 배경은 카드 면 색 `DETAIL_WINDOW_BACKGROUND`다. 상세 문서는 `theme-init.js`와 테마 Provider 없이 `tokens.css`의 다크 기본값으로 그리며 창 색 IPC를 두지 않는다. `CharacterSnapshotPage`는 `sections/CharacterDetailPanel.tsx`에 snapshot을 넘기고, 패널은 머리(서버, 서버 순위, 조회 시각), 캐릭터 칸(그림, 모험단과 길드, 이름, 전직, 명성, 장비 점수)과 장비, 스킬 탭을 그린다. 장비 탭의 세트, 서약 머리와 장비, 서약 목록은 `lib/card-faces.ts`, `lib/character-detail.ts`의 표시 변환으로 카드 값에서 만든다. 누락된 값은 `-`로 표시하며 계산한 장비 점수나 예시 마법부여 등급을 넣지 않는다. 합성 미리보기의 `CharacterDetailPage`도 같은 패널에 합성 카드 값과 로컬 아이템 그림을 넣는다. 스킬 탭과 설명 상자의 아이템 설명은 이 연결에 포함하지 않는다.
 
 창 수명과 IPC, 기본 정보 화면의 합성 검증은 실제 얼굴 식별 완료와 구분한다. 얼굴 cropper와 Stay 공급원, 초기 윤곽 정책이 제품에 연결되어 일반 캡처의 선택 결과와 상세 창까지 이어진다. API의 candidates와 appearance endpoint가 배포되어야 하며 Windows 실제 게임에서의 회차별 캡처 검증은 별도로 필요하다.
 
@@ -195,7 +195,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 ## UI 구성
 
-제품 `App`은 네 슬롯의 상태와 `selected` 요약을 각각 `PartyPage`에 전달한다. `lib/character-card.ts`는 기본 정보만 표시 값으로 바꾸며 누락된 명성을 0으로 대체하거나 장비 점수를 계산하지 않는다. 실제 선택 identity가 바뀌면 카드의 편집 초기 상태도 교체해, 늦게 도착한 결과를 이름 수정 중으로 오인하지 않는다. 제품은 기본 면만 표시하며 식별된 슬롯의 상세 버튼으로 해당 캐릭터의 기본 정보 창을 연다. 창 열기 실패는 정제한 안내로 표시하고 이전 선택의 늦은 실패를 새 슬롯에 표시하지 않는다.
+제품 `App`은 네 슬롯의 상태와 `selected` 요약을 각각 `PartyPage`에 전달한다. `lib/character-card.ts`는 기본 정보만 표시 값으로 바꾸며 누락된 명성을 0으로 대체하거나 장비 점수를 계산하지 않는다. 실제 선택 identity가 바뀌면 카드의 편집 초기 상태도 교체해, 늦게 도착한 결과를 이름 수정 중으로 오인하지 않는다. 제품은 기본 면만 표시하며 식별된 슬롯의 상세 버튼으로 해당 캐릭터의 상세 창을 연다. 창 열기 실패는 정제한 안내로 표시하고 이전 선택의 늦은 실패를 새 슬롯에 표시하지 않는다.
 
 카드는 중앙 진행 표시와 조회 완료, 빈 결과, 정제된 오류를 구분한다. 최고 명성 대체 결과는 외형 일치와 다르게 표시한다. 서버와 닉네임은 항상 수정할 수 있으며 Enter나 서버 변경으로 수동 조회한다. Alt+R은 기존 결과를 비우고 전체 OCR부터 새로 실행한다. 합성 미리보기의 이전 대기 상태와 재시도 시나리오는 제품의 새 회차 동작과 구분한다. Electron의 화면 확인은 실제 게임의 얼굴 식별 정확도 검증을 대신하지 않는다.
 

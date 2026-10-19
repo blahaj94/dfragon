@@ -32,8 +32,6 @@ const character: CardCharacter = {
   level: 115,
   fame: 0,
   card: null,
-  equipment: [],
-  oath: [],
   image: 'https://img-api.neople.co.kr/df/servers/cain/characters/matched-id?zoom=1'
 }
 

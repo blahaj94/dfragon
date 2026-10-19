@@ -18,6 +18,9 @@
       "@dfragon/lib/ocr-contract": [
         "../../packages/lib/src/ocr-contract.ts"
       ],
+      "@dfragon/lib/utils/shape-check": [
+        "../../packages/lib/src/utils/shape-check.ts"
+      ],
       "@dfragon/lib": [
         "../../packages/lib/src/index.ts"
       ]

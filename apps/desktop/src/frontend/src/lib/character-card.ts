@@ -30,9 +30,7 @@ export function toCharacterCard(
     guild: summary.guildName,
     card: summary.card,
     level: summary.level,
-    image: summary.imageUrl,
-    equipment: [],
-    oath: []
+    image: summary.imageUrl
   }
 }
 

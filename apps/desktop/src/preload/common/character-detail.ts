@@ -1,6 +1,25 @@
+import {
+  exactObject,
+  hasExactKeys,
+  isFiniteNumber,
+  isNonblankString,
+  isNonNegativeSafeInteger,
+  isNullableFiniteNumber,
+  isNullableString,
+  isOffsetTimestamp,
+  isPositiveSafeInteger,
+  isUtcTimestamp,
+  listOf,
+  nullable,
+  oneOf
+} from '@dfragon/lib/utils/shape-check'
+import type { CharacterCard } from './types/character'
 import type { CharacterDetailSnapshot } from './types/character-detail'
 
-// 제한된 preload는 일반 앱 preload의 runtime 모듈을 공유하지 않는다.
+// 제한된 preload는 일반 앱 preload의 runtime 모듈을 공유하지 않는다. 두 preload가 같은 모듈을 쓰면 공유
+// chunk가 생겨 sandbox preload가 불러오지 못하므로, 카드 값 검사도 일반 preload의 zod 스키마
+// (`characterCardSchema`)와 같은 규칙을 일반 preload가 쓰지 않는 `@dfragon/lib/utils/shape-check` 검사로
+// 여기에 따로 둔다.
 const DETAIL_SERVER_NAMES: Readonly<Record<string, string>> = {
   anton: '안톤',
   bakal: '바칼',
@@ -12,7 +31,6 @@ const DETAIL_SERVER_NAMES: Readonly<Record<string, string>> = {
   siroco: '시로코'
 }
 const CHARACTER_ID_PATTERN = /^[a-zA-Z0-9_-]{1,256}$/
-const UTC_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z$/
 const DETAIL_CHARACTER_KEYS = [
   'serverId',
   'characterId',
@@ -23,49 +41,131 @@ const DETAIL_CHARACTER_KEYS = [
   'jobGrowName',
   'level',
   'fame',
-  'imageUrl'
+  'imageUrl',
+  'guildName'
 ] as const
 
-function hasKeys(value: unknown, keys: readonly string[]): value is Record<string, unknown> {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    return false
-  }
-
-  return (
-    Reflect.ownKeys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key))
+const point = exactObject({ current: isFiniteNumber, min: isFiniteNumber, max: isFiniteNumber })
+const rarityCount = exactObject({ rarity: isNonblankString, count: isNonNegativeSafeInteger })
+const dealerStats = exactObject({
+  role: oneOf('dealer'),
+  attackIncrease: isNullableFiniteNumber,
+  amplification: isNullableFiniteNumber,
+  critical: isNullableFiniteNumber,
+  switchingLevel: isNullableFiniteNumber
+})
+const bufferStats = exactObject({
+  role: oneOf('buffer'),
+  townIntelligence: isNullableFiniteNumber,
+  buff30: isNullableFiniteNumber,
+  buff50: isNullableFiniteNumber,
+  switchingLevel: isNullableFiniteNumber
+})
+const investment = exactObject({
+  slotId: isNonblankString,
+  slotName: isNonblankString,
+  itemId: nullable(isNonblankString),
+  itemName: nullable(isNonblankString),
+  rarity: nullable(isNonblankString),
+  reinforce: nullable(
+    exactObject({
+      kind: oneOf('reinforce', 'amplify'),
+      value: isNonNegativeSafeInteger,
+      amplificationName: nullable(isNonblankString)
+    })
+  ),
+  enchant: nullable(
+    exactObject({
+      status: listOf(
+        exactObject({
+          name: isNonblankString,
+          value: (value) => isFiniteNumber(value) || isNonblankString(value)
+        })
+      ),
+      grade: nullable(oneOf('종결', '준종결', '기타'))
+    })
   )
-}
+})
+const characterCard = exactObject({
+  role: nullable(oneOf('dealer', 'buffer')),
+  stats: nullable((value) => dealerStats(value) || bufferStats(value)),
+  score: nullable(
+    exactObject({
+      calculator: oneOf('equipment', 'buff'),
+      value: isNullableFiniteNumber,
+      skipped: nullable(exactObject({ kind: isNonblankString, message: isNonblankString })),
+      versions: exactObject({
+        package: isNonblankString,
+        rulesRev: isNonblankString,
+        bundleId: isNonblankString
+      })
+    })
+  ),
+  serverRank: nullable(
+    exactObject({
+      rank: isPositiveSafeInteger,
+      total: isPositiveSafeInteger,
+      basis: oneOf('fame'),
+      scope: oneOf('stored'),
+      observedAt: isOffsetTimestamp
+    })
+  ),
+  set: nullable(
+    exactObject({
+      setItemId: isNonblankString,
+      name: isNonblankString,
+      rarityName: nullable(isNonblankString),
+      point: nullable(point),
+      imageItemId: nullable(isNonblankString),
+      slots: listOf(exactObject({ slotId: isNonblankString, rarity: nullable(isNonblankString) })),
+      rarityCounts: listOf(rarityCount)
+    })
+  ),
+  oath: nullable(
+    exactObject({
+      itemId: isNonblankString,
+      name: isNonblankString,
+      rarity: nullable(isNonblankString),
+      point: isNullableFiniteNumber,
+      setName: nullable(isNonblankString),
+      optionName: nullable(isNonblankString),
+      setPoint: nullable(point),
+      upgrades: listOf(
+        exactObject({
+          step: isPositiveSafeInteger,
+          stepName: isNonblankString,
+          optionName: isNonblankString
+        })
+      ),
+      crystals: listOf(
+        exactObject({
+          slotNo: isNonNegativeSafeInteger,
+          itemId: isNonblankString,
+          name: isNonblankString,
+          rarity: nullable(isNonblankString),
+          setPoint: isNullableFiniteNumber
+        })
+      ),
+      rarityCounts: listOf(rarityCount)
+    })
+  ),
+  investment: listOf(investment)
+})
 
-function isNullableText(value: unknown): value is string | null {
-  return value === null || typeof value === 'string'
-}
-
-function isNullableNumber(value: unknown): value is number | null {
-  return value === null || (typeof value === 'number' && Number.isFinite(value))
-}
-
-function isTimestamp(value: unknown): value is string {
-  if (typeof value !== 'string' || !UTC_TIMESTAMP_PATTERN.test(value)) {
-    return false
-  }
-  const parsed = new Date(value)
-  if (!Number.isFinite(parsed.getTime())) {
-    return false
-  }
-
-  const secondsBoundary = value[16] === ':' ? 19 : 16
-
-  return parsed.toISOString().slice(0, secondsBoundary) === value.slice(0, secondsBoundary)
+/** 상세 창에 넘길 카드 값이 메인 카드의 카드 값과 같은 모양인지 확인한다. 숫자는 유한값만 받는다. */
+export function isCharacterDetailCard(value: unknown): value is CharacterCard {
+  return characterCard(value)
 }
 
 export function parseCharacterDetailSnapshot(value: unknown): CharacterDetailSnapshot {
-  if (!hasKeys(value, ['character', 'freshness'])) {
+  if (!hasExactKeys(value, ['character', 'card', 'freshness'])) {
     throw new Error('CHARACTER_DETAIL_UNAVAILABLE')
   }
-  const { character, freshness } = value
+  const { character, card, freshness } = value
   if (
-    !hasKeys(character, DETAIL_CHARACTER_KEYS) ||
-    !hasKeys(freshness, ['lastSuccessfulFetchAt', 'expiresAt'])
+    !hasExactKeys(character, DETAIL_CHARACTER_KEYS) ||
+    !hasExactKeys(freshness, ['lastSuccessfulFetchAt', 'expiresAt']) ||
+    (card !== null && !isCharacterDetailCard(card))
   ) {
     throw new Error('CHARACTER_DETAIL_UNAVAILABLE')
   }
@@ -79,7 +179,8 @@ export function parseCharacterDetailSnapshot(value: unknown): CharacterDetailSna
     jobGrowName,
     level,
     fame,
-    imageUrl
+    imageUrl,
+    guildName
   } = character
   const { lastSuccessfulFetchAt, expiresAt } = freshness
   if (
@@ -91,16 +192,17 @@ export function parseCharacterDetailSnapshot(value: unknown): CharacterDetailSna
     characterName.trim().length === 0 ||
     typeof serverName !== 'string' ||
     serverName !== DETAIL_SERVER_NAMES[serverId] ||
-    !isNullableText(adventureName) ||
-    !isNullableText(jobName) ||
-    !isNullableText(jobGrowName) ||
-    !isNullableNumber(level) ||
-    !isNullableNumber(fame) ||
+    !isNullableString(adventureName) ||
+    !isNullableString(jobName) ||
+    !isNullableString(jobGrowName) ||
+    !isNullableFiniteNumber(level) ||
+    !isNullableFiniteNumber(fame) ||
     typeof imageUrl !== 'string' ||
     imageUrl !==
       `https://img-api.neople.co.kr/df/servers/${serverId}/characters/${characterId}?zoom=1` ||
-    !isTimestamp(lastSuccessfulFetchAt) ||
-    !isTimestamp(expiresAt)
+    !isNullableString(guildName) ||
+    !isUtcTimestamp(lastSuccessfulFetchAt) ||
+    !isUtcTimestamp(expiresAt)
   ) {
     throw new Error('CHARACTER_DETAIL_UNAVAILABLE')
   }
@@ -114,9 +216,11 @@ export function parseCharacterDetailSnapshot(value: unknown): CharacterDetailSna
     jobGrowName,
     level,
     fame,
-    imageUrl
+    imageUrl,
+    guildName
   }
+  const parsedCard = card === null ? null : structuredClone(card)
   const parsedFreshness = { lastSuccessfulFetchAt, expiresAt }
 
-  return { character: parsedCharacter, freshness: parsedFreshness }
+  return { character: parsedCharacter, card: parsedCard, freshness: parsedFreshness }
 }

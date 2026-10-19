@@ -29,6 +29,7 @@ vi.mock('electron', () => ({
 const ENTRY = '/synthetic/app/character-detail.html'
 const PRELOAD = '/synthetic/app/character-detail.js'
 const DOCUMENT_URL = pathToFileURL(ENTRY).href
+const OBSERVED_AT = '2026-10-07T00:00:00.000Z'
 
 class TestFrame {
   url = DOCUMENT_URL
@@ -93,14 +94,13 @@ function details(characterId = 'character-1'): CharacterDetails {
 type Windows = ReturnType<typeof registerCharacterDetailWindows>
 const registrations: Windows[] = []
 
-function fixture(
-  devUrl?: string,
-  platform: NodeJS.Platform = 'win32'
-): {
+function fixture(devUrl?: string): {
   owner: TestWindow
   ownerWindow: BrowserWindow
   created: TestWindow[]
-  windows: Windows
+  windows: Pick<Windows, 'dispose'> & {
+    open: (source: CharacterDetails, isCurrent: () => boolean) => Promise<boolean>
+  }
   read: (window: TestWindow, ...args: unknown[]) => CharacterDetailSnapshot
   invokeRead: (event: Partial<IpcMainInvokeEvent>, ...args: unknown[]) => CharacterDetailSnapshot
   session: {
@@ -129,10 +129,12 @@ function fixture(
     owner: ownerWindow,
     entry: ENTRY,
     preload: PRELOAD,
-    devUrl,
-    platform
+    devUrl
   })
   registrations.push(windows)
+  // 대부분의 사례는 상세 응답만 바꿔 보므로, 카드 값이 없는 선택 결과로 감싸 연다.
+  const open = (source: CharacterDetails, isCurrent: () => boolean): Promise<boolean> =>
+    windows.open({ details: source, card: null }, isCurrent)
   const handler = electron.handle.mock.calls[0][1] as ReadHandler
   const invokeRead = (
     event: Partial<IpcMainInvokeEvent>,
@@ -150,7 +152,15 @@ function fixture(
     )
   }
 
-  return { owner, ownerWindow, created, windows, read, invokeRead, session }
+  return {
+    owner,
+    ownerWindow,
+    created,
+    windows: { open, dispose: windows.dispose },
+    read,
+    invokeRead,
+    session
+  }
 }
 
 beforeEach(() => {
@@ -167,7 +177,9 @@ describe('캐릭터별 상세 창 수명', () => {
   it('같은 캐릭터는 복원하고 포커스하며 처음 연 snapshot을 유지한다', async () => {
     const f = fixture()
     const source = details()
-    expect(await openSelectedCharacterDetail(f.ownerWindow, source, () => true)).toBe(true)
+    expect(
+      await openSelectedCharacterDetail(f.ownerWindow, { details: source, card: null }, () => true)
+    ).toBe(true)
     const window = f.created[0]
     const original = f.read(window)
     Object.assign(source.character, { characterName: '바뀐 이름', fame: 80000 })
@@ -182,6 +194,22 @@ describe('캐릭터별 상세 창 수명', () => {
     expect(f.read(window)).toEqual(original)
     Object.assign(original.character, { characterName: 'renderer 변경' })
     expect(f.read(window).character.characterName).toBe('가나')
+  })
+
+  it('검색이 메인 카드에 넘긴 카드 값을 상세 창 snapshot에 그대로 담는다', async () => {
+    const f = fixture()
+    const card = {
+      role: 'dealer',
+      stats: null,
+      score: null,
+      serverRank: { rank: 3, total: 120, basis: 'fame', scope: 'stored', observedAt: OBSERVED_AT },
+      set: null,
+      oath: null,
+      investment: []
+    } as const
+    await openSelectedCharacterDetail(f.ownerWindow, { details: details(), card }, () => true)
+
+    expect(f.read(f.created[0]).card).toEqual(card)
   })
 
   it('서버나 캐릭터 ID가 다르면 각각 열고 하나를 닫아도 다른 창을 유지한다', async () => {
@@ -385,7 +413,13 @@ describe('캐릭터별 상세 창 수명', () => {
     expect(f.created.every((window) => window.destroyed)).toBe(true)
     expect(electron.removeHandler).toHaveBeenCalledExactlyOnceWith('readCharacterDetail')
     expect(f.owner.listenerCount('closed')).toBe(0)
-    expect(await openSelectedCharacterDetail(f.ownerWindow, details(), () => true)).toBe(false)
+    expect(
+      await openSelectedCharacterDetail(
+        f.ownerWindow,
+        { details: details(), card: null },
+        () => true
+      )
+    ).toBe(false)
     f.windows.dispose()
     expect(electron.removeHandler).toHaveBeenCalledOnce()
   })
@@ -507,28 +541,28 @@ describe('캐릭터 상세 창 IPC와 문서 경계', () => {
     expect(window.loadFile).toHaveBeenCalledWith(ENTRY)
   })
 
-  it.each([
-    ['win32', true, { color: '#121214', symbolColor: '#f1ede6', height: 56 }, '#121214'],
-    ['win32', false, { color: '#ffffff', symbolColor: '#1a1c20', height: 56 }, '#ffffff'],
-    ['darwin', true, { height: 56 }, '#121214']
-  ] as const)(
-    '%s, 다크 %s에서 1280x800 창의 OS 제목줄을 숨기고 시스템 테마의 상단 바 색으로 창 버튼을 그린다',
-    async (platform, dark, overlay, background) => {
+  it.each([true, false])(
+    '시스템 다크 %s와 관계없이 OS 제목줄 없는 폭 540 고정의 다크 카드 패널 창을 연다',
+    async (dark) => {
       electron.nativeTheme.shouldUseDarkColors = dark
-      const f = fixture(undefined, platform)
+      const f = fixture()
       await f.windows.open(details(), () => true)
       const options = electron.BrowserWindow.mock.calls[0][0]
 
       expect(options).toMatchObject({
-        width: 1280,
-        height: 800,
-        minWidth: 1024,
-        minHeight: 640,
-        titleBarStyle: 'hidden',
-        backgroundColor: background
+        width: 540,
+        height: 650,
+        minWidth: 540,
+        maxWidth: 540,
+        minHeight: 480,
+        useContentSize: true,
+        frame: false,
+        maximizable: false,
+        fullscreenable: false,
+        backgroundColor: '#17171a'
       })
-      expect(options.titleBarOverlay).toEqual(overlay)
-      expect(options.frame).toBeUndefined()
+      expect(options.titleBarStyle).toBeUndefined()
+      expect(options.titleBarOverlay).toBeUndefined()
     }
   )
 

@@ -124,7 +124,7 @@ describe('현재 선택으로만 여는 상세 창 IPC', () => {
   it('공대 12번째 자리의 선택도 열고 그 자리를 다시 조회하면 이전 참조를 거절한다', async () => {
     const fixture = await selectedFixture('raid', 11)
     expect(await fixture.invoke('openCharacterDetails', fixture.reference)).toEqual({ ok: true })
-    expect(fixture.openSelected.mock.calls[0][1]).toEqual(fixture.details)
+    expect(fixture.openSelected.mock.calls[0][1]).toEqual({ details: fixture.details, card: null })
     const isCurrent = fixture.openSelected.mock.calls[0][2]
     expect(isCurrent()).toBe(true)
     await fixture.invoke('controlRaidSearch', {
@@ -148,7 +148,7 @@ describe('현재 선택으로만 여는 상세 창 IPC', () => {
     expect(await fixture.invoke('openCharacterDetails', fixture.reference)).toEqual({ ok: true })
     expect(fixture.openSelected).toHaveBeenCalledWith(
       expect.objectContaining({ webContents: fixture.event.sender }),
-      fixture.details,
+      { details: fixture.details, card: null },
       expect.any(Function)
     )
     expect(fixture.openSelected.mock.calls[0][2]()).toBe(true)

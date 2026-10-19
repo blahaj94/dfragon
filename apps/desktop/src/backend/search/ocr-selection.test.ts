@@ -64,7 +64,8 @@ describe('선택 상세의 main 전용 보관 수명', () => {
       await vi.waitFor(() => expect(lifetime.snapshot().slots[0].state).toBe('success'))
       const requestId = lifetime.snapshot().slots[0].requestId!
       const identity = { captureId, slot: 0, requestId }
-      expect(lifetime.selection(identity)).toBe(details)
+      expect(lifetime.selection(identity)?.details).toBe(details)
+      expect(lifetime.selection(identity)?.card).toBeNull()
       expect(lifetime.selection({ ...identity, requestId: 'stale' })).toBeNull()
       expect(lifetime.selection({ ...identity, slot: -1 })).toBeNull()
       expect(lifetime.selection({ ...identity, captureId: 'stale' })).toBeNull()
@@ -89,4 +90,63 @@ describe('선택 상세의 main 전용 보관 수명', () => {
       lifetime.invalidate()
     }
   )
+
+  it('상세 응답의 카드 값을 선택 결과와 메인 카드 요약에 같은 값으로 보관한다', async () => {
+    const card = {
+      role: 'dealer',
+      stats: null,
+      score: null,
+      serverRank: null,
+      set: null,
+      oath: null,
+      investment: [
+        {
+          slotId: 'WEAPON',
+          slotName: '무기',
+          itemId: 'weapon-item',
+          itemName: '무기 이름',
+          rarity: '태초',
+          reinforce: { kind: 'reinforce', value: 12, amplificationName: null },
+          enchant: null
+        }
+      ]
+    } as const
+    const identification: IdentificationAdapters = {
+      candidates: async () => [
+        {
+          ...details.character,
+          fame: 50000,
+          imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character?zoom=1'
+        }
+      ],
+      image: async () => ({ width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }),
+      matchesPortrait: async () => true,
+      details: async () => ({ ...details, card })
+    }
+    const lifetime = createCaptureSearchLifetime({
+      publish: vi.fn(),
+      isCurrent: () => true,
+      runtime: { http: vi.fn(), clock: new FakeClock(), identification }
+    })
+    const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot
+      .captureId!
+    lifetime.observeOcr({
+      captureId,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나',
+      candidateNicknames: ['가나'],
+      portrait: {
+        image: { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) },
+        rasterScale: 1
+      }
+    })
+    await vi.waitFor(() => expect(lifetime.snapshot().slots[0].state).toBe('success'))
+    const requestId = lifetime.snapshot().slots[0].requestId!
+    const selected = lifetime.selection({ captureId, slot: 0, requestId })
+
+    expect(selected?.card).toEqual(card)
+    expect(selected?.card).toEqual(lifetime.snapshot().slots[0].selected?.card)
+    lifetime.invalidate()
+  })
 })

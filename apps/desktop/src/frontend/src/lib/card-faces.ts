@@ -111,15 +111,15 @@ const skippedReasons: Readonly<Record<string, string>> = {
 
 const SCORE_NOTE = 'DFragon 계산값이라 게임 장비 점수와 조금 다를 수 있습니다.'
 
-// 세트 격자의 부위 묶음. 무기 하나 뒤에 방어구 다섯, 장신구 셋, 특수 장비 셋을 캔버스 순서로 둔다.
-const setSlotGroups = [
+/** 세트 격자의 부위 묶음. 무기 하나 뒤에 방어구 다섯, 장신구 셋, 특수 장비 셋을 캔버스 순서로 둔다. */
+export const setSlotGroups = [
   { id: 'armor', slots: ['SHOULDER', 'JACKET', 'PANTS', 'WAIST', 'SHOES'] },
   { id: 'accessory', slots: ['WRIST', 'AMULET', 'RING'] },
   { id: 'special', slots: ['SUPPORT', 'MAGIC_STON', 'EARRING'] }
 ] as const
 
-// 서약 격자의 결정 묶음. 서약 본체 뒤에 결정 0~2번, 3~10번을 둔다.
-const crystalSlotGroups = [
+/** 서약 격자의 결정 묶음. 서약 본체 뒤에 결정 0~2번, 3~10번을 둔다. */
+export const crystalSlotGroups = [
   { id: 'crystal-front', slots: [0, 1, 2] },
   { id: 'crystal-back', slots: [3, 4, 5, 6, 7, 8, 9, 10] }
 ] as const
@@ -128,7 +128,8 @@ const crystalSlotGroups = [
 const UPGRADE_STEPS = 9
 const UPGRADE_FIRST_GROUP = 4
 
-const slotNames: Readonly<Record<string, string>> = {
+/** 12부위의 화면 이름. 카드 값의 부위 이름이 없을 때 쓴다. */
+export const slotNames: Readonly<Record<string, string>> = {
   WEAPON: '무기',
   JACKET: '상의',
   SHOULDER: '머리어깨',
@@ -169,7 +170,7 @@ export function itemImageUrl(itemId: string | null | undefined): string | undefi
 }
 
 /** 아이템 그림 주소. 합성 미리보기가 그 itemId의 로컬 그림을 주었으면 그것을, 아니면 고정 origin URL을 쓴다. */
-function toItemImage(
+export function toItemImage(
   itemId: string | null | undefined,
   itemImages: Readonly<Record<string, string>> | undefined
 ): string | undefined {
@@ -376,7 +377,10 @@ export function toEquipmentFace(
   return { set: toSetView(card, itemImages), oath: toOathView(card, itemImages) }
 }
 
-function toReinforceView(row: CharacterCard['investment'][number] | undefined): ReinforceView {
+/** 강화나 증폭 칸. 강화와 증폭을 색과 보조 기술 이름으로 나누고, 값이 없으면 `-`다. */
+export function toReinforceView(
+  row: CharacterCard['investment'][number] | undefined
+): ReinforceView {
   const reinforce = row?.reinforce ?? null
   if (reinforce == null) {
     return { text: MISSING_VALUE, tone: 'missing', label: '강화 정보 없음' }

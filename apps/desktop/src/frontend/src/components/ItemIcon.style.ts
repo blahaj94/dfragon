@@ -12,7 +12,7 @@ const sweep = stylex.keyframes({
   '30%, 100%': { transform: 'translateX(100%)' }
 })
 
-// 캔버스 카드 면 보드의 아이콘 칸 24 × 24와 22 × 22 그림.
+// 캔버스 카드 면 보드의 아이콘 칸 24 × 24와 22 × 22 그림. 상세 창 보드의 칸은 28 × 28에 같은 크기 그림이다.
 export const styles = stylex.create({
   cell: {
     position: 'relative',
@@ -26,6 +26,7 @@ export const styles = stylex.create({
     backgroundImage: `linear-gradient(to top, color-mix(in srgb, ${rarity} 35%, transparent), transparent 70%)`,
     boxShadow: frame
   },
+  cellLarge: { width: 28, height: 28 },
   // 태초는 은은한 빛과 빛줄기를 더한다. 동작 줄이기 설정에서는 빛줄기를 그리지 않는다.
   shine: {
     boxShadow: `0 0 6px color-mix(in srgb, ${rarity} 70%, transparent), ${frame}`,

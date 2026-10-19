@@ -20,6 +20,10 @@
       "types": "./dist/utils/pagination.d.ts",
       "import": "./dist/utils/pagination.js"
     },
+    "./utils/shape-check": {
+      "types": "./dist/utils/shape-check.d.ts",
+      "import": "./dist/utils/shape-check.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

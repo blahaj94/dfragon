@@ -25,14 +25,12 @@ import {
   tierPreviewCharacters
 } from './fixture'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
-import { useColorTheme } from '../../hooks/useColorTheme'
 import type { CardCharacter } from '../../types/cards'
 import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
 import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
 
 export function Preview(): React.JSX.Element {
   const query = new URLSearchParams(window.location.search)
-  const { light } = useColorTheme()
   const [scenario, setScenario] = useState('states')
   const [captureState, setCaptureState] = useState('idle')
   const [source, setSource] = useState('')
@@ -67,9 +65,7 @@ export function Preview(): React.JSX.Element {
     characterId: 'preview-selected',
     fame: null,
     // main이 카드 값을 넘기지 않은 제품 카드처럼 세 면을 `-`로 보인다.
-    card: null,
-    equipment: [],
-    oath: []
+    card: null
   }
   let characters: readonly (CardCharacter | null)[] | undefined
   if (identification) {
@@ -105,10 +101,8 @@ export function Preview(): React.JSX.Element {
   )
   const openDetail = (): void => {
     const url = new URL(window.location.href)
-    url.search = new URLSearchParams({
-      detail: 'sample',
-      theme: light ? 'light' : 'dark'
-    }).toString()
+    // 상세 창은 테마와 관계없이 다크 카드 패널이다.
+    url.search = new URLSearchParams({ detail: 'sample', theme: 'dark' }).toString()
     window.open(url.href, 'dfragon-mvp-detail')
   }
 

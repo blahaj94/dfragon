@@ -11,10 +11,12 @@ import { readDesktopSourceInfo } from './build/build-info'
 const LIB_IMPORT_PATTERN = /^@dfragon\/lib$/
 const OCR_CONTRACT_IMPORT_PATTERN = /^@dfragon\/lib\/ocr-contract$/
 const PAGINATION_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/pagination$/
+const SHAPE_CHECK_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/shape-check$/
 const UI_IMPORT_PATTERN = /^@dfragon\/ui$/
 
 export default defineConfig(({ mode, command }) => {
   const libAlias = resolve('../../packages/lib/src/index.ts')
+  const shapeCheckAlias = resolve('../../packages/lib/src/utils/shape-check.ts')
   const desktopBuild = JSON.stringify(
     readDesktopSourceInfo(fileURLToPath(new URL('.', import.meta.url)))
   )
@@ -84,7 +86,8 @@ export default defineConfig(({ mode, command }) => {
           {
             find: OCR_CONTRACT_IMPORT_PATTERN,
             replacement: resolve('../../packages/lib/src/ocr-contract.ts')
-          }
+          },
+          { find: SHAPE_CHECK_IMPORT_PATTERN, replacement: shapeCheckAlias }
         ]
       },
       define: {
@@ -101,7 +104,12 @@ export default defineConfig(({ mode, command }) => {
       }
     },
     preload: {
-      resolve: { alias: [{ find: LIB_IMPORT_PATTERN, replacement: libAlias }] },
+      resolve: {
+        alias: [
+          { find: LIB_IMPORT_PATTERN, replacement: libAlias },
+          { find: SHAPE_CHECK_IMPORT_PATTERN, replacement: shapeCheckAlias }
+        ]
+      },
       build: {
         externalizeDeps: false,
         rollupOptions: {

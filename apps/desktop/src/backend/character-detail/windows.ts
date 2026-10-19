@@ -1,11 +1,10 @@
-import { BrowserWindow, ipcMain, nativeTheme, session, type IpcMainInvokeEvent } from 'electron'
+import { BrowserWindow, ipcMain, session, type IpcMainInvokeEvent } from 'electron'
 import { pathToFileURL } from 'node:url'
 import { addHandler } from '../ipc'
 import { validateDevRendererUrl } from '../renderer-document'
-import { getTitleBarOverlay } from '../window-chrome/title-bar-overlay'
-import { DETAIL_WINDOW_SIZE, WINDOW_CHROME_COLORS } from '../../preload/common/window-chrome'
+import { DETAIL_WINDOW_BACKGROUND, DETAIL_WINDOW_SIZE } from '../../preload/common/window-chrome'
 import { createCharacterDetailSnapshot } from './snapshot'
-import type { CharacterDetails } from '../../preload/common/types/character'
+import type { SelectedCharacter } from '../search/capture-lifetime'
 import type { CharacterDetailSnapshot } from '../../preload/common/types/character-detail'
 
 type DetailEntry = {
@@ -18,7 +17,7 @@ type DetailEntry = {
 }
 
 type DetailWindows = {
-  open: (details: CharacterDetails, isCurrent: () => boolean) => Promise<boolean>
+  open: (selected: SelectedCharacter, isCurrent: () => boolean) => Promise<boolean>
   dispose: () => void
 }
 
@@ -28,14 +27,12 @@ export function registerCharacterDetailWindows({
   owner,
   entry,
   preload,
-  devUrl,
-  platform = process.platform
+  devUrl
 }: {
   owner: BrowserWindow
   entry: string
   preload: string
   devUrl?: string
-  platform?: NodeJS.Platform
 }): DetailWindows {
   const documentUrl =
     devUrl === undefined
@@ -81,11 +78,11 @@ export function registerCharacterDetailWindows({
     return structuredClone(detail.snapshot)
   }
 
-  async function open(details: CharacterDetails, isCurrent: () => boolean): Promise<boolean> {
+  async function open(selected: SelectedCharacter, isCurrent: () => boolean): Promise<boolean> {
     if (!ownerAlive() || !isCurrent()) {
       return false
     }
-    const snapshot = createCharacterDetailSnapshot(details)
+    const snapshot = createCharacterDetailSnapshot(selected.details, selected.card)
     const key = `${snapshot.character.serverId}:${snapshot.character.characterId}`
     const previous = entries.get(key)
     if (
@@ -101,7 +98,7 @@ export function registerCharacterDetailWindows({
     if (previous !== undefined && !previous.window.isDestroyed()) {
       const loaded = await previous.loaded
       if (!loaded && previous.discardedForStaleSelection && ownerAlive() && isCurrent()) {
-        return open(details, isCurrent)
+        return open(selected, isCurrent)
       }
 
       if (!loaded || !ownerAlive() || !isCurrent() || previous.window.isDestroyed()) {
@@ -111,20 +108,22 @@ export function registerCharacterDetailWindows({
 
       return true
     }
-    // 상세 화면은 시스템 테마로 그리고(theme-init.js) 테마 전환이 없다. 그래서 OS 제목줄 대신 화면의
-    // 상단 바 안에 그리는 OS 창 버튼과 창 배경도 연 순간의 시스템 테마 상단 바 색으로 정하고, 메인 창의
-    // 창 색 IPC는 이 창에 두지 않는다.
-    const theme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
+    // 상세 창은 DFragon 디자인 캔버스 상세 창 보드처럼 창 전체가 다크 카드 패널이다. OS 제목줄과 창 버튼 없이
+    // 화면 머리의 닫기 버튼과 끌기 영역을 쓰고, 폭은 고정하고 높이만 바꿀 수 있다. 카드 면은 테마와 관계없이
+    // 다크라 창 배경도 카드 면 색이다.
     const window = new BrowserWindow({
       width: DETAIL_WINDOW_SIZE.width,
       height: DETAIL_WINDOW_SIZE.height,
-      minWidth: DETAIL_WINDOW_SIZE.minWidth,
+      minWidth: DETAIL_WINDOW_SIZE.width,
+      maxWidth: DETAIL_WINDOW_SIZE.width,
       minHeight: DETAIL_WINDOW_SIZE.minHeight,
+      useContentSize: true,
       show: false,
+      frame: false,
+      maximizable: false,
+      fullscreenable: false,
       autoHideMenuBar: true,
-      titleBarStyle: 'hidden',
-      titleBarOverlay: getTitleBarOverlay(platform, theme),
-      backgroundColor: WINDOW_CHROME_COLORS[theme].color,
+      backgroundColor: DETAIL_WINDOW_BACKGROUND,
       title: `${snapshot.character.characterName} (${snapshot.character.serverName}) - 캐릭터 정보`,
       webPreferences: {
         preload,
@@ -239,7 +238,7 @@ function reveal(window: BrowserWindow): void {
 
 export async function openSelectedCharacterDetail(
   owner: BrowserWindow,
-  details: CharacterDetails,
+  selected: SelectedCharacter,
   isCurrent: () => boolean
 ): Promise<boolean> {
   const windows = owners.get(owner)
@@ -247,5 +246,5 @@ export async function openSelectedCharacterDetail(
     return false
   }
 
-  return windows.open(details, isCurrent)
+  return windows.open(selected, isCurrent)
 }

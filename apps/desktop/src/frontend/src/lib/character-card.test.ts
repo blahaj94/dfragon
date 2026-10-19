@@ -26,7 +26,7 @@ const summary: SelectedCharacterSummary = {
   card: null
 }
 
-it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은 카드 값과 장비를 만들어내지 않는다', () => {
+it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은 카드 값을 만들어내지 않는다', () => {
   expect(toCharacterCard(summary)).toEqual({
     characterId: 'fixture-character',
     name: '실제이름',
@@ -37,9 +37,7 @@ it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은
     fame: 0,
     guild: null,
     card: null,
-    image: summary.imageUrl,
-    equipment: [],
-    oath: []
+    image: summary.imageUrl
   })
   expect(toCharacterCard({ ...summary, fame: null, level: null, jobName: null })).toMatchObject({
     fame: null,

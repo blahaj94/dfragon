@@ -1,4 +1,5 @@
 import type { DataSource } from 'typeorm'
+import { isFiniteNumber } from '@dfragon/lib/utils/shape-check'
 import { NEOPLE_SERVER_NAMES } from '../constants/neople-character-search.js'
 import type { AdventureSearchQuery } from './query.js'
 
@@ -21,7 +22,7 @@ const textOrNull = (value: unknown): string | null => {
   return null
 }
 const numberOrNull = (value: unknown): number | null => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
+  if (isFiniteNumber(value)) {
     return value
   }
 

@@ -65,9 +65,7 @@ const member: CardCharacter = {
     role: null,
     stats: null,
     serverRank: { ...dealerCard.serverRank!, rank: 5000 }
-  },
-  equipment: [],
-  oath: []
+  }
 }
 const idle: SlotState[] = Array.from({ length: 12 }, () => 'idle')
 
