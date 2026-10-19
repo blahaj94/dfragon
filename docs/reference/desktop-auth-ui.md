@@ -7,7 +7,7 @@ last-reviewed: 2026-10-10
 
 # Desktop Auth UI
 
-이 문서는 이전 계정 UI와 검증 이력이다. 2026-09-18 사용자 요청으로 `AuthPresentation`, 계정 모달, 환영/계정 메뉴와 아래 전용 UI fixture를 삭제했다. 아래 경로, 명령, 화면 관측은 당시 revision에만 해당한다. 당시 화면이 쓰던 SEED 패키지, `LayoutBlock`, provenance도 2026-10-18 결정으로 저장소에서 걷어냈다. 현재 UI는 `sections/LoginSection.tsx`의 로그인, 취소 버튼과 시스템 기본 브라우저의 accounts 페이지다. 인증 완료 뒤 loopback 수신기로 앱에 복귀하며, 실행은 [패스키 안내](passkey-authentication.md)를 따른다.
+이 문서는 이전 계정 UI와 검증 이력이다. 2026-09-18 사용자 요청으로 `AuthPresentation`, 계정 모달, 환영/계정 메뉴와 아래 전용 UI fixture를 삭제했다. 아래 경로, 명령, 화면 관측은 당시 revision에만 해당한다. 당시 화면이 쓰던 SEED 패키지, `LayoutBlock`, provenance도 2026-10-18 결정으로 저장소에서 걷어냈다. 현재 UI는 `sections/LoginSection.tsx`의 로그인, 취소 버튼과 시스템 기본 브라우저의 accounts 페이지다. 버튼은 `로그인`, 로그인 진행 중(브라우저 대기 포함)의 크림색 점 3개 깜박임과 `취소`, 로그인하면 숨김의 세 상태이며, 점은 `StepDots`를 쓰고 동작 줄이기에서는 깜박임을 멈춘다. 점이 전하는 대기 상태는 글로 반복하지 않는다. 모양은 DFragon 디자인 캔버스의 로그인 버튼 보드를 따른다. 인증 완료 뒤 loopback 수신기로 앱에 복귀하며, 실행은 [패스키 안내](passkey-authentication.md)를 따른다.
 
 ## Source와 연결 경계
 

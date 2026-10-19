@@ -1,10 +1,10 @@
-import { Button, Typo } from '@dfragon/ui'
+import { Button, StepDots, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import type { AuthApi } from '../../../preload/common/types/auth'
 import { LoginButtonLabel } from '../components/LoginButtonLabel'
-import { RefreshIcon } from '../components/RefreshIcon'
 import { useAuthBridge } from '../hooks/useAuthBridge'
 import { windowChromeStyles } from '../constants/window-chrome.style'
+import { styles } from './LoginSection.style'
 
 export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | null {
   const { snapshot, commandPending, connectionFailed, onIntent, cancelLogin, resynchronize } =
@@ -56,7 +56,9 @@ export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | nul
       >
         {loginInProgress ? (
           <>
-            <RefreshIcon width={16} height={16} />
+            <span {...stylex.props(styles.waitingDots)}>
+              <StepDots />
+            </span>
             <Typo.txtM as="span" weight={700}>
               취소
             </Typo.txtM>
