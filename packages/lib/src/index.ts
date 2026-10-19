@@ -95,6 +95,15 @@ export type {
   DNFRaidMetadataTemplates,
   DNFRaidParticipantMetadata
 } from './dnf-raid-metadata.js'
+export {
+  classifyDNFRaidValueColumn,
+  parseDNFRaidValueNotation
+} from './dnf-raid-value-column.js'
+export type {
+  DNFRaidValueColumnKind,
+  DNFRaidValueHeadingTemplates,
+  DNFRaidValueNotation
+} from './dnf-raid-value-column.js'
 export { parseServerBuildInfo } from './server-build-info.js'
 export type { ServerBuildInfo, ServerService } from './server-build-info.js'
 export {

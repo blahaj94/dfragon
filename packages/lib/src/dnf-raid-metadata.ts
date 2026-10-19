@@ -34,7 +34,10 @@ export type DNFRaidMetadataTemplates = Readonly<{
 export type DNFRaidParticipantMetadata = {
   row: DNFRaidParticipantPosition
   party: DNFRaidParty | null
-  /** Exact visible notation, including commas, decimal points and K; never converted to a number. */
+  /**
+   * Exact visible fame or equipment-score notation, including commas, decimal points and K.
+   * classifyDNFRaidValueColumn tells which value the column shows; never converted here.
+   */
   equipmentScoreText: string | null
 }
 type MetadataRow = Pick<
@@ -59,7 +62,11 @@ const scorePolicy = {
   maxGlyphs: 16
 }
 
-function validateImage(image: DNFParticipantFrame, maxWidth: number, maxHeight: number): void {
+export function validateImage(
+  image: DNFParticipantFrame,
+  maxWidth: number,
+  maxHeight: number
+): void {
   if (
     image == null ||
     !Number.isSafeInteger(image.width) ||
@@ -75,7 +82,7 @@ function validateImage(image: DNFParticipantFrame, maxWidth: number, maxHeight: 
   }
 }
 
-function validateRegion(image: DNFParticipantFrame, region: DNFRectangle): void {
+export function validateRegion(image: DNFParticipantFrame, region: DNFRectangle): void {
   if (
     region == null ||
     ![region.x, region.y, region.width, region.height].every(Number.isSafeInteger) ||
@@ -93,20 +100,34 @@ function validateRegion(image: DNFParticipantFrame, region: DNFRectangle): void 
 }
 
 /** Normalize only a disposable field copy; caller-owned source pixels are never modified. */
-function normalizedRegion(
+export function normalizedRegion(
   image: DNFParticipantFrame,
   region: DNFRectangle,
   width: number,
   height: number
 ): Uint8Array {
   const rgba = new Uint8Array(width * height * 4)
-  // Keep one-pixel glyph gaps intact when reducing an enlarged UI raster.
+  // The game enlarges the UI-0% raster with smooth filtering, so sampling the enlarged field at each
+  // original pixel center restores that raster; at scale 1 every sample lands on a whole pixel.
+  const sample = (position: number, size: number, target: number) =>
+    Math.max(0, Math.min(size - 1, ((position + 0.5) * size) / target - 0.5))
   for (let y = 0; y < height; y += 1) {
-    const sy = Math.min(region.height - 1, Math.floor(((y + 0.5) * region.height) / height))
+    const sy = sample(y, region.height, height)
+    const top = Math.floor(sy)
+    const bottom = Math.min(region.height - 1, top + 1)
+    const vertical = sy - top
     for (let x = 0; x < width; x += 1) {
-      const sx = Math.min(region.width - 1, Math.floor(((x + 0.5) * region.width) / width))
-      const source = ((region.y + sy) * image.width + region.x + sx) * 4
-      rgba.set(image.rgba.subarray(source, source + 4), (y * width + x) * 4)
+      const sx = sample(x, region.width, width)
+      const left = Math.floor(sx)
+      const right = Math.min(region.width - 1, left + 1)
+      const horizontal = sx - left
+      for (let channel = 0; channel < 4; channel += 1) {
+        const at = (px: number, py: number) =>
+          image.rgba[((region.y + py) * image.width + region.x + px) * 4 + channel]
+        const upper = at(left, top) * (1 - horizontal) + at(right, top) * horizontal
+        const lower = at(left, bottom) * (1 - horizontal) + at(right, bottom) * horizontal
+        rgba[(y * width + x) * 4 + channel] = Math.round(upper * (1 - vertical) + lower * vertical)
+      }
     }
   }
 

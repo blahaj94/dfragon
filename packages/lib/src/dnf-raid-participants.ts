@@ -22,7 +22,10 @@ export type DNFRaidParticipantRow = {
   occupied: boolean
   nickname: DNFRectangle
   partyRegion: DNFRectangle
+  /** Fame or equipment-score cell; the heading at valueHeadingRegion says which. */
   equipmentScoreRegion: DNFRectangle
+  /** 眞 mark and job name, ending before the inspect icon that clips long names. */
+  jobRegion: DNFRectangle
 }
 type Unavailable = { status: 'not-found' | 'ambiguous' | 'search-limit' }
 type Found = {
@@ -31,6 +34,8 @@ type Found = {
   /** Normalized heading correlation, not an OCR accuracy or probability. */
   matchScore: number
   window: DNFRectangle
+  /** Label cell above the numeric column, switched in game between fame and equipment score. */
+  valueHeadingRegion: DNFRectangle
   /** Always twelve entries in current screen order, including empty rows. */
   rows: DNFRaidParticipantRow[]
 }
@@ -207,10 +212,30 @@ export function detectDNFRaidParticipantWindow(
       bottom: top + 20
     })
 
-    return { row, occupied, nickname, partyRegion, equipmentScoreRegion }
+    const jobRegion = projectParticipantRectangle(matched, {
+      left: 282,
+      top: top + 3,
+      right: 349,
+      bottom: top + 20
+    })
+
+    return { row, occupied, nickname, partyRegion, equipmentScoreRegion, jobRegion }
+  })
+  const valueHeadingRegion = projectParticipantRectangle(matched, {
+    left: 105,
+    top: 0,
+    right: 180,
+    bottom: headingLayout.height
   })
 
-  return { status: 'found', scale: matched.scale, matchScore: matched.score, window, rows }
+  return {
+    status: 'found',
+    scale: matched.scale,
+    matchScore: matched.score,
+    window,
+    valueHeadingRegion,
+    rows
+  }
 }
 
 /** Copies raw nickname pixels from this frame; an empty row has nicknameCrop:null. */
