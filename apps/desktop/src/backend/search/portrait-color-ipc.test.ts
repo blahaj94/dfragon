@@ -57,7 +57,9 @@ function row(characterId: string, characterName: string, fame: number): Characte
     characterName,
     fame,
     imageUrl: `${IMAGE_ORIGIN}/df/servers/cain/characters/${characterId}?zoom=1`,
-    adventureName: null
+    adventureName: null,
+    jobName: null,
+    jobGrowName: null
   }
 }
 

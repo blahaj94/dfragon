@@ -126,6 +126,9 @@ export type CharacterCandidate = CharacterSearchRow &
     imageUrl: string
     /** API DB에 저장된 모험단명. 저장된 적 없거나 API가 보내지 않으면 null이다. */
     adventureName: string | null
+    /** Neople 검색 응답의 직업명과 전직명. 없거나 API가 보내지 않으면 null이다. */
+    jobName: string | null
+    jobGrowName: string | null
   }>
 
 export type CharacterImage = Readonly<{

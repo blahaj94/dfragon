@@ -57,7 +57,9 @@ function candidate(id: string, name = '첫이름', fame: number | null = 100): C
     serverName: '카인',
     fame,
     imageUrl,
-    adventureName: null
+    adventureName: null,
+    jobName: null,
+    jobGrowName: null
   }
 }
 

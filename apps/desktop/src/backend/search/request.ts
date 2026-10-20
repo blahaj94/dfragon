@@ -17,9 +17,10 @@ import {
   createRaidCharacterIdentifier,
   type CharacterIdentification,
   type CharacterSelectionPolicy,
-  type IdentificationServices
+  type IdentificationServices,
+  type RaidIdentificationServices
 } from './identify'
-import { NO_RAID_OBSERVED_VALUES } from './raid-candidate'
+import { toRaidObservedValues } from './raid-candidate'
 import { SearchHttpFailure, type SearchHttp } from './http'
 import type {
   CharacterCandidatesHttp,
@@ -131,13 +132,13 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
       isCurrent: input.isCurrent
     },
     async (execution) => {
-      const services = bindIdentificationServices(adapters, execution)
+      const score = input.runtime.score ?? null
+      const services = bindIdentificationServices(adapters, execution, score)
       const identified = await identifyCharacter(input, services, adapters.selection)
       if (identified.kind !== 'matched') {
         return { identified, card: null }
       }
       // 엔진 호출도 같은 예산과 취소 판정 안에서 실행해 늦은 결과를 버린다.
-      const score = input.runtime.score ?? null
       const card = await execution.run(async () => buildCharacterCard(identified.details, score))
 
       return { identified, card }
@@ -197,7 +198,7 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
 
 function identifyCharacter(
   input: RequestInput,
-  services: IdentificationServices,
+  services: IdentificationServices & RaidIdentificationServices,
   selection: CharacterSelectionPolicy
 ): Promise<CharacterIdentification> {
   if (input.manualServerId !== undefined) {
@@ -207,10 +208,10 @@ function identifyCharacter(
   }
   const nicknames = input.ocrInput?.candidateNicknames ?? []
   if (input.runtime.ocrIdentification === 'raid') {
-    // 공대 창의 명성, 장비 점수는 아직 읽지 않아 빈 관측값을 넘긴다.
     const identifyRaid = createRaidCharacterIdentifier(services)
+    const observed = toRaidObservedValues(input.ocrInput?.raidRow)
 
-    return identifyRaid({ nicknames, observed: NO_RAID_OBSERVED_VALUES })
+    return identifyRaid({ nicknames, observed })
   }
   const identify = createCharacterIdentifier(services, selection)
   const portrait = input.ocrInput?.portrait ?? null
@@ -221,8 +222,9 @@ function identifyCharacter(
 /** 요청의 실행 관리를 결합하고 식별 규칙에는 업무 연산만 전달한다. */
 function bindIdentificationServices(
   adapters: IdentificationAdapters,
-  execution: SearchOperation
-): IdentificationServices {
+  execution: SearchOperation,
+  score: ScoreEngine | null
+): IdentificationServices & RaidIdentificationServices {
   return {
     findCandidates: (nickname) =>
       execution.run((signal) => adapters.candidates({ nickname, signal })),
@@ -240,6 +242,24 @@ function bindIdentificationServices(
         }
       }),
     getDetails: (identity) => execution.run((signal) => adapters.details({ ...identity, signal })),
+    findComparisonDetails: (identity) =>
+      execution.run(async (signal) => {
+        try {
+          return await adapters.details({ ...identity, signal })
+        } catch (error) {
+          // 요청 한도는 그 후보만 점수 없음으로 두고 나머지 후보의 비교를 계속한다. 취소와 만료는 실행 계층이 판정한다.
+          if (error instanceof SearchHttpFailure && error.code === 'SEARCH_RATE_LIMITED') {
+            return null
+          }
+          throw error
+        }
+      }),
+    scoreEquipment: (details) =>
+      execution.run(async () => {
+        const equipmentScore = buildCharacterCard(details, score)?.score?.value ?? null
+
+        return equipmentScore
+      }),
     scorePortrait: (input) =>
       execution.run(async (signal) => {
         try {

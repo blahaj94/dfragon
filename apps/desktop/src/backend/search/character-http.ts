@@ -38,8 +38,10 @@ const candidateSchema = identitySchema
     serverName: z.string(),
     fame: z.number().nullable(),
     imageUrl: z.string(),
-    // 모험단명을 보내기 전의 API와도 호환하도록 없으면 null로 받는다.
-    adventureName: z.string().nullable().default(null)
+    // 모험단명, 직업명을 보내기 전의 API와도 호환하도록 없으면 null로 받는다.
+    adventureName: z.string().nullable().default(null),
+    jobName: z.string().nullable().default(null),
+    jobGrowName: z.string().nullable().default(null)
   })
   .refine(
     (candidate) =>

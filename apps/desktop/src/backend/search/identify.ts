@@ -11,7 +11,12 @@ import type {
   CharacterPortrait
 } from '../../preload/common/types/character'
 import { orderedCandidates } from './candidate-order'
-import { selectRaidCandidate, type RaidObservedValues } from './raid-candidate'
+import {
+  planRaidComparison,
+  selectRaidCandidate,
+  type RaidEquipmentScore,
+  type RaidObservedValues
+} from './raid-candidate'
 
 const MAX_OCR_NAMES = 2
 const MAX_NAME_CODE_POINTS = 12
@@ -56,7 +61,7 @@ export type CharacterIdentification =
       details: CharacterDetails
       nickname: string
       selectionMethod: CharacterSelectionMethod
-      /** 얼굴로 확정하지 못했을 때 사용자가 고를 후보. 확정한 선택에는 없다. */
+      /** 얼굴이나 공대 행 값으로 확정하지 못했을 때 사용자가 고를 후보. 확정한 선택에는 없다. */
       choices?: readonly CharacterChoice[]
     }
 
@@ -212,13 +217,23 @@ function toChoice(
   return { characterId, characterName, serverId, serverName, fame, adventureName, face }
 }
 
+/** 공대 식별이 장비 점수를 비교할 때 쓰는 업무 연산 */
+export type RaidIdentificationServices = Pick<
+  IdentificationServices,
+  'findCandidates' | 'getDetails'
+> & {
+  /** 장비 점수를 비교할 후보의 상세. 요청 한도로 받지 못하면 null이고 그 후보만 점수 없음이다. */
+  findComparisonDetails: (identity: CharacterIdentity) => Promise<CharacterDetails | null>
+  /** 상세로 계산한 장비 점수. 엔진이 없거나 계산하지 못하면 null이다. */
+  scoreEquipment: (details: CharacterDetails) => Promise<number | null>
+}
+
 /**
- * 공대 캡처의 OCR 첫 이름으로 후보를 찾고 공대 후보 선택 함수가 고른 캐릭터의 상세를 조회한다. 공대 상세
- * 창에는 얼굴이 없어 외형을 비교하지 않는다.
+ * 공대 캡처의 OCR 첫 이름으로 후보를 찾고 그 행의 직업명과 수치로 캐릭터를 골라 상세를 조회한다. 공대 상세
+ * 창에는 얼굴이 없어 외형을 비교하지 않는다. 장비 점수를 비교하면 대상 후보의 상세를 한 명씩 차례로 조회하고,
+ * 고른 후보의 상세가 그중에 있으면 다시 조회하지 않는다.
  */
-export function createRaidCharacterIdentifier(
-  services: Pick<IdentificationServices, 'findCandidates' | 'getDetails'>
-) {
+export function createRaidCharacterIdentifier(services: RaidIdentificationServices) {
   return async (input: {
     nicknames: readonly string[]
     observed: RaidObservedValues
@@ -228,12 +243,32 @@ export function createRaidCharacterIdentifier(
       return { kind: 'invalid-input' }
     }
     const candidates = await services.findCandidates(nickname)
-    const selection = selectRaidCandidate({ name: nickname, observed: input.observed, candidates })
-    if (selection === null) {
+    const plan = planRaidComparison({ observed: input.observed, candidates })
+    if (plan === null) {
       return { kind: 'unmatched' }
     }
+    const loaded = new Map<CharacterCandidate, CharacterDetails>()
+    const scores: RaidEquipmentScore[] = []
+    if (plan.kind === 'equipment-score') {
+      for (const candidate of plan.targets) {
+        const identity = { serverId: candidate.serverId, characterId: candidate.characterId }
+        const details = await services.findComparisonDetails(identity)
+        if (details === null) {
+          scores.push({ candidate, score: null })
+          continue
+        }
+        loaded.set(candidate, details)
+        scores.push({ candidate, score: await services.scoreEquipment(details) })
+      }
+    }
+    const { candidate, selectionMethod, choices } = selectRaidCandidate(plan, scores)
+    const raidChoices = choices?.map((choice) => toChoice(choice, null))
+    const details = loaded.get(candidate)
+    if (details === undefined) {
+      return selectCandidate(services, candidate, nickname, selectionMethod, raidChoices)
+    }
 
-    return selectCandidate(services, selection.candidate, nickname, selection.selectionMethod)
+    return toMatchedIdentification(candidate, details, nickname, selectionMethod, raidChoices)
   }
 }
 
@@ -270,6 +305,17 @@ async function selectCandidate(
 ): Promise<CharacterIdentification> {
   const identity = { serverId: candidate.serverId, characterId: candidate.characterId }
   const details = await services.getDetails(identity)
+
+  return toMatchedIdentification(candidate, details, nickname, selectionMethod, choices)
+}
+
+function toMatchedIdentification(
+  candidate: CharacterCandidate,
+  details: CharacterDetails,
+  nickname: string,
+  selectionMethod: CharacterSelectionMethod,
+  choices: readonly CharacterChoice[] | undefined
+): CharacterIdentification {
   if (choices === undefined) {
     return { kind: 'matched', candidate, details, nickname, selectionMethod }
   }

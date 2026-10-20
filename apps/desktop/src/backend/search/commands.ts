@@ -1,4 +1,7 @@
 import {
+  MAX_RAID_JOB_TEXT_LENGTH,
+  RAID_VALUE_COLUMNS,
+  RAID_VALUE_TEXT_PATTERN,
   SEARCH_ACTIONS,
   SEARCH_SLOT_COUNTS,
   type SearchSlotCount
@@ -116,20 +119,28 @@ const portraitSchema = z
           mask.every((value) => value === 0 || value === 1)))
     )
   })
+// 수치 표기는 판독기가 돌려주는 문자만 받는다. 값 범위 해석은 식별 단계가 한다.
+const raidRowSchema = z.strictObject({
+  jobText: text.min(1).max(MAX_RAID_JOB_TEXT_LENGTH).nullable(),
+  valueColumn: z.enum(RAID_VALUE_COLUMNS),
+  valueText: text.regex(RAID_VALUE_TEXT_PATTERN).nullable()
+})
 function createOcrObservationSchema(slotCount: SearchSlotCount) {
-  return observationSchema
-    .extend({
-      slot: slotIndex(slotCount),
-      nickname: ocrNickname,
-      candidateNicknames: z.array(text.max(MAX_NICKNAME_INPUT_LENGTH)).min(1).max(MAX_OCR_NAMES),
-      portrait: portraitSchema.nullable()
-    })
-    .refine((input) => input.nickname === input.candidateNicknames[0])
+  return observationSchema.extend({
+    slot: slotIndex(slotCount),
+    nickname: ocrNickname,
+    candidateNicknames: z.array(text.max(MAX_NICKNAME_INPUT_LENGTH)).min(1).max(MAX_OCR_NAMES),
+    portrait: portraitSchema.nullable()
+  })
 }
-// 파티 캡처는 네 자리, 공대 캡처는 12자리의 OCR 관측을 받는다.
+// 파티 캡처는 네 자리, 공대 캡처는 12자리의 OCR 관측을 받는다. 공대 관측만 그 행의 직업명과 수치를 함께 보낸다.
 const ocrObservationSchemas = {
-  [SEARCH_SLOT_COUNTS.party]: createOcrObservationSchema(SEARCH_SLOT_COUNTS.party),
+  [SEARCH_SLOT_COUNTS.party]: createOcrObservationSchema(SEARCH_SLOT_COUNTS.party).refine(
+    (input) => input.nickname === input.candidateNicknames[0]
+  ),
   [SEARCH_SLOT_COUNTS.raid]: createOcrObservationSchema(SEARCH_SLOT_COUNTS.raid)
+    .extend({ raidRow: raidRowSchema })
+    .refine((input) => input.nickname === input.candidateNicknames[0])
 }
 
 function parseCommand<T extends object>({

@@ -1,7 +1,7 @@
 import { assign, fromPromise, setup, type SnapshotFrom } from 'xstate'
 import type { CapturePhase, PartyOcrWorker } from '../types/capture'
-import type { RaidFrameResult } from '../../../preload/common/types/capture'
-import type { CharacterImage } from '../../../preload/common/types/character'
+import type { RaidFrameResult, RaidFrameRow } from '../../../preload/common/types/capture'
+import type { RaidValueColumn } from '../../../preload/common/types/search'
 import type { OcrCaptureObservation } from './capture-search'
 import { createPartyOcrWorker } from './ocr'
 import { recognizeRaidRows, type RaidSlotRecognition } from './raid-recognition'
@@ -23,7 +23,9 @@ type RaidCaptureContext = {
   /** 파티 캡처가 main에 등록을 마친 게임 창. 없으면 회차를 시작하지 않는다. */
   sourceId: string | null
   captureId: string | null
-  nicknames: readonly (CharacterImage | null)[]
+  /** 이 회차 프레임에서 main이 자른 12행. 인식 결과를 관측값으로 보낼 때 수치 표기도 여기서 읽는다. */
+  rows: readonly (RaidFrameRow | null)[]
+  valueColumn: RaidValueColumn
   results: RaidSlotRecognition[]
   round: number
   /** START를 받아 회차를 시작한 횟수. 실패하거나 취소된 회차도 센다. */
@@ -68,7 +70,7 @@ export const raidCaptureMachine = setup({
         input,
         signal
       }: {
-        input: readonly (CharacterImage | null)[]
+        input: readonly (RaidFrameRow | null)[]
         signal: AbortSignal
       }) => {
         let worker: PartyOcrWorker | null = null
@@ -108,7 +110,8 @@ export const raidCaptureMachine = setup({
     cancelRound: assign({ status: READY_STATUS, completedAt: null }),
     resetRecognition: assign({
       captureId: null,
-      nicknames: [],
+      rows: [],
+      valueColumn: 'unknown',
       results: [],
       round: ({ context }) => context.round + 1
     }),
@@ -117,15 +120,22 @@ export const raidCaptureMachine = setup({
         if (result.kind === 'missing' || result.kind === 'failed') {
           continue
         }
-        const { slot } = result
-        // 공대 상세 창에는 얼굴이 없어 이름으로만 식별한다. 검색에 쓰지 못한 첫 후보는 빈 이름으로 알린다.
+        const { slot, jobText } = result
+        // 공대 상세 창에는 얼굴이 없어 이름과 그 행의 직업명, 수치로 식별한다.
+        const raidRow = {
+          jobText,
+          valueColumn: context.valueColumn,
+          valueText: context.rows[slot]?.valueText ?? null
+        }
+        // 검색에 쓰지 못한 첫 후보는 빈 이름으로 알린다.
         if (result.kind === 'rejected') {
           showRejectedOcrNickname(result)
           context.effects.observeOcr({
             slot,
             nickname: '',
             candidateNicknames: [''],
-            portrait: null
+            portrait: null,
+            raidRow
           })
         } else {
           const { nickname } = result
@@ -133,7 +143,8 @@ export const raidCaptureMachine = setup({
             slot,
             nickname,
             candidateNicknames: [nickname],
-            portrait: null
+            portrait: null,
+            raidRow
           })
         }
       }
@@ -146,7 +157,8 @@ export const raidCaptureMachine = setup({
     effects: input,
     sourceId: null,
     captureId: null,
-    nicknames: [],
+    rows: [],
+    valueColumn: 'unknown',
     results: [],
     round: 0,
     startedRounds: 0,
@@ -202,14 +214,12 @@ export const raidCaptureMachine = setup({
               {
                 guard: ({ event }) => event.output.kind === 'rows',
                 target: 'recognizing',
-                actions: assign({
-                  nicknames: ({ event }) => {
-                    if (event.output.kind !== 'rows') {
-                      return []
-                    }
-
-                    return event.output.nicknames
+                actions: assign(({ event }) => {
+                  if (event.output.kind !== 'rows') {
+                    return {}
                   }
+
+                  return { rows: event.output.rows, valueColumn: event.output.valueColumn }
                 })
               },
               {
@@ -262,8 +272,8 @@ export const raidCaptureMachine = setup({
           },
           invoke: {
             src: 'recognize',
-            // frame 상태의 성공 전이에서 확보한 회차의 닉네임 크롭만 인식한다.
-            input: ({ context }) => context.nicknames,
+            // frame 상태의 성공 전이에서 확보한 회차의 크롭만 인식한다.
+            input: ({ context }) => context.rows,
             onDone: [
               {
                 guard: ({ event }) => event.output.some((result) => result.kind === 'failed'),

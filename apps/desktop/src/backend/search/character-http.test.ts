@@ -24,7 +24,9 @@ const candidate: CharacterCandidate = {
   serverName: '카인',
   fame: 71000,
   imageUrl: IMAGE_URL,
-  adventureName: null
+  adventureName: null,
+  jobName: null,
+  jobGrowName: null
 }
 
 function json(body: unknown, status = 200, headers?: HeadersInit): Response {
@@ -135,6 +137,25 @@ describe('OCR 후보 검색 HTTP', () => {
       expect(fetch).not.toHaveBeenCalled()
     }
   )
+
+  it('후보의 직업명과 전직명을 받고, 보내지 않는 이전 API 응답은 null로 채운다', async () => {
+    const withJob = { ...candidate, jobName: '프리스트(남)', jobGrowName: '眞 크루세이더' }
+    const { jobName: _jobName, jobGrowName: _jobGrowName, ...legacy } = candidate
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(json({ rows: [withJob] }))
+      .mockResolvedValueOnce(json({ rows: [legacy] }))
+      .mockResolvedValueOnce(json({ rows: [{ ...candidate, jobGrowName: 7 }] }))
+    const read = createCharacterCandidatesHttp({ apiOrigin: API_ORIGIN, fetch })
+
+    expect(await read({ nickname: '가나', signal: signal() })).toEqual([withJob])
+    expect(await read({ nickname: '가나', signal: signal() })).toEqual([
+      { ...legacy, jobName: null, jobGrowName: null }
+    ])
+    await expect(read({ nickname: '가나', signal: signal() })).rejects.toMatchObject({
+      code: 'SEARCH_RESPONSE_INVALID'
+    })
+  })
 
   it('명성이 같은 후보, 0, null의 서버 응답 순서를 보존하고 빈 결과도 허용한다', async () => {
     const rows = [71000, 71000, 0, null].map((fame, index) => {

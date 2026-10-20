@@ -88,12 +88,16 @@ export type {
   DNFRaidParticipantDetection,
   DNFRaidParticipantCropResult
 } from './dnf-raid-participants.js'
-export { readDNFRaidParticipantMetadata } from './dnf-raid-metadata.js'
+export {
+  readDNFRaidParticipantMetadata,
+  readDNFRaidParticipantValues
+} from './dnf-raid-metadata.js'
 export type {
   DNFRaidParty,
   DNFRaidScoreGlyph,
   DNFRaidMetadataTemplates,
-  DNFRaidParticipantMetadata
+  DNFRaidParticipantMetadata,
+  DNFRaidParticipantValue
 } from './dnf-raid-metadata.js'
 export {
   classifyDNFRaidValueColumn,

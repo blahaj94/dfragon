@@ -144,6 +144,16 @@ node scripts/import-skill-data.mjs --coordinates <skill-coordinates.json> --pvf 
 
 `--coordinates`는 dcalc 좌표를 네오플 API로 대조한 수집본(schemaVersion 3), `--pvf`는 dnf-reverse-engineering의 `continuation/outputs/handoff/phase31_live/data_layers` 폴더입니다. 직업, 전직, 이름으로 네오플 스킬과 PVF 스킬을 하나로 잇지 못하거나, 11열 밖 좌표, 같은 칸의 두 스킬, 원본 PNG SHA-256 불일치, 원본 픽셀과 다른 sprite 칸이 있으면 파일을 쓰기 전에 실패하고 이전 생성물을 그대로 둡니다. 성공하면 직업, 칸, 아이콘 연결 수와 sprite 칸 수, 바이트를 출력합니다. WebP 인코딩에 root 개발 의존성 `sharp`를 씁니다. 입력과 규칙은 [`@dfragon/skill-layouts` 안내](../packages/skill-layouts/README.md#출처와-다시-만들기)에 있습니다. 결과는 `pnpm format:check`와 Desktop 테스트로 확인합니다.
 
+## `import-equipment-icons`
+
+카드 장비 면과 상세 창의 서약, 세트 아이콘 sprite(`packages/icons/equipment.json`, `packages/icons/equipment.webp`)를 다시 만듭니다. 이 두 파일은 이 명령의 생성물이므로 손으로 고치지 않습니다.
+
+```bash
+node scripts/import-equipment-icons.mjs --pvf <data_layers 폴더> --samples <네오플 캐릭터 응답 표본 폴더>
+```
+
+`--pvf`는 dnf-reverse-engineering의 `continuation/outputs/handoff/phase31_live/data_layers`, `--samples`는 같은 저장소의 `spec/vectors`입니다. 아이콘이 있는 세트의 이름을 표본에서 찾지 못하거나, 같은 세트 이름에 `setItemId`가 둘이거나, 원본 PNG SHA-256 불일치, 원본 픽셀과 다른 sprite 칸이 있으면 파일을 쓰기 전에 실패합니다. 이름과 희귀도가 같은데 아이콘이 다른 서약은 빼고 그 목록을 출력합니다. sprite를 묶는 방법은 스킬 아이콘과 같은 `scripts/icon-sprite.mjs`를 씁니다. 입력과 규칙은 [`@dfragon/icons` 안내](../packages/icons/README.md#서약-세트-아이콘)에 있습니다.
+
 ## `verify`
 
 `pnpm verify`는 Code Quality workflow의 검사 job 가운데 Docker가 필요 없는 job을 로컬에서 다시 실행합니다. Root `pnpm test`도 같은 명령입니다. 정적 검사(`lint`, `format:check`, `check:writing`, `check:docs`), 루트 도구 테스트, 공용 package, Desktop test와 typecheck, API, accounts, OCR, Web job의 run 명령을 workflow와 같은 순서로 실행합니다. Docker PostgreSQL을 쓰는 API, accounts의 `test:database`와 Desktop 검색 통합은 `pnpm verify:database`로 따로 실행합니다.

@@ -1,5 +1,5 @@
 import type { CharacterPortrait } from '../types/character'
-import type { OcrSearchInput } from '../types/search'
+import type { OcrSearchInput, RaidRowObservation } from '../types/search'
 
 const RGBA_CHANNELS = 4
 const ALPHA_CHANNEL = 3
@@ -44,11 +44,28 @@ export function sameCharacterPortrait(
   return true
 }
 
-/** 같은 순위의 이름과 같은 얼굴이면 현재 요청과 기존 시간 예산을 유지한다. */
+function sameRaidRow(
+  left: RaidRowObservation | undefined,
+  right: RaidRowObservation | undefined
+): boolean {
+  if (left === undefined || right === undefined) {
+    return left === right
+  }
+
+  return (
+    left.jobText === right.jobText &&
+    left.valueColumn === right.valueColumn &&
+    left.valueText === right.valueText
+  )
+}
+
+/** 같은 순위의 이름, 같은 얼굴과 같은 공대 행 값이면 현재 요청과 기존 시간 예산을 유지한다. */
 export function sameOcrSearchInput(left: OcrSearchInput, right: OcrSearchInput): boolean {
   if (left.candidateNicknames[0] !== right.candidateNicknames[0]) {
     return false
   }
 
-  return sameCharacterPortrait(left.portrait, right.portrait)
+  return (
+    sameCharacterPortrait(left.portrait, right.portrait) && sameRaidRow(left.raidRow, right.raidRow)
+  )
 }

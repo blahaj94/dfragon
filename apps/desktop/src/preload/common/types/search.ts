@@ -13,7 +13,18 @@ export const SEARCH_ACTIONS = {
   LOOKUP: 'lookup'
 } as const
 
-export const CHARACTER_SELECTION_METHODS = ['portrait', 'highest-fame', 'manual'] as const
+/**
+ * 고른 근거. `portrait`는 파티 얼굴, `job`, `fame`, `equipment-score`는 공대 행의 직업명, 명성, 장비 점수,
+ * `highest-fame`은 비교 근거 없이 최고 명성 후보, `manual`은 사용자가 지정한 서버다.
+ */
+export const CHARACTER_SELECTION_METHODS = [
+  'portrait',
+  'job',
+  'fame',
+  'equipment-score',
+  'highest-fame',
+  'manual'
+] as const
 export type CharacterSelectionMethod = (typeof CHARACTER_SELECTION_METHODS)[number]
 
 export type ManualCharacterLookup = SearchObservation & Readonly<{ serverId: string }>
@@ -43,9 +54,29 @@ export type SearchObservation = Readonly<{
   nickname: string
 }>
 
+/** 공대 창 수치 열의 제목으로 판별한 종류. 어느 제목인지 확실하지 않으면 `unknown`이다. */
+export const RAID_VALUE_COLUMNS = ['fame', 'equipment-score', 'unknown'] as const
+export type RaidValueColumn = (typeof RAID_VALUE_COLUMNS)[number]
+
+/** 직업명 OCR 문자열의 상한. 직업명 칸에는 이보다 긴 글자가 들어가지 않는다. */
+export const MAX_RAID_JOB_TEXT_LENGTH = 32
+/** 공대 수치 칸 판독기가 돌려주는 표기. 숫자, 쉼표, 마침표, K로 16자까지다. */
+export const RAID_VALUE_TEXT_PATTERN = /^[0-9,.K]{1,16}$/
+
+/** 공대 행 하나에서 이름 밖에 읽은 값. 서버 확정에 쓴다. */
+export type RaidRowObservation = Readonly<{
+  /** 직업명 칸 OCR의 1위 문자열. 읽지 못했으면 null이다. */
+  jobText: string | null
+  valueColumn: RaidValueColumn
+  /** 수치 칸에 보이는 그대로의 표기(`12,345`, `1000.4K`). 읽지 못했으면 null이다. */
+  valueText: string | null
+}>
+
 export type OcrSearchInput = Readonly<{
   candidateNicknames: readonly string[]
   portrait: CharacterPortrait | null
+  /** 공대 캡처만 보낸다. 파티 캡처에는 없다. */
+  raidRow?: RaidRowObservation
 }>
 export type OcrSearchObservation = SearchObservation & OcrSearchInput
 

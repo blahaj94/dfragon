@@ -724,7 +724,7 @@ async function beginRaid(fixture: Awaited<ReturnType<typeof setup>>): Promise<st
 }
 
 describe('공대 캡처 회차의 프레임 IPC', () => {
-  it('창 등록 뒤 시작한 공대 수명만 프레임을 한 장 읽고 12행 닉네임 크롭만 돌려준다', async () => {
+  it('창 등록 뒤 시작한 공대 수명만 프레임을 한 장 읽고 12행 크롭과 수치 열 종류만 돌려준다', async () => {
     const f = await setup(false)
     nativeFrame.read.mockResolvedValue({ kind: 'frame', image: raidFrame(7) })
     await f.invoke('selectCaptureSource', sources[0].id)
@@ -732,12 +732,14 @@ describe('공대 캡처 회차의 프레임 IPC', () => {
 
     const result = (await f.invoke('readRaidCaptureFrame', raidId)) as {
       kind: string
-      nicknames: ({ width: number; height: number } | null)[]
+      valueColumn: string
+      rows: ({ nickname: { width: number; height: number } } | null)[]
     }
 
-    expect(Object.keys(result)).toEqual(['kind', 'nicknames'])
+    expect(Object.keys(result)).toEqual(['kind', 'valueColumn', 'rows'])
     expect(result.kind).toBe('rows')
-    expect(result.nicknames.map((nickname) => nickname?.width ?? null)).toEqual([
+    expect(result.valueColumn).toBe('equipment-score')
+    expect(result.rows.map((row) => row?.nickname.width ?? null)).toEqual([
       ...Array.from({ length: 7 }, () => 86),
       ...Array.from({ length: 5 }, () => null)
     ])

@@ -51,10 +51,42 @@ export function canRetryCharacterSlot(slot: SearchSlot, retryPending: boolean): 
   return true
 }
 
-/** 정제된 오류와 남은 재시도 대기 시간을 카드에 표시한다. */
-export function characterSlotNotice(slot: SearchSlot): string | undefined {
-  // 후보 줄이 있으면 줄이 확정하지 못했다는 표시라 같은 뜻의 문구를 겹치지 않는다.
-  if (slot.selectionMethod === 'highest-fame' && slot.choices === undefined) {
+/** 카드가 놓인 화면. 공대 카드는 후보 줄 없이 선택 근거를 안내 문구로만 알린다. */
+export type SlotCardScreen = 'party' | 'raid'
+
+/** 공대 카드에서 확정하지 못한 선택의 안내. 확정한 선택은 안내 없이 스탯 줄을 보인다. */
+function raidSelectionNotice(slot: SearchSlot): string | undefined {
+  if (slot.selectionMethod === 'highest-fame') {
+    return '직업과 수치 미확인, 최고 명성 후보입니다.'
+  }
+
+  if (slot.choices === undefined) {
+    return undefined
+  }
+
+  if (slot.selectionMethod === 'fame') {
+    return '명성으로 추정한 후보입니다.'
+  }
+
+  if (slot.selectionMethod === 'equipment-score') {
+    return '장비 점수로 추정한 후보입니다.'
+  }
+
+  return undefined
+}
+
+/** 선택 근거와 정제된 오류, 남은 재시도 대기 시간을 카드에 표시한다. */
+export function characterSlotNotice(
+  slot: SearchSlot,
+  screen: SlotCardScreen = 'party'
+): string | undefined {
+  if (screen === 'raid') {
+    const notice = raidSelectionNotice(slot)
+    if (notice !== undefined) {
+      return notice
+    }
+  } else if (slot.selectionMethod === 'highest-fame' && slot.choices === undefined) {
+    // 후보 줄이 있으면 줄이 확정하지 못했다는 표시라 같은 뜻의 문구를 겹치지 않는다.
     return '외형 미확인, 최고 명성 후보입니다.'
   }
 
@@ -74,8 +106,12 @@ export function characterSlotNotice(slot: SearchSlot): string | undefined {
 }
 
 /** 실패와 결과 0건 카드의 안내에 다음 조회 방법을 덧붙인다. 그 밖의 상태는 정제된 안내만 쓴다. */
-export function searchSlotNotice(slot: SearchSlot, nextStep: string): string | undefined {
-  const notice = characterSlotNotice(slot)
+export function searchSlotNotice(
+  slot: SearchSlot,
+  nextStep: string,
+  screen: SlotCardScreen = 'party'
+): string | undefined {
+  const notice = characterSlotNotice(slot, screen)
   if (slot.state === 'failure' || slot.state === 'empty') {
     const message = notice ?? '검색 결과가 없습니다.'
 

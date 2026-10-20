@@ -2,6 +2,8 @@ import { MISSING_VALUE } from '../constants/cards'
 import { investmentIds } from '../constants/equipment'
 import type { CharacterCard } from '../types/cards'
 import { type CardStatItem, type CardStatLabelLength, toCardStatItems } from './card-stats'
+import { type ItemPicture, oathIcon, setIcon } from './equipment-icons'
+import { type OathUpgradeKind, oathUpgradeKind, oathUpgradeKindLabels } from './oath-upgrades'
 
 /** 희귀도 색 토큰 키. 컴포넌트가 이 키로 `rarity.*` 색을 고르고, 모르는 희귀도는 `unknown`이다. */
 export type RarityTone =
@@ -47,12 +49,15 @@ export type RarityGroupView = { id: string; main: boolean; cells: RarityCellView
 
 export type RarityCountView = { label: string; count: string; tone: RarityTone }
 
-/** 세트와 서약 섹션의 공통 머리. 값이 없으면 `missing`이고 이름 자리에 없다는 안내를 둔다. */
+/**
+ * 세트와 서약 섹션의 공통 머리. 값이 없으면 `missing`이고 이름 자리에 없다는 안내를 둔다. 그림은 115 세트면
+ * 세트 아이콘, 서약이면 서약 아이콘이고 번들한 아이콘이 없으면 네오플 아이템 그림이다.
+ */
 export type SummaryView = {
   missing: boolean
   name: string
   tone: RarityTone
-  imageUrl: string | undefined
+  image: ItemPicture | undefined
   imageLabel: string
   pointLabel: string
   point: string
@@ -60,8 +65,11 @@ export type SummaryView = {
   counts: RarityCountView[]
 }
 
-/** 묵언의 진의 한 칸. 접근 가능한 이름은 `N단계 <옵션명>`이고 빈 칸은 `N단계 비어 있음`이다. */
-export type UpgradeCellView = { filled: boolean; label: string }
+/**
+ * 묵언의 진의 한 칸. 연 칸은 옵션 종류(`kind`) 색이고 이름은 `N단계 · <종류> (<옵션명>)`이다. 종류를 모르는
+ * 옵션은 `other`(카드 글자색)에 `N단계 · <옵션명>`, 빈 칸은 `empty`에 `N단계 비어 있음`이다.
+ */
+export type UpgradeCellView = { kind: OathUpgradeKind | 'other' | 'empty'; label: string }
 
 export type EquipmentFaceView = {
   set: SummaryView
@@ -275,6 +283,32 @@ function toRarityGroups<Slot>(
   }))
 }
 
+// 세트 머리 그림. 115 세트는 세트 아이콘, 그 밖은 대표 장비 그림이다.
+function toSetImage(
+  set: NonNullable<CharacterCard['set']>,
+  itemImages: Readonly<Record<string, string>> | undefined
+): Pick<SummaryView, 'image' | 'imageLabel'> {
+  const icon = setIcon(set.setItemId)
+  if (icon !== undefined) {
+    return { image: icon, imageLabel: set.name }
+  }
+
+  return { image: toItemImage(set.imageItemId, itemImages), imageLabel: `${set.name} 대표 장비` }
+}
+
+/** 서약 그림. 네오플 이미지 API에 서약 그림이 없어 번들한 서약 아이콘을 먼저 쓴다. */
+export function toOathImage(
+  oath: NonNullable<CharacterCard['oath']>,
+  itemImages: Readonly<Record<string, string>> | undefined
+): ItemPicture | undefined {
+  const icon = oathIcon(oath.rarity, oath.name)
+  if (icon !== undefined) {
+    return icon
+  }
+
+  return toItemImage(oath.itemId, itemImages)
+}
+
 function toSetView(
   card: CharacterCard | null | undefined,
   itemImages: Readonly<Record<string, string>> | undefined
@@ -293,7 +327,7 @@ function toSetView(
       missing: true,
       name: '세트 정보 없음',
       tone: 'unknown',
-      imageUrl: undefined,
+      image: undefined,
       imageLabel: '세트',
       pointLabel: '세트 포인트',
       point: MISSING_VALUE,
@@ -307,8 +341,7 @@ function toSetView(
     missing: false,
     name: set.name,
     tone: toRarityTone(set.rarityName),
-    imageUrl: toItemImage(set.imageItemId, itemImages),
-    imageLabel: `${set.name} 대표 장비`,
+    ...toSetImage(set, itemImages),
     pointLabel: '세트 포인트',
     point: formatPoint(set.point?.current),
     groups: [weaponGroup, ...toRarityGroups(setSlotGroups, rarityBySlot, String)],
@@ -324,10 +357,14 @@ function toUpgradeCells(
     const step = index + 1
     const optionName = optionByStep.get(step)
     if (optionName == null) {
-      return { filled: false, label: `${step}단계 비어 있음` }
+      return { kind: 'empty', label: `${step}단계 비어 있음` }
+    }
+    const kind = oathUpgradeKind(optionName)
+    if (kind === undefined) {
+      return { kind: 'other', label: `${step}단계 · ${optionName}` }
     }
 
-    return { filled: true, label: `${step}단계 ${optionName}` }
+    return { kind, label: `${step}단계 · ${oathUpgradeKindLabels[kind]} (${optionName})` }
   })
 
   return [cells.slice(0, UPGRADE_FIRST_GROUP), cells.slice(UPGRADE_FIRST_GROUP)]
@@ -345,7 +382,7 @@ function toOathView(
       missing: true,
       name: '서약 정보 없음',
       tone: 'unknown',
-      imageUrl: undefined,
+      image: undefined,
       imageLabel: '서약',
       pointLabel: '서약 포인트',
       point: MISSING_VALUE,
@@ -366,7 +403,7 @@ function toOathView(
     missing: false,
     name,
     tone: bodyTone,
-    imageUrl: toItemImage(oath.itemId, itemImages),
+    image: toOathImage(oath, itemImages),
     imageLabel: oath.name,
     pointLabel: '서약 포인트',
     point: formatPoint(oath.setPoint?.current),

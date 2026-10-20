@@ -8,6 +8,7 @@ import {
   detectDNFRaidParticipantWindow,
   cropDNFRaidParticipantNicknames,
   readDNFRaidParticipantMetadata,
+  readDNFRaidParticipantValues,
   classifyDNFRaidValueColumn,
   parseDNFRaidValueNotation,
   parseServerBuildInfo,
@@ -28,6 +29,7 @@ import {
   type DNFRaidParticipantCropResult,
   type DNFRaidParty,
   type DNFRaidScoreGlyph,
+  type DNFRaidParticipantValue,
   type DNFRaidMetadataTemplates,
   type DNFRaidParticipantMetadata,
   type DNFRaidValueColumnKind,
@@ -138,6 +140,19 @@ export function readRaidLabels(
 
     return { row, party, equipmentScoreText }
   })
+}
+
+export function readRaidValues(
+  frame: DNFParticipantFrame,
+  rows: readonly DNFRaidParticipantRow[],
+  glyph: DNFRaidScoreGlyph,
+  glyphImage: DNFParticipantFrame
+): (string | null)[] {
+  const values: DNFRaidParticipantValue[] = readDNFRaidParticipantValues(frame, rows, [
+    { character: glyph, image: glyphImage }
+  ])
+
+  return values.map((value) => value.valueText)
 }
 
 export function readRaidValueColumn(

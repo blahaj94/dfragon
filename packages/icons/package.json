@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./equipment.json": "./equipment.json",
+    "./equipment.webp": "./equipment.webp",
     "./skills.json": "./skills.json",
     "./skills.webp": "./skills.webp",
     "./package.json": "./package.json"

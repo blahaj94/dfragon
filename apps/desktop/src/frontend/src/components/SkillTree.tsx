@@ -99,7 +99,10 @@ function SkillCell({
   const off = cell.level === 0
 
   return (
-    <Tooltip.Root>
+    <Tooltip.Root
+      // 설명 상자가 이웃 칸을 덮어도 마우스가 그쪽에 닿도록 상자 위에서는 열린 채로 두지 않는다.
+      disableHoverablePopup
+    >
       <Tooltip.Trigger
         delay={0}
         closeDelay={0}

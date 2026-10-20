@@ -1,12 +1,17 @@
 import { isValidPartyFrameSize } from '@dfragon/lib'
-import type { RaidFrameResult, WindowFrameResult } from './types/capture'
+import type { RaidFrameResult, RaidFrameRow, WindowFrameResult } from './types/capture'
 import type { CharacterImage } from './types/character'
-import { SEARCH_SLOT_COUNTS } from './types/search'
+import {
+  RAID_VALUE_COLUMNS,
+  RAID_VALUE_TEXT_PATTERN,
+  SEARCH_SLOT_COUNTS,
+  type RaidValueColumn
+} from './types/search'
 
 const RGBA_CHANNELS = 4
-// 공대 닉네임 크롭은 UI 0%에서 86×17이다. 큰 화면 배율을 받되 프레임 원본 크기의 값은 거절한다.
-const MAX_RAID_NICKNAME_WIDTH = 1024
-const MAX_RAID_NICKNAME_HEIGHT = 256
+// 공대 닉네임, 직업명 크롭은 UI 0%에서 86×17, 67×17이다. 큰 화면 배율을 받되 프레임 원본 크기의 값은 거절한다.
+const MAX_RAID_CROP_WIDTH = 1024
+const MAX_RAID_CROP_HEIGHT = 256
 const FRAME_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 /** 프레임 없이 끝난 캡처 응답(미지원, 가림과 읽기 대기)만 그대로 돌려주고 나머지는 null이다. */
@@ -78,8 +83,8 @@ export function parseWindowFrame(value: unknown): WindowFrameResult {
   throw new Error('CAPTURE_RESPONSE_INVALID')
 }
 
-/** 공대 닉네임 크롭 하나의 크기와 바이트 수를 확인하고 추가 필드가 없는 복사본을 만든다. */
-function parseRaidNickname(value: unknown): CharacterImage {
+/** 공대 행 크롭 하나의 크기와 바이트 수를 확인하고 추가 필드가 없는 복사본을 만든다. */
+function parseRaidCrop(value: unknown): CharacterImage {
   if (
     value === null ||
     typeof value !== 'object' ||
@@ -93,8 +98,8 @@ function parseRaidNickname(value: unknown): CharacterImage {
     typeof value.height !== 'number' ||
     value.width < 1 ||
     value.height < 1 ||
-    value.width > MAX_RAID_NICKNAME_WIDTH ||
-    value.height > MAX_RAID_NICKNAME_HEIGHT ||
+    value.width > MAX_RAID_CROP_WIDTH ||
+    value.height > MAX_RAID_CROP_HEIGHT ||
     !(value.rgba instanceof Uint8Array) ||
     value.rgba.byteLength !== value.width * value.height * RGBA_CHANNELS
   ) {
@@ -105,7 +110,30 @@ function parseRaidNickname(value: unknown): CharacterImage {
   return { width, height, rgba }
 }
 
-/** 공대 캡처 응답이 12행의 닉네임 크롭이나 정해진 미검출, 대기 사유만 담는지 IPC 경계에서 확인한다. */
+function parseRaidRow(value: unknown): RaidFrameRow {
+  if (
+    value === null ||
+    typeof value !== 'object' ||
+    Reflect.ownKeys(value).length !== 3 ||
+    !('nickname' in value) ||
+    !('job' in value) ||
+    !('valueText' in value) ||
+    (value.valueText !== null &&
+      (typeof value.valueText !== 'string' || !RAID_VALUE_TEXT_PATTERN.test(value.valueText)))
+  ) {
+    throw new Error('CAPTURE_RESPONSE_INVALID')
+  }
+  const nickname = parseRaidCrop(value.nickname)
+  const job = value.job === null ? null : parseRaidCrop(value.job)
+
+  return { nickname, job, valueText: value.valueText }
+}
+
+function isRaidValueColumn(value: unknown): value is RaidValueColumn {
+  return RAID_VALUE_COLUMNS.some((column) => column === value)
+}
+
+/** 공대 캡처 응답이 12행의 크롭과 수치 표기, 정해진 미검출, 대기 사유만 담는지 IPC 경계에서 확인한다. */
 export function parseRaidFrame(value: unknown): RaidFrameResult {
   if (value === null || typeof value !== 'object' || !('kind' in value)) {
     throw new Error('CAPTURE_RESPONSE_INVALID')
@@ -126,20 +154,22 @@ export function parseRaidFrame(value: unknown): RaidFrameResult {
 
   if (
     value.kind === 'rows' &&
-    Reflect.ownKeys(value).length === 2 &&
-    'nicknames' in value &&
-    Array.isArray(value.nicknames) &&
-    value.nicknames.length === SEARCH_SLOT_COUNTS.raid
+    Reflect.ownKeys(value).length === 3 &&
+    'valueColumn' in value &&
+    isRaidValueColumn(value.valueColumn) &&
+    'rows' in value &&
+    Array.isArray(value.rows) &&
+    value.rows.length === SEARCH_SLOT_COUNTS.raid
   ) {
-    const nicknames = Array.from(value.nicknames, (nickname: unknown) => {
-      if (nickname === null) {
+    const rows = Array.from(value.rows, (row: unknown) => {
+      if (row === null) {
         return null
       }
 
-      return parseRaidNickname(nickname)
+      return parseRaidRow(row)
     })
 
-    return { kind: 'rows', nicknames }
+    return { kind: 'rows', valueColumn: value.valueColumn, rows }
   }
 
   throw new Error('CAPTURE_RESPONSE_INVALID')

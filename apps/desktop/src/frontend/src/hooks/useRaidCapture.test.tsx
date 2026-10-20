@@ -19,10 +19,13 @@ vi.mock('../lib/ocr', () => ({
 const crop = { width: 86, height: 17, rgba: new Uint8Array(86 * 17 * 4) }
 const frame: RaidFrameResult = {
   kind: 'rows',
-  nicknames: Array.from({ length: 12 }, (_, row) => (row === 0 ? crop : null))
+  valueColumn: 'fame',
+  rows: Array.from({ length: 12 }, (_, row) =>
+    row === 0 ? { nickname: crop, job: crop, valueText: '12,345' } : null
+  )
 }
 const recognized: RaidSlotRecognition[] = [
-  { kind: 'recognized', nickname: '첫째공대원', slot: 0 },
+  { kind: 'recognized', nickname: '첫째공대원', slot: 0, jobText: '眞 크루세이더' },
   ...Array.from({ length: 11 }, (_, index) => ({ kind: 'missing' as const, slot: index + 1 }))
 ]
 let value: ReturnType<typeof useRaidCapture>
