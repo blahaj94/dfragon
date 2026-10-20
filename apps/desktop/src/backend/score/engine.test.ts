@@ -240,6 +240,26 @@ describe('점수 엔진 호출과 결과 검증', () => {
     expect(native.reports).toEqual([])
   })
 
+  it('rev14가 건너뛴 결과에 더한 근사값과 경고는 버리고 건너뛴 결과로 돌려준다', () => {
+    const skipped = {
+      ...engineResult,
+      score: null,
+      skipped: { kind: 'resolution', message: '판정 불가' },
+      versions: { package: 'dnfscore-native 0.3.0', rules_rev: 'rev14', bundle_id: 'phase32-rev14' }
+    }
+    const native = nativeEngine({
+      output: JSON.stringify({
+        ...skipped,
+        approximate_score: 1650,
+        approximate_source: 'previous_season_fusion',
+        warning: '근사값입니다'
+      })
+    })
+
+    expect(loadScoreEngine(native.options)!(input, 'equipment')).toEqual(skipped)
+    expect(native.reports).toEqual([])
+  })
+
   it('계산이 50ms를 넘으면 결과는 그대로 쓰고 느린 호출 진단을 남긴다', () => {
     const native = nativeEngine()
     const times = [0, 50, 100, 151]
