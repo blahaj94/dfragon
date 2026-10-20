@@ -39,7 +39,7 @@ import { rotateRefresh } from '../refresh/index.js'
 import type { RefreshDependencies } from '../refresh/types.js'
 import { parseCreation, parseExchange, parseRefreshToken } from './input.js'
 import { jsonError, loginJsonParser } from './json-parser.js'
-import { AuthCapacity, createAuthRateLimit } from './admission.js'
+import { AuthCapacity } from './admission.js'
 import {
   ACCOUNTS_BUILD_INFO,
   AccountsVersionController,
@@ -352,9 +352,8 @@ export async function createLoginHttpApp(
   try {
     // Only an explicitly configured, isolated single-proxy deployment trusts XFF.
     app.set('trust proxy', httpOptions?.trustedProxyHops ?? false)
-    // Nest 기본 logger는 끈 채로 두고, 요청 제한과 JSON parser의 거절까지 재도록 가장 먼저 등록한다.
+    // Nest 기본 logger는 끈 채로 두고, JSON parser의 거절까지 재도록 가장 먼저 등록한다.
     app.use(createAccessLog(httpOptions?.writeAccessLog ?? writeAccessLogToStdout))
-    app.use(createAuthRateLimit())
     app.use((request: Request, response: Response, next: () => void) => {
       response.setHeader('Cache-Control', 'no-store')
       response.removeHeader('X-Powered-By')
