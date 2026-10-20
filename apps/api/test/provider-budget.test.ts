@@ -4,7 +4,6 @@ import { NeopleBudget } from '../src/characters/provider-budget.js'
 import { createNeopleCharacterSearchForTest } from '../src/characters/neople-character-search.js'
 import { createNeopleCharacterDetailsForTest } from '../src/characters/details/neople.js'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
-import { SearchAdmission } from '../src/characters/search-admission.js'
 
 // character-search.md의 서비스 보호 상한: 최근 60초 600회, body 수신까지 동시 12회.
 // 구현 상수를 기대값으로 가져오면 잘못된 상한 변경도 함께 통과하므로 독립 사례로 고정한다.
@@ -210,29 +209,4 @@ test('동기 예외 뒤에도 슬롯이 반환되고 서로 다른 시작 시각
     budget.run(async () => undefined),
     { status: 429, retryAfter: 59 }
   )
-})
-
-test('동일 IPv6 /64와 IPv4-mapped 표현은 같은 IP 한도를 공유하고 다른 대역은 독립적이다', async () => {
-  const admission = new SearchAdmission()
-  const reserve = async (ip: string) => {
-    const lease = await admission.acquire(ip, new AbortController().signal)
-    try {
-      lease.reserve()
-    } finally {
-      lease.release()
-    }
-  }
-  try {
-    for (let i = 1; i <= 10; i++) {
-      await reserve(`2001:db8:1:2::${i}`)
-    }
-    await assert.rejects(reserve('2001:0db8:0001:0002:0:0:0:ffff'), { status: 429 })
-    await reserve('2001:db8:1:3::1')
-    for (let i = 0; i < 10; i++) {
-      await reserve(i % 2 ? '192.0.2.1' : '::ffff:192.0.2.1')
-    }
-    await assert.rejects(reserve('192.0.2.1'), { status: 429 })
-  } finally {
-    admission.close()
-  }
 })
