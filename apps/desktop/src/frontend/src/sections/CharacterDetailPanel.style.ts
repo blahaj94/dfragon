@@ -4,10 +4,13 @@ import { colors, font, motion, radius, space } from '@dfragon/ui/tokens.stylex'
 // DFragon 디자인 캔버스 상세 창 보드의 540 × 650 패널. 창 전체를 채우고, 머리 40, 캐릭터 칸, 탭 40 아래의
 // 탭 내용만 스크롤한다. 카드 면 색이라 라이트 테마에서도 다크다.
 export const styles = stylex.create({
+  // 카드 테두리의 모서리 꺾쇠는 1px 바깥에 놓여 창 밖으로 나간다. 그 1px이 문서를 넘쳐 Windows에서 창 전체
+  // 스크롤바가 생기지 않도록 패널 밖을 자른다.
   panel: {
     display: 'grid',
     gridTemplateRows: 'minmax(0, 1fr)',
     height: '100vh',
+    overflow: 'hidden',
     backgroundColor: colors.cardBg
   },
   header: {

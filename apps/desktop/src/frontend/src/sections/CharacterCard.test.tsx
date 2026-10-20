@@ -513,8 +513,10 @@ it('장비 면은 세트와 서약 섹션, 묵언의 진의 단계 이름과 희
   expect(set.textContent).toContain('세트 포인트')
   expect(set.textContent).toContain('2,625')
   expect(set.textContent).toContain('태초 3')
-  expect(set.querySelector('img')?.getAttribute('src')).toBe(
-    'https://img-api.neople.co.kr/df/items/2d23a5dc389016bdc3a3e3fd142b38ce'
+  // 115 세트는 대표 장비 그림 대신 번들한 세트 아이콘을 그림 이름과 함께 그린다.
+  expect(set.querySelector('img')).toBeNull()
+  expect(set.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe(
+    '환상의 에테리얼 오브 아츠 세트'
   )
 
   const oath = container.querySelector('section[aria-label="서약"]')!
@@ -524,14 +526,14 @@ it('장비 면은 세트와 서약 섹션, 묵언의 진의 단계 이름과 희
     ...oath.querySelectorAll('[role="list"][aria-label="묵언의 진의"] [role="listitem"]')
   ]
   expect(steps.map((step) => step.getAttribute('aria-label'))).toEqual([
-    '1단계 강인한 통찰',
-    '2단계 포용의 권능',
-    '3단계 심연의 고동',
-    '4단계 신념의 대가',
-    '5단계 이어진 걸음',
-    '6단계 영원의 궤적',
-    '7단계 만물의 흐름',
-    '8단계 순례자의 길',
+    '1단계 · 스킬 공격력 증가 (강인한 통찰)',
+    '2단계 · 스킬 공격력 증가 (포용의 권능)',
+    '3단계 · 스킬 공격력 증가 (심연의 고동)',
+    '4단계 · 스킬 공격력 증가 (신념의 대가)',
+    '5단계 · 모든 속도 (이어진 걸음)',
+    '6단계 · 모든 속도 (영원의 궤적)',
+    '7단계 · 모든 속도 (만물의 흐름)',
+    '8단계 · 모든 속도 (순례자의 길)',
     '9단계 비어 있음'
   ])
 })

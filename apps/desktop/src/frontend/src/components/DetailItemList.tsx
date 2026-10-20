@@ -48,7 +48,7 @@ function DetailItemRow({
   const { tone, text } = row
   const content = (
     <>
-      <ItemIcon src={row.imageUrl} tone={tone} large />
+      <ItemIcon src={row.image} tone={tone} large />
       <span {...stylex.props(styles.text)}>
         <span
           aria-hidden="true"
@@ -73,7 +73,10 @@ function DetailItemRow({
   }
 
   return (
-    <Tooltip.Root>
+    <Tooltip.Root
+      // 설명 상자가 아래 줄을 덮어도 마우스가 그쪽에 닿도록 상자 위에서는 열린 채로 두지 않는다.
+      disableHoverablePopup
+    >
       <Tooltip.Trigger
         delay={0}
         closeDelay={0}
@@ -89,7 +92,7 @@ function DetailItemRow({
         {...stylex.props(styles.tip, shapes.cutTopRight, rowTones[tone])}
       >
         <span {...stylex.props(styles.tipHead)}>
-          <ItemIcon src={row.imageUrl} tone={tone} large />
+          <ItemIcon src={row.image} tone={tone} large />
           <span {...stylex.props(styles.tipName, rarityText[tone])}>{row.name}</span>
           {row.reinforce !== null && (
             <span

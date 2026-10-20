@@ -1,18 +1,24 @@
 import { Typo } from '@dfragon/ui'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
+import type { ItemPicture } from '../lib/equipment-icons'
 import { styles } from './CardImage.style'
+import { SpriteIconImage } from './SpriteIconImage'
 
 export function CardImage({
   src,
   label,
   portrait = false
 }: {
-  src?: string
+  src?: ItemPicture
   label: string
   portrait?: boolean
 }): React.JSX.Element {
   const [failedSource, setFailedSource] = useState<string>()
+  if (typeof src === 'object') {
+    return <SpriteIconImage icon={src} label={label} />
+  }
+
   if (src == null || failedSource === src) {
     return (
       <Typo.caption

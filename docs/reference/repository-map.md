@@ -49,8 +49,8 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 ## Skill data
 
 - Package: `@dfragon/skill-layouts`, 위치: `packages/skill-layouts`. 직업(`jobId`)과 전직(`jobGrowId`)별 고정 11열 스킬트리 배치 `layouts.json`(71개 전직, 3388칸)을 제공한다. 칸은 네오플 skillId, 행, 열, 이름, 종류, 습득 레벨과 각성기 여부다. 코드와 build 명령은 없다. [형식과 출처](../../packages/skill-layouts/README.md)를 참고한다.
-- Package: `@dfragon/icons`, 위치: `packages/icons`. 제품이 번들하는 게임 아이콘이다. 지금은 28 × 28 스킬 아이콘 2184개를 묶은 무손실 WebP sprite `skills.webp`와 `skills.json`(`jobId/skillId` → 칸 번호)만 있다. [출처와 권리](../../packages/icons/README.md)를 참고한다.
-- Desktop 상세 창 스킬 탭이 두 패키지를 소비한다. 두 패키지의 데이터는 `scripts/import-skill-data.mjs`로 외부 수집본에서 함께 다시 만들며 손으로 고치지 않는다.
+- Package: `@dfragon/icons`, 위치: `packages/icons`. 제품이 번들하는 게임 아이콘이다. 28 × 28 스킬 아이콘 2184개를 묶은 무손실 WebP sprite `skills.webp`와 `skills.json`(`jobId/skillId` → 칸 번호), 서약과 115 세트 아이콘을 묶은 `equipment.webp`와 `equipment.json`(`희귀도/서약 이름`, 네오플 setItemId → 칸 번호)이 있다. [출처와 권리](../../packages/icons/README.md)를 참고한다.
+- Desktop 상세 창 스킬 탭이 두 패키지를, 카드 장비 면과 상세 창 장비 탭이 `@dfragon/icons`의 서약, 세트 아이콘을 소비한다. 스킬 배치와 스킬 아이콘은 `scripts/import-skill-data.mjs`, 서약과 세트 아이콘은 `scripts/import-equipment-icons.mjs`로 외부 수집본에서 다시 만들며 손으로 고치지 않는다.
 
 ## Models
 
