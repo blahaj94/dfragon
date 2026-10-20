@@ -110,7 +110,7 @@ SET expires_at = LEAST(expires_at, clock_timestamp()),
 COMMIT;
 ```
 
-`test-support/character-catalog.mjs`는 실제 PostgreSQL에서 24시간 만료, 스킬 복합 식별, 캐시 재사용, 실패, 실제 row-lock 대기와 이전 요청 덮어쓰기 방지, 무효화, JSONB 보존과 rollback을 검증한다. `test-support/character-details.mjs`는 HTTP 응답에 공용 상세가 연결되지만 캐릭터 원본에는 섞이지 않는 것을 검증한다. 단위 테스트는 아이템 다중 ID 대응, 스킬 단일 조회, 호출 제한, 취소, 실패 시 데이터 출처, 장비 옵션과 스킬 빈 슬롯 보존을 확인한다.
+`test-support/character-catalog.mjs`는 실제 PostgreSQL에서 24시간 만료, 스킬 복합 식별, 캐시 재사용, 실패, 실제 row-lock 대기와 이전 요청 덮어쓰기 방지, 무효화, JSONB 보존과 rollback을 검증한다. `test-support/character-details.mjs`는 HTTP 응답에 공용 상세가 연결되지만 캐릭터 원본에는 섞이지 않는 것을 검증한다. 단위 테스트는 아이템 다중 ID 대응, 스킬 단일 조회, batch 동시 시작, 취소, 실패 시 데이터 출처, 장비 옵션과 스킬 빈 슬롯 보존을 확인한다.
 
 ## 모험단명 검색 migration 호환성
 
