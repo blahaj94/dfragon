@@ -15,8 +15,22 @@ const engineResult = {
   calculator: 'equipment',
   score: 1741,
   skipped: null,
-  versions: { package: '0.1.0', rules_rev: 'rev12', bundle_id: 'phase31-rev12' },
+  approximate_score: null,
+  approximate_source: null,
+  warning: null,
+  versions: { package: 'dnfscore-native 0.3.0', rules_rev: 'rev14', bundle_id: 'phase32-rev14' },
   display: { role: 'dealer', switchingLevel: 3, buff30: null, buff50: null }
+}
+const skippedResult = {
+  ...engineResult,
+  score: null,
+  skipped: { kind: 'resolution', message: '판정 불가' }
+}
+const approximateResult = {
+  ...skippedResult,
+  approximate_score: 1650,
+  approximate_source: 'legacy_fusion_policy_a',
+  warning: '근사값, 1% 밖일 가능성 높음: 판정 불가'
 }
 
 type NativeBehavior = {
@@ -199,6 +213,27 @@ describe('점수 엔진 호출과 결과 검증', () => {
     ['점수도 사유도 없음', { output: JSON.stringify({ ...engineResult, score: null }) }, true],
     ['소수 점수', { output: JSON.stringify({ ...engineResult, score: 1741.5 }) }, true],
     [
+      '점수와 근사값이 함께 있음',
+      {
+        output: JSON.stringify({
+          ...approximateResult,
+          score: 1741,
+          skipped: null
+        })
+      },
+      true
+    ],
+    [
+      '근사값만 있고 출처와 경고가 없음',
+      { output: JSON.stringify({ ...skippedResult, approximate_score: 1650 }) },
+      true
+    ],
+    [
+      '소수 근사값',
+      { output: JSON.stringify({ ...approximateResult, approximate_score: 1650.5 }) },
+      true
+    ],
+    [
       '빈 버전 칸',
       {
         output: JSON.stringify({
@@ -228,35 +263,35 @@ describe('점수 엔진 호출과 결과 검증', () => {
     }
   )
 
-  it('건너뛴 결과는 사유와 함께 정상 결과로 돌려준다', () => {
-    const skipped = {
-      ...engineResult,
-      score: null,
-      skipped: { kind: 'resolution', message: '판정 불가' }
-    }
-    const native = nativeEngine({ output: JSON.stringify(skipped) })
+  it('근사값이 없는 건너뛴 결과는 사유와 함께 정상 결과로 돌려준다', () => {
+    const native = nativeEngine({ output: JSON.stringify(skippedResult) })
 
-    expect(loadScoreEngine(native.options)!(input, 'equipment')).toEqual(skipped)
+    expect(loadScoreEngine(native.options)!(input, 'equipment')).toEqual(skippedResult)
     expect(native.reports).toEqual([])
   })
 
-  it('rev14가 건너뛴 결과에 더한 근사값과 경고는 버리고 건너뛴 결과로 돌려준다', () => {
-    const skipped = {
-      ...engineResult,
-      score: null,
-      skipped: { kind: 'resolution', message: '판정 불가' },
-      versions: { package: 'dnfscore-native 0.3.0', rules_rev: 'rev14', bundle_id: 'phase32-rev14' }
-    }
-    const native = nativeEngine({
-      output: JSON.stringify({
-        ...skipped,
-        approximate_score: 1650,
-        approximate_source: 'previous_season_fusion',
-        warning: '근사값입니다'
-      })
-    })
+  it('건너뛴 결과에 엔진이 더한 근사값, 출처, 경고는 점수와 따로 돌려준다', () => {
+    const native = nativeEngine({ output: JSON.stringify(approximateResult) })
 
-    expect(loadScoreEngine(native.options)!(input, 'equipment')).toEqual(skipped)
+    const result = loadScoreEngine(native.options)!(input, 'equipment')
+
+    expect(result).toEqual(approximateResult)
+    expect(native.reports).toEqual([])
+  })
+
+  it('근사값 칸을 보내지 않는 rev14 이전 엔진의 결과는 근사값 없이 받는다', () => {
+    const { approximate_score, approximate_source, warning, ...rev12 } = {
+      ...skippedResult,
+      versions: { package: '0.1.0', rules_rev: 'rev12', bundle_id: 'phase31-rev12' }
+    }
+    const native = nativeEngine({ output: JSON.stringify(rev12) })
+
+    expect(loadScoreEngine(native.options)!(input, 'equipment')).toEqual({
+      ...rev12,
+      approximate_score: null,
+      approximate_source: null,
+      warning: null
+    })
     expect(native.reports).toEqual([])
   })
 

@@ -161,6 +161,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       calculator: 'equipment',
       value: 9999,
       skipped: null,
+      approximate: null,
       versions: { package: 'api', rulesRev: 'api', bundleId: 'api' }
     }
     const fixture = await createSearchFixture(false, 'capture', policy)
