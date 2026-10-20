@@ -1,16 +1,16 @@
 /*
  * DFragon 디자인 토큰. 값과 이름은 dfragon-design design/tokens.json 기준이며,
- * 기준 commit은 f219773(dfragon-design PR #37, merge 대기)이다. 두 저장소 사이에 자동 동기화가 없으므로
+ * 기준 commit은 aae3d0d(dfragon-design PR #45 merge)이다. 두 저장소 사이에 자동 동기화가 없으므로
  * 이 파일은 손으로 맞추고, 값을 바꿀 때 기준 commit도 함께 고친다.
+ * 기준 commit의 tokens.json과 값이 다르거나 한쪽에만 있는 토큰은 아래와 같다.
  * 검색 실패의 노란색 --df-bracket-failure, --df-card-failure{,-weak}와 스냅샷에 없는 모험단의 빗금
  * --df-hatch-alert는 2026-10-20 담당자 요청으로 DFragon 디자인 캔버스 시안 값(#FFD54A, 14% 면과 빗금)을
  * 들였고(dfragon-design PR #43), 아직 tokens.json에는 이 이름이 없다.
- * 주의 톤 --df-fg-warning, --df-bg-warning-weak는 2026-10-19 사용자 결정으로 DFragon 디자인 캔버스의
- * 캡처 보드 값(#FFB400, 12% 면)을 들였고, 같은 값을 tokens.json에 넣은 PR #37은 아직 merge되지 않았다.
+ * 점수 숫자의 역할 색 --df-score-dealer, --df-score-buffer는 2026-10-20 담당자 결정의 캔버스 값(#4FA3FF,
+ * #3CC985)이고, dfragon-design colors.md가 토큰 이름을 정하지 않아 아직 tokens.json에는 이 이름이 없다.
  * 대화상자 뒤 막 --df-bg-overlay의 다크 값은 2026-10-20 DFragon 디자인 캔버스의 메인 위 설정, 캡처 보드 값
- * (rgba(8, 8, 10, .72))을 들였고, 아직 tokens.json에는 반영되지 않았다.
- * 묵언의 진의 옵션 색 --df-oath-upgrade-*는 2026-10-20 사용자 결정으로 들였고, 같은 값을 tokens.json
- * game.oathUpgrade에 넣은 dfragon-design PR #45(5ef879f)는 아직 merge되지 않았다.
+ * (rgba(8, 8, 10, .72))을 들였고, tokens.json의 다크 값(#00000074)과 다르다.
+ * tokens.json의 hazard(검색 실패 그림 칸의 사선 색)는 제품에서 쓰지 않아 옮기지 않았다.
  *
  * :root가 다크 기본값이고 :root[data-theme='light']가 라이트 값이다. color-scheme도 같은 모드로 정해
  * 스크롤 막대, 폼 컨트롤 같은 브라우저 기본 부품이 모드를 따른다.
