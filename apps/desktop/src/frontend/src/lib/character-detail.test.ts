@@ -67,6 +67,22 @@ it('서약 목록은 본체 뒤에 결정 자리 0~2, 3~10을 두고 빠진 자�
   expect(groups[2].rows[0]).toMatchObject({ kind: '서약 결정 · 에픽', tone: 'epic' })
 })
 
+it('서약 본체 줄은 로컬 아이템 그림이 있어도 번들한 서약 아이콘을 쓰고, 아이콘이 없는 서약만 아이템 그림이다', () => {
+  const oath = dealerCard.oath!
+  const itemImages = { [oath.itemId]: 'file:///local/oath.png' }
+  const bodyImage = (card: CharacterCard) =>
+    toDetailOathGroups(card, undefined, itemImages)[0].rows[0].image
+  const unknownOath: CharacterCard = { ...dealerCard, oath: { ...oath, name: '모르는 서약' } }
+
+  // 강림한 여우 서약은 sprite 29번 칸(한 줄 16칸, 칸 28px)이다.
+  expect(bodyImage(dealerCard)).toMatchObject({
+    sprite: expect.stringMatching(/equipment\.webp/),
+    x: 364,
+    y: 28
+  })
+  expect(bodyImage(unknownOath)).toBe('file:///local/oath.png')
+})
+
 it('설명 상자 문구는 줄의 itemId로 찾고, 아이템 설명 첫 줄의 `[...]` 제목을 떼어 둔다', () => {
   const [weapon, jacket] = dealerCard.investment
   const itemTexts = {
