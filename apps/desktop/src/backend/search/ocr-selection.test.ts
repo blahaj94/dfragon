@@ -111,6 +111,7 @@ describe('선택 상세의 main 전용 보관 수명', () => {
           itemId: 'weapon-item',
           itemName: '무기 이름',
           rarity: '태초',
+          exclusive: false,
           reinforce: { kind: 'reinforce', value: 12, amplificationName: null },
           enchant: null
         }
