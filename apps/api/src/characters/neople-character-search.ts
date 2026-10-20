@@ -106,9 +106,10 @@ function projectResponse(
       throw neopleSearchFailure('api')
     }
 
+    // Neople match ignores letter case, so a name differing only in case is a valid response row.
     if (
       input.wordType === 'match' &&
-      (characterName !== input.characterName ||
+      (characterName.toLowerCase() !== input.characterName.toLowerCase() ||
         !NEOPLE_SERVER_NAMES.has(serverId) ||
         characterId.length > 256 ||
         INVALID_CHARACTER_ID_CHARACTERS_PATTERN.test(characterId))
@@ -144,6 +145,12 @@ function projectResponse(
       jobGrowName
     }
   })
+
+  if (input.wordType === 'match') {
+    const exactRows = rows.filter((row) => row.characterName === input.characterName)
+
+    return { rows: exactRows }
+  }
 
   return { rows }
 }
