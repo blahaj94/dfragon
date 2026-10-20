@@ -35,7 +35,7 @@ it('카드 값이 없으면 세 면 모두 값 대신 -와 없다는 이름을 �
   expect(set.groups.flatMap((group) => group.cells).every((cell) => cell.tone === 'empty')).toBe(
     true
   )
-  expect(oath.upgrades.flat().every((cell) => !cell.filled)).toBe(true)
+  expect(oath.upgrades.flat().every((cell) => cell.kind === 'empty')).toBe(true)
 
   const rows = toInvestmentRows(null)
   expect(rows.map((row) => row.itemLabel)).toEqual([
@@ -237,7 +237,7 @@ it('서약 섹션은 세트 옵션 이름과 서약 세트 포인트, 본체와 
   ).toBe(true)
 })
 
-it('묵언의 진의 7단계까지 연 서약은 앞 넷, 뒤 다섯 묶음의 일곱 칸을 옵션 이름으로 채우고 두 칸을 비운다', () => {
+it('묵언의 진의 7단계까지 연 서약은 앞 넷, 뒤 다섯 묶음의 일곱 칸을 옵션 종류로 채우고 두 칸을 비운다', () => {
   const oath = dealerCard.oath!
   const card: CharacterCard = {
     ...dealerCard,
@@ -246,15 +246,15 @@ it('묵언의 진의 7단계까지 연 서약은 앞 넷, 뒤 다섯 묶음의 �
   const { upgrades } = toEquipmentFace(card).oath
   expect(upgrades.map((group) => group.length)).toEqual([4, 5])
   expect(upgrades.flat()).toEqual([
-    { filled: true, label: '1단계 강인한 통찰' },
-    { filled: true, label: '2단계 포용의 권능' },
-    { filled: true, label: '3단계 심연의 고동' },
-    { filled: true, label: '4단계 신념의 대가' },
-    { filled: true, label: '5단계 이어진 걸음' },
-    { filled: true, label: '6단계 영원의 궤적' },
-    { filled: true, label: '7단계 만물의 흐름' },
-    { filled: false, label: '8단계 비어 있음' },
-    { filled: false, label: '9단계 비어 있음' }
+    { kind: 'damage', label: '1단계 · 스킬 공격력 증가 (강인한 통찰)' },
+    { kind: 'damage', label: '2단계 · 스킬 공격력 증가 (포용의 권능)' },
+    { kind: 'damage', label: '3단계 · 스킬 공격력 증가 (심연의 고동)' },
+    { kind: 'damage', label: '4단계 · 스킬 공격력 증가 (신념의 대가)' },
+    { kind: 'speed', label: '5단계 · 모든 속도 (이어진 걸음)' },
+    { kind: 'speed', label: '6단계 · 모든 속도 (영원의 궤적)' },
+    { kind: 'speed', label: '7단계 · 모든 속도 (만물의 흐름)' },
+    { kind: 'empty', label: '8단계 비어 있음' },
+    { kind: 'empty', label: '9단계 비어 있음' }
   ])
 })
 
@@ -323,7 +323,7 @@ it('API 응답 fixture의 카드 값으로 세 면을 채우고 엔진이 채우
   expect(
     toEquipmentFace(apiBufferCard)
       .oath.upgrades.flat()
-      .every((cell) => !cell.filled)
+      .every((cell) => cell.kind === 'empty')
   ).toBe(true)
 
   const rows = toInvestmentRows(apiDealerCard)
@@ -423,6 +423,32 @@ it('합성 미리보기가 준 itemId별 로컬 그림은 번들한 아이콘이
     {}
   )
   expect(inherited.oath.image).toBe('https://img-api.neople.co.kr/df/items/toString')
+})
+
+it('묵언의 진의 칸을 옵션 종류로 나누고 이름에 단계, 종류, 옵션명을 둔다', () => {
+  const upgrades = [
+    { step: 1, stepName: '첫 번째 진의', optionName: '강인한 통찰' },
+    { step: 2, stepName: '두 번째 진의', optionName: '자비의 맹세' },
+    { step: 5, stepName: '다섯 번째 진의', optionName: '숭고한 동행' },
+    { step: 6, stepName: '여섯 번째 진의', optionName: '새 옵션' }
+  ]
+  const { oath } = toEquipmentFace({ ...dealerCard, oath: { ...dealerCard.oath!, upgrades } })
+  const cells = oath.upgrades.flat()
+  expect(cells.map((cell) => cell.kind)).toEqual([
+    'damage',
+    'oathPoint',
+    'empty',
+    'empty',
+    'range',
+    'other',
+    'empty',
+    'empty',
+    'empty'
+  ])
+  expect(cells[0].label).toBe('1단계 · 스킬 공격력 증가 (강인한 통찰)')
+  expect(cells[1].label).toBe('2단계 · 서약 포인트 (자비의 맹세)')
+  expect(cells[5].label).toBe('6단계 · 새 옵션')
+  expect(cells[2].label).toBe('3단계 비어 있음')
 })
 
 it('아이템 이미지는 검증한 식별자로만 고정 origin URL을 만든다', () => {
