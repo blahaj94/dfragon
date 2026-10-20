@@ -5416,47 +5416,58 @@
       "slots": [
         {
           "slotId": "JACKET",
-          "rarity": "레전더리"
+          "rarity": "레전더리",
+          "exclusive": false
         },
         {
           "slotId": "SHOULDER",
-          "rarity": "레전더리"
+          "rarity": "레전더리",
+          "exclusive": false
         },
         {
           "slotId": "PANTS",
-          "rarity": "유니크"
+          "rarity": "유니크",
+          "exclusive": false
         },
         {
           "slotId": "SHOES",
-          "rarity": "유니크"
+          "rarity": "유니크",
+          "exclusive": false
         },
         {
           "slotId": "WAIST",
-          "rarity": "유니크"
+          "rarity": "유니크",
+          "exclusive": false
         },
         {
           "slotId": "AMULET",
-          "rarity": "태초"
+          "rarity": "태초",
+          "exclusive": false
         },
         {
           "slotId": "WRIST",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         },
         {
           "slotId": "RING",
-          "rarity": "유니크"
+          "rarity": "유니크",
+          "exclusive": false
         },
         {
           "slotId": "SUPPORT",
-          "rarity": "레전더리"
+          "rarity": "레전더리",
+          "exclusive": false
         },
         {
           "slotId": "MAGIC_STON",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         },
         {
           "slotId": "EARRING",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         }
       ],
       "rarityCounts": [
@@ -5592,6 +5603,7 @@
         "itemId": "4c2c36b92f60155c579d36eea9786324",
         "itemName": "시크릿 듀엣",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -5629,6 +5641,7 @@
         "itemId": "b18e7187087ec03a300e22d171e83ce4",
         "itemName": "수습 여우의 상의",
         "rarity": "레전더리",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 0,
@@ -5662,6 +5675,7 @@
         "itemId": "4e13a0e608282e52bfd188532a7bf8b4",
         "itemName": "수습 여우의 보호 어깨",
         "rarity": "레전더리",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 0,
@@ -5695,6 +5709,7 @@
         "itemId": "cceec27707a6dbd029322483c679c124",
         "itemName": "견습 여우의 그림자 하의",
         "rarity": "유니크",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 0,
@@ -5728,6 +5743,7 @@
         "itemId": "893d167b57f729204fb8278bf05d676f",
         "itemName": "견습 여우의 비밀 벨트",
         "rarity": "유니크",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 0,
@@ -5769,6 +5785,7 @@
         "itemId": "78e3c4947c76867534ce0b2241093809",
         "itemName": "견습 여우의 은빛 신발",
         "rarity": "유니크",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 0,
@@ -5802,6 +5819,7 @@
         "itemId": "e468101e457344d9824a0f1588152f06",
         "itemName": "대 여우의 영혼 목걸이",
         "rarity": "태초",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 0,
@@ -5835,6 +5853,7 @@
         "itemId": "463cc16ca330c26a15caba314d2c1a5c",
         "itemName": "고유 - 모독자의 조소 팔찌",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 0,
@@ -5868,6 +5887,7 @@
         "itemId": "40249d82eafb0137b0e081a94c40785d",
         "itemName": "견습 여우의 매혹 반지",
         "rarity": "유니크",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 0,
@@ -5901,6 +5921,7 @@
         "itemId": "dd267f29006748266a62a816b5b05d48",
         "itemName": "수습 여우의 숨결 부적 보조장비",
         "rarity": "레전더리",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 6,
@@ -5934,6 +5955,7 @@
         "itemId": "9623d7f5197b40a96dffd78c65d57287",
         "itemName": "고위 여우의 구슬 마법석",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 3,
@@ -5967,6 +5989,7 @@
         "itemId": "3c72626a0afb037b8b2b1f226eca6176",
         "itemName": "고위 여우의 속삭임 귀걸이",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 2,
