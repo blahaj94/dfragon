@@ -36,7 +36,7 @@ const RESPONSE_HEADER_FIELDS = [
 const ITEM_DETAIL_FIELD = 'itemDetail'
 const SKILL_DETAILS_FIELD = 'skillDetails'
 
-function isJsonObject(value: CharacterJsonValue | undefined): value is JsonObject {
+export function isJsonObject(value: CharacterJsonValue | undefined): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
