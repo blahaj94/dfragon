@@ -298,6 +298,28 @@ test('잘못된 후보 query는 정제된 400으로 거절하고 공급자를 �
   }
 })
 
+test('대소문자만 다른 이름은 오류 없이 후보에서 빼고 이름이 같은 캐릭터만 반환한다', async (t) => {
+  const latinName = 'exe'
+  const origin = await startApp(t, {
+    fetch: async () =>
+      jsonResponse({
+        rows: [
+          { characterId: 'upper', characterName: 'EXE', serverId: 'cain', fame: 300 },
+          { characterId: 'exact', characterName: latinName, serverId: 'siroco', fame: 200 },
+          { characterId: 'mixed', characterName: 'Exe', serverId: 'bakal', fame: 100 }
+        ]
+      })
+  })
+
+  const response = await fetch(`${origin}/characters/candidates?characterName=${latinName}`)
+  assert.equal(response.status, 200)
+  const body = (await response.json()) as { rows: Array<{ characterId: string }> }
+  assert.deepEqual(
+    body.rows.map((row) => row.characterId),
+    ['exact']
+  )
+})
+
 test('잘못된 후보 이름, 서버와 이미지 경로 값은 부분 결과 없이 전체 502로 거절한다', async (t) => {
   const valid = { characterId: 'safe-id', characterName, serverId: 'cain', fame: 1 }
   const cases: Array<[string, Record<string, unknown>]> = [
