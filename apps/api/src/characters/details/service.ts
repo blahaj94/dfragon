@@ -1,4 +1,4 @@
-import { SearchAdmission, searchClock } from '../search-admission.js'
+import { searchClock } from '../search-admission.js'
 import { SearchDeadline } from '../search-deadline.js'
 import { CharacterDetailFailure, characterDetailFailure } from './errors.js'
 import type { FetchCharacterDetails } from './neople.js'
@@ -34,7 +34,6 @@ async function readServerRank(
 }
 
 export function createCharacterDetailService(deps: CharacterDetailDependencies) {
-  const admission = new SearchAdmission()
   const adapter = deps.fetchDetails
   const shutdown = new AbortController()
   const active = new Set<Promise<unknown>>()
@@ -47,16 +46,10 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
     forceRefresh: boolean
   ) => {
     const signal = AbortSignal.any([requestSignal, shutdown.signal])
-    const deadline = new SearchDeadline(searchClock, signal)
-    let lease: Awaited<ReturnType<SearchAdmission['acquire']>> | undefined
     try {
       if (!peerAddress || signal.aborted) {
         throw new CharacterDetailFailure('internal')
       }
-      lease = await deadline.wait(admission.acquire(peerAddress, deadline.signal))
-      lease.reserve()
-      lease.release()
-      deadline.dispose()
       let rows
       if (!forceRefresh) {
         const snapshot = await deps.store.read(identity, signal)
@@ -116,9 +109,6 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
       return { ...details, freshness, card }
     } catch (error) {
       throw characterDetailFailure(error)
-    } finally {
-      lease?.release()
-      deadline.dispose()
     }
   }
 
@@ -144,7 +134,6 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
     },
     async onModuleDestroy() {
       shutdown.abort()
-      admission.close()
       await Promise.allSettled([...active, refreshes.close()])
     }
   }
