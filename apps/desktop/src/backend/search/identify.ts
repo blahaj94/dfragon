@@ -11,6 +11,7 @@ import type {
   CharacterPortrait
 } from '../../preload/common/types/character'
 import { orderedCandidates } from './candidate-order'
+import { portraitAnchorOf, type PortraitAnchor } from './portrait-anchor'
 import {
   planRaidComparison,
   selectRaidCandidate,
@@ -30,12 +31,13 @@ export type IdentificationServices = {
   loadPortrait: (identity: CharacterIdentity) => Promise<CharacterImage | null>
   getDetails: (identity: CharacterIdentity) => Promise<CharacterDetails>
   /**
-   * 얼굴과 후보 이미지의 거리와 얼굴을 맞춘 후보 이미지 안의 창. 비교할 수 없으면 null이며 거리는 확률이
-   * 아니다.
+   * 얼굴과 후보 이미지의 거리와 얼굴을 맞춘 후보 이미지 안의 창. 후보 직업으로 아는 얼굴 위치(`anchor`)가
+   * 있으면 그 주변만 비교한다. 비교할 수 없으면 null이며 거리는 확률이 아니다.
    */
   scorePortrait: (input: {
     portrait: CharacterPortrait
     candidate: CharacterImage
+    anchor: PortraitAnchor | null
   }) => Promise<PortraitScore | null>
 }
 
@@ -174,7 +176,8 @@ async function scoreCandidates(
       scores.push({ candidate, score: null })
       continue
     }
-    const score = await services.scorePortrait({ portrait, candidate: image })
+    const anchor = portraitAnchorOf(candidate.jobName)
+    const score = await services.scorePortrait({ portrait, candidate: image, anchor })
     scores.push({ candidate, score })
   }
 

@@ -1,4 +1,5 @@
 import type { CharacterImage, CharacterPortrait } from '../../preload/common/types/character'
+import type { PortraitAnchor } from './portrait-anchor'
 import {
   ALPHA_CHANNEL,
   countComparisonStep,
@@ -26,8 +27,10 @@ export type PortraitColorPolicy = Readonly<{
   minCoverage: number
   /** 얼굴과 후보 양쪽에 픽셀이 있는 셀 수의 하한. */
   minComparedCells: number
-  /** 후보 창의 위쪽 끝이 놓일 수 있는 범위를 후보 불투명 영역 높이의 위쪽 비율로 제한한다. */
+  /** 기준 위치가 없을 때 후보 창의 위쪽 끝이 놓일 수 있는 범위를 후보 불투명 영역 높이의 위쪽 비율로 제한한다. */
   topFraction: number
+  /** 기준 위치가 있을 때 창을 옮겨 볼 가로, 세로 거리(px). 기준 위치의 측정 오차를 흡수한다. */
+  anchorRadius: number
 }>
 
 /** 셀 평균 RGB의 거리이며 확률이나 일치 판정이 아니다. */
@@ -44,6 +47,8 @@ export type PortraitColorScore = Readonly<{
 export type PortraitColorInput = Readonly<{
   portrait: CharacterPortrait
   candidate: CharacterImage
+  /** 후보 직업으로 아는 얼굴 창 위치. null이면 불투명 영역의 위쪽에서 창을 찾는다. */
+  anchor: PortraitAnchor | null
   signal: AbortSignal
 }>
 
@@ -91,7 +96,9 @@ function validatePolicy(policy: PortraitColorPolicy): void {
     policy.minComparedCells > policy.gridSize * policy.gridSize ||
     !Number.isFinite(policy.topFraction) ||
     policy.topFraction <= 0 ||
-    policy.topFraction > 1
+    policy.topFraction > 1 ||
+    !Number.isSafeInteger(policy.anchorRadius) ||
+    policy.anchorRadius < 0
   ) {
     throw new TypeError('Invalid portrait color comparison policy')
   }
@@ -163,6 +170,24 @@ function summarizeFace(raster: PortraitRaster, gridSize: number): FaceCells | nu
   }
 
   return { width, height, cells, area }
+}
+
+/** 창은 이미지 안에 두고 기준 위치에서 anchorRadius 안의 위치만 본다. */
+function anchorRange(
+  candidate: CharacterImage,
+  anchor: PortraitAnchor,
+  face: FaceCells,
+  anchorRadius: number
+): SearchRange | null {
+  const firstX = Math.max(0, anchor.x - anchorRadius)
+  const lastX = Math.min(anchor.x + anchorRadius, candidate.width - face.width)
+  const firstY = Math.max(0, anchor.y - anchorRadius)
+  const lastY = Math.min(anchor.y + anchorRadius, candidate.height - face.height)
+  if (lastX < firstX || lastY < firstY) {
+    return null
+  }
+
+  return { firstX, lastX, firstY, lastY }
 }
 
 /** 창은 이미지 안에 두고 불투명 영역과 겹칠 수 있는 위치 중 위쪽 끝이 topFraction 범위인 곳만 본다. */
@@ -306,15 +331,16 @@ async function findBestWindow(
 }
 
 /**
- * 크롭을 마친 얼굴과 후보 stand 이미지를 같은 N×N 셀 평균 RGB로 비교해 거리가 가장 작은 창을 찾는다.
- * 비교할 셀이 없거나 기준을 만족하는 창이 없으면 null이며, 취소와 계산 예산 초과는 그대로 던진다.
+ * 크롭을 마친 얼굴과 후보 stand 이미지를 같은 N×N 셀 평균 RGB로 비교해 거리가 가장 작은 창을 찾는다. 기준
+ * 위치가 있으면 그 주변만 비교한다. 비교할 셀이 없거나 기준을 만족하는 창이 없으면 null이며, 취소와 계산
+ * 예산 초과는 그대로 던진다.
  */
 export function createPortraitColorScorer(policy: PortraitColorPolicy): PortraitColorScorer {
   validatePolicy(policy)
-  const { gridSize, minCoverage, minComparedCells, topFraction } = policy
-  const accepted = { gridSize, minCoverage, minComparedCells, topFraction }
+  const { gridSize, minCoverage, minComparedCells, topFraction, anchorRadius } = policy
+  const accepted = { gridSize, minCoverage, minComparedCells, topFraction, anchorRadius }
 
-  return async ({ portrait, candidate, signal }) => {
+  return async ({ portrait, candidate, anchor, signal }) => {
     signal.throwIfAborted()
     validateImage(candidate)
     const budget = createSearchBudget()
@@ -329,7 +355,10 @@ export function createPortraitColorScorer(policy: PortraitColorPolicy): Portrait
     if (bounds === null) {
       return null
     }
-    const range = searchRange(candidate, bounds, face, accepted.topFraction)
+    const range =
+      anchor === null
+        ? searchRange(candidate, bounds, face, accepted.topFraction)
+        : anchorRange(candidate, anchor, face, accepted.anchorRadius)
     if (range === null) {
       return null
     }
