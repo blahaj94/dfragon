@@ -32,7 +32,7 @@ test('HTTP 경계는 분류된 오류를 보존하고 잘못된 JSON과 내부 �
   assert.equal(httpFailure(new SyntaxError('internal detail')).code, 'UNAVAILABLE')
 })
 
-test('진행 중 로그인도 전체 대기 용량을 예약하고 실패하면 예약을 반환한다', async (t) => {
+test('진행 중 로그인도 전체 대기 용량을 예약하고 실패하면 예약을 반환한다', async () => {
   const { OcrAuth } = await import('../src/auth.js')
   let release = () => {}
   const released = new Promise<void>((resolve) => {
@@ -61,21 +61,13 @@ test('진행 중 로그인도 전체 대기 용량을 예약하고 실패하면 
     },
     upstream
   )
-  let now = Date.now()
-  t.mock.method(Date, 'now', () => now)
   const response = { cookie() {}, json() {} } as unknown as import('express').Response
   const request = (index: number) => {
     const ip = `192.0.2.${index + 1}`
 
     return { ip, cookies: {} } as import('express').Request
   }
-  const requests = Array.from({ length: 100 }, (_, index) => {
-    if (index === 60) {
-      now += 60_000
-    }
-
-    return auth.begin(request(index), response)
-  })
+  const requests = Array.from({ length: 100 }, (_, index) => auth.begin(request(index), response))
 
   await assert.rejects(auth.begin(request(101), response), { code: 'LOGIN_LIMIT' })
   assert.equal(calls, 100)

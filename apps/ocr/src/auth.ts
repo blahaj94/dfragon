@@ -61,8 +61,6 @@ const LOGIN_EXCHANGE_CODE_PATTERN = /^[A-Za-z0-9_-]{43}$/
 export class OcrAuth {
   private closed = false
   private readonly inFlightLogins = new Map<string, number>()
-  private readonly attempts = new Map<string, number>()
-  private attemptWindow = { until: 0, count: 0 }
   private readonly pending = new Map<string, PendingLogin>()
   private readonly sessions = new Map<string, Session>()
   private readonly syntheticUploadTokenDigest: Buffer | undefined
@@ -157,18 +155,6 @@ export class OcrAuth {
       throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)
     }
     const client = getIpQuotaKey(request.ip ?? request.socket?.remoteAddress ?? '')
-    const now = Date.now()
-    if (now >= this.attemptWindow.until) {
-      this.attemptWindow = { until: now + OCR_AUTH.loginWindowMs, count: 0 }
-      this.attempts.clear()
-    }
-    const attempts = this.attempts.get(client) ?? 0
-    if (
-      attempts >= OCR_AUTH.maximumLoginAttemptsPerClient ||
-      this.attemptWindow.count >= OCR_AUTH.maximumLoginAttempts
-    ) {
-      throw new OcrError(OCR_ERROR_CODE.LOGIN_LIMIT)
-    }
     const previousBinding = readCookie(request, OCR_AUTH.pendingCookie)
     const previous = previousBinding === undefined ? undefined : this.pending.get(previousBinding)
     const inFlight = this.inFlightLogins.get(client) ?? 0
@@ -183,8 +169,7 @@ export class OcrAuth {
     ) {
       throw new OcrError(OCR_ERROR_CODE.LOGIN_LIMIT)
     }
-    this.attempts.set(client, attempts + 1)
-    this.attemptWindow.count++
+
     if (previousBinding !== undefined) {
       this.pending.delete(previousBinding)
     }
@@ -383,7 +368,6 @@ export class OcrAuth {
     const sessions = [...this.sessions.values()]
     this.sessions.clear()
     this.pending.clear()
-    this.attempts.clear()
     for (const session of sessions) {
       session.active = false
     }
