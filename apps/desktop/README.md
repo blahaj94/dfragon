@@ -136,7 +136,7 @@ pnpm --filter @dfragon/desktop dev
 
 ## 장비 점수 엔진
 
-카드의 장비 점수(버퍼는 버프 점수)와 스위칭 Lv, 30레벨과 50레벨 버프는 비공개 엔진 저장소가 만든 네이티브 라이브러리를 main이 불러 계산합니다. 엔진이 없어도 빌드와 실행은 그대로 되고 카드의 점수 칸만 `-`입니다. 엔진 경계와 입력 변환은 [카드 전달과 점수 엔진](../../docs/reference/desktop-character-search.md#카드-전달과-점수-엔진)에 있습니다.
+카드의 장비 점수(버퍼는 버프 점수)와 30레벨, 50레벨 버프는 비공개 엔진 저장소가 만든 네이티브 라이브러리를 main이 불러 계산합니다. 스위칭 Lv은 엔진 없이 상세 응답의 스위칭 장비 스킬 레벨을 씁니다. 엔진이 없어도 빌드와 실행은 그대로 되고 카드의 점수 칸만 `-`입니다. 엔진 경계와 입력 변환은 [카드 전달과 점수 엔진](../../docs/reference/desktop-character-search.md#카드-전달과-점수-엔진)에 있습니다.
 
 - **위치**: 패키지는 `resources/score/`를 asar 밖으로 푼 `app.asar.unpacked/resources/score/dnfscore.dll`만 엽니다. 개발 실행은 `DFRAGON_SCORE_LIBRARY`에 라이브러리의 절대 경로가 있으면 그 파일을, 없으면 앱 폴더 `resources/score/`의 플랫폼별 파일(`dnfscore.dll`, `libdnfscore.dylib`, `libdnfscore.so`)을 엽니다. 패키지는 이 환경변수를 읽지 않습니다.
 - **개발 설정**: 엔진 저장소에서 직접 빌드한 라이브러리를 쓰려면 `apps/desktop/.env`에 `DFRAGON_SCORE_LIBRARY=<라이브러리 절대 경로>`를 두고 `dev`를 다시 시작합니다. 라이브러리는 첫 점수 계산 때 한 번만 엽니다.
