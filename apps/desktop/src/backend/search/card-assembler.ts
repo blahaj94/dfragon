@@ -1,6 +1,7 @@
 import { characterCardSchema } from '../../preload/common/search/character-summary'
 import type {
   CharacterCard,
+  CharacterCardScore,
   CharacterCardStats,
   CharacterDetails,
   CharacterJsonValue,
@@ -68,6 +69,16 @@ function withDisplayStats(
   return { ...stats, switchingLevel: switching, buff30: buffs.buff30, buff50: buffs.buff50 }
 }
 
+// 엔진 검증이 세 칸을 함께 있거나 함께 없게 맞췄으므로 하나라도 없으면 근사값이 없다.
+function toApproximateScore(result: ScoreEngineResult): CharacterCardScore['approximate'] {
+  const { approximate_score: value, approximate_source: source, warning } = result
+  if (value === null || source === null || warning === null) {
+    return null
+  }
+
+  return { value, source, warning }
+}
+
 /** API의 `card`에 엔진 결과를 채운다. 엔진 결과가 없으면 점수와 중간값은 null이고 나머지 카드는 유지한다. */
 function assembleCharacterCard(
   card: CharacterCard,
@@ -84,6 +95,7 @@ function assembleCharacterCard(
     calculator: result.calculator,
     value: result.score,
     skipped: result.skipped,
+    approximate: toApproximateScore(result),
     versions: {
       package: versions.package,
       rulesRev: versions.rules_rev,

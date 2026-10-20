@@ -49,6 +49,7 @@ describe('선택된 캐릭터 요약과 대기 snapshot', () => {
       calculator: 'equipment',
       value: 1741,
       skipped: null,
+      approximate: null,
       versions: { package: '0.1.0', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
     } as const
     const filled = { ...selected, equipmentScore: 1741, serverRank: 12, card: { ...card, score } }
@@ -256,6 +257,7 @@ describe('카드 strict 스키마', () => {
           calculator: 'equipment',
           value: null,
           skipped: { kind: 'resolution', message: '' },
+          approximate: null,
           versions: { package: '0.1.0', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
         }
       }

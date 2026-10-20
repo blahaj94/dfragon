@@ -12,6 +12,9 @@ const dealerResult: ScoreEngineResult = {
   calculator: 'equipment',
   score: 1741,
   skipped: null,
+  approximate_score: null,
+  approximate_source: null,
+  warning: null,
   versions,
   display: { role: 'dealer', switchingLevel: 3, buff30: null, buff50: null }
 }
@@ -19,6 +22,9 @@ const bufferResult: ScoreEngineResult = {
   calculator: 'buff',
   score: 136617,
   skipped: null,
+  approximate_score: null,
+  approximate_source: null,
+  warning: null,
   versions,
   display: { role: 'buffer', switchingLevel: 2, buff30: 1874.5, buff50: 622 }
 }
@@ -39,6 +45,7 @@ describe('API 카드와 엔진 결과 조립', () => {
         calculator: 'equipment',
         value: 1741,
         skipped: null,
+        approximate: null,
         versions: { package: '0.1.0', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
       }
     })
@@ -113,7 +120,34 @@ describe('API 카드와 엔진 결과 조립', () => {
     const skipped = { kind: 'resolution', message: '판정 불가' }
     const score: ScoreEngine = () => ({ ...dealerResult, score: null, skipped })
 
-    expect(buildCharacterCard(details, score)?.score).toMatchObject({ value: null, skipped })
+    expect(buildCharacterCard(details, score)?.score).toMatchObject({
+      value: null,
+      skipped,
+      approximate: null
+    })
+  })
+
+  it('엔진이 건너뛴 결과에 낸 근사값은 정확한 점수 칸을 비운 채 따로 남긴다', () => {
+    const details = apiDetailsFromEngineInput(readEngineInput('dealer-blade'), dealerCard)
+    const skipped = { kind: 'unresolved', message: '판정 불가' }
+    const warning = '근사값, 1% 밖일 가능성 높음: 판정 불가'
+    const score: ScoreEngine = () => ({
+      ...dealerResult,
+      score: null,
+      skipped,
+      approximate_score: 1650,
+      approximate_source: 'legacy_fusion_policy_a',
+      warning
+    })
+
+    const card = buildCharacterCard(details, score)
+
+    expect(card?.score).toMatchObject({
+      value: null,
+      skipped,
+      approximate: { value: 1650, source: 'legacy_fusion_policy_a', warning }
+    })
+    expect(characterCardSchema.safeParse(card).success).toBe(true)
   })
 
   it.each([
@@ -127,6 +161,7 @@ describe('API 카드와 엔진 결과 조립', () => {
         calculator: 'equipment',
         value: 9999,
         skipped: null,
+        approximate: null,
         versions: { package: 'api', rulesRev: 'api', bundleId: 'api' }
       } as const
       const details = apiDetailsFromEngineInput(readEngineInput('buffer-muse'), {

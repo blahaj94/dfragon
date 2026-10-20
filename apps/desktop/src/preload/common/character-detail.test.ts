@@ -22,6 +22,7 @@ const dealerCard = {
     calculator: 'equipment',
     value: 414806,
     skipped: null,
+    approximate: null,
     versions: { package: '0.1.0', rulesRev: 'r1', bundleId: 'bundle-1' }
   },
   serverRank: {
@@ -114,9 +115,25 @@ it('추가 필드와 symbol을 거부하고 읽은 객체는 복사한다', () =
   expect(parsed.freshness).not.toBe(snapshot.freshness)
 })
 
+// 엔진이 장비 점수 계산을 건너뛰고 근사값을 낸 카드다.
+const approximateCard = {
+  ...dealerCard,
+  score: {
+    ...dealerCard.score,
+    value: null,
+    skipped: { kind: 'unresolved', message: '판정 불가' },
+    approximate: {
+      value: 401200,
+      source: 'legacy_fusion_policy_a',
+      warning: '근사값, 1% 밖일 가능성 높음: 판정 불가'
+    }
+  }
+}
+
 it.each([
   ['딜러', dealerCard],
-  ['버퍼', bufferCard]
+  ['버퍼', bufferCard],
+  ['근사값이 있는 딜러', approximateCard]
 ])('%s 카드 값은 일반 preload의 카드 스키마와 같이 받고 복사해 넘긴다', (_, card) => {
   expect(characterCardSchema.safeParse(card).success).toBe(true)
   const parsed = parseCharacterDetailSnapshot({ ...snapshot, card })
@@ -146,6 +163,24 @@ const invalidCards: [string, unknown][] = [
     }
   ],
   ['유한하지 않은 점수', { ...dealerCard, score: { ...dealerCard.score, value: Infinity } }],
+  [
+    '정확한 점수와 함께 온 근사값',
+    { ...dealerCard, score: { ...approximateCard.score, value: 414806 } }
+  ],
+  [
+    '건너뛴 사유 없이 온 근사값',
+    { ...dealerCard, score: { ...approximateCard.score, skipped: null } }
+  ],
+  [
+    '빈 근사값 경고',
+    {
+      ...dealerCard,
+      score: {
+        ...approximateCard.score,
+        approximate: { ...approximateCard.score.approximate, warning: ' ' }
+      }
+    }
+  ],
   ['0위 서버 순위', { ...dealerCard, serverRank: { ...dealerCard.serverRank, rank: 0 } }],
   [
     '날짜가 아닌 순위 시각',

@@ -19,6 +19,7 @@ export const dealerCard: CharacterCard = {
     calculator: 'equipment',
     value: 330556,
     skipped: null,
+    approximate: null,
     versions: { package: 'dnfscore', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
   },
   serverRank: {
@@ -379,6 +380,7 @@ export const bufferCard: CharacterCard = {
     calculator: 'buff',
     value: 55358,
     skipped: null,
+    approximate: null,
     versions: { package: 'dnfscore', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
   },
   serverRank: {

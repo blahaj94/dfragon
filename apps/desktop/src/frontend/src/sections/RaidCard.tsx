@@ -13,7 +13,7 @@ import {
   getCharacterCardStatus,
   isVacantSlot
 } from '../lib/card-presentation'
-import { type ScoreView, toCharacterFace } from '../lib/card-faces'
+import { type ScoreView, formatApproximateScore, toCharacterFace } from '../lib/card-faces'
 import type { SlotCard } from '../lib/slot-cards'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import { serverNames } from '../constants/servers'
@@ -286,6 +286,7 @@ export function RaidCard({
               value={characterFace.score.value}
               vacant={vacant}
               role={characterFace.score.tone}
+              approximate={characterFace.score.approximate}
               description={characterFace.score.description}
             />
           </div>
@@ -301,18 +302,20 @@ export function RaidCard({
 
 // 명성과 점수 값. 알 수 없으면 같은 크기의 `-`를 흐리게 두고, 값이 있을 때만 숫자를 세어 올린다.
 // 상위, 랭커 카드는 명성만 단계 색으로 그리고, 점수는 단계와 상관없이 역할 색(`role`)으로 그린다. 점수는
-// 계산값이라는 뜻이나 계산하지 못한 사유를 보조 기술에 덧붙인다.
+// 계산값이라는 뜻이나 계산하지 못한 사유를 보조 기술에 덧붙이고, 근사값은 `≈`를 붙여 보인다.
 function FooterValue({
   value,
   vacant,
   tone,
   role,
+  approximate = false,
   description
 }: {
   value: number | null
   vacant: boolean
   tone?: 'top' | 'ranker'
   role?: ScoreView['tone']
+  approximate?: boolean
   description?: string
 }): React.JSX.Element {
   const note = description !== undefined && (
@@ -344,7 +347,7 @@ function FooterValue({
         tone === 'ranker' && styles.fameRanker
       )}
     >
-      <NumericText value={value} />
+      <NumericText value={value} format={approximate ? formatApproximateScore : undefined} />
       {note}
     </dd>
   )

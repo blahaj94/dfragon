@@ -496,6 +496,7 @@ it('계산하지 못한 장비 점수는 -에 사유 종류를 보조 기술로 
       calculator: 'equipment',
       value: null,
       skipped: { kind: 'resolution', message: 'ValueError: switching item has no candidate' },
+      approximate: null,
       versions: { package: 'dnfscore', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
     }
   }
@@ -503,6 +504,32 @@ it('계산하지 못한 장비 점수는 -에 사유 종류를 보조 기술로 
   const score = statValue('장비 점수')
   expect(score.firstChild?.textContent).toBe('-')
   expect(score.textContent).toBe('-계산하지 못함, 아이템을 판별하지 못함')
+  expect(card().textContent).not.toContain('ValueError')
+})
+
+it('엔진이 근사값을 낸 장비 점수는 ≈를 붙여 역할 색으로 보이고 근사값이라는 뜻을 보조 기술로 전한다', async () => {
+  const approximate: CardValues = {
+    ...dealerCard,
+    score: {
+      calculator: 'equipment',
+      value: null,
+      skipped: { kind: 'resolution', message: 'ValueError: switching item has no candidate' },
+      approximate: {
+        value: 321000,
+        source: 'input_gate_diagnostic',
+        warning: '근사값, 1% 밖일 가능성 높음: ValueError: switching item has no candidate'
+      },
+      versions: { package: 'dnfscore-native 0.3.0', rulesRev: 'rev14', bundleId: 'phase32-rev14' }
+    }
+  }
+  await render({ state: 'success', character: { ...found, card: approximate } })
+  const score = statValue('장비 점수')
+  const description =
+    '근사값, 아이템을 판별하지 못함. 입력값 차이를 무시하고 계산한 값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
+  expect(score.querySelector('[aria-hidden="true"]')?.textContent).toBe('≈321,000')
+  expect(score.getAttribute('title')).toBe(description)
+  expect(score.textContent).toContain(description)
+  expect(toneClassesOf(score)).toEqual(['dealer'])
   expect(card().textContent).not.toContain('ValueError')
 })
 

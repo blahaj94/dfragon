@@ -7,7 +7,12 @@ import { DetailSummaryHead } from '../components/DetailSummaryHead'
 import { SkillTree } from '../components/SkillTree'
 import { MISSING_VALUE } from '../constants/cards'
 import { useElapsedTime } from '../hooks/useElapsedTime'
-import { type ScoreView, toCharacterFace, toEquipmentFace } from '../lib/card-faces'
+import {
+  type ScoreView,
+  formatApproximateScore,
+  toCharacterFace,
+  toEquipmentFace
+} from '../lib/card-faces'
 import type {
   CharacterDetailItemTexts,
   CharacterDetailSkills
@@ -119,6 +124,7 @@ export function CharacterDetailPanel({
                 <StatValue
                   value={face.score.value}
                   role={face.score.tone}
+                  approximate={face.score.approximate}
                   description={face.score.description}
                 />
               </div>
@@ -189,14 +195,16 @@ function FetchedTime({ at }: { at: string }): React.JSX.Element {
 }
 
 // 명성과 점수 값. 값이 없으면 `-`이고, 점수는 역할 색(`role`)으로 그리며 성격이나 계산하지 못한 사유는 보조
-// 기술과 마우스 설명에 둔다.
+// 기술과 마우스 설명에 둔다. 근사값은 `≈`를 붙여 보인다.
 function StatValue({
   value,
   role,
+  approximate = false,
   description
 }: {
   value: number | null
   role?: ScoreView['tone']
+  approximate?: boolean
   description?: ScoreView['description']
 }): React.JSX.Element {
   const note = description !== undefined && (
@@ -220,7 +228,11 @@ function StatValue({
         role === 'buffer' && styles.statBuffer
       )}
     >
-      <NumericText value={value} countUp={false} />
+      <NumericText
+        value={value}
+        format={approximate ? formatApproximateScore : undefined}
+        countUp={false}
+      />
       {note}
     </dd>
   )

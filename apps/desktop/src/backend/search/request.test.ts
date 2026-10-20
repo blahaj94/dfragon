@@ -475,6 +475,9 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
     calculator: 'equipment',
     score: 1741,
     skipped: null,
+    approximate_score: null,
+    approximate_source: null,
+    warning: null,
     versions: { package: '0.1.0', rules_rev: 'rev12', bundle_id: 'phase31-rev12' },
     display: { role: 'dealer', switchingLevel: 3, buff30: null, buff50: null }
   }

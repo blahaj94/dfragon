@@ -140,6 +140,7 @@ const characterCard = object({
       calculator: { type: 'string', enum: ['equipment', 'buff'] },
       value: nullableNumber,
       skipped: nullable(object({ kind: text, message: text })),
+      approximate: nullable(object({ value: { type: 'number' }, source: text, warning: text })),
       versions: object({ package: text, rulesRev: text, bundleId: text })
     })
   ),

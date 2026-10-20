@@ -25,6 +25,7 @@ export interface CharacterScore {
   calculator: 'equipment' | 'buff'
   value: number | null
   skipped: { kind: string; message: string } | null
+  approximate: { value: number; source: string; warning: string } | null
   versions: { package: string; rulesRev: string; bundleId: string }
 }
 

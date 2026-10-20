@@ -39,10 +39,15 @@ export type CharacterCardStats =
       switchingLevel: number | null
     }>
 
+/**
+ * 엔진 점수. `value`는 정확한 점수만 담고, 계산을 건너뛴 결과에 엔진이 근사값을 내면 `approximate`에 따로 둔다.
+ * `approximate.source`는 엔진이 근사값을 낸 방법이고 `warning`은 엔진의 원문 경고다.
+ */
 export type CharacterCardScore = Readonly<{
   calculator: CharacterScoreCalculator
   value: number | null
   skipped: Readonly<{ kind: string; message: string }> | null
+  approximate: Readonly<{ value: number; source: string; warning: string }> | null
   versions: Readonly<{ package: string; rulesRev: string; bundleId: string }>
 }>
 
