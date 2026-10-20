@@ -218,7 +218,7 @@ const sectionsByPath = new Map<string, CharacterDetailSection>([
   ['/skill/buff/equip/creature', 'buff_creature']
 ])
 
-test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원문, 옵션, null을 모두 반환한다', {
+test('기본 식별 응답을 확인한 뒤 나머지 10개를 동시에 시작해 11개 원문, 옵션, null을 모두 반환한다', {
   timeout: 2000
 }, async (t) => {
   let basicStarted!: () => void, finishBasic!: () => void
@@ -228,9 +228,9 @@ test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원�
   const basicBody = new Promise<void>((resolve) => {
     finishBasic = resolve
   })
-  let sectionStarted!: () => void, finishSections!: () => void
-  const enteredSection = new Promise<void>((resolve) => {
-    sectionStarted = resolve
+  let allSectionsStarted!: () => void, finishSections!: () => void
+  const enteredAllSections = new Promise<void>((resolve) => {
+    allSectionsStarted = resolve
   })
   const sectionBodies = new Promise<void>((resolve) => {
     finishSections = resolve
@@ -260,7 +260,10 @@ test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원�
         basicStarted()
         await basicBody
       } else {
-        sectionStarted()
+        // 예전 3개씩 조회에서는 응답 전에 10개가 모두 시작되지 않아 timeout으로 실패한다.
+        if (active === 10) {
+          allSectionsStarted()
+        }
         await sectionBodies
       }
       active--
@@ -272,13 +275,13 @@ test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원�
   await enteredBasic
   assert.deepEqual(requested, [''])
   finishBasic()
-  await enteredSection
-  assert(active > 0 && active <= 3)
+  await enteredAllSections
+  assert.equal(active, 10)
   finishSections()
 
   assert.deepEqual(await pending, completePayloads)
   assert.deepEqual(requested.sort(), [...sectionsByPath.keys()].sort())
-  assert(peak > 0 && peak <= 3)
+  assert.equal(peak, 10)
   assert.equal(active, 0)
 })
 
@@ -319,7 +322,7 @@ test('각 상세 섹션의 필수 최상위 envelope를 검사하되 미장착 n
   }
 })
 
-test('기본 응답 뒤 한 섹션이 실패하면 부분 성공을 반환하거나 다음 그룹을 조회하지 않는다', async () => {
+test('기본 응답 뒤 한 섹션이 실패하면 부분 성공을 반환하지 않는다', async () => {
   const paths: string[] = []
   const adapter = createNeopleCharacterDetailsForTest('fixture-key', {
     fetch: async (input) => {
@@ -344,6 +347,7 @@ test('기본 응답 뒤 한 섹션이 실패하면 부분 성공을 반환하거
 
     return true
   })
-  assert(paths.length >= 2 && paths.length <= 4)
+  // 나머지 10개는 basic 뒤 한꺼번에 시작하므로 실패와 관계없이 각 섹션을 한 번씩 부른다.
+  assert.equal(paths.length, 11)
   assert.equal(new Set(paths).size, paths.length)
 })
