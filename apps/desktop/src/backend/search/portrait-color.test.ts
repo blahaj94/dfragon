@@ -1,6 +1,7 @@
 import { setImmediate } from 'node:timers/promises'
 import { describe, expect, it } from 'vitest'
 import type { CharacterImage, CharacterPortrait } from '../../preload/common/types/character'
+import type { PortraitAnchor } from './portrait-anchor'
 import {
   createPortraitColorScorer,
   type PortraitColorInput,
@@ -19,7 +20,8 @@ const POLICY: PortraitColorPolicy = {
   gridSize: 4,
   minCoverage: 0.01,
   minComparedCells: 1,
-  topFraction: 1
+  topFraction: 1,
+  anchorRadius: 0
 }
 type Pixel = readonly [number, number, number, number]
 type Placement = Readonly<{ x: number; y: number; source: CharacterImage }>
@@ -116,17 +118,21 @@ function portrait(source = faceImage(), validMask?: Uint8Array): CharacterPortra
 function input(
   face: CharacterPortrait,
   candidate: CharacterImage,
-  signal = new AbortController().signal
+  signal = new AbortController().signal,
+  anchor: PortraitAnchor | null = null
 ): PortraitColorInput {
-  return { portrait: face, candidate, signal }
+  return { portrait: face, candidate, anchor, signal }
 }
 
 function score(
   face: CharacterPortrait,
   candidate: CharacterImage,
-  policy: Partial<PortraitColorPolicy> = {}
+  policy: Partial<PortraitColorPolicy> = {},
+  anchor: PortraitAnchor | null = null
 ) {
-  return createPortraitColorScorer({ ...POLICY, ...policy })(input(face, candidate))
+  const signal = new AbortController().signal
+
+  return createPortraitColorScorer({ ...POLICY, ...policy })(input(face, candidate, signal, anchor))
 }
 
 describe('셀 평균 색 비교의 정렬과 점수', () => {
@@ -202,6 +208,45 @@ describe('셀 평균 색 비교의 정렬과 점수', () => {
       distance: 0,
       alignment: { x: 7, y: 70 }
     })
+  })
+
+  it('기준 위치가 있으면 그 주변만 비교해 더 가까운 먼 창을 고르지 않는다', async () => {
+    const candidate = candidateImage(40, 100, [
+      { x: 7, y: 2, source: faceImage() },
+      { x: 8, y: 70, source: faceImage(FACE_SIZE, 3) }
+    ])
+    const exactWindows = { minCoverage: 1, anchorRadius: 1 }
+
+    expect(await score(portrait(), candidate, exactWindows, { x: 7, y: 71 })).toMatchObject({
+      distance: expect.closeTo(3),
+      alignment: { x: 8, y: 70 }
+    })
+    expect(await score(portrait(), candidate, exactWindows, null)).toMatchObject({
+      distance: 0,
+      alignment: { x: 7, y: 2 }
+    })
+  })
+
+  it('기준 위치에서 anchorRadius를 넘는 창은 비교하지 않는다', async () => {
+    const candidate = candidateImage(60, 80, [{ x: 20, y: 30, source: faceImage() }])
+    const exactWindows = { minCoverage: 1 }
+
+    expect(
+      await score(portrait(), candidate, { ...exactWindows, anchorRadius: 2 }, { x: 18, y: 32 })
+    ).toMatchObject({ distance: 0, alignment: { x: 20, y: 30 } })
+    expect(
+      await score(portrait(), candidate, { ...exactWindows, anchorRadius: 1 }, { x: 18, y: 32 })
+    ).toBeNull()
+  })
+
+  it('기준 주변 창이 이미지 밖으로 나가면 이미지 안의 위치만 비교한다', async () => {
+    const candidate = candidateImage(30, 30, [{ x: 0, y: 4, source: faceImage() }])
+
+    expect(await score(portrait(), candidate, { anchorRadius: 2 }, { x: -1, y: 5 })).toMatchObject({
+      distance: 0,
+      alignment: { x: 0, y: 4 }
+    })
+    expect(await score(portrait(), candidate, { anchorRadius: 2 }, { x: 40, y: 4 })).toBeNull()
   })
 
   it('불투명 비율이 minCoverage에 못 미치는 창은 고르지 않는다', async () => {
@@ -293,7 +338,9 @@ describe('색 비교 정책과 입력 경계', () => {
     ['0인 minComparedCells', { minComparedCells: 0 }],
     ['셀 수를 넘는 minComparedCells', { minComparedCells: 17 }],
     ['0인 topFraction', { topFraction: 0 }],
-    ['1을 넘는 topFraction', { topFraction: 1.5 }]
+    ['1을 넘는 topFraction', { topFraction: 1.5 }],
+    ['음수 anchorRadius', { anchorRadius: -1 }],
+    ['정수가 아닌 anchorRadius', { anchorRadius: 1.5 }]
   ])('%s 정책을 거절한다', (_, policy) => {
     expect(() => createPortraitColorScorer({ ...POLICY, ...policy })).toThrow(TypeError)
   })

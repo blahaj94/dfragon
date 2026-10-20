@@ -216,6 +216,23 @@ describe('캐릭터 식별 규칙', () => {
     expect(f.getDetails).toHaveBeenCalledOnce()
   })
 
+  it('후보 직업으로 아는 얼굴 위치를 비교 기준으로 넘기고 모르는 직업은 null로 넘긴다', async () => {
+    const f = fixture()
+    f.findCandidates.mockImplementation(async (nickname) => [
+      { ...candidate('high', nickname, 100), jobName: '마법사(여)' },
+      { ...candidate('low', nickname, 50), jobName: '다크나이트' },
+      candidate('null', nickname, null)
+    ])
+
+    await f.identify(f.input)
+
+    expect(f.scorePortrait.mock.calls.map(([input]) => input.anchor)).toEqual([
+      { x: 85, y: 108 },
+      null,
+      null
+    ])
+  })
+
   it('거리가 같으면 명성이 앞선 후보를 고르고 선택지를 준다', async () => {
     const f = fixture({ high: 10, low: 10, null: 60 })
 

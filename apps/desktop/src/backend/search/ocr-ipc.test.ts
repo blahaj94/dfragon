@@ -13,6 +13,7 @@ const policy = {
   minCoverage: 1,
   minComparedCells: 1,
   topFraction: 1,
+  anchorRadius: 0,
   maxDistance: 0,
   minMargin: 1,
   maxCandidates: 2
