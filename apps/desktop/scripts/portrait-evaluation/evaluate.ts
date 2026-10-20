@@ -3,6 +3,7 @@ import type {
   PortraitColorScore,
   PortraitColorScorer
 } from '../../src/backend/search/portrait-color'
+import { portraitAnchorOf } from '../../src/backend/search/portrait-anchor'
 import { buildHudPortrait } from './hud-portrait'
 import type { LoadedCase } from './manifest'
 
@@ -79,9 +80,11 @@ export async function evaluateCase(input: {
   loaded: LoadedCase
   gridSize: number
   scorer: PortraitColorScorer
+  /** true면 제품처럼 후보 직업의 얼굴 위치 주변만 비교한다. */
+  anchors: boolean
   signal: AbortSignal
 }): Promise<CaseResult> {
-  const { loaded, gridSize, scorer, signal } = input
+  const { loaded, gridSize, scorer, anchors, signal } = input
   const withImage = loaded.candidates.flatMap((candidate) =>
     candidate.image ? [{ ...candidate, image: candidate.image }] : []
   )
@@ -109,7 +112,8 @@ export async function evaluateCase(input: {
   const candidates: CandidateResult[] = []
   const startedAt = performance.now()
   for (const candidate of withImage) {
-    const score = await scorer({ portrait, candidate: candidate.image, signal })
+    const anchor = anchors ? portraitAnchorOf(candidate.jobName) : null
+    const score = await scorer({ portrait, candidate: candidate.image, anchor, signal })
     candidates.push({ id: candidate.id, correct: candidate.correct, score })
   }
   const elapsedMs = performance.now() - startedAt

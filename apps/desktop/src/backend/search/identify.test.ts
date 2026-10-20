@@ -216,6 +216,58 @@ describe('캐릭터 식별 규칙', () => {
     expect(f.getDetails).toHaveBeenCalledOnce()
   })
 
+  it('후보 직업으로 아는 얼굴 위치를 비교 기준으로 넘기고 모르는 직업은 null로 넘긴다', async () => {
+    const f = fixture()
+    f.findCandidates.mockImplementation(async (nickname) => [
+      { ...candidate('high', nickname, 100), jobName: '마법사(여)' },
+      { ...candidate('low', nickname, 50), jobName: '다크나이트' },
+      candidate('null', nickname, null)
+    ])
+
+    await f.identify(f.input)
+
+    expect(f.scorePortrait.mock.calls.map(([input]) => input.anchor)).toEqual([
+      { x: 85, y: 108 },
+      null,
+      null
+    ])
+  })
+
+  it('비교하지 못한 후보의 얼굴 창은 직업별 얼굴 위치로 채우고 직업도 모르면 null로 둔다', async () => {
+    const f = fixture({ high: 20 })
+    f.findCandidates.mockImplementation(async (nickname) => [
+      { ...candidate('high', nickname, 100), jobName: '아처' },
+      candidate('low', nickname, 50),
+      { ...candidate('null', nickname, null), jobName: '나이트' }
+    ])
+
+    const identified = await f.identify(f.input)
+
+    expect(
+      identified.kind === 'matched' &&
+        identified.choices?.map(({ characterId, face }) => ({ characterId, face }))
+    ).toEqual([
+      { characterId: 'high', face: faceOf('high') },
+      { characterId: 'low', face: null },
+      { characterId: 'null', face: { x: 84, y: 101, width: 26, height: 26 } }
+    ])
+  })
+
+  it('얼굴이 없어 비교하지 않은 선택지도 직업별 얼굴 위치를 얼굴 창으로 준다', async () => {
+    const f = fixture()
+    f.findCandidates.mockImplementation(async (nickname) => [
+      { ...candidate('high', nickname, 100), jobName: '거너(남)' },
+      candidate('low', nickname, 50)
+    ])
+
+    const identified = await f.identify({ ...f.input, portrait: null })
+
+    expect(identified.kind === 'matched' && identified.choices?.map(({ face }) => face)).toEqual([
+      { x: 85, y: 61, width: 26, height: 26 },
+      null
+    ])
+  })
+
   it('거리가 같으면 명성이 앞선 후보를 고르고 선택지를 준다', async () => {
     const f = fixture({ high: 10, low: 10, null: 60 })
 
