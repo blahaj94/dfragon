@@ -2,8 +2,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PNG } from 'pngjs'
-import { afterEach, describe, expect, it } from 'vitest'
-import { createPortraitColorScorer } from '../../src/backend/search/portrait-color'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  createPortraitColorScorer,
+  type PortraitColorScorer
+} from '../../src/backend/search/portrait-color'
 import type { CharacterImage } from '../../src/preload/common/types/character'
 import { type CaseResult, evaluateCase, summarize } from './evaluate'
 import { buildHudPortrait, hudFaceSize } from './hud-portrait'
@@ -24,7 +27,8 @@ const scorer = createPortraitColorScorer({
   gridSize: GRID_SIZE,
   minCoverage: 0.5,
   minComparedCells: 4,
-  topFraction: 1
+  topFraction: 1,
+  anchorRadius: 0
 })
 const signal = new AbortController().signal
 
@@ -83,7 +87,7 @@ function transparentImage(): CharacterImage {
 }
 
 function candidate(id: string, image: CharacterImage | null, correct = false): LoadedCandidate {
-  return { id, image, correct }
+  return { id, image, correct, jobName: null }
 }
 
 function loadedCase(candidates: readonly LoadedCandidate[]): LoadedCase {
@@ -91,10 +95,34 @@ function loadedCase(candidates: readonly LoadedCandidate[]): LoadedCase {
 }
 
 function evaluate(candidates: readonly LoadedCandidate[]): Promise<CaseResult> {
-  return evaluateCase({ loaded: loadedCase(candidates), gridSize: GRID_SIZE, scorer, signal })
+  return evaluateCase({
+    loaded: loadedCase(candidates),
+    gridSize: GRID_SIZE,
+    scorer,
+    anchors: true,
+    signal
+  })
 }
 
 describe('evaluateCase', () => {
+  it.each([
+    [true, { x: 78, y: 98 }],
+    [false, null]
+  ])('anchors=%s면 후보 직업의 얼굴 위치를 비교기에 그만큼 넘긴다', async (anchors, anchor) => {
+    const spy = vi.fn<PortraitColorScorer>(async () => null)
+    const archer = { ...candidate('c0', candidateImage(gradient), true), jobName: '아처' }
+
+    await evaluateCase({
+      loaded: loadedCase([archer, candidate('c1', candidateImage(inverted))]),
+      gridSize: GRID_SIZE,
+      scorer: spy,
+      anchors,
+      signal
+    })
+
+    expect(spy.mock.calls.map(([input]) => input.anchor)).toEqual([anchor, null])
+  })
+
   it('정답이 1위면 순위 1과 오답 최소 distance와의 차이를 margin으로 돌려준다', async () => {
     const result = await evaluate([
       candidate('c0', candidateImage(inverted)),
@@ -257,7 +285,7 @@ describe('manifest', () => {
     hud: 'case-01/hud.png',
     rasterScale: 1,
     candidates: [
-      { id: 'c0', image: 'case-01/candidate-0.png', correct: true },
+      { id: 'c0', image: 'case-01/candidate-0.png', correct: true, jobName: '아처' },
       { id: 'c1', image: null }
     ]
   }
@@ -272,12 +300,12 @@ describe('manifest', () => {
     const loaded = loadCase(manifest, manifest.cases[0])
 
     expect(loaded.hud.rgba).toEqual(faceImage(FACE, gradient).rgba)
-    expect(loaded.candidates.map((entry) => [entry.id, entry.correct, entry.image?.width])).toEqual(
-      [
-        ['c0', true, CANDIDATE_SIZE.width],
-        ['c1', false, undefined]
-      ]
-    )
+    expect(
+      loaded.candidates.map((entry) => [entry.id, entry.correct, entry.jobName, entry.image?.width])
+    ).toEqual([
+      ['c0', true, '아처', CANDIDATE_SIZE.width],
+      ['c1', false, null, undefined]
+    ])
   })
 
   it.each([
@@ -305,7 +333,11 @@ describe('manifest', () => {
     ],
     ['케이스 id 중복', { cases: [validCase, validCase] }],
     ['rasterScale이 0', { cases: [{ ...validCase, rasterScale: 0 }] }],
-    ['절대 경로', { cases: [{ ...validCase, hud: '/etc/hud.png' }] }]
+    ['절대 경로', { cases: [{ ...validCase, hud: '/etc/hud.png' }] }],
+    [
+      '문자열이 아닌 jobName',
+      { cases: [{ ...validCase, candidates: [{ ...validCase.candidates[0], jobName: 1 }] }] }
+    ]
   ])('잘못된 manifest를 거절한다: %s', (_name, json) => {
     expect(() => parseManifest('/samples', json)).toThrow(TypeError)
   })
