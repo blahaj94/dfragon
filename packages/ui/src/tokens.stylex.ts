@@ -82,7 +82,12 @@ export const colors = stylex.defineConsts({
   attrFire: 'var(--df-attr-fire)',
   attrWater: 'var(--df-attr-water)',
   attrLight: 'var(--df-attr-light)',
-  attrDark: 'var(--df-attr-dark)'
+  attrDark: 'var(--df-attr-dark)',
+  oathUpgradeDamage: 'var(--df-oath-upgrade-damage)',
+  oathUpgradeCooldown: 'var(--df-oath-upgrade-cooldown)',
+  oathUpgradeOathPoint: 'var(--df-oath-upgrade-oath-point)',
+  oathUpgradeSpeed: 'var(--df-oath-upgrade-speed)',
+  oathUpgradeRange: 'var(--df-oath-upgrade-range)'
 })
 
 export const space = stylex.defineConsts({

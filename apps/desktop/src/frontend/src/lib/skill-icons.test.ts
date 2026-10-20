@@ -17,7 +17,8 @@ it('색인에 없는 스킬이나 다른 직업의 같은 skillId는 칸이 없�
   expect(skillIconCell('unknown-job', 'cfacda0647b9a0f595df2c2aad30c18d')).toBeUndefined()
 })
 
-it('sprite는 data URI가 아닌 파일 URL이다', () => {
+// Vitest는 asset을 인라인하지 않으므로 이 테스트는 sprite 파일 연결만 확인한다. 빌드에서 별도 파일로 나오는지는
+// 이 테스트 범위 밖이고, sprite가 Vite 인라인 상한보다 크며 import에 `?no-inline`을 붙여 둔다.
+it('sprite URL은 skills.webp를 가리킨다', () => {
   expect(SKILL_ICON_SPRITE_URL).toMatch(/skills\.webp/)
-  expect(SKILL_ICON_SPRITE_URL.startsWith('data:')).toBe(false)
 })
