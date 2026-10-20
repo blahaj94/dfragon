@@ -32,7 +32,7 @@ it('희귀도가 다르거나 모르는 서약, 115 세트가 아닌 세트는 �
 })
 
 // Vitest는 asset을 인라인하지 않으므로 이 테스트는 sprite 파일 연결만 확인한다. 빌드에서 별도 파일로 나오는지는
-// `?no-inline` import가 정한다.
+// 이 테스트 범위 밖이고, sprite가 Vite 인라인 상한보다 크며 import에 `?no-inline`을 붙여 둔다.
 it('sprite URL은 equipment.webp를 가리킨다', () => {
   expect(setIcon('93e7825053bdec4e0f4c12837cf4f57e')?.sprite).toMatch(/equipment\.webp/)
 })
