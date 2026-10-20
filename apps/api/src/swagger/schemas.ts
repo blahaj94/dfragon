@@ -162,7 +162,14 @@ const characterCard = object({
       rarityName: nullableText,
       point: cardSetPoint,
       imageItemId: { ...nullableText, description: '세트에 속한 장착 아이템 중 첫 번째' },
-      slots: { type: 'array', items: object({ slotId: text, rarity: nullableText }) },
+      slots: {
+        type: 'array',
+        items: object({
+          slotId: text,
+          rarity: nullableText,
+          exclusive: { type: 'boolean', description: '유일 장비 부위' }
+        })
+      },
       rarityCounts: cardRarityCounts
     })
   ),
@@ -205,6 +212,10 @@ const characterCard = object({
       itemId: nullableText,
       itemName: nullableText,
       rarity: nullableText,
+      exclusive: {
+        type: 'boolean',
+        description: '유일 장비 기준표에 있는 장비면 true, 빈 슬롯은 false입니다.'
+      },
       reinforce: nullable(
         object({
           kind: { type: 'string', enum: ['reinforce', 'amplify'] },

@@ -25,8 +25,8 @@ export const dealerCard: CharacterCard = {
     point: { current: 2550, min: 2550, max: 2805 },
     imageItemId: 'synthetic-weapon',
     slots: [
-      { slotId: 'WEAPON', rarity: '태초' },
-      { slotId: 'JACKET', rarity: null }
+      { slotId: 'WEAPON', rarity: '태초', exclusive: false },
+      { slotId: 'JACKET', rarity: null, exclusive: false }
     ],
     rarityCounts: [{ rarity: '태초', count: 1 }]
   },
@@ -57,6 +57,7 @@ export const dealerCard: CharacterCard = {
       itemId: 'synthetic-weapon',
       itemName: '합성 무기',
       rarity: '태초',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 12, amplificationName: '차원의 지능' },
       enchant: { status: [{ name: '지능', value: 60 }], grade: '종결' }
     },
@@ -66,6 +67,7 @@ export const dealerCard: CharacterCard = {
       itemId: null,
       itemName: null,
       rarity: null,
+      exclusive: false,
       reinforce: null,
       enchant: null
     }

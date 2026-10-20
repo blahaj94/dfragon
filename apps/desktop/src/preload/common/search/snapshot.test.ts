@@ -206,10 +206,17 @@ describe('카드 strict 스키마', () => {
       '세트 슬롯 추가 키',
       {
         ...dealerCard,
-        set: { ...dealerCard.set, slots: [{ slotId: 'WEAPON', rarity: null, x: 1 }] }
+        set: {
+          ...dealerCard.set,
+          slots: [{ slotId: 'WEAPON', rarity: null, exclusive: false, x: 1 }]
+        }
       }
     ],
     ['투자 행 추가 키', { ...dealerCard, investment: [{ ...weapon, display: '+12' }] }],
+    [
+      '투자 행 유일 여부가 boolean이 아님',
+      { ...dealerCard, investment: [{ ...weapon, exclusive: 1 }] }
+    ],
     ['역할 누락', { ...dealerCard, role: undefined }],
     ['알 수 없는 역할', { ...dealerCard, role: 'tank' }],
     [

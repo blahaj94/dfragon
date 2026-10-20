@@ -179,7 +179,7 @@ it('세트 섹션은 세트 포인트, 무기와 세트 부위의 희귀도 격�
     ...dealerCard,
     set: {
       ...dealerCard.set!,
-      slots: [{ slotId: 'SHOULDER', rarity: null }]
+      slots: [{ slotId: 'SHOULDER', rarity: null, exclusive: false }]
     }
   }).set
   expect(unknownSlot.groups[1].cells.map((cell) => cell.tone)).toEqual([
@@ -279,6 +279,7 @@ it('기타 면은 강화와 증폭을 종류로 구분하고 등급표에 없는
     itemName: '검은 질병의 멸룡검 발뭉',
     itemLabel: '무기, 검은 질병의 멸룡검 발뭉',
     itemTone: 'primordial',
+    exclusive: false,
     imageUrl: 'https://img-api.neople.co.kr/df/items/4f7c8199cd7a85492e985ebb5daa2da8',
     reinforce: { text: '+13', tone: 'enhance', label: '강화 13' },
     enchant: { grade: '종결', filled: 3, label: '마법부여 종결' }
@@ -288,6 +289,46 @@ it('기타 면은 강화와 증폭을 종류로 구분하고 등급표에 없는
   expect(rows[3].enchant).toEqual({ grade: '기타', filled: 1, label: '마법부여 기타' })
   // 마법부여는 있지만 판정 기준이 없는 부위는 미평가 `-`다.
   expect(rows[9].enchant).toEqual({ grade: null, text: '-', label: '마법부여 미평가' })
+})
+
+it('유일 장비 칸과 행은 태초와 같은 색에 exclusive를 표시하고 보조 기술에 유일 장비임을 전하며 태초만으로는 exclusive가 아니다', () => {
+  const card: CharacterCard = {
+    ...dealerCard,
+    set: {
+      ...dealerCard.set!,
+      slots: dealerCard.set!.slots.map((slot) => ({ ...slot, exclusive: slot.slotId === 'RING' })),
+      rarityCounts: [
+        { rarity: '유일', count: 1 },
+        { rarity: '태초', count: 2 },
+        { rarity: '에픽', count: 8 }
+      ]
+    },
+    investment: dealerCard.investment.map((row) => ({
+      ...row,
+      exclusive: row.slotId === 'RING'
+    }))
+  }
+
+  const { set } = toEquipmentFace(card)
+  const accessory = set.groups.find((group) => group.id === 'accessory')!
+  expect(accessory.cells).toEqual([
+    { id: 'WRIST', tone: 'primordial', exclusive: false },
+    { id: 'AMULET', tone: 'primordial', exclusive: false },
+    { id: 'RING', tone: 'primordial', exclusive: true }
+  ])
+  expect(set.counts).toEqual([
+    { label: '유일', count: '1', tone: 'primordial', exclusive: true },
+    { label: '태초', count: '2', tone: 'primordial', exclusive: false },
+    { label: '에픽', count: '8', tone: 'epic', exclusive: false }
+  ])
+
+  const rows = toInvestmentRows(card)
+  const ring = rows.find((row) => row.slotId === 'RING')!
+  expect(ring).toMatchObject({ itemTone: 'primordial', exclusive: true })
+  expect(ring.itemLabel).toBe('반지, 거룩한 희생의 반지, 유일 장비')
+  // 태초 무기는 유일 장비가 아니라 빛도 보조 기술 문구도 없다.
+  expect(rows[0]).toMatchObject({ itemTone: 'primordial', exclusive: false })
+  expect(rows[0].itemLabel).not.toContain('유일 장비')
 })
 
 it('API 응답 fixture의 카드 값으로 세 면을 채우고 엔진이 채우기 전의 점수는 비우고 순위는 -로 둔다', () => {

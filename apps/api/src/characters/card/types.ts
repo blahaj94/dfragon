@@ -53,7 +53,8 @@ export interface CharacterSetCard {
   rarityName: string | null
   point: CharacterSetPoint | null
   imageItemId: string | null
-  slots: { slotId: string; rarity: string | null }[]
+  // exclusive marks 유일 장비 slots; rarityCounts counts them as '유일' instead of their rarity.
+  slots: { slotId: string; rarity: string | null; exclusive: boolean }[]
   rarityCounts: CharacterRarityCount[]
 }
 
@@ -89,6 +90,8 @@ export interface CharacterInvestment {
   itemId: string | null
   itemName: string | null
   rarity: string | null
+  // 유일 장비 from the repository table; false for an empty slot.
+  exclusive: boolean
   reinforce: {
     kind: 'reinforce' | 'amplify'
     value: number

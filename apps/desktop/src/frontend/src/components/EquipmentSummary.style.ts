@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, font, space } from '@dfragon/ui/tokens.stylex'
+import { colors, font, motion, space } from '@dfragon/ui/tokens.stylex'
 
 // 숫자 단계(dfragon-design typography.md). 행간은 1이고 자릿수 폭을 고정한다.
 const numeric = {
@@ -8,6 +8,12 @@ const numeric = {
   lineHeight: 1,
   letterSpacing: 0
 } as const
+
+// 유일 장비 격자 칸을 주기마다 한 번 지나가는 빛줄기(캔버스 카드 면 보드). 기타 면 아이콘 칸과 같은 주기다.
+const sweep = stylex.keyframes({
+  '0%': { transform: 'translateX(-100%)' },
+  '30%, 100%': { transform: 'translateX(100%)' }
+})
 
 // 캔버스 카드 면 보드의 세트, 서약 섹션. 그림 56, 이름 15 700, 포인트 Barlow 32, 격자 칸 높이 4(넓은 칸 8),
 // 묵언의 진의 칸 18 × 8이다.
@@ -64,6 +70,24 @@ export const styles = stylex.create({
   cell: { flex: 1, minWidth: 0, height: 4 },
   cellMain: { height: 8 },
   cellEmpty: { boxShadow: `inset 0 0 0 1px ${colors.cardBorder}` },
+  // 유일 장비 칸은 은은한 빛과 빛줄기를 더한다. 동작 줄이기 설정에서는 빛줄기를 그리지 않는다.
+  cellExclusive: {
+    position: 'relative',
+    overflow: 'hidden',
+    boxShadow: `0 0 6px color-mix(in srgb, ${colors.rarityPrimordial} 70%, transparent)`,
+    '::after': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      backgroundImage: `linear-gradient(90deg, transparent, ${colors.rarityCommon}, transparent)`,
+      transform: 'translateX(-100%)',
+      opacity: { default: 1, '@media (prefers-reduced-motion: reduce)': 0 },
+      animationName: { default: sweep, '@media (prefers-reduced-motion: reduce)': 'none' },
+      animationDuration: motion.cycle,
+      animationTimingFunction: motion.ease,
+      animationIterationCount: 'infinite'
+    }
+  },
   counts: { display: 'flex', flexWrap: 'wrap', columnGap: space.s16, rowGap: space.s4 },
   count: { display: 'flex', alignItems: 'baseline', gap: space.s4 },
   countLabel: { color: colors.cardFgSubtle },

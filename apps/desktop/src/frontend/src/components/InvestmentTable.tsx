@@ -1,6 +1,6 @@
 import { shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
-import { rarityText } from '../constants/rarity.style'
+import { exclusiveText, rarityText } from '../constants/rarity.style'
 import { ItemIcon } from './ItemIcon'
 import type { EnchantView, InvestmentRowView } from '../lib/card-faces'
 import { gradeStyles, reinforceStyles, styles } from './InvestmentTable.style'
@@ -48,8 +48,11 @@ export function InvestmentTable({ rows }: { rows: InvestmentRowView[] }): React.
               )}
             >
               <span {...stylex.props(styles.itemInner)}>
-                <ItemIcon src={row.imageUrl} tone={row.itemTone} />
-                <span aria-hidden="true" {...stylex.props(styles.itemName)}>
+                <ItemIcon src={row.imageUrl} tone={row.itemTone} exclusive={row.exclusive} />
+                <span
+                  aria-hidden="true"
+                  {...stylex.props(styles.itemName, row.exclusive && exclusiveText.shine)}
+                >
                   {row.itemName}
                 </span>
               </span>

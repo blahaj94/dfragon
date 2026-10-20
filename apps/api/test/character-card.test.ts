@@ -6,6 +6,7 @@ import {
   gradeEnchant,
   parseEnchantGradeTable
 } from '../src/characters/card/enchant-grades.js'
+import { exclusiveItems, parseExclusiveItemTable } from '../src/characters/card/exclusive-items.js'
 import { projectCharacterCard } from '../src/characters/card/project.js'
 import type { CharacterCardSource } from '../src/characters/card/project.js'
 import type { CharacterCard, CharacterServerRank } from '../src/characters/card/types.js'
@@ -23,13 +24,21 @@ const titles = {
   oath: '서약이 없으면 null이고 oathUpgrade가 없으면 묵언의 진의는 빈 목록이다',
   investment: '기타 면은 12부위 고정 순서로 증폭과 강화를 구분하고 빈 슬롯은 아이템 값이 null이다',
   enchant: '마법부여 등급은 표의 모든 옵션 이름, 값이 같을 때만 정하고 없으면 null이다',
-  table: '등급표 형식이 틀리면 시작할 때 거절하고 저장소의 표는 같은 형식이다'
+  table: '등급표 형식이 틀리면 시작할 때 거절하고 저장소의 표는 같은 형식이다',
+  exclusive:
+    '유일 장비는 기준표의 부위와 이름이 모두 같을 때만 표시하고 세트 희귀도 개수에서는 유일로 센다',
+  exclusiveTable: '유일 장비 기준표 형식이 틀리면 시작할 때 거절하고 저장소의 표는 같은 형식이다'
 }
 
 const emptyGrades = parseEnchantGradeTable({
   version: 1,
   source: { dataset: 'fixture', generated_at: null },
   slots: {}
+})
+const exclusiveTable = parseExclusiveItemTable({
+  version: 1,
+  source: { guide: 'fixture', checked_at: '2026-10-20' },
+  slots: { RING: ['유일 반지'] }
 })
 const rank: CharacterServerRank = {
   rank: 3,
@@ -77,7 +86,12 @@ test(titles.fixture, () => {
       })
     )
 
-    const card = projectCharacterCard(projectCharacterDetails(identity, rows), null, enchantGrades)
+    const card = projectCharacterCard(
+      projectCharacterDetails(identity, rows),
+      null,
+      enchantGrades,
+      exclusiveItems
+    )
 
     assert.deepEqual(card, fixture.card, role)
     assert.equal(card.role, role)
@@ -169,7 +183,12 @@ test(titles.role, () => {
     ['眞 이단심판관', 'dealer'],
     ['眞 뮤즈 아님', 'dealer']
   ] as const) {
-    const card = projectCharacterCard(source({ character: { jobGrowName } }), null, emptyGrades)
+    const card = projectCharacterCard(
+      source({ character: { jobGrowName } }),
+      null,
+      emptyGrades,
+      exclusiveTable
+    )
     assert.equal(card.role, role, jobGrowName)
     assert.equal(card.stats?.role, role, jobGrowName)
   }
@@ -179,7 +198,8 @@ test(titles.role, () => {
       status: { status: [{ name: '정신력', value: 7692 }] }
     }),
     rank,
-    emptyGrades
+    emptyGrades,
+    exclusiveTable
   )
   assert.deepEqual(buffer.stats, {
     role: 'buffer',
@@ -192,7 +212,12 @@ test(titles.role, () => {
   assert.equal(buffer.score, null)
   assert.deepEqual(buffer.serverRank, rank)
   for (const jobGrowName of [null, '', 42, undefined]) {
-    const card = projectCharacterCard(source({ character: { jobGrowName } }), null, emptyGrades)
+    const card = projectCharacterCard(
+      source({ character: { jobGrowName } }),
+      null,
+      emptyGrades,
+      exclusiveTable
+    )
     assert.equal(card.role, null)
     assert.equal(card.stats, null)
   }
@@ -213,7 +238,8 @@ test(titles.townStat, () => {
     const card = projectCharacterCard(
       source({ character: { jobName, jobGrowName }, status: { status: status(spirit, vitality) } }),
       null,
-      emptyGrades
+      emptyGrades,
+      exclusiveTable
     )
     if (card.stats?.role !== 'buffer') {
       assert.fail('버퍼 스탯이 아닙니다.')
@@ -236,7 +262,7 @@ test(titles.townStat, () => {
 
 test(titles.critical, () => {
   const stats = (status: unknown[]) =>
-    projectCharacterCard(source({ status: { status } }), null, emptyGrades).stats
+    projectCharacterCard(source({ status: { status } }), null, emptyGrades, exclusiveTable).stats
   const critical = (physical: unknown, magical: unknown) => {
     const dealer = stats([
       { name: '물리 크리티컬', value: physical },
@@ -296,7 +322,12 @@ test(titles.set, () => {
     { slotId: 'RING', itemId: 'ring', setItemId: 'major' }
   ]
   const project = (setItemInfo: unknown) =>
-    projectCharacterCard(source({ equipment: { equipment, setItemInfo } }), null, emptyGrades).set
+    projectCharacterCard(
+      source({ equipment: { equipment, setItemInfo } }),
+      null,
+      emptyGrades,
+      exclusiveTable
+    ).set
 
   assert.deepEqual(project([set('minor', ['WEAPON']), set('major', ['JACKET', 'RING', 'PANTS'])]), {
     setItemId: 'major',
@@ -305,9 +336,9 @@ test(titles.set, () => {
     point: { current: 2615, min: 2550, max: 2550 },
     imageItemId: 'jacket',
     slots: [
-      { slotId: 'JACKET', rarity: '에픽' },
-      { slotId: 'RING', rarity: '태초' },
-      { slotId: 'PANTS', rarity: '에픽' }
+      { slotId: 'JACKET', rarity: '에픽', exclusive: false },
+      { slotId: 'RING', rarity: '태초', exclusive: false },
+      { slotId: 'PANTS', rarity: '에픽', exclusive: false }
     ],
     rarityCounts: [
       { rarity: '에픽', count: 2 },
@@ -332,7 +363,8 @@ test(titles.oath, () => {
     setPoint: 655,
     oathUpgrade: null
   }
-  const project = (oath: unknown) => projectCharacterCard(source({ oath }), null, emptyGrades).oath
+  const project = (oath: unknown) =>
+    projectCharacterCard(source({ oath }), null, emptyGrades, exclusiveTable).oath
 
   assert.equal(project(null), null)
   assert.equal(project({ info: null, crystal: [], setInfo: null }), null)
@@ -422,7 +454,8 @@ test(titles.investment, () => {
       }
     }),
     null,
-    emptyGrades
+    emptyGrades,
+    exclusiveTable
   )
 
   assert.deepEqual(
@@ -449,6 +482,7 @@ test(titles.investment, () => {
     itemId: 'weapon',
     itemName: '무기',
     rarity: '에픽',
+    exclusive: false,
     reinforce: { kind: 'reinforce', value: 10, amplificationName: null },
     enchant: { status: [], grade: null }
   })
@@ -469,6 +503,7 @@ test(titles.investment, () => {
     itemId: null,
     itemName: null,
     rarity: null,
+    exclusive: false,
     reinforce: null,
     enchant: null
   })
@@ -533,7 +568,8 @@ test(titles.enchant, () => {
       }
     }),
     null,
-    grades
+    grades,
+    exclusiveTable
   )
   assert.equal(card.investment[0]?.enchant?.grade, '준종결')
 })
@@ -569,4 +605,64 @@ test(titles.table, () => {
   }
   assert.deepEqual(parseEnchantGradeTable(valid), valid)
   assert.equal(enchantGrades.version, 1)
+})
+
+test(titles.exclusive, () => {
+  const equipment = [
+    { slotId: 'RING', itemId: 'ring', itemName: '유일 반지', itemRarity: '태초', setItemId: null },
+    { slotId: 'SUPPORT', itemId: 'support', itemName: '유일 반지', itemRarity: '태초' },
+    { slotId: 'AMULET', itemId: 'amulet', itemName: '목걸이', itemRarity: '태초' }
+  ]
+  const setItemInfo = [
+    {
+      setItemId: 'set',
+      setItemName: '세트',
+      slotInfo: ['RING', 'SUPPORT', 'AMULET'].map((slotId) => ({ slotId, itemRarity: '태초' }))
+    }
+  ]
+  const card = projectCharacterCard(
+    source({ equipment: { equipment, setItemInfo } }),
+    null,
+    emptyGrades,
+    exclusiveTable
+  )
+
+  const exclusive = (slotId: string) =>
+    card.investment.find((row) => row.slotId === slotId)?.exclusive
+  assert.equal(exclusive('RING'), true)
+  // The same name in a slot the table does not list is not a 유일 장비.
+  assert.equal(exclusive('SUPPORT'), false)
+  assert.equal(exclusive('AMULET'), false)
+  assert.equal(exclusive('WEAPON'), false)
+  assert.deepEqual(card.set?.slots, [
+    { slotId: 'RING', rarity: '태초', exclusive: true },
+    { slotId: 'SUPPORT', rarity: '태초', exclusive: false },
+    { slotId: 'AMULET', rarity: '태초', exclusive: false }
+  ])
+  assert.deepEqual(card.set?.rarityCounts, [
+    { rarity: '유일', count: 1 },
+    { rarity: '태초', count: 2 }
+  ])
+})
+
+test(titles.exclusiveTable, () => {
+  const valid = { version: 1, source: { guide: 'fixture', checked_at: '2026-10-20' }, slots: {} }
+  for (const invalid of [
+    null,
+    { ...valid, version: 2 },
+    { ...valid, source: { guide: 'fixture' } },
+    { ...valid, slots: null },
+    { ...valid, slots: { RING: [] } },
+    { ...valid, slots: { RING: [''] } },
+    { ...valid, slots: { RING: '유일 반지' } }
+  ]) {
+    assert.throws(() => parseExclusiveItemTable(invalid), /Invalid exclusive item table/)
+  }
+  assert.deepEqual(parseExclusiveItemTable(valid), valid)
+  assert.deepEqual(Object.keys(exclusiveItems.slots).sort(), [
+    'EARRING',
+    'MAGIC_STON',
+    'RING',
+    'SUPPORT'
+  ])
 })

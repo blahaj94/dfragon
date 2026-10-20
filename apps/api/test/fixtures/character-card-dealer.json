@@ -5648,47 +5648,58 @@
       "slots": [
         {
           "slotId": "JACKET",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         },
         {
           "slotId": "SHOULDER",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         },
         {
           "slotId": "PANTS",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         },
         {
           "slotId": "SHOES",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         },
         {
           "slotId": "WAIST",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         },
         {
           "slotId": "AMULET",
-          "rarity": "태초"
+          "rarity": "태초",
+          "exclusive": false
         },
         {
           "slotId": "WRIST",
-          "rarity": "태초"
+          "rarity": "태초",
+          "exclusive": false
         },
         {
           "slotId": "RING",
-          "rarity": "태초"
+          "rarity": "태초",
+          "exclusive": false
         },
         {
           "slotId": "SUPPORT",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         },
         {
           "slotId": "MAGIC_STON",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         },
         {
           "slotId": "EARRING",
-          "rarity": "에픽"
+          "rarity": "에픽",
+          "exclusive": false
         }
       ],
       "rarityCounts": [
@@ -5858,6 +5869,7 @@
         "itemId": "89c42c1d02e6749244ce518e9b34e1c7",
         "itemName": "재앙의 송곳니",
         "rarity": "태초",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 10,
@@ -5883,6 +5895,7 @@
         "itemId": "11f55a9437e514d46ee55c8a8ae82b7e",
         "itemName": "긍휼 속 자비의 상의",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -5924,6 +5937,7 @@
         "itemId": "2d81feba3c9977d5ffa32fd378785bf0",
         "itemName": "숭고한 심판의 어깨",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -5981,6 +5995,7 @@
         "itemId": "607ee0da46bf24a4b211bff52f3c05f1",
         "itemName": "명예로운 공경의 하의",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -6022,6 +6037,7 @@
         "itemId": "20c367fa5eaccbaa7b9fe372d4b94170",
         "itemName": "완전한 침묵의 벨트",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -6079,6 +6095,7 @@
         "itemId": "e6360b073291b20bd81c830fe5b52962",
         "itemName": "고요한 안식의 신발",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -6136,6 +6153,7 @@
         "itemId": "f774b185f71d9f5e7a712aa842e8ebba",
         "itemName": "성스러운 믿음의 목걸이",
         "rarity": "태초",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -6161,6 +6179,7 @@
         "itemId": "1d102027205b181ec94bd03581f30fe6",
         "itemName": "드러난 진실의 팔찌",
         "rarity": "태초",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -6186,6 +6205,7 @@
         "itemId": "f8f5673ee549e8de296b3c2ba1593ca4",
         "itemName": "거룩한 희생의 반지",
         "rarity": "태초",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -6211,6 +6231,7 @@
         "itemId": "819d0bd846c913248d30c8b1e4e53755",
         "itemName": "초연한 청렴의 보조장비",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -6244,6 +6265,7 @@
         "itemId": "b797e5b10819d9edb772d6cc69f7561d",
         "itemName": "무결한 순수의 마법석",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "reinforce",
           "value": 0,
@@ -6265,6 +6287,7 @@
         "itemId": "523be2dc115d046a3ce5ab76f5e1e42b",
         "itemName": "강인한 절제의 귀걸이",
         "rarity": "에픽",
+        "exclusive": false,
         "reinforce": {
           "kind": "amplify",
           "value": 8,

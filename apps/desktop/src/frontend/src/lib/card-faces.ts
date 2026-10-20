@@ -40,14 +40,15 @@ export type CharacterFaceView = {
 
 /**
  * 부위 격자의 한 칸. `id`는 부위나 결정 자리이고, 장착하지 않은 칸은 `empty`, 장착했지만 희귀도를 모르는 칸은
- * `unknown`(카드 글자색)이다.
+ * `unknown`(카드 글자색)이다. `exclusive`는 유일 장비 칸이라 빛을 더한다.
  */
-export type RarityCellView = { id: string; tone: RarityTone | 'empty' }
+export type RarityCellView = { id: string; tone: RarityTone | 'empty'; exclusive: boolean }
 
 /** 부위 격자의 한 묶음. `main`은 무기나 서약 본체처럼 넓고 높은 칸 하나다. */
 export type RarityGroupView = { id: string; main: boolean; cells: RarityCellView[] }
 
-export type RarityCountView = { label: string; count: string; tone: RarityTone }
+/** 희귀도 개수 칩. 세트의 `유일` 칩은 유일 장비 칸과 같은 빛을 숫자에 더한다(`exclusive`). */
+export type RarityCountView = { label: string; count: string; tone: RarityTone; exclusive: boolean }
 
 /**
  * 세트와 서약 섹션의 공통 머리. 값이 없으면 `missing`이고 이름 자리에 없다는 안내를 둔다. 그림은 115 세트면
@@ -90,17 +91,23 @@ export type EnchantView =
 
 /**
  * 기타 면 12행의 한 줄. 아이콘 칸과 아이템 이름은 같은 희귀도 색(`itemTone`)을 쓰고, 아이콘은 장식이라 부위와
- * 이름은 `itemLabel`로 보조 기술에 전한다.
+ * 이름은 `itemLabel`로 보조 기술에 전한다. 유일 장비(`exclusive`)는 아이콘 칸과 이름에 빛을 더하고 `itemLabel`
+ * 끝에 `유일 장비`를 붙인다.
  */
 export type InvestmentRowView = {
   slotId: string
   itemName: string
   itemLabel: string
   itemTone: RarityTone | 'missing'
+  exclusive: boolean
   imageUrl: string | undefined
   reinforce: ReinforceView
   enchant: EnchantView
 }
+
+/** 유일 장비의 이름. API는 세트 희귀도 개수에서 유일 장비 부위를 이 이름으로 센다. */
+export const EXCLUSIVE_RARITY = '유일'
+const EXCLUSIVE_LABEL = '유일 장비'
 
 const ITEM_IMAGE_ORIGIN = 'https://img-api.neople.co.kr'
 // 캐릭터 이미지 식별자와 같은 문자 범위만 고정 origin URL에 넣는다.
@@ -115,7 +122,9 @@ const rarityTones: Readonly<Record<string, RarityTone>> = {
   에픽: 'epic',
   레전더리: 'legendary',
   크로니클: 'chronicle',
-  태초: 'primordial'
+  태초: 'primordial',
+  // API가 세트 희귀도 개수에서 유일 장비 부위를 세는 이름이다. 캔버스는 태초와 같은 색에 빛을 더한다.
+  [EXCLUSIVE_RARITY]: 'primordial'
 }
 
 // 점수 엔진이 건너뛴 사유 종류. 엔진의 원문 메시지는 개발용이라 화면과 보조 기술에 쓰지 않는다.
@@ -176,6 +185,15 @@ export function toRarityTone(rarity: string | null | undefined): RarityTone {
   }
 
   return rarityTones[name]
+}
+
+/** 장비 줄의 보조 기술 이름 `부위, 아이템 이름`. 유일 장비는 끝에 `유일 장비`를 붙인다. */
+export function toItemLabel(part: string, itemName: string, exclusive: boolean): string {
+  if (!exclusive) {
+    return `${part}, ${itemName}`
+  }
+
+  return `${part}, ${itemName}, ${EXCLUSIVE_LABEL}`
 }
 
 /** 검증한 아이템 식별자로 고정 origin의 아이템 이미지 URL을 만든다. 쓸 수 없는 식별자는 대체 표시로 둔다. */
@@ -257,28 +275,37 @@ export function toCharacterFace(
 }
 
 function toRarityCounts(counts: readonly { rarity: string; count: number }[]): RarityCountView[] {
-  return counts.map(({ rarity, count }) => ({
-    label: rarity,
-    count: integer.format(count),
-    tone: toRarityTone(rarity)
-  }))
+  return counts.map(({ rarity, count }) => {
+    const exclusive = rarity === EXCLUSIVE_RARITY
+
+    return {
+      label: rarity,
+      count: integer.format(count),
+      tone: toRarityTone(rarity),
+      exclusive
+    }
+  })
 }
+
+type SlotRarity = { rarity: string | null; exclusive: boolean }
 
 // 자리별 희귀도로 격자 묶음을 만든다. 장착 정보가 없는 자리는 빈 칸, 희귀도가 null인 자리는 `unknown`이다.
 function toRarityGroups<Slot>(
   groups: readonly { id: string; slots: readonly Slot[] }[],
-  rarityBySlot: Map<Slot, string | null>,
+  rarityBySlot: Map<Slot, SlotRarity>,
   cellId: (slot: Slot) => string
 ): RarityGroupView[] {
   return groups.map(({ id, slots }) => ({
     id,
     main: false,
     cells: slots.map((slot): RarityCellView => {
-      if (!rarityBySlot.has(slot)) {
-        return { id: cellId(slot), tone: 'empty' }
+      const equipped = rarityBySlot.get(slot)
+      if (equipped === undefined) {
+        return { id: cellId(slot), tone: 'empty', exclusive: false }
       }
+      const tone = toRarityTone(equipped.rarity)
 
-      return { id: cellId(slot), tone: toRarityTone(rarityBySlot.get(slot)) }
+      return { id: cellId(slot), tone, exclusive: equipped.exclusive }
     })
   }))
 }
@@ -319,7 +346,7 @@ function toSetView(
   const weaponGroup: RarityGroupView = {
     id: 'weapon',
     main: true,
-    cells: [{ id: 'WEAPON', tone: weaponTone }]
+    cells: [{ id: 'WEAPON', tone: weaponTone, exclusive: weapon?.exclusive ?? false }]
   }
   const set = card?.set ?? null
   if (set == null) {
@@ -335,7 +362,9 @@ function toSetView(
       counts: []
     }
   }
-  const rarityBySlot = new Map(set.slots.map((slot) => [slot.slotId, slot.rarity]))
+  const rarityBySlot = new Map(
+    set.slots.map(({ slotId, rarity, exclusive }) => [slotId, { rarity, exclusive }])
+  )
 
   return {
     missing: false,
@@ -387,14 +416,16 @@ function toOathView(
       pointLabel: '서약 포인트',
       point: MISSING_VALUE,
       groups: [
-        { id: 'oath', main: true, cells: [{ id: 'oath', tone: 'empty' }] },
+        { id: 'oath', main: true, cells: [{ id: 'oath', tone: 'empty', exclusive: false }] },
         ...toRarityGroups(crystalSlotGroups, new Map(), crystalCellId)
       ],
       counts: [],
       upgrades: toUpgradeCells([])
     }
   }
-  const rarityBySlot = new Map(oath.crystals.map((crystal) => [crystal.slotNo, crystal.rarity]))
+  const rarityBySlot = new Map(
+    oath.crystals.map(({ slotNo, rarity }) => [slotNo, { rarity, exclusive: false }])
+  )
   // 캔버스의 서약 제목은 세트 옵션 이름(`여우 : 초월`)이고, 없으면 세트 이름, 서약 아이템 이름 순서로 쓴다.
   const name = oath.optionName ?? oath.setName ?? oath.name
   const bodyTone = toRarityTone(oath.rarity)
@@ -408,7 +439,7 @@ function toOathView(
     pointLabel: '서약 포인트',
     point: formatPoint(oath.setPoint?.current),
     groups: [
-      { id: 'oath', main: true, cells: [{ id: 'oath', tone: bodyTone }] },
+      { id: 'oath', main: true, cells: [{ id: 'oath', tone: bodyTone, exclusive: false }] },
       ...toRarityGroups(crystalSlotGroups, rarityBySlot, crystalCellId)
     ],
     counts: toRarityCounts(oath.rarityCounts),
@@ -480,6 +511,7 @@ export function toInvestmentRows(
         itemName: MISSING_VALUE,
         itemLabel: `${slotName}, 장착 정보 없음`,
         itemTone: 'missing',
+        exclusive: false,
         imageUrl: undefined,
         reinforce: toReinforceView(row),
         enchant: toEnchantView(row)
@@ -489,8 +521,9 @@ export function toInvestmentRows(
     return {
       slotId,
       itemName: row.itemName,
-      itemLabel: `${slotName}, ${row.itemName}`,
+      itemLabel: toItemLabel(slotName, row.itemName, row.exclusive),
       itemTone: toRarityTone(row.rarity),
+      exclusive: row.exclusive,
       imageUrl: toItemImage(row.itemId, itemImages),
       reinforce: toReinforceView(row),
       enchant: toEnchantView(row)

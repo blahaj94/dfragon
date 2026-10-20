@@ -35,17 +35,17 @@ export const dealerCard: CharacterCard = {
     point: { current: 2625, min: 2550, max: 2550 },
     imageItemId: '2d23a5dc389016bdc3a3e3fd142b38ce',
     slots: [
-      { slotId: 'JACKET', rarity: '에픽' },
-      { slotId: 'SHOULDER', rarity: '에픽' },
-      { slotId: 'PANTS', rarity: '에픽' },
-      { slotId: 'SHOES', rarity: '에픽' },
-      { slotId: 'WAIST', rarity: '에픽' },
-      { slotId: 'AMULET', rarity: '태초' },
-      { slotId: 'WRIST', rarity: '태초' },
-      { slotId: 'RING', rarity: '태초' },
-      { slotId: 'SUPPORT', rarity: '에픽' },
-      { slotId: 'MAGIC_STON', rarity: '에픽' },
-      { slotId: 'EARRING', rarity: '에픽' }
+      { slotId: 'JACKET', rarity: '에픽', exclusive: false },
+      { slotId: 'SHOULDER', rarity: '에픽', exclusive: false },
+      { slotId: 'PANTS', rarity: '에픽', exclusive: false },
+      { slotId: 'SHOES', rarity: '에픽', exclusive: false },
+      { slotId: 'WAIST', rarity: '에픽', exclusive: false },
+      { slotId: 'AMULET', rarity: '태초', exclusive: false },
+      { slotId: 'WRIST', rarity: '태초', exclusive: false },
+      { slotId: 'RING', rarity: '태초', exclusive: false },
+      { slotId: 'SUPPORT', rarity: '에픽', exclusive: false },
+      { slotId: 'MAGIC_STON', rarity: '에픽', exclusive: false },
+      { slotId: 'EARRING', rarity: '에픽', exclusive: false }
     ],
     rarityCounts: [
       { rarity: '태초', count: 3 },
@@ -161,6 +161,7 @@ export const dealerCard: CharacterCard = {
       itemId: '4f7c8199cd7a85492e985ebb5daa2da8',
       itemName: '검은 질병의 멸룡검 발뭉',
       rarity: '태초',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 13, amplificationName: null },
       enchant: {
         status: [
@@ -178,6 +179,7 @@ export const dealerCard: CharacterCard = {
       itemId: '2d23a5dc389016bdc3a3e3fd142b38ce',
       itemName: '긍휼 속 자비의 상의',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 10, amplificationName: null },
       enchant: {
         status: [
@@ -197,6 +199,7 @@ export const dealerCard: CharacterCard = {
       itemId: '1b62c240c5a0a893a77149ef5b923bbb',
       itemName: '숭고한 심판의 어깨',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 10, amplificationName: null },
       enchant: {
         status: [
@@ -220,6 +223,7 @@ export const dealerCard: CharacterCard = {
       itemId: 'cd04be485e258d9879cd6d3b9bb3f2c6',
       itemName: '명예로운 공경의 하의',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 10, amplificationName: null },
       enchant: {
         status: [
@@ -239,6 +243,7 @@ export const dealerCard: CharacterCard = {
       itemId: 'e73e2b5f535f2ec8edbf29d5ba1ef2e9',
       itemName: '완전한 침묵의 벨트',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 10, amplificationName: null },
       enchant: {
         status: [
@@ -262,6 +267,7 @@ export const dealerCard: CharacterCard = {
       itemId: 'a4e3544bd415bcf6399809025bc3de32',
       itemName: '고요한 안식의 신발',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 10, amplificationName: null },
       enchant: {
         status: [
@@ -285,6 +291,7 @@ export const dealerCard: CharacterCard = {
       itemId: '0b282cdf1ebaf35acaf2753a04523c25',
       itemName: '성스러운 믿음의 목걸이',
       rarity: '태초',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 10, amplificationName: '차원의 힘' },
       enchant: { status: [{ name: '모든 속성 강화', value: 33 }], grade: '준종결' }
     },
@@ -294,6 +301,7 @@ export const dealerCard: CharacterCard = {
       itemId: '61ee9ec4dfd2bf600529115950c9a841',
       itemName: '드러난 진실의 팔찌',
       rarity: '태초',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 10, amplificationName: '차원의 힘' },
       enchant: { status: [{ name: '모든 속성 강화', value: 33 }], grade: '종결' }
     },
@@ -303,6 +311,7 @@ export const dealerCard: CharacterCard = {
       itemId: '51bc77072ed77633484ee871d3327821',
       itemName: '거룩한 희생의 반지',
       rarity: '태초',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 10, amplificationName: '차원의 힘' },
       enchant: { status: [{ name: '모든 속성 강화', value: 33 }], grade: '종결' }
     },
@@ -312,6 +321,7 @@ export const dealerCard: CharacterCard = {
       itemId: '2553174da0b1bc3cf1614ea331a0aa0d',
       itemName: '초연한 청렴의 보조장비',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 10, amplificationName: '차원의 힘' },
       enchant: {
         status: [
@@ -329,6 +339,7 @@ export const dealerCard: CharacterCard = {
       itemId: '06ad4ee0f2071c2cd4d00dd6e168d250',
       itemName: '무결한 순수의 마법석',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 10, amplificationName: '차원의 힘' },
       enchant: { status: [{ name: '모든 속성 강화', value: 40 }], grade: '종결' }
     },
@@ -338,6 +349,7 @@ export const dealerCard: CharacterCard = {
       itemId: 'fe11b3d169c66fa3cd358e21c51a647e',
       itemName: '강인한 절제의 귀걸이',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 10, amplificationName: '차원의 힘' },
       enchant: {
         status: [
@@ -383,17 +395,17 @@ export const bufferCard: CharacterCard = {
     point: { current: 2550, min: 2550, max: 2550 },
     imageItemId: 'd51d0071c181d4fe99b04e19f2fd6a82',
     slots: [
-      { slotId: 'JACKET', rarity: '에픽' },
-      { slotId: 'SHOULDER', rarity: '레전더리' },
-      { slotId: 'PANTS', rarity: '에픽' },
-      { slotId: 'SHOES', rarity: '에픽' },
-      { slotId: 'WAIST', rarity: '레전더리' },
-      { slotId: 'AMULET', rarity: '에픽' },
-      { slotId: 'WRIST', rarity: '에픽' },
-      { slotId: 'RING', rarity: '에픽' },
-      { slotId: 'SUPPORT', rarity: '유니크' },
-      { slotId: 'MAGIC_STON', rarity: '에픽' },
-      { slotId: 'EARRING', rarity: '레전더리' }
+      { slotId: 'JACKET', rarity: '에픽', exclusive: false },
+      { slotId: 'SHOULDER', rarity: '레전더리', exclusive: false },
+      { slotId: 'PANTS', rarity: '에픽', exclusive: false },
+      { slotId: 'SHOES', rarity: '에픽', exclusive: false },
+      { slotId: 'WAIST', rarity: '레전더리', exclusive: false },
+      { slotId: 'AMULET', rarity: '에픽', exclusive: false },
+      { slotId: 'WRIST', rarity: '에픽', exclusive: false },
+      { slotId: 'RING', rarity: '에픽', exclusive: false },
+      { slotId: 'SUPPORT', rarity: '유니크', exclusive: false },
+      { slotId: 'MAGIC_STON', rarity: '에픽', exclusive: false },
+      { slotId: 'EARRING', rarity: '레전더리', exclusive: false }
     ],
     rarityCounts: [
       { rarity: '에픽', count: 7 },
@@ -501,6 +513,7 @@ export const bufferCard: CharacterCard = {
       itemId: '894e3ce2fb15298feda9cac871b74ea0',
       itemName: '서사시의 영웅담 - 빗자루',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 7, amplificationName: '차원의 지능' },
       enchant: {
         status: [
@@ -518,6 +531,7 @@ export const bufferCard: CharacterCard = {
       itemId: 'd51d0071c181d4fe99b04e19f2fd6a82',
       itemName: '칠흑의 정화 상의',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 0, amplificationName: null },
       enchant: {
         status: [
@@ -535,6 +549,7 @@ export const bufferCard: CharacterCard = {
       itemId: '2444288a5ba59fe11dacd68b811ffc18',
       itemName: '때 묻지 않은 정화 어깨',
       rarity: '레전더리',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 0, amplificationName: null },
       enchant: {
         status: [
@@ -552,6 +567,7 @@ export const bufferCard: CharacterCard = {
       itemId: 'e6a28563ef56dc1fb4d19cd15bf13806',
       itemName: '고유 - 청해의 굳건한 각반',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 0, amplificationName: null },
       enchant: {
         status: [
@@ -569,6 +585,7 @@ export const bufferCard: CharacterCard = {
       itemId: 'b7062a0ba2ddd8dc5d8d481ae764c944',
       itemName: '때 묻지 않은 정화 벨트',
       rarity: '레전더리',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 0, amplificationName: null },
       enchant: {
         status: [
@@ -586,6 +603,7 @@ export const bufferCard: CharacterCard = {
       itemId: '6f6202187264130623fb7386af92735f',
       itemName: '칠흑의 정화 신발',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'reinforce', value: 0, amplificationName: null },
       enchant: {
         status: [
@@ -603,6 +621,7 @@ export const bufferCard: CharacterCard = {
       itemId: '0eb5d7cad40b1aeaad80c8997cc7fc99',
       itemName: '칠흑의 정화 목걸이',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 7, amplificationName: '차원의 지능' },
       enchant: {
         status: [
@@ -620,6 +639,7 @@ export const bufferCard: CharacterCard = {
       itemId: '91b97030310791c815100f5749e96c94',
       itemName: '칠흑의 정화 팔찌',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 4, amplificationName: '차원의 지능' },
       enchant: {
         status: [
@@ -637,6 +657,7 @@ export const bufferCard: CharacterCard = {
       itemId: '854d52a64fe061dc2586a10bf274676b',
       itemName: '칠흑의 정화 반지',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 5, amplificationName: '차원의 지능' },
       enchant: {
         status: [
@@ -654,6 +675,7 @@ export const bufferCard: CharacterCard = {
       itemId: 'b461b9224f434cb08ef98752eaf02f6b',
       itemName: '그을린 정화 보조장비',
       rarity: '유니크',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 4, amplificationName: '차원의 지능' },
       enchant: {
         status: [
@@ -671,6 +693,7 @@ export const bufferCard: CharacterCard = {
       itemId: '1ec42a6c4087627c396daa257475ed5c',
       itemName: '칠흑의 정화 마법석',
       rarity: '에픽',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 7, amplificationName: '차원의 지능' },
       enchant: {
         status: [
@@ -688,6 +711,7 @@ export const bufferCard: CharacterCard = {
       itemId: '1817f0bc89bbcde471f1fbb5e50b6529',
       itemName: '타버린 정화 귀걸이',
       rarity: '레전더리',
+      exclusive: false,
       reinforce: { kind: 'amplify', value: 7, amplificationName: '차원의 지능' },
       enchant: {
         status: [

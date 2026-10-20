@@ -9,6 +9,7 @@ import { characterFreshness, CHARACTER_REFRESH_COOLDOWN_MS } from './freshness.j
 import { CharacterRefreshes } from './refreshes.js'
 import type { CatalogService } from '../catalog/service.js'
 import { enchantGrades } from '../card/enchant-grades.js'
+import { exclusiveItems } from '../card/exclusive-items.js'
 import { projectCharacterCard } from '../card/project.js'
 
 export interface CharacterDetailDependencies {
@@ -99,7 +100,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
       }
       const serverRank = await readServerRank(deps.store, identity, signal)
       signal.throwIfAborted()
-      const card = projectCharacterCard(projected, serverRank, enchantGrades)
+      const card = projectCharacterCard(projected, serverRank, enchantGrades, exclusiveItems)
       const details = deps.catalog
         ? await enrichCharacterDetails(projected, deps.catalog, signal)
         : projected

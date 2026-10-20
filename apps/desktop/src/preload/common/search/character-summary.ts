@@ -83,6 +83,7 @@ const investment = z.strictObject({
   itemId: nonblank.nullable(),
   itemName: nonblank.nullable(),
   rarity: nonblank.nullable(),
+  exclusive: z.boolean(),
   reinforce: z
     .strictObject({
       kind: z.enum(['reinforce', 'amplify']),
@@ -126,7 +127,9 @@ export const characterCardSchema = z.strictObject({
       rarityName: nonblank.nullable(),
       point: point.nullable(),
       imageItemId: nonblank.nullable(),
-      slots: z.array(z.strictObject({ slotId: nonblank, rarity: nonblank.nullable() })),
+      slots: z.array(
+        z.strictObject({ slotId: nonblank, rarity: nonblank.nullable(), exclusive: z.boolean() })
+      ),
       rarityCounts: z.array(rarityCount)
     })
     .nullable(),

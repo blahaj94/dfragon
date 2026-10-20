@@ -36,6 +36,24 @@ it('마법부여는 카드 값의 이름과 수치를 그대로 잇고, 옵션�
   expect(unrated).toMatchObject({ enchant: null, kind: '무기', tone: 'unknown' })
 })
 
+it('유일 장비 줄은 메인 카드 기타 면처럼 빛을 더하고 보조 기술에 유일 장비임을 전한다', () => {
+  const card: CharacterCard = {
+    ...dealerCard,
+    investment: dealerCard.investment.map((row) => ({ ...row, exclusive: row.slotId === 'RING' }))
+  }
+  const rows = toDetailEquipmentGroups(card).flatMap((group) => group.rows)
+
+  expect(rows.find((row) => row.id === 'RING')).toMatchObject({
+    label: '반지, 거룩한 희생의 반지, 유일 장비',
+    tone: 'primordial',
+    exclusive: true
+  })
+  expect(rows.find((row) => row.id === 'WEAPON')).toMatchObject({
+    tone: 'primordial',
+    exclusive: false
+  })
+})
+
 it('카드 값이 없으면 12부위를 장착 정보 없음 줄로 두고 서약 목록은 비운다', () => {
   const rows = toDetailEquipmentGroups(null).flatMap((group) => group.rows)
 

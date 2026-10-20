@@ -1,7 +1,7 @@
 import { Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import { upgradeFill } from '../constants/oath-upgrade.style'
-import { rarityFill, rarityText } from '../constants/rarity.style'
+import { exclusiveText, rarityFill, rarityText } from '../constants/rarity.style'
 import type { SummaryView, UpgradeCellView } from '../lib/card-faces'
 import { CardImage } from './CardImage'
 import { styles } from './EquipmentSummary.style'
@@ -80,7 +80,8 @@ export function EquipmentSummary({
                   {...stylex.props(
                     styles.cell,
                     group.main && styles.cellMain,
-                    cell.tone === 'empty' ? styles.cellEmpty : rarityFill[cell.tone]
+                    cell.tone === 'empty' ? styles.cellEmpty : rarityFill[cell.tone],
+                    cell.exclusive && styles.cellExclusive
                   )}
                 />
               ))}
@@ -92,7 +93,13 @@ export function EquipmentSummary({
             {summary.counts.map((count) => (
               <span key={count.label} {...stylex.props(styles.count)}>
                 <Typo.caption {...stylex.props(styles.countLabel)}>{count.label}</Typo.caption>{' '}
-                <span {...stylex.props(styles.countValue, rarityText[count.tone])}>
+                <span
+                  {...stylex.props(
+                    styles.countValue,
+                    rarityText[count.tone],
+                    count.exclusive && exclusiveText.shine
+                  )}
+                >
                   {count.count}
                 </span>
               </span>

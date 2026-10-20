@@ -9,6 +9,7 @@ import {
   setSlotGroups,
   slotNames,
   toItemImage,
+  toItemLabel,
   toOathImage,
   toRarityTone,
   toReinforceView
@@ -28,12 +29,14 @@ export type DetailItemTextView = {
 /**
  * 상세 창 장비 목록의 한 줄(DFragon 디자인 캔버스 상세 창 보드). 아이콘 칸과 이름은 같은 희귀도 색이고, 아이콘은
  * 장식이라 부위와 이름은 `label`로 보조 기술에 전한다. 장착 정보가 없는 줄은 `missing`이고 설명 상자가 없다.
+ * 유일 장비(`exclusive`)는 메인 카드 기타 면처럼 아이콘 칸과 이름에 빛을 더하고 `label` 끝에 `유일 장비`를 붙인다.
  */
 export type DetailItemRowView = {
   id: string
   name: string
   label: string
   tone: RarityTone | 'missing'
+  exclusive: boolean
   image: ItemPicture | undefined
   /** 마법부여 옵션 한 줄. 마법부여가 없으면 null이다. */
   enchant: string | null
@@ -115,6 +118,7 @@ function toEquipmentRow(
       name: MISSING_VALUE,
       label: `${part}, 장착 정보 없음`,
       tone: 'missing',
+      exclusive: false,
       image: undefined,
       enchant: null,
       reinforce: toReinforceView(row),
@@ -127,8 +131,9 @@ function toEquipmentRow(
   return {
     id: slotId,
     name: row.itemName,
-    label: `${part}, ${row.itemName}`,
+    label: toItemLabel(part, row.itemName, row.exclusive),
     tone: toRarityTone(row.rarity),
+    exclusive: row.exclusive,
     image: toItemImage(row.itemId, itemImages),
     enchant: toEnchantLine(row.enchant),
     reinforce: toReinforceView(row),
@@ -173,6 +178,7 @@ export function toDetailOathGroups(
     name: oath.name,
     label: `서약, ${oath.name}`,
     tone: toRarityTone(oath.rarity),
+    exclusive: false,
     image: toOathImage(oath, itemImages),
     enchant: null,
     reinforce: null,
@@ -192,6 +198,7 @@ export function toDetailOathGroups(
           name: MISSING_VALUE,
           label: '서약 결정, 장착 정보 없음',
           tone: 'missing',
+          exclusive: false,
           image: undefined,
           enchant: null,
           reinforce: null,
@@ -206,6 +213,7 @@ export function toDetailOathGroups(
         name: crystal.name,
         label: `서약 결정, ${crystal.name}`,
         tone: toRarityTone(crystal.rarity),
+        exclusive: false,
         image: toItemImage(crystal.itemId, itemImages),
         enchant: null,
         reinforce: null,
