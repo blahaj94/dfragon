@@ -34,12 +34,26 @@ GET은 DB의 11개 섹션이 모두 있고 가장 오래된 `last_successful_fet
 - Desktop main이 채우는 값: `stats`의 `buff30`, `buff50`과 `score`는 네이티브 점수 엔진으로, `switchingLevel`은 상세 응답의 버프 강화 장비(`skill/buff/equip/equipment`) 스위칭 스킬 레벨(`skillInfo.option.level`, 스위칭 장비를 입었을 때 장비 옵션까지 더한 레벨)로 채우며 API 응답에서는 항상 null이다(스위칭 2026-10-20 사용자 결정, 구현 PR의 사용자 merge 후 적용). 서버는 점수를 계산하지 않는다.
 - `set`: 장비 `setItemInfo` 중 `slotInfo`가 가장 많은 항목이며 같으면 앞의 것이다. `setItemId`나 이름이 없는 항목은 후보에서 뺀다. `active.setPoint`의 current, min, max가 모두 숫자일 때만 `point`를 둔다. `imageItemId`는 같은 `setItemId`를 가진 장착 아이템 중 첫 번째다.
 - `oath`: 서약 `info`에 itemId와 이름이 있을 때만 만든다. `setInfo`의 세트 이름, 옵션 이름, 세트 포인트와 결정(`crystal`) 목록을 담는다. 묵언의 진의는 `oathUpgrade.options`의 목록 위치를 단계 번호로 쓰며 `oathUpgrade`가 null이면 빈 목록이다.
-- 희귀도 개수: 세트는 `slotInfo`, 서약은 결정의 희귀도를 처음 나온 순서로 센다. 희귀도가 없는 항목은 세지 않는다.
+- 희귀도 개수: 세트는 `slotInfo`, 서약은 결정의 희귀도를 처음 나온 순서로 센다. 희귀도가 없는 항목은 세지 않는다. 세트의 유일 장비 부위는 희귀도 대신 `유일`로 센다.
 - `investment`: 무기, 상의, 머리어깨, 하의, 벨트, 신발, 목걸이, 팔찌, 반지, 보조장비, 마법석, 귀걸이의 12부위 고정 순서이며 칭호는 넣지 않는다. 빈 슬롯은 아이템 필드가 null이다. `reinforce`가 숫자일 때 `amplificationName`이 있으면 증폭(`amplify`), 없으면 강화(`reinforce`)다. 마법부여는 `status` 옵션만 담고 `reinforceSkill`만 있는 마법부여는 빈 목록이다.
+- `exclusive`: `investment` 행과 `set.slots`에 붙는 유일 장비 여부다. 아래 [유일 장비](#유일-장비) 기준표로 정하고 빈 슬롯은 false다. 이 필드를 더한 뒤로 이전 Desktop은 새 API의 카드를 strict 스키마에서 거절해 카드 값을 `-`로 보인다(2026-10-20, [#726](https://github.com/blahaj94/dfragon/issues/726), 구현 PR의 사용자 merge 후 적용).
 
 ### 마법부여 등급
 
 `apps/api/src/characters/card/enchant-grades.json`의 부위별 종결, 준종결, 기타 항목과 장착 마법부여 `status`의 옵션 이름, 값이 순서와 무관하게 모두 같을 때만 그 등급이다. 같은 옵션이 여러 등급에 있으면 종결, 준종결, 기타 순으로 앞의 등급이다. 표에 없거나 옵션이 없으면 null(미평가)이며 기타로 바꾸지 않는다. 표의 형식이 틀리면 API가 시작하지 않는다. 표의 내용은 담당자가 정한 퍼스트서버 신규 카드 글 기준의 부위별 종결, 준종결 항목이며 규칙, 다시 만드는 절차, 항목별 근거, 같은 옵션을 주는 카드와 정할 것은 [마법부여 등급표](../reference/enchant-grades.md)에 있다. 표에 기타 항목은 두지 않는다.
+
+### 유일 장비
+
+유일 장비는 주요 보스 컨셉의 장비이고 Neople 장비, 아이템 상세 응답에는 유일 장비를 가리키는 필드가 없다. `apps/api/src/characters/card/exclusive-items.json`의 `slots`에 부위별 아이템 이름을 두고, 장착 아이템의 부위와 이름이 모두 같을 때만 유일 장비다. 세트의 `slotInfo`에는 아이템 이름이 없어 같은 부위의 장착 아이템 이름으로 판단한다. 표의 형식이 틀리면 API가 시작하지 않는다.
+
+표의 내용은 던전앤파이터 [유일 장비 가이드](https://df.nexon.com/guide?no=1509)의 네 장비다(2026-10-20 확인). `source.checked_at`은 담당자가 가이드와 표를 마지막으로 맞춘 날짜다. 새 유일 장비가 나오면 담당자가 가이드의 장착 부위와 이름 그대로 해당 부위 목록에 더하고 `checked_at`을 고친다.
+
+| 부위 | 아이템 |
+| --- | --- |
+| 반지(`RING`) | 광휘를 머금은 눈동자 |
+| 보조장비(`SUPPORT`) | 만병을 잉태한 역병의 심장 |
+| 마법석(`MAGIC_STON`) | 우아한 기품의 향수 |
+| 귀걸이(`EARRING`) | 영롱한 날씨의 큐브 |
 
 ### 명성 순위
 
