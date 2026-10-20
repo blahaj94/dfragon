@@ -22,14 +22,18 @@ const SPRITE_FILE = join(ICONS_DIR, SPRITE_NAME)
 const INDEX_FILE = join(ICONS_DIR, 'equipment.json')
 const SPRITE_GRID = { iconSize: 28, columns: 16 }
 const PVF_VERSION_DIR = 'b2725b7c'
-// PVF 아이템 `[rarity]` 값과 네오플 응답의 희귀도 이름. 같은 이름의 서약이 희귀도마다 따로 있다.
+// PVF 아이템 `[rarity]` 값과 네오플 응답의 희귀도 이름. 같은 이름의 서약이 희귀도마다 따로 있다. 4와 6은
+// 네오플 응답 표본에서 이름이 한 희귀도에만 있는 서약의 `itemRarity`로 확인했다(4 에픽, 6 레전더리).
 const RARITY_NAMES = new Map([
   [2, '레어'],
   [3, '유니크'],
-  [4, '레전더리'],
-  [6, '에픽'],
+  [4, '에픽'],
+  [6, '레전더리'],
   [8, '태초']
 ])
+// 장착하지 않고 버프 아이콘 표시에만 쓰는 서약 아이템(100430002~049)의 PVF 역할. 이름이 서약 그룹 이름과 같아
+// 장착 서약(예: 태초 근원에 닿은 자연 서약 100610059)과 이름, 희귀도가 겹치므로 아이콘 후보에서 뺀다.
+const BUFF_ICON_ROLE = 'group_buff_icon'
 
 function readIconEntries(pvfRoot, name) {
   const { entries } = readJson(join(pvfRoot, 'icons/index', `${name}.json`))
@@ -43,7 +47,7 @@ function collectOathIcons(pvfRoot) {
   const icons = readIconEntries(pvfRoot, 'oath_icon')
   const { entries } = readJson(join(pvfRoot, 'oaths', PVF_VERSION_DIR, 'oaths_items.json'))
   const byKey = new Map()
-  for (const entry of entries) {
+  for (const entry of entries.filter((item) => item.system_role.value !== BUFF_ICON_ROLE)) {
     const rarity = entry.header.rarity.value
     const rarityName = RARITY_NAMES.get(rarity) ?? fail(`모르는 서약 희귀도입니다: ${rarity}`)
     const icon = icons.get(entry.id) ?? fail(`서약 아이콘이 없습니다: ${entry.id}`)
