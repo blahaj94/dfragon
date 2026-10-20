@@ -18,7 +18,6 @@ import type {
   SearchCharacters,
   SearchDependencies
 } from '../types/neople-character-search.js'
-import { NeopleBudget, neopleBudget } from './provider-budget.js'
 
 const INVALID_CHARACTER_ID_CHARACTERS_PATTERN = /[^a-zA-Z0-9_-]/
 
@@ -164,11 +163,7 @@ function buildUrl(input: NeopleCharacterSearchInput, origin: string): URL {
   return url
 }
 
-function makeSearch(
-  apiKey: string,
-  dependencies: SearchDependencies,
-  budget: NeopleBudget
-): SearchCharacters {
+function makeSearch(apiKey: string, dependencies: SearchDependencies): SearchCharacters {
   return async (input) => {
     const url = buildUrl(input, dependencies.origin)
     const controller = new AbortController()
@@ -273,24 +268,20 @@ function makeSearch(
     }
 
     try {
-      return await Promise.race([budget.run(request), timeout])
+      return await Promise.race([request(), timeout])
     } finally {
       dependencies.clearTimer(timer)
     }
   }
 }
 
-export function createNeopleCharacterSearch(
-  apiKey: string,
-  budget = neopleBudget
-): SearchCharacters {
-  return makeSearch(apiKey, nativeDependencies, budget)
+export function createNeopleCharacterSearch(apiKey: string): SearchCharacters {
+  return makeSearch(apiKey, nativeDependencies)
 }
 
 export function createNeopleCharacterSearchForTest(
   apiKey: string,
-  overrides: NeopleCharacterSearchTestDependencies,
-  budget = new NeopleBudget()
+  overrides: NeopleCharacterSearchTestDependencies
 ): SearchCharacters {
-  return makeSearch(apiKey, { ...nativeDependencies, ...overrides }, budget)
+  return makeSearch(apiKey, { ...nativeDependencies, ...overrides })
 }

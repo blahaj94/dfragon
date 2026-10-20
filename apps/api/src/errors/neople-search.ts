@@ -7,11 +7,6 @@ const errors = {
     code: 'INVALID_SEARCH_QUERY',
     message: '검색 조건을 확인해 주세요.'
   },
-  limited: {
-    status: 429,
-    code: 'SEARCH_RATE_LIMITED',
-    message: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
-  },
   internal: {
     status: 500,
     code: 'INTERNAL_SERVER_ERROR',
@@ -54,16 +49,12 @@ const upstreamCodeErrors = new Map<string, keyof typeof errors>([
   ['DNF999', 'api']
 ])
 
-type NeopleSearchFailureOptions = FailureOptions & { retryAfter?: number }
-
 export class NeopleSearchFailure extends SanitizedFailure {
   readonly body: SearchErrorBody
   readonly status: SearchErrorDefinition['status']
-  readonly retryAfter: number | undefined
 
-  constructor(definition: SearchErrorDefinition, options: NeopleSearchFailureOptions = {}) {
+  constructor(definition: SearchErrorDefinition, options: FailureOptions = {}) {
     super(definition.message, options)
-    this.retryAfter = options.retryAfter
     this.name = 'NeopleSearchFailure'
     this.status = definition.status
     this.body = { error: { code: definition.code, message: definition.message } }
@@ -88,7 +79,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 export function neopleSearchFailure(
   kind: keyof typeof errors,
-  options?: NeopleSearchFailureOptions
+  options?: FailureOptions
 ): NeopleSearchFailure {
   const error = errors[kind]
 
