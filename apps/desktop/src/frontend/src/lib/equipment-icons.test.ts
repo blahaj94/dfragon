@@ -31,8 +31,8 @@ it('희귀도가 다르거나 모르는 서약, 115 세트가 아닌 세트는 �
   expect(setIcon('be471bcc556f0c5f8b16c05f6eab1100')).toBeUndefined()
 })
 
-it('sprite는 data URI가 아닌 파일 URL이다', () => {
-  const sprite = setIcon('93e7825053bdec4e0f4c12837cf4f57e')?.sprite
-  expect(sprite).toMatch(/equipment\.webp/)
-  expect(sprite?.startsWith('data:')).toBe(false)
+// Vitest는 asset을 인라인하지 않으므로 이 테스트는 sprite 파일 연결만 확인한다. 빌드에서 별도 파일로 나오는지는
+// `?no-inline` import가 정한다.
+it('sprite URL은 equipment.webp를 가리킨다', () => {
+  expect(setIcon('93e7825053bdec4e0f4c12837cf4f57e')?.sprite).toMatch(/equipment\.webp/)
 })
