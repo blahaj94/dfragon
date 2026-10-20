@@ -10,6 +10,8 @@ export type ManifestCandidate = Readonly<{
   /** manifest 폴더 기준 상대 경로. 이미지를 받지 못한 후보는 null이다. */
   image: string | null
   correct: boolean
+  /** 후보의 기본 직업명. 직업별 얼굴 위치를 찾을 때 쓰며 없으면 null이다. */
+  jobName: string | null
 }>
 
 export type ManifestCase = Readonly<{
@@ -24,6 +26,7 @@ export type Manifest = Readonly<{ directory: string; cases: readonly ManifestCas
 export type LoadedCandidate = Readonly<{
   id: string
   correct: boolean
+  jobName: string | null
   /** 이미지가 없는 후보는 null이며 점수를 구하지 않는다. */
   image: CharacterImage | null
 }>
@@ -70,8 +73,13 @@ function parseCandidate(value: unknown, where: string): ManifestCandidate {
   if (value.correct !== undefined && typeof value.correct !== 'boolean') {
     fail(where, 'correct는 boolean이어야 합니다')
   }
+  const { jobName = null } = value
+  if (jobName !== null && typeof jobName !== 'string') {
+    fail(where, 'jobName은 문자열이나 null이어야 합니다')
+  }
+  const correct = value.correct === true
 
-  return { id, image, correct: value.correct === true }
+  return { id, image, correct, jobName }
 }
 
 function parseCase(value: unknown, where: string): ManifestCase {
@@ -143,6 +151,7 @@ export function loadCase(manifest: Manifest, entry: ManifestCase): LoadedCase {
   const candidates = entry.candidates.map((candidate) => ({
     id: candidate.id,
     correct: candidate.correct,
+    jobName: candidate.jobName,
     image:
       candidate.image === null ? null : readPng(resolveInside(manifest.directory, candidate.image))
   }))
