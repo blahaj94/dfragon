@@ -1,6 +1,8 @@
 import { isRecord, textOrNull } from '@dfragon/lib/utils/shape-check'
 import { gradeEnchant, isEnchantStatusValue } from './enchant-grades.js'
 import type { EnchantGradeTable } from './enchant-grades.js'
+import { isExclusiveItem } from './exclusive-items.js'
+import type { ExclusiveItemTable } from './exclusive-items.js'
 import type {
   CharacterBufferStats,
   CharacterCard,
@@ -47,6 +49,9 @@ const investmentSlots = [
   ['MAGIC_STON', '마법석'],
   ['EARRING', '귀걸이']
 ] as const
+
+// The rarity count label of 유일 장비 slots, shown apart from their provider rarity.
+const exclusiveRarity = '유일'
 
 const STAT_NUMBER_PATTERN = /^[+-]?\d+(?:\.\d+)?%?$/
 
@@ -184,7 +189,10 @@ function rarityCounts(rarities: (string | null)[]): CharacterRarityCount[] {
   return [...counts].map(([rarity, count]) => ({ rarity, count }))
 }
 
-function projectSet(equipment: CharacterCardSource['equipment']): CharacterSetCard | null {
+function projectSet(
+  equipment: CharacterCardSource['equipment'],
+  exclusiveItems: ExclusiveItemTable
+): CharacterSetCard | null {
   const items = records(equipment.equipment)
   const sets = records(equipment.setItemInfo).flatMap((set) => {
     const setItemId = textOrNull(set.setItemId)
@@ -195,8 +203,12 @@ function projectSet(equipment: CharacterCardSource['equipment']): CharacterSetCa
         return []
       }
       const rarity = textOrNull(slot.itemRarity)
+      // slotInfo has no item name, so the equipped item of the same slot tells a 유일 장비 apart.
+      const item = items.find((candidate) => candidate.slotId === slotId)
+      const itemName = item ? textOrNull(item.itemName) : null
+      const exclusive = isExclusiveItem(exclusiveItems, slotId, itemName)
 
-      return [{ slotId, rarity }]
+      return [{ slotId, rarity, exclusive }]
     })
     if (setItemId === null || name === null) {
       return []
@@ -222,7 +234,9 @@ function projectSet(equipment: CharacterCardSource['equipment']): CharacterSetCa
   const imageItemId = image ? textOrNull(image.itemId) : null
   const rarityName = textOrNull(set.setItemRarityName)
   const point = setPoint(isRecord(set.active) ? set.active.setPoint : null)
-  const slotRarityCounts = rarityCounts(slots.map((slot) => slot.rarity))
+  const slotRarityCounts = rarityCounts(
+    slots.map((slot) => (slot.exclusive ? exclusiveRarity : slot.rarity))
+  )
 
   return {
     setItemId,
@@ -314,7 +328,11 @@ function projectEnchant(
   return { status, grade }
 }
 
-function projectInvestment(equipment: unknown, grades: EnchantGradeTable): CharacterInvestment[] {
+function projectInvestment(
+  equipment: unknown,
+  grades: EnchantGradeTable,
+  exclusiveItems: ExclusiveItemTable
+): CharacterInvestment[] {
   const items = records(equipment)
 
   return investmentSlots.map(([slotId, slotName]): CharacterInvestment => {
@@ -326,6 +344,7 @@ function projectInvestment(equipment: unknown, grades: EnchantGradeTable): Chara
         itemId: null,
         itemName: null,
         rarity: null,
+        exclusive: false,
         reinforce: null,
         enchant: null
       }
@@ -337,9 +356,10 @@ function projectInvestment(equipment: unknown, grades: EnchantGradeTable): Chara
     const itemId = textOrNull(item.itemId)
     const itemName = textOrNull(item.itemName)
     const rarity = textOrNull(item.itemRarity)
+    const exclusive = isExclusiveItem(exclusiveItems, slotId, itemName)
     const enchant = projectEnchant(grades, slotId, item.enchant)
 
-    return { slotId, slotName, itemId, itemName, rarity, reinforce, enchant }
+    return { slotId, slotName, itemId, itemName, rarity, exclusive, reinforce, enchant }
   })
 }
 
@@ -347,14 +367,15 @@ function projectInvestment(equipment: unknown, grades: EnchantGradeTable): Chara
 export function projectCharacterCard(
   details: CharacterCardSource,
   serverRank: CharacterServerRank | null,
-  grades: EnchantGradeTable
+  grades: EnchantGradeTable,
+  exclusiveItems: ExclusiveItemTable
 ): CharacterCard {
   const job = characterJob(details.character.jobGrowName)
   const role = job?.role ?? null
   const stats = projectStats(job, details.character.jobName, details.status.status)
-  const set = projectSet(details.equipment)
+  const set = projectSet(details.equipment, exclusiveItems)
   const oath = projectOath(details.oath)
-  const investment = projectInvestment(details.equipment.equipment, grades)
+  const investment = projectInvestment(details.equipment.equipment, grades, exclusiveItems)
 
   return { role, stats, score: null, serverRank, set, oath, investment }
 }

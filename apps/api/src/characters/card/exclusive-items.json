@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "source": { "guide": "https://df.nexon.com/guide?no=1509", "checked_at": "2026-10-20" },
+  "slots": {
+    "RING": ["광휘를 머금은 눈동자"],
+    "SUPPORT": ["만병을 잉태한 역병의 심장"],
+    "MAGIC_STON": ["우아한 기품의 향수"],
+    "EARRING": ["영롱한 날씨의 큐브"]
+  }
+}
