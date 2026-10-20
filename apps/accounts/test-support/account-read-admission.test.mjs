@@ -4,14 +4,15 @@ import { createLoginHttpApp } from '../dist/auth/login/http.js'
 import { AuthSessionSchema } from '../dist/database/schemas/auth-sessions.js'
 import { UserSchema } from '../dist/database/schemas/users.js'
 
-// auth-passkeys.md와 ocr-workspace.md의 외부 요청 예산이다. 제품 상수를 기대값으로 가져오지 않는다.
-const clientAllowance = 120
-const processAllowance = 1200
+// 2026-10-20에 없앤 요청 횟수 한도다. 제품 상수를 기대값으로 가져오지 않는다.
+const formerClientLimit = 120
+const formerProcessLimit = 1200
 const cases = {
   live: '180회 계정 조회도 매번 활성 상태를 확인하고 refresh, logout 예산을 보존한다',
-  client: 'client의 120회 session 예산을 소진해도 계정 조회는 허용한다',
-  process: '계정 조회와 session 요청은 전체 1,200회 예산을 함께 소비한다',
-  invalid: '무효 token의 계정 조회도 전체 예산을 소비하며 DB 활동은 남기지 않는다'
+  client: 'session 요청이 예전 client 한도 120회를 넘어도 거절하지 않는다',
+  process: '계정 조회와 session 요청이 예전 전체 한도 1,200회를 넘어도 거절하지 않는다',
+  invalid:
+    '무효 token의 계정 조회가 예전 전체 한도 1,200회를 넘어도 계속 401이며 DB 활동은 남기지 않는다'
 }
 
 async function accountApp(t) {
@@ -181,15 +182,13 @@ test(cases.live, async (t) => {
 
 test(cases.client, async (t) => {
   const f = await accountApp(t)
-  for (let i = 0; i < clientAllowance; i++) {
+  const requestCount = formerClientLimit + 1
+  for (let i = 0; i < requestCount; i++) {
     const response = await f.post('/auth/logout')
-    assert.equal(response.status, 204)
+    assert.equal(response.status, 204, `logout ${i + 1}`)
     await response.arrayBuffer()
   }
-  const limited = await f.post('/auth/logout')
-  assert.equal(limited.status, 429)
-  await limited.arrayBuffer()
-  assert.equal(f.sessionCalls.logout, clientAllowance)
+  assert.equal(f.sessionCalls.logout, requestCount)
 
   const read = await f.read()
   assert.equal(read.status, 200)
@@ -203,28 +202,25 @@ test(cases.process, async (t) => {
   const refresh = await f.post('/auth/refresh')
   assert.equal(refresh.status, 200)
   await refresh.arrayBuffer()
-  for (let i = 0; i < processAllowance - 1; i++) {
+  const readCount = formerProcessLimit
+  for (let i = 0; i < readCount; i++) {
     const response = await f.read()
     assert.equal(response.status, 200, `계정 조회 ${i + 1}`)
     await response.arrayBuffer()
   }
-  const beforeLimit = { ...f.counts }
-  for (const response of [await f.read(), await f.post('/auth/logout')]) {
-    assert.equal(response.status, 429)
-    assert.equal(response.headers.get('cache-control'), 'no-store')
-    assert(Number(response.headers.get('retry-after')) > 0)
-    assert.equal((await response.json()).error.code, 'AUTH_RATE_LIMIT')
-  }
-  assert.deepEqual(f.counts, beforeLimit)
-  assert.equal(f.counts.verifications, processAllowance - 1)
-  assert.equal(f.counts.transactions, (processAllowance - 1) * 2)
-  assert.deepEqual(f.sessionCalls, { refresh: 1, logout: 0 })
+  const logout = await f.post('/auth/logout')
+  assert.equal(logout.status, 204)
+  await logout.arrayBuffer()
+  assert.equal(f.counts.verifications, readCount)
+  assert.equal(f.counts.transactions, readCount * 2)
+  assert.deepEqual(f.sessionCalls, { refresh: 1, logout: 1 })
 })
 
 test(cases.invalid, async (t) => {
   const f = await accountApp(t)
   const beforeSession = structuredClone(f.session)
-  for (let i = 0; i < processAllowance; i++) {
+  const requestCount = formerProcessLimit + 1
+  for (let i = 0; i < requestCount; i++) {
     const response = await f.read('invalid-token-canary')
     assert.equal(response.status, 401, `무효 token 조회 ${i + 1}`)
     assert.equal(response.headers.get('cache-control'), 'no-store')
@@ -233,20 +229,8 @@ test(cases.invalid, async (t) => {
     })
   }
   assert.deepEqual(f.session, beforeSession)
-  const beforeLimit = { ...f.counts }
-  for (const response of [await f.read(), await f.post('/auth/refresh')]) {
-    assert.equal(response.status, 429)
-    assert.equal(response.headers.get('cache-control'), 'no-store')
-    assert.deepEqual(await response.json(), {
-      error: {
-        code: 'AUTH_RATE_LIMIT',
-        message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
-      }
-    })
-  }
-  assert.deepEqual(f.counts, beforeLimit)
   assert.deepEqual(f.counts, {
-    verifications: processAllowance,
+    verifications: requestCount,
     transactions: 0,
     users: 0,
     sessions: 0,

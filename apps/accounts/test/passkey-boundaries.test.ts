@@ -138,7 +138,7 @@ test('RP origin 설정의 신뢰 경계 변경을 거절한다', () => {
   }
 })
 
-test('클라이언트 제한 거절은 신뢰 proxy 뒤의 전체 인증 예산을 소모하지 않는다', async () => {
+test('신뢰 proxy 뒤의 같은 client가 예전 한도 1,200회를 넘어도 로그인 요청을 거절하지 않는다', async () => {
   const unused = async (): Promise<never> => {
     throw new Error('unused')
   }
@@ -176,12 +176,9 @@ test('클라이언트 제한 거절은 신뢰 proxy 뒤의 전체 인증 예산�
       })
     for (let i = 0; i < 1201; i++) {
       const response = await request('192.0.2.1')
-      assert.equal(response.status, i < 120 ? 201 : 429)
+      assert.equal(response.status, 201, `요청 ${i + 1}`)
       await response.arrayBuffer()
     }
-    const other = await request('192.0.2.2')
-    assert.equal(other.status, 201)
-    await other.arrayBuffer()
   } finally {
     await app.close()
   }
