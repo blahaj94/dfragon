@@ -71,7 +71,8 @@ const dealerStats = z.strictObject({
 })
 const bufferStats = z.strictObject({
   role: z.literal('buffer'),
-  townIntelligence: z.number().nullable(),
+  townStatName: z.enum(['지능', '정신력', '체력']),
+  townStat: z.number().nullable(),
   buff30: z.number().nullable(),
   buff50: z.number().nullable(),
   switchingLevel: z.number().nullable()

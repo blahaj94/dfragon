@@ -77,7 +77,8 @@ export const bufferCard: CharacterCard = {
   role: 'buffer',
   stats: {
     role: 'buffer',
-    townIntelligence: 9120,
+    townStatName: '정신력',
+    townStat: 9120,
     buff30: null,
     buff50: null,
     switchingLevel: null

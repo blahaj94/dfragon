@@ -9,9 +9,13 @@ export interface CharacterDealerStats {
   switchingLevel: number | null
 }
 
+// The buffer's main stat: 정신력 for 뮤즈 and 패러메딕, the larger of 정신력 and 체력 for male 크루세이더, else 지능.
+export type CharacterTownStatName = '지능' | '정신력' | '체력'
+
 export interface CharacterBufferStats {
   role: 'buffer'
-  townIntelligence: number | null
+  townStatName: CharacterTownStatName
+  townStat: number | null
   buff30: number | null
   buff50: number | null
   switchingLevel: number | null

@@ -12,6 +12,7 @@ import type {
   CharacterServerRank,
   CharacterSetCard,
   CharacterSetPoint,
+  CharacterTownStatName,
   EnchantStatus
 } from './types.js'
 import { finiteOrNull, records } from './values.js'
@@ -25,6 +26,8 @@ export interface CharacterCardSource {
 }
 
 const bufferJobs = new Set(['크루세이더', '인챈트리스', '패러메딕', '뮤즈'])
+const spiritBufferJobs = new Set(['뮤즈', '패러메딕'])
+const maleCrusaderJobName = '프리스트(남)'
 const awakeningPrefix = '眞'
 
 // Fixed order of the Desktop investment face (apps/desktop constants/equipment.ts investmentIds).
@@ -45,12 +48,26 @@ const investmentSlots = [
 
 const STAT_NUMBER_PATTERN = /^[+-]?\d+(?:\.\d+)?%?$/
 
-export function characterRole(jobGrowName: unknown): CharacterRole | null {
+// The advancement name without the awakening prefix, e.g. '眞 뮤즈' -> '뮤즈'.
+function baseJobGrowName(jobGrowName: unknown): string | null {
   const name = textOrNull(jobGrowName)
   if (name === null) {
     return null
   }
-  const job = name.startsWith(awakeningPrefix) ? name.slice(awakeningPrefix.length).trim() : name
+
+  if (!name.startsWith(awakeningPrefix)) {
+    return name
+  }
+
+  return name.slice(awakeningPrefix.length).trim()
+}
+
+export function characterRole(jobGrowName: unknown): CharacterRole | null {
+  const job = baseJobGrowName(jobGrowName)
+  if (job === null) {
+    return null
+  }
+
   if (bufferJobs.has(job)) {
     return 'buffer'
   }
@@ -78,16 +95,48 @@ function statusValues(status: unknown): Map<string, number | null> {
   return values
 }
 
+// Male 크루세이더 shares the advancement name with the female one, so the base job name tells them apart.
+function townStatName(
+  character: Record<string, unknown>,
+  value: (name: string) => number | null
+): CharacterTownStatName {
+  const job = baseJobGrowName(character.jobGrowName)
+  if (job !== null && spiritBufferJobs.has(job)) {
+    return '정신력'
+  }
+
+  if (job === '크루세이더' && character.jobName === maleCrusaderJobName) {
+    const spirit = value('정신력')
+    const vitality = value('체력')
+    if (vitality !== null && (spirit === null || vitality > spirit)) {
+      return '체력'
+    }
+
+    return '정신력'
+  }
+
+  return '지능'
+}
+
 function projectStats(
   role: CharacterRole | null,
+  character: Record<string, unknown>,
   status: unknown
 ): CharacterDealerStats | CharacterBufferStats | null {
   const values = statusValues(status)
   const value = (name: string) => values.get(name) ?? null
   if (role === 'buffer') {
-    const townIntelligence = value('지능')
+    const name = townStatName(character, value)
+    const townStat = value(name)
 
-    return { role, townIntelligence, buff30: null, buff50: null, switchingLevel: null }
+    return {
+      role,
+      townStatName: name,
+      townStat,
+      buff30: null,
+      buff50: null,
+      switchingLevel: null
+    }
   }
 
   if (role === 'dealer') {
@@ -295,7 +344,7 @@ export function projectCharacterCard(
   grades: EnchantGradeTable
 ): CharacterCard {
   const role = characterRole(details.character.jobGrowName)
-  const stats = projectStats(role, details.status.status)
+  const stats = projectStats(role, details.character, details.status.status)
   const set = projectSet(details.equipment)
   const oath = projectOath(details.oath)
   const investment = projectInvestment(details.equipment.equipment, grades)
