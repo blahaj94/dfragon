@@ -1,5 +1,10 @@
+import type { CharacterFaceWindow } from '../../preload/common/types/search'
+
 /** 네오플 zoom=1 캐릭터 이미지에서 파티 HUD 얼굴(정규화 26×26)이 놓이는 창의 좌상단 정수 좌표. */
 export type PortraitAnchor = Readonly<{ x: number; y: number }>
+
+// 600px 높이 기본 HUD의 얼굴 칸 크기이며 얼굴 비교가 정규화하는 크기와 같다.
+const ANCHOR_FACE_SIZE = 26
 
 /**
  * 기본 직업명별 얼굴 창 위치. 네오플 이미지는 200×230 캔버스에 캐릭터 발 위치가 고정이라 얼굴 높이는 기본
@@ -30,4 +35,14 @@ export function portraitAnchorOf(jobName: string | null): PortraitAnchor | null 
   }
 
   return PORTRAIT_ANCHORS[jobName]
+}
+
+/** 색 비교 창이 없을 때 후보 줄이 대신 보일 직업별 얼굴 창. 직업 위치를 모르면 null이다. */
+export function portraitFaceWindowOf(jobName: string | null): CharacterFaceWindow | null {
+  const anchor = portraitAnchorOf(jobName)
+  if (anchor === null) {
+    return null
+  }
+
+  return { ...anchor, width: ANCHOR_FACE_SIZE, height: ANCHOR_FACE_SIZE }
 }

@@ -11,7 +11,7 @@ import type {
   CharacterPortrait
 } from '../../preload/common/types/character'
 import { orderedCandidates } from './candidate-order'
-import { portraitAnchorOf, type PortraitAnchor } from './portrait-anchor'
+import { portraitAnchorOf, portraitFaceWindowOf, type PortraitAnchor } from './portrait-anchor'
 import {
   planRaidComparison,
   selectRaidCandidate,
@@ -134,7 +134,9 @@ export function createCharacterIdentifier(
     const scores = await scoreCandidates(services, input.portrait, compared)
     const best = closestScore(scores)
     if (best === null) {
-      const choices = candidates.map((candidate) => toChoice(candidate, null))
+      const choices = candidates.map((candidate) =>
+        toChoice(candidate, portraitFaceWindowOf(candidate.jobName))
+      )
 
       return selectCandidate(services, highest, nickname, 'highest-fame', choices)
     }
@@ -143,7 +145,7 @@ export function createCharacterIdentifier(
       return selectCandidate(services, best.candidate, nickname, 'portrait')
     }
     const choices = scores.map(({ candidate, score }) =>
-      toChoice(candidate, score?.alignment ?? null)
+      toChoice(candidate, score?.alignment ?? portraitFaceWindowOf(candidate.jobName))
     )
 
     return selectCandidate(services, best.candidate, nickname, 'portrait', choices)
