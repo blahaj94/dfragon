@@ -691,6 +691,7 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
         minCoverage: 0.5,
         minComparedCells: 6,
         topFraction: 0.5,
+        anchorRadius: 2,
         maxDistance: 40,
         minMargin: 3,
         maxCandidates: 6
@@ -1236,6 +1237,7 @@ it('does not activate product auth for the unsupported OAuth provider', async ()
         minCoverage: 0.5,
         minComparedCells: 6,
         topFraction: 0.5,
+        anchorRadius: 2,
         maxDistance: 40,
         minMargin: 3,
         maxCandidates: 6
