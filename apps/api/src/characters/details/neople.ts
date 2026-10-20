@@ -101,9 +101,7 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       // Confirm identity before spending the other ten provider requests.
       await load('basic')
       const sections = characterDetailSections.filter((section) => section !== 'basic')
-      for (let index = 0; index < sections.length; index += 3) {
-        await Promise.all(sections.slice(index, index + 3).map(load))
-      }
+      await Promise.all(sections.map(load))
       signal.throwIfAborted()
       if (performance.now() - startedAt >= deps.timeoutMs) {
         throw new CharacterDetailFailure('timeout')
