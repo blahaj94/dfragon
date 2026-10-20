@@ -191,6 +191,27 @@ it('역할을 모르는 카드의 머리 점수는 장비 점수 라벨과 기�
   expect(toneClassesOf(fieldElement('장비 점수'))).toEqual([])
 })
 
+it('머리의 근사값 점수는 ≈를 붙여 역할 색으로 보이고 근사값이라는 뜻을 마우스 설명에 둔다', async () => {
+  const score = {
+    ...dealerCard.score!,
+    value: null,
+    skipped: { kind: 'unresolved', message: 'unresolved: equipment TITLE missing' },
+    approximate: {
+      value: 321000,
+      source: 'legacy_fusion_policy_a',
+      warning: '근사값, 1% 밖일 가능성 높음: unresolved: equipment TITLE missing'
+    }
+  }
+  installRead(async () => ({ ...snapshot, card: { ...dealerCard, score } }))
+  await render()
+
+  expect(field('장비 점수')).toBe('≈321,000')
+  expect(fieldElement('장비 점수').getAttribute('title')).toBe(
+    '근사값, 장비 정보 부족. 이전 시즌 융합석을 빼고 계산한 값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
+  )
+  expect(toneClassesOf(fieldElement('장비 점수'))).toEqual(['dealer'])
+})
+
 it('장비 탭은 세트와 장비 12줄, 서약 본체와 결정 12줄을 카드 값으로 채운다', async () => {
   installRead(async () => snapshot)
 

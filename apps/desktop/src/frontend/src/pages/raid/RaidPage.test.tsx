@@ -508,6 +508,29 @@ it('공대 카드의 장비 점수와 서버 순위는 카드 값에서 오고 �
   expect(scoreOf(seats()[1]).textContent).toBe('-계산하지 못함, 장비 정보 부족')
 })
 
+it('공대 카드는 엔진이 낸 근사값을 ≈를 붙여 보이고 근사값이라는 뜻을 보조 기술에 전한다', async () => {
+  const approximateScore = {
+    ...dealerCard.score!,
+    value: null,
+    skipped: { kind: 'unresolved', message: 'unresolved: equipment TITLE missing' },
+    approximate: {
+      value: 321000,
+      source: 'legacy_fusion_policy_a',
+      warning: '근사값, 1% 밖일 가능성 높음: unresolved: equipment TITLE missing'
+    }
+  }
+  await render({ characters: [{ ...member, card: { ...member.card!, score: approximateScore } }] })
+  const score = [...seats()[0].querySelectorAll('dt')].find(
+    (term) => term.textContent === '장비 점수'
+  )!.nextElementSibling!
+
+  expect(score.querySelector('[aria-hidden="true"]')?.textContent).toBe('≈321,000')
+  expect(score.getAttribute('title')).toBe(
+    '근사값, 장비 정보 부족. 이전 시즌 융합석을 빼고 계산한 값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
+  )
+  expect(seats()[0].textContent).not.toContain('TITLE')
+})
+
 it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 단계는 명성에만 단계 색을 칠한다', async () => {
   const termValue = (seat: HTMLElement, label: string): Element | undefined => {
     const term = [...seat.querySelectorAll('dt')].find((item) => item.textContent === label)

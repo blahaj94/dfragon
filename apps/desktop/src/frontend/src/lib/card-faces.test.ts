@@ -5,6 +5,7 @@ import apiBufferFixture from '../../../../../api/test/fixtures/character-card-bu
 import apiDealerFixture from '../../../../../api/test/fixtures/character-card-dealer.json'
 import type { CharacterCard } from '../types/cards'
 import {
+  formatApproximateScore,
   itemImageUrl,
   toCharacterFace,
   toEquipmentFace,
@@ -25,6 +26,7 @@ it('카드 값이 없으면 세 면 모두 값 대신 -와 없다는 이름을 �
     label: '장비 점수',
     tone: null,
     value: null,
+    approximate: false,
     description: undefined
   })
   expect(character.serverRank).toEqual({ text: '-', label: '서버 순위 없음' })
@@ -73,6 +75,7 @@ it('딜러 카드는 딜러 스탯과 장비 점수를 보이고 순위가 수�
     label: '장비 점수',
     tone: 'dealer',
     value: 330556,
+    approximate: false,
     description: 'DFragon 계산값이라 게임 장비 점수와 조금 다를 수 있습니다.'
   })
   expect(face.serverRank).toEqual({
@@ -100,6 +103,7 @@ it('버퍼 카드는 버퍼 라벨을 쓰고 점수 라벨을 버프 점수, 색
     label: '버프 점수',
     tone: 'buffer',
     value: 55358,
+    approximate: false,
     description: 'DFragon 계산값이라 게임 버프 점수와 조금 다를 수 있습니다.'
   })
 })
@@ -118,6 +122,7 @@ it('점수 값이 없어도 라벨은 역할을 따라 버퍼는 버프 점수�
     label: '버프 점수',
     tone: 'buffer',
     value: null,
+    approximate: false,
     description: undefined
   })
 })
@@ -129,6 +134,7 @@ it('엔진이 건너뛴 점수는 값 없이 사유 종류만 전하고 엔진�
       calculator: 'equipment',
       value: null,
       skipped: { kind, message: 'unresolved: equipment TITLE missing' },
+      approximate: null,
       versions: { package: 'dnfscore', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
     }
   })
@@ -136,6 +142,7 @@ it('엔진이 건너뛴 점수는 값 없이 사유 종류만 전하고 엔진�
     label: '장비 점수',
     tone: 'dealer',
     value: null,
+    approximate: false,
     description: '계산하지 못함, 장비 정보 부족'
   })
   expect(toCharacterFace(skipped('input_gate'), 'long').score.description).toBe(
@@ -146,12 +153,53 @@ it('엔진이 건너뛴 점수는 값 없이 사유 종류만 전하고 엔진�
     label: '장비 점수',
     tone: 'dealer',
     value: null,
+    approximate: false,
     description: '계산하지 못함, 계산 제외'
   })
   expect(unknown.description).not.toContain('TITLE')
   expect(toCharacterFace(skipped('toString'), 'long').score.description).toBe(
     '계산하지 못함, 계산 제외'
   )
+})
+
+it('엔진이 건너뛴 점수에 낸 근사값은 근사값으로 보이고 사유 종류와 근사 방법을 전한다', () => {
+  const approximate = (source: string): CharacterCard => ({
+    ...dealerCard,
+    score: {
+      calculator: 'equipment',
+      value: null,
+      skipped: { kind: 'unresolved', message: 'unresolved: equipment TITLE missing' },
+      approximate: {
+        value: 321000,
+        source,
+        warning: '근사값, 1% 밖일 가능성 높음: unresolved: equipment TITLE missing'
+      },
+      versions: { package: 'dnfscore-native 0.3.0', rulesRev: 'rev14', bundleId: 'phase32-rev14' }
+    }
+  })
+  const legacy = toCharacterFace(approximate('legacy_fusion_policy_a'), 'long').score
+  expect(legacy).toEqual({
+    label: '장비 점수',
+    tone: 'dealer',
+    value: 321000,
+    approximate: true,
+    description:
+      '근사값, 장비 정보 부족. 이전 시즌 융합석을 빼고 계산한 값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
+  })
+  expect(legacy.description).not.toContain('TITLE')
+  expect(toCharacterFace(approximate('common_level_skip_computed'), 'long').score.description).toBe(
+    '근사값, 장비 정보 부족. 공통 스킬 레벨을 1로 두고 계산한 값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
+  )
+  expect(toCharacterFace(approximate('new_source'), 'long').score).toMatchObject({
+    value: 321000,
+    approximate: true,
+    description:
+      '근사값, 장비 정보 부족. 정확히 계산하지 못한 추정값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
+  })
+})
+
+it('근사값 점수의 화면 글자는 천 단위 구분 앞에 ≈를 붙인다', () => {
+  expect(formatApproximateScore(321000)).toBe('≈321,000')
 })
 
 it('세트 섹션은 세트 포인트, 무기와 세트 부위의 희귀도 격자, 희귀도 개수를 보이고 세트가 없으면 비운다', () => {
@@ -307,6 +355,7 @@ it('API 응답 fixture의 카드 값으로 세 면을 채우고 엔진이 채우
     label: '장비 점수',
     tone: 'dealer',
     value: null,
+    approximate: false,
     description: undefined
   })
   expect(dealer.serverRank).toEqual({ text: '-', label: '서버 순위 없음' })
