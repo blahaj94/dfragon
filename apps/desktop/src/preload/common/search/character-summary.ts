@@ -107,8 +107,15 @@ export const characterCardSchema = z.strictObject({
       calculator: z.enum(['equipment', 'buff']),
       value: z.number().nullable(),
       skipped: z.strictObject({ kind: nonblank, message: nonblank }).nullable(),
+      approximate: z
+        .strictObject({ value: z.number(), source: nonblank, warning: nonblank })
+        .nullable(),
       versions: z.strictObject({ package: nonblank, rulesRev: nonblank, bundleId: nonblank })
     })
+    // 근사값은 점수를 건너뛴 결과에만 있다.
+    .refine(
+      (score) => score.approximate === null || (score.value === null && score.skipped !== null)
+    )
     .nullable(),
   serverRank: z
     .strictObject({

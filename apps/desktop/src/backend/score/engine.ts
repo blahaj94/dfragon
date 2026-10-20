@@ -22,6 +22,10 @@ const resultSchema = z
     calculator: z.enum(['equipment', 'buff']),
     score: z.int().nullable(),
     skipped: z.object({ kind: nonblank, message: nonblank }).nullable(),
+    // rev14 이전 엔진은 근사값 칸을 보내지 않으므로 빠진 칸은 null로 받는다.
+    approximate_score: z.int().nullable().default(null),
+    approximate_source: nonblank.nullable().default(null),
+    warning: nonblank.nullable().default(null),
     versions: z.object({ package: nonblank, rules_rev: nonblank, bundle_id: nonblank }),
     display: z.object({
       role: z.enum(['dealer', 'buffer']),
@@ -32,6 +36,15 @@ const resultSchema = z
   })
   // 점수와 건너뛴 사유는 둘 중 하나만 있다.
   .refine((result) => (result.score === null) !== (result.skipped === null))
+  // 근사값, 출처, 경고는 함께 있거나 함께 없고, 점수를 건너뛴 결과에만 있다.
+  .refine((result) => {
+    const parts = [result.approximate_score, result.approximate_source, result.warning]
+    if (parts.every((part) => part === null)) {
+      return true
+    }
+
+    return parts.every((part) => part !== null) && result.score === null
+  })
 
 /** 엔진 결과 중 Desktop이 쓰는 부분. 엔진이 더 보내는 칸은 버린다. */
 export type ScoreEngineResult = z.infer<typeof resultSchema>

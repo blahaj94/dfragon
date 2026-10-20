@@ -101,21 +101,33 @@ const investment = exactObject({
     })
   )
 })
+const cardScoreShape = exactObject({
+  calculator: oneOf('equipment', 'buff'),
+  value: isNullableFiniteNumber,
+  skipped: nullable(exactObject({ kind: isNonblankString, message: isNonblankString })),
+  approximate: nullable(
+    exactObject({ value: isFiniteNumber, source: isNonblankString, warning: isNonblankString })
+  ),
+  versions: exactObject({
+    package: isNonblankString,
+    rulesRev: isNonblankString,
+    bundleId: isNonblankString
+  })
+})
+
+// 근사값은 점수를 건너뛴 결과에만 있다.
+function isCardScore(value: unknown): boolean {
+  if (!cardScoreShape(value) || !isRecord(value)) {
+    return false
+  }
+
+  return value['approximate'] === null || (value['value'] === null && value['skipped'] !== null)
+}
+
 const characterCard = exactObject({
   role: nullable(oneOf('dealer', 'buffer')),
   stats: nullable((value) => dealerStats(value) || bufferStats(value)),
-  score: nullable(
-    exactObject({
-      calculator: oneOf('equipment', 'buff'),
-      value: isNullableFiniteNumber,
-      skipped: nullable(exactObject({ kind: isNonblankString, message: isNonblankString })),
-      versions: exactObject({
-        package: isNonblankString,
-        rulesRev: isNonblankString,
-        bundleId: isNonblankString
-      })
-    })
-  ),
+  score: nullable(isCardScore),
   serverRank: nullable(
     exactObject({
       rank: isPositiveSafeInteger,
