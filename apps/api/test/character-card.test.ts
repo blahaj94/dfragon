@@ -16,6 +16,8 @@ import type { CharacterApiResponse } from '../src/database/schemas/character-api
 const titles = {
   fixture: '실응답 fixture의 딜러와 버퍼는 세 면의 값을 모두 채우고 섹션 원문에서 읽은 값과 맞는다',
   role: '역할은 眞 접두를 포함한 버퍼 전직명으로 정하고 직업을 모르면 스탯도 null이다',
+  townStat:
+    '버퍼 주 스탯은 뮤즈, 패러메딕 정신력, 남자 크루세이더 정신력과 체력 중 큰 쪽, 그 밖은 지능이다',
   critical: '크리티컬은 숫자와 % 문자열을 받아 물리, 마법 중 큰 값이며 그 밖의 값은 null이다',
   set: '세트는 slotInfo가 가장 많은 항목이고 같으면 앞의 것이며 그림은 그 세트의 첫 장착 아이템이다',
   oath: '서약이 없으면 null이고 oathUpgrade가 없으면 묵언의 진의는 빈 목록이다',
@@ -81,7 +83,7 @@ test(titles.fixture, () => {
     assert.equal(card.role, role)
     assert(card.stats, role)
     const statValues = Object.entries(card.stats).filter(
-      ([key]) => !['role', 'switchingLevel', 'buff30', 'buff50'].includes(key)
+      ([key]) => !['role', 'townStatName', 'switchingLevel', 'buff30', 'buff50'].includes(key)
     )
     assert(
       statValues.every(([, value]) => typeof value === 'number'),
@@ -108,6 +110,23 @@ test(titles.fixture, () => {
     attackIncrease: status.get('공격력 증가'),
     amplification: status.get('공격력 증폭'),
     critical: Math.max(status.get('물리 크리티컬')!, status.get('마법 크리티컬')!),
+    switchingLevel: null
+  })
+  // 실응답 버퍼는 뮤즈라 지능이 아니라 정신력을 원문 능력치에서 그대로 옮긴다.
+  const bufferFixture = readFixture('buffer')
+  const bufferStatus = new Map(
+    (bufferFixture.sections.status.status as { name: string; value: number }[]).map((s) => [
+      s.name,
+      s.value
+    ])
+  )
+  assert.equal(bufferFixture.sections.basic.jobGrowName, '眞 뮤즈')
+  assert.deepEqual(bufferFixture.card.stats, {
+    role: 'buffer',
+    townStatName: '정신력',
+    townStat: bufferStatus.get('정신력'),
+    buff30: null,
+    buff50: null,
     switchingLevel: null
   })
   const [equippedSet] = dealerFixture.sections.equipment.setItemInfo as {
@@ -157,14 +176,15 @@ test(titles.role, () => {
   const buffer = projectCharacterCard(
     source({
       character: { jobGrowName: '眞 뮤즈' },
-      status: { status: [{ name: '지능', value: 5847 }] }
+      status: { status: [{ name: '정신력', value: 7692 }] }
     }),
     rank,
     emptyGrades
   )
   assert.deepEqual(buffer.stats, {
     role: 'buffer',
-    townIntelligence: 5847,
+    townStatName: '정신력',
+    townStat: 7692,
     buff30: null,
     buff50: null,
     switchingLevel: null
@@ -176,6 +196,42 @@ test(titles.role, () => {
     assert.equal(card.role, null)
     assert.equal(card.stats, null)
   }
+})
+
+test(titles.townStat, () => {
+  const status = (spirit: number | null, vitality: number | null) => [
+    { name: '지능', value: 5000 },
+    ...(spirit === null ? [] : [{ name: '정신력', value: spirit }]),
+    ...(vitality === null ? [] : [{ name: '체력', value: vitality }])
+  ]
+  const townStat = (
+    jobName: string,
+    jobGrowName: string,
+    spirit: number | null,
+    vitality: number | null
+  ) => {
+    const card = projectCharacterCard(
+      source({ character: { jobName, jobGrowName }, status: { status: status(spirit, vitality) } }),
+      null,
+      emptyGrades
+    )
+    if (card.stats?.role !== 'buffer') {
+      assert.fail('버퍼 스탯이 아닙니다.')
+    }
+
+    return [card.stats.townStatName, card.stats.townStat]
+  }
+  assert.deepEqual(townStat('아처', '眞 뮤즈', 7692, 9000), ['정신력', 7692])
+  assert.deepEqual(townStat('거너(여)', '眞 패러메딕', 7000, 9000), ['정신력', 7000])
+  assert.deepEqual(townStat('마법사(여)', '眞 인챈트리스', 7000, 9000), ['지능', 5000])
+  assert.deepEqual(townStat('프리스트(여)', '眞 크루세이더', 7000, 9000), ['지능', 5000])
+  // 남자 크루세이더는 정신력과 체력 중 큰 쪽이고, 같거나 체력을 모르면 정신력이다.
+  assert.deepEqual(townStat('프리스트(남)', '眞 크루세이더', 7000, 9000), ['체력', 9000])
+  assert.deepEqual(townStat('프리스트(남)', '眞 크루세이더', 9000, 7000), ['정신력', 9000])
+  assert.deepEqual(townStat('프리스트(남)', '크루세이더', 7000, 7000), ['정신력', 7000])
+  assert.deepEqual(townStat('프리스트(남)', '眞 크루세이더', 7000, null), ['정신력', 7000])
+  assert.deepEqual(townStat('프리스트(남)', '眞 크루세이더', null, 9000), ['체력', 9000])
+  assert.deepEqual(townStat('프리스트(남)', '眞 크루세이더', null, null), ['정신력', null])
 })
 
 test(titles.critical, () => {

@@ -53,7 +53,8 @@ describe('API 카드와 엔진 결과 조립', () => {
     expect(score.mock.calls[0][1]).toBe('buff')
     expect(card?.stats).toEqual({
       role: 'buffer',
-      townIntelligence: 9120,
+      townStatName: '정신력',
+      townStat: 9120,
       buff30: 1874.5,
       buff50: 622,
       switchingLevel: 2
@@ -113,7 +114,14 @@ describe('API 카드와 엔진 결과 조립', () => {
     } as const
     const details = apiDetailsFromEngineInput(readEngineInput('buffer-muse'), {
       ...bufferCard,
-      stats: { role: 'buffer', townIntelligence: 9120, buff30: 1, buff50: 2, switchingLevel: 3 },
+        stats: {
+          role: 'buffer',
+          townStatName: '정신력',
+          townStat: 9120,
+          buff30: 1,
+          buff50: 2,
+          switchingLevel: 3
+        },
       score: apiScore
     })
 

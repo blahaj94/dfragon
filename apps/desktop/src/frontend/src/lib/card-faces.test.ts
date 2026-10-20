@@ -309,9 +309,10 @@ it('API 응답 fixture의 카드 값으로 세 면을 채우고 엔진이 채우
     description: undefined
   })
   expect(dealer.serverRank).toEqual({ text: '-', label: '서버 순위 없음' })
+  // 실응답 버퍼는 뮤즈라 마을 지능(5,847)이 아니라 마을 정신력이다.
   expect(toCharacterFace(apiBufferCard, 'long').stats[0]).toEqual({
-    label: '마을 지능',
-    value: '5,847',
+    label: '마을 정신력',
+    value: '7,692',
     unit: ''
   })
 
