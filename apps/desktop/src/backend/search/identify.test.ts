@@ -233,8 +233,8 @@ describe('캐릭터 식별 규칙', () => {
     ])
   })
 
-  it('비교하지 못한 후보의 얼굴 창은 직업별 얼굴 위치로 채우고 모르는 직업은 null로 둔다', async () => {
-    const f = fixture({ high: 20, low: 10 })
+  it('비교하지 못한 후보의 얼굴 창은 직업별 얼굴 위치로 채우고 직업도 모르면 null로 둔다', async () => {
+    const f = fixture({ high: 20 })
     f.findCandidates.mockImplementation(async (nickname) => [
       { ...candidate('high', nickname, 100), jobName: '아처' },
       candidate('low', nickname, 50),
@@ -248,7 +248,7 @@ describe('캐릭터 식별 규칙', () => {
         identified.choices?.map(({ characterId, face }) => ({ characterId, face }))
     ).toEqual([
       { characterId: 'high', face: faceOf('high') },
-      { characterId: 'low', face: faceOf('low') },
+      { characterId: 'low', face: null },
       { characterId: 'null', face: { x: 84, y: 101, width: 26, height: 26 } }
     ])
   })
