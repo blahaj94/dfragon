@@ -6,7 +6,7 @@ const RARITY = '--item-icon-rarity'
 const rarity = `var(${RARITY})`
 const frame = `inset 0 0 0 1px color-mix(in srgb, ${rarity} 45%, transparent), inset 0 -2px 0 ${rarity}`
 
-// 태초 아이콘 칸을 주기마다 한 번 지나가는 빛줄기(캔버스 카드 면 보드). 주기의 30%까지 지나가고 나머지는 멈춘다.
+// 유일 장비 아이콘 칸을 주기마다 한 번 지나가는 빛줄기(캔버스 카드 면 보드). 주기의 30%까지 지나가고 나머지는 멈춘다.
 const sweep = stylex.keyframes({
   '0%': { transform: 'translateX(-100%)' },
   '30%, 100%': { transform: 'translateX(100%)' }
@@ -27,7 +27,7 @@ export const styles = stylex.create({
     boxShadow: frame
   },
   cellLarge: { width: 28, height: 28 },
-  // 태초는 은은한 빛과 빛줄기를 더한다. 동작 줄이기 설정에서는 빛줄기를 그리지 않는다.
+  // 유일 장비는 은은한 빛과 빛줄기를 더한다. 동작 줄이기 설정에서는 빛줄기를 그리지 않는다.
   shine: {
     boxShadow: `0 0 6px color-mix(in srgb, ${rarity} 70%, transparent), ${frame}`,
     '::after': {

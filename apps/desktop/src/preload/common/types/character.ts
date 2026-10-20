@@ -52,6 +52,8 @@ export type CharacterCardInvestment = Readonly<{
   itemId: string | null
   itemName: string | null
   rarity: string | null
+  /** 유일 장비 여부. API의 유일 장비 기준표로 정하고 장착하지 않은 부위는 false다. */
+  exclusive: boolean
   reinforce: Readonly<{
     kind: 'reinforce' | 'amplify'
     value: number
@@ -84,7 +86,8 @@ export type CharacterCard = Readonly<{
     rarityName: string | null
     point: CharacterCardPoint | null
     imageItemId: string | null
-    slots: readonly Readonly<{ slotId: string; rarity: string | null }>[]
+    /** `exclusive`는 유일 장비 부위이고 `rarityCounts`는 그 부위를 희귀도 대신 `유일`로 센다. */
+    slots: readonly Readonly<{ slotId: string; rarity: string | null; exclusive: boolean }>[]
     rarityCounts: readonly CharacterRarityCount[]
   }> | null
   oath: Readonly<{

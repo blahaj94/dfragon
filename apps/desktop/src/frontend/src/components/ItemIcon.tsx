@@ -10,14 +10,17 @@ import { SpriteIconImage } from './SpriteIconImage'
  * 기타 면 행 왼쪽의 장비 아이콘 칸(DFragon 디자인 캔버스 카드 면 보드). 칸 테두리와 아래 2px 바가 희귀도 색이고,
  * 그림은 장식이라 대체 문구를 비운다. 그림이 없거나 불러오지 못하면 같은 크기의 빈 칸만 남겨 줄이 밀리지 않는다.
  * `large`는 상세 창 장비 목록의 28 칸(캔버스 상세 창 보드)이며 그림을 칸에 꽉 채우고 오른쪽 위를 자른다.
+ * `exclusive`는 유일 장비 칸이라 빛과 빛줄기를 더한다. 태초여도 유일 장비가 아니면 빛이 없다.
  */
 export function ItemIcon({
   src,
   tone,
+  exclusive,
   large = false
 }: {
   src: ItemPicture | undefined
   tone: RarityTone | 'missing'
+  exclusive: boolean
   large?: boolean
 }): React.JSX.Element {
   const imageSize = large ? 28 : 22
@@ -33,7 +36,7 @@ export function ItemIcon({
         large && styles.cellLarge,
         large && shapes.cutTopRight,
         toneStyles[tone],
-        tone === 'primordial' && styles.shine
+        exclusive && styles.shine
       )}
     >
       {typeof src === 'object' && (

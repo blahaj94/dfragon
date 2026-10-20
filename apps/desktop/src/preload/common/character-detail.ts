@@ -82,6 +82,7 @@ const investment = exactObject({
   itemId: nullable(isNonblankString),
   itemName: nullable(isNonblankString),
   rarity: nullable(isNonblankString),
+  exclusive: oneOf(true, false),
   reinforce: nullable(
     exactObject({
       kind: oneOf('reinforce', 'amplify'),
@@ -132,7 +133,13 @@ const characterCard = exactObject({
       rarityName: nullable(isNonblankString),
       point: nullable(point),
       imageItemId: nullable(isNonblankString),
-      slots: listOf(exactObject({ slotId: isNonblankString, rarity: nullable(isNonblankString) })),
+      slots: listOf(
+        exactObject({
+          slotId: isNonblankString,
+          rarity: nullable(isNonblankString),
+          exclusive: oneOf(true, false)
+        })
+      ),
       rarityCounts: listOf(rarityCount)
     })
   ),

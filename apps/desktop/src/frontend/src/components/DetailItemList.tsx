@@ -1,6 +1,6 @@
 import { Tooltip, shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
-import { rarityText } from '../constants/rarity.style'
+import { exclusiveText, rarityText } from '../constants/rarity.style'
 import type { DetailItemGroupView, DetailItemRowView } from '../lib/character-detail'
 import { ItemIcon } from './ItemIcon'
 import { reinforceStyles, rowTones, styles } from './DetailItemList.style'
@@ -45,14 +45,18 @@ function DetailItemRow({
   align: 'start' | 'end'
   spaced: boolean
 }): React.JSX.Element {
-  const { tone, text } = row
+  const { tone, text, exclusive } = row
   const content = (
     <>
-      <ItemIcon src={row.image} tone={tone} large />
+      <ItemIcon src={row.image} tone={tone} exclusive={exclusive} large />
       <span {...stylex.props(styles.text)}>
         <span
           aria-hidden="true"
-          {...stylex.props(styles.name, tone === 'missing' ? styles.nameMissing : rarityText[tone])}
+          {...stylex.props(
+            styles.name,
+            tone === 'missing' ? styles.nameMissing : rarityText[tone],
+            exclusive && exclusiveText.shine
+          )}
         >
           {row.name}
         </span>
@@ -92,8 +96,12 @@ function DetailItemRow({
         {...stylex.props(styles.tip, shapes.cutTopRight, rowTones[tone])}
       >
         <span {...stylex.props(styles.tipHead)}>
-          <ItemIcon src={row.image} tone={tone} large />
-          <span {...stylex.props(styles.tipName, rarityText[tone])}>{row.name}</span>
+          <ItemIcon src={row.image} tone={tone} exclusive={exclusive} large />
+          <span
+            {...stylex.props(styles.tipName, rarityText[tone], exclusive && exclusiveText.shine)}
+          >
+            {row.name}
+          </span>
           {row.reinforce !== null && (
             <span
               aria-hidden="true"
