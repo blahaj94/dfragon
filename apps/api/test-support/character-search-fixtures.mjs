@@ -115,7 +115,6 @@ export async function expectSearchError(response, status, code) {
   const body = await response.json()
   const messages = {
     INVALID_SEARCH_QUERY: '검색 조건을 확인해 주세요.',
-    SEARCH_RATE_LIMITED: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
     INTERNAL_SERVER_ERROR: '서버 오류로 검색을 처리하지 못했습니다.',
     NEOPLE_API_ERROR: '캐릭터 검색 중 오류가 발생했습니다.',
     NEOPLE_UNAVAILABLE: '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
