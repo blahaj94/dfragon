@@ -1,5 +1,4 @@
-import { searchClock } from '../search-admission.js'
-import { SearchDeadline } from '../search-deadline.js'
+import { SearchDeadline, searchClock } from '../search-deadline.js'
 import { CharacterDetailFailure, characterDetailFailure } from './errors.js'
 import type { FetchCharacterDetails } from './neople.js'
 import { projectCharacterDetails } from './project.js'
