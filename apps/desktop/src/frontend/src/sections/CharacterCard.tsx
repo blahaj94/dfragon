@@ -32,6 +32,7 @@ import { MISSING_VALUE, cardFaces, tierLabels } from '../constants/cards'
 import type { SlotCard } from '../lib/slot-cards'
 import {
   type ScoreView,
+  formatApproximateScore,
   toCharacterFace,
   toEquipmentFace,
   toInvestmentRows
@@ -415,6 +416,7 @@ export function CharacterCard({
                 vacant={vacant}
                 tier={tier}
                 role={characterFace.score.tone}
+                approximate={characterFace.score.approximate}
                 description={characterFace.score.description}
               />
             </div>
@@ -468,18 +470,21 @@ function EquipmentFace({ character }: { character: CardCharacter }): React.JSX.E
 
 // 명성과 점수 값. 0과 알 수 없음을 구분하고 알 수 없으면 같은 크기의 `-`를 흐리게 둔다.
 // 값이 있을 때만 숫자를 세어 올린다. 상위, 랭커 카드는 값을 단계 색으로 그리고, 단계가 없는 카드의 점수는
-// 역할 색(`role`)으로 그린다. 점수는 계산값이라는 뜻이나 계산하지 못한 사유를 보조 기술에 덧붙인다.
+// 역할 색(`role`)으로 그린다. 점수는 계산값이라는 뜻이나 계산하지 못한 사유를 보조 기술에 덧붙이고, 근사값은
+// `≈`를 붙여 보인다.
 function StatValue({
   value,
   vacant,
   tier,
   role,
+  approximate = false,
   description
 }: {
   value: number | null
   vacant: boolean
   tier?: CharacterTier
   role?: ScoreView['tone']
+  approximate?: boolean
   description?: string
 }): React.JSX.Element {
   const note = description !== undefined && (
@@ -505,7 +510,7 @@ function StatValue({
         tier === 'ranker' && styles.statRanker
       )}
     >
-      <NumericText value={value} />
+      <NumericText value={value} format={approximate ? formatApproximateScore : undefined} />
       {note}
     </dd>
   )
