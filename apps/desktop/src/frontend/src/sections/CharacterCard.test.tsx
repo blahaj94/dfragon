@@ -513,8 +513,10 @@ it('장비 면은 세트와 서약 섹션, 묵언의 진의 단계 이름과 희
   expect(set.textContent).toContain('세트 포인트')
   expect(set.textContent).toContain('2,625')
   expect(set.textContent).toContain('태초 3')
-  expect(set.querySelector('img')?.getAttribute('src')).toBe(
-    'https://img-api.neople.co.kr/df/items/2d23a5dc389016bdc3a3e3fd142b38ce'
+  // 115 세트는 대표 장비 그림 대신 번들한 세트 아이콘을 그림 이름과 함께 그린다.
+  expect(set.querySelector('img')).toBeNull()
+  expect(set.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe(
+    '환상의 에테리얼 오브 아츠 세트'
   )
 
   const oath = container.querySelector('section[aria-label="서약"]')!

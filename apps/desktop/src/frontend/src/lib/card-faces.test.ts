@@ -11,6 +11,7 @@ import {
   toInvestmentRows,
   toRarityTone
 } from './card-faces'
+import { oathIcon, setIcon } from './equipment-icons'
 
 it('카드 값이 없으면 세 면 모두 값 대신 -와 없다는 이름을 두고 0이나 빈칸을 만들지 않는다', () => {
   const character = toCharacterFace(null, 'long')
@@ -160,7 +161,7 @@ it('세트 섹션은 세트 포인트, 무기와 세트 부위의 희귀도 격�
     name: '환상의 에테리얼 오브 아츠 세트',
     tone: 'primordial',
     point: '2,625',
-    imageUrl: 'https://img-api.neople.co.kr/df/items/2d23a5dc389016bdc3a3e3fd142b38ce',
+    image: setIcon('93e7825053bdec4e0f4c12837cf4f57e'),
     counts: [
       { label: '태초', count: '3', tone: 'primordial' },
       { label: '에픽', count: '8', tone: 'epic' }
@@ -191,7 +192,7 @@ it('세트 섹션은 세트 포인트, 무기와 세트 부위의 희귀도 격�
 
   // 세트가 없어도 무기 칸은 장착한 무기의 희귀도를 보인다.
   const withoutSet = toEquipmentFace({ ...dealerCard, set: null }).set
-  expect(withoutSet).toMatchObject({ missing: true, point: '-', counts: [], imageUrl: undefined })
+  expect(withoutSet).toMatchObject({ missing: true, point: '-', counts: [], image: undefined })
   expect(withoutSet.groups[0].cells[0].tone).toBe('primordial')
   expect(
     withoutSet.groups
@@ -370,12 +371,36 @@ it('희귀도 이름을 색 토큰 키로 바꾸고 단계가 붙은 이름과 �
   expect(toRarityTone('constructor')).toBe('unknown')
 })
 
-it('합성 미리보기가 준 itemId별 로컬 그림만 쓰고 나머지 그림은 고정 origin URL로 둔다', () => {
+it('115 세트와 서약은 번들한 아이콘을 쓰고, 아이콘이 없으면 대표 장비 그림이나 서약 그림 URL로 둔다', () => {
+  const { set, oath } = toEquipmentFace(dealerCard)
+  expect(set).toMatchObject({
+    image: setIcon(dealerCard.set!.setItemId),
+    imageLabel: dealerCard.set!.name
+  })
+  expect(set.image).toBeDefined()
+  expect(oath.image).toEqual(oathIcon('태초', '강림한 여우 서약'))
+  expect(oath.image).toBeDefined()
+
+  // 115 세트가 아니고 표에 없는 서약이면 네오플 아이템 그림 URL이다.
+  const other = toEquipmentFace({
+    ...dealerCard,
+    set: { ...dealerCard.set!, setItemId: 'f'.repeat(32) },
+    oath: { ...dealerCard.oath!, name: '합성 서약' }
+  })
+  expect(other.set).toMatchObject({
+    image: 'https://img-api.neople.co.kr/df/items/2d23a5dc389016bdc3a3e3fd142b38ce',
+    imageLabel: `${dealerCard.set!.name} 대표 장비`
+  })
+  expect(other.oath.image).toBe(`https://img-api.neople.co.kr/df/items/${dealerCard.oath!.itemId}`)
+})
+
+it('합성 미리보기가 준 itemId별 로컬 그림은 번들한 아이콘이 없는 그림 자리에만 쓴다', () => {
   const local = '/assets/item-20.png'
-  const { set, oath } = toEquipmentFace(dealerCard, { [dealerCard.oath!.itemId]: local })
-  expect(oath.imageUrl).toBe(local)
-  expect(set.imageUrl).toBe(
-    'https://img-api.neople.co.kr/df/items/2d23a5dc389016bdc3a3e3fd142b38ce'
+  const unbundled = { ...dealerCard, oath: { ...dealerCard.oath!, name: '합성 서약' } }
+  expect(toEquipmentFace(unbundled, { [dealerCard.oath!.itemId]: local }).oath.image).toBe(local)
+  // 번들한 서약 아이콘이 있으면 로컬 그림보다 앞선다.
+  expect(toEquipmentFace(dealerCard, { [dealerCard.oath!.itemId]: local }).oath.image).toEqual(
+    oathIcon('태초', '강림한 여우 서약')
   )
   // 기타 면 아이콘도 주입한 그림이 있는 부위만 로컬 그림을 쓴다.
   const weaponId = dealerCard.investment[0].itemId!
@@ -394,10 +419,10 @@ it('합성 미리보기가 준 itemId별 로컬 그림만 쓰고 나머지 그�
   expect(empty[0]).toMatchObject({ itemTone: 'missing', imageUrl: undefined })
   // 객체의 상속 키는 주입한 그림으로 보지 않는다.
   const inherited = toEquipmentFace(
-    { ...dealerCard, oath: { ...dealerCard.oath!, itemId: 'toString' } },
+    { ...unbundled, oath: { ...unbundled.oath, itemId: 'toString' } },
     {}
   )
-  expect(inherited.oath.imageUrl).toBe('https://img-api.neople.co.kr/df/items/toString')
+  expect(inherited.oath.image).toBe('https://img-api.neople.co.kr/df/items/toString')
 })
 
 it('아이템 이미지는 검증한 식별자로만 고정 origin URL을 만든다', () => {
