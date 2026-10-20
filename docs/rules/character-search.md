@@ -38,7 +38,7 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 
 요청은 OCR 우선순위에서 선택한 이름 하나만 받는다. 필수 query는 `characterName`이고 decode 후 Unicode code point 1~12개를 허용한다. `match`에 `full`의 최소 2자 제한을 적용하지 않으며, 이 길이 상한과 측정 단위는 우리 입력 정책이다. 앞뒤 공백, 중복 key, 배열 key, 미정의 key, 잘못된 URL encoding과 HEAD는 `400 INVALID_SEARCH_QUERY`다. 이름을 trim, 대소문자 변환, Unicode 정규화하거나 OCR 보정하지 않는다. `serverId`, `wordType`, `limit`, `zoom`을 요청자가 지정할 수 없다.
 
-서버는 Neople 검색을 `serverId=all`, `wordType=match`, `limit=200`으로 한 번 호출한다. 현재 8개 서버의 동명 캐릭터를 찾지만 응답을 임의로 8개에서 자르지 않는다. 검색 응답의 이름은 요청 이름과 정확히 같아야 한다. 후보의 서버는 지원하는 실제 서버 ID이고 캐릭터 ID는 상세 API와 같은 1~256자의 ASCII 영숫자, `_`, `-`여야 한다. 다른 이름이나 사용할 수 없는 식별자가 섞이면 일부만 반환하지 않고 `502 NEOPLE_API_ERROR`로 실패한다. 이 추가 검증은 새 후보 API에 한정하며 기존 검색의 미등록 서버 보존 정책을 바꾸지 않는다.
+서버는 Neople 검색을 `serverId=all`, `wordType=match`, `limit=200`으로 한 번 호출한다. 현재 8개 서버의 동명 캐릭터를 찾지만 응답을 임의로 8개에서 자르지 않는다. Neople의 `match`는 영문 대소문자를 구분하지 않아 `exe` 검색에 `EXE`도 함께 돌려준다. 2026-10-20 [#770](https://github.com/blahaj94/dfragon/issues/770) 결정으로 대소문자만 다른 이름은 공급자 오류로 보지 않고 후보에서 뺀다. 후보로 반환하는 이름은 요청 이름과 정확히 같다. 대소문자를 무시해도 다른 이름은 공급자 응답 오류다. 후보의 서버는 지원하는 실제 서버 ID이고 캐릭터 ID는 상세 API와 같은 1~256자의 ASCII 영숫자, `_`, `-`여야 한다. 다른 이름이나 사용할 수 없는 식별자가 섞이면 일부만 반환하지 않고 `502 NEOPLE_API_ERROR`로 실패한다. 이 추가 검증은 새 후보 API에 한정하며 기존 검색의 미등록 서버 보존 정책을 바꾸지 않는다.
 
 성공 응답은 `{"rows":[...]}`다. 각 행은 기존 `characterId`, `characterName`, `serverId`, `serverName`, `fame`에 `imageUrl`을 추가한다. `imageUrl`은 검증한 식별자로 구성한 `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=1`이다. 네오플의 전체 캐릭터 이미지 URL이며 얼굴만 잘린 이미지가 아니다. API는 이미지를 다운로드, 변환, 저장하거나 중계하지 않는다.
 
