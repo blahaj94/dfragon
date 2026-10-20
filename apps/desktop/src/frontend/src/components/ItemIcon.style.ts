@@ -43,7 +43,9 @@ export const styles = stylex.create({
       animationIterationCount: 'infinite'
     }
   },
-  image: { display: 'block', imageRendering: 'pixelated' }
+  image: { display: 'block', imageRendering: 'pixelated' },
+  // 번들한 sprite 아이콘의 상자. 그림과 같은 크기다.
+  sprite: (size: number) => ({ display: 'block', width: size, height: size })
 })
 
 // 희귀도 색 토큰 키별 칸 색. 장착 정보가 없으면 희귀도 면 없이 카드 테두리 색 1px 칸만 남긴다.

@@ -23,7 +23,7 @@ export function EquipmentSummary({
     <section aria-label={label} {...stylex.props(styles.section)}>
       <div {...stylex.props(styles.head)}>
         <div {...stylex.props(styles.image)}>
-          <CardImage src={summary.imageUrl} label={summary.imageLabel} />
+          <CardImage src={summary.image} label={summary.imageLabel} />
         </div>
         <div {...stylex.props(styles.title)}>
           <span

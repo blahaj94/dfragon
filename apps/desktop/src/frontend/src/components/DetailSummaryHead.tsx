@@ -21,7 +21,7 @@ export function DetailSummaryHead({
     <div {...stylex.props(styles.root)}>
       <div {...stylex.props(styles.head)}>
         <div {...stylex.props(styles.image)}>
-          <CardImage src={summary.imageUrl} label={summary.imageLabel} />
+          <CardImage src={summary.image} label={summary.imageLabel} />
         </div>
         <span
           title={summary.name}

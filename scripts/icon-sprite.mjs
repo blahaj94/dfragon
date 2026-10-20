@@ -1,5 +1,5 @@
-// 게임 아이콘 PNG를 한 장의 무손실 WebP sprite로 묶는 도구. 아이콘 생성 script가 같은 방식으로 칸을 놓고
-// 검사한다.
+// 게임 아이콘 PNG를 한 장의 무손실 WebP sprite로 묶는 도구. 스킬 아이콘(import-skill-data)과 장비 아이콘
+// (import-equipment-icons)이 같은 방식으로 칸을 놓고 검사한다.
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
 import sharp from 'sharp'
@@ -19,7 +19,8 @@ export function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`)
 }
 
-// 아이콘 PNG를 색인의 SHA-256과 대조하고 iconSize × iconSize RGBA 픽셀로 읽는다.
+// 아이콘 PNG를 색인의 SHA-256과 대조하고 iconSize × iconSize RGBA 픽셀로 읽는다. 칸보다 작은 아이콘은
+// 투명한 칸 가운데에 픽셀을 그대로 옮기고, 칸보다 크면 생성을 멈춘다.
 export async function readIconPixels(path, sha256, iconSize) {
   const bytes = readFileSync(path)
   const hash = createHash('sha256').update(bytes).digest('hex')
@@ -30,11 +31,22 @@ export async function readIconPixels(path, sha256, iconSize) {
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true })
-  if (info.width !== iconSize || info.height !== iconSize) {
-    fail(`${iconSize} × ${iconSize}가 아닌 아이콘입니다: ${path}`)
+  if (info.width > iconSize || info.height > iconSize) {
+    fail(`${iconSize} × ${iconSize}보다 큰 아이콘입니다: ${path}`)
   }
 
-  return data
+  if (info.width === iconSize && info.height === iconSize) {
+    return data
+  }
+  const cell = Buffer.alloc(iconSize * iconSize * RGBA_CHANNELS)
+  const left = Math.floor((iconSize - info.width) / 2)
+  const top = Math.floor((iconSize - info.height) / 2)
+  const rowBytes = info.width * RGBA_CHANNELS
+  for (let y = 0; y < info.height; y += 1) {
+    data.copy(cell, ((top + y) * iconSize + left) * RGBA_CHANNELS, y * rowBytes, (y + 1) * rowBytes)
+  }
+
+  return cell
 }
 
 // sprite 칸 번호의 왼쪽 위 픽셀. 칸 번호는 왼쪽에서 오른쪽, 위에서 아래 순서다.

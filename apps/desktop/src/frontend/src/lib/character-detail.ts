@@ -1,6 +1,7 @@
 import type { CharacterDetailItemTexts } from '../../../preload/common/types/character-detail'
 import { MISSING_VALUE } from '../constants/cards'
 import type { CharacterCard } from '../types/cards'
+import type { ItemPicture } from './equipment-icons'
 import {
   type RarityTone,
   type ReinforceView,
@@ -8,6 +9,7 @@ import {
   setSlotGroups,
   slotNames,
   toItemImage,
+  toOathImage,
   toRarityTone,
   toReinforceView
 } from './card-faces'
@@ -32,7 +34,7 @@ export type DetailItemRowView = {
   name: string
   label: string
   tone: RarityTone | 'missing'
-  imageUrl: string | undefined
+  image: ItemPicture | undefined
   /** 마법부여 옵션 한 줄. 마법부여가 없으면 null이다. */
   enchant: string | null
   /** 강화나 증폭. 서약 본체와 결정에는 없어 null이다. */
@@ -113,7 +115,7 @@ function toEquipmentRow(
       name: MISSING_VALUE,
       label: `${part}, 장착 정보 없음`,
       tone: 'missing',
-      imageUrl: undefined,
+      image: undefined,
       enchant: null,
       reinforce: toReinforceView(row),
       kind: part,
@@ -127,7 +129,7 @@ function toEquipmentRow(
     name: row.itemName,
     label: `${part}, ${row.itemName}`,
     tone: toRarityTone(row.rarity),
-    imageUrl: toItemImage(row.itemId, itemImages),
+    image: toItemImage(row.itemId, itemImages),
     enchant: toEnchantLine(row.enchant),
     reinforce: toReinforceView(row),
     kind: toKind(part, row.rarity),
@@ -171,7 +173,7 @@ export function toDetailOathGroups(
     name: oath.name,
     label: `서약, ${oath.name}`,
     tone: toRarityTone(oath.rarity),
-    imageUrl: toItemImage(oath.itemId, itemImages),
+    image: toOathImage(oath, itemImages),
     enchant: null,
     reinforce: null,
     kind: toKind('서약', oath.rarity),
@@ -190,7 +192,7 @@ export function toDetailOathGroups(
           name: MISSING_VALUE,
           label: '서약 결정, 장착 정보 없음',
           tone: 'missing',
-          imageUrl: undefined,
+          image: undefined,
           enchant: null,
           reinforce: null,
           kind: '서약 결정',
@@ -204,7 +206,7 @@ export function toDetailOathGroups(
         name: crystal.name,
         label: `서약 결정, ${crystal.name}`,
         tone: toRarityTone(crystal.rarity),
-        imageUrl: toItemImage(crystal.itemId, itemImages),
+        image: toItemImage(crystal.itemId, itemImages),
         enchant: null,
         reinforce: null,
         kind: toKind('서약 결정', crystal.rarity),

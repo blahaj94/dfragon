@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import type { RarityTone } from '../lib/card-faces'
+import type { ItemPicture } from '../lib/equipment-icons'
 import { styles, toneStyles } from './ItemIcon.style'
+import { SpriteIconImage } from './SpriteIconImage'
 
 /**
  * 기타 면 행 왼쪽의 장비 아이콘 칸(DFragon 디자인 캔버스 카드 면 보드). 칸 테두리와 아래 2px 바가 희귀도 색이고,
@@ -14,13 +16,13 @@ export function ItemIcon({
   tone,
   large = false
 }: {
-  src: string | undefined
+  src: ItemPicture | undefined
   tone: RarityTone | 'missing'
   large?: boolean
 }): React.JSX.Element {
   const imageSize = large ? 28 : 22
   const [failedSource, setFailedSource] = useState<string>()
-  const showImage = src !== undefined && failedSource !== src
+  const showImage = typeof src === 'string' && failedSource !== src
 
   return (
     <span
@@ -34,6 +36,11 @@ export function ItemIcon({
         tone === 'primordial' && styles.shine
       )}
     >
+      {typeof src === 'object' && (
+        <span {...stylex.props(styles.sprite(imageSize))}>
+          <SpriteIconImage icon={src} />
+        </span>
+      )}
       {showImage && (
         <img
           src={src}

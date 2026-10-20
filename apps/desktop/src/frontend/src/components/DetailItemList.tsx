@@ -48,7 +48,7 @@ function DetailItemRow({
   const { tone, text } = row
   const content = (
     <>
-      <ItemIcon src={row.imageUrl} tone={tone} large />
+      <ItemIcon src={row.image} tone={tone} large />
       <span {...stylex.props(styles.text)}>
         <span
           aria-hidden="true"
@@ -92,7 +92,7 @@ function DetailItemRow({
         {...stylex.props(styles.tip, shapes.cutTopRight, rowTones[tone])}
       >
         <span {...stylex.props(styles.tipHead)}>
-          <ItemIcon src={row.imageUrl} tone={tone} large />
+          <ItemIcon src={row.image} tone={tone} large />
           <span {...stylex.props(styles.tipName, rarityText[tone])}>{row.name}</span>
           {row.reinforce !== null && (
             <span
