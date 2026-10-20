@@ -524,7 +524,8 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
           equipmentScore: 1741,
           serverRank: 12,
           card: {
-            stats: { switchingLevel: 3 },
+            // 스위칭 Lv은 엔진 값이 아니라 상세 응답의 스위칭 장비에서 읽고, 이 합성 응답에는 스위칭 장비가 없다.
+            stats: { switchingLevel: null },
             score: { calculator: 'equipment', value: 1741, skipped: null }
           }
         }

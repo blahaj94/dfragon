@@ -131,6 +131,20 @@ const invalidCards: [string, unknown][] = [
   ['빠진 필드', { ...dealerCard, investment: undefined }],
   ['모르는 역할', { ...dealerCard, role: 'tank' }],
   ['역할과 맞지 않는 스탯', { ...dealerCard, stats: { ...bufferCard.stats, role: 'dealer' } }],
+  ['모르는 버퍼 주 스탯', { ...bufferCard, stats: { ...bufferCard.stats, townStatName: '힘' } }],
+  [
+    '이전 버퍼 스탯 키',
+    {
+      ...bufferCard,
+      stats: {
+        role: 'buffer',
+        townIntelligence: 5847,
+        buff30: null,
+        buff50: null,
+        switchingLevel: null
+      }
+    }
+  ],
   ['유한하지 않은 점수', { ...dealerCard, score: { ...dealerCard.score, value: Infinity } }],
   ['0위 서버 순위', { ...dealerCard, serverRank: { ...dealerCard.serverRank, rank: 0 } }],
   [

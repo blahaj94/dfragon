@@ -220,7 +220,8 @@ it('찾은 카드의 스탯 한 줄은 응답에 스탯이 없으면 딜러 라�
           role: 'buffer',
           stats: {
             role: 'buffer',
-            townIntelligence: 31420,
+            townStatName: '지능',
+            townStat: 31420,
             buff30: 1284000,
             buff50: null,
             switchingLevel: 18

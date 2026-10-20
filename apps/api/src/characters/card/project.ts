@@ -8,10 +8,10 @@ import type {
   CharacterInvestment,
   CharacterOathCard,
   CharacterRarityCount,
-  CharacterRole,
   CharacterServerRank,
   CharacterSetCard,
   CharacterSetPoint,
+  CharacterTownStatName,
   EnchantStatus
 } from './types.js'
 import { finiteOrNull, records } from './values.js'
@@ -24,7 +24,12 @@ export interface CharacterCardSource {
   oath: unknown
 }
 
-const bufferJobs = new Set(['크루세이더', '인챈트리스', '패러메딕', '뮤즈'])
+type StatValue = (name: string) => number | null
+// Picks a buffer's main town stat; jobName is the base job, e.g. '프리스트(남)'.
+type TownStatPicker = (jobName: unknown, value: StatValue) => CharacterTownStatName
+type CharacterJob = { role: 'dealer' } | { role: 'buffer'; townStatName: TownStatPicker }
+
+const maleCrusaderJobName = '프리스트(남)'
 const awakeningPrefix = '眞'
 
 // Fixed order of the Desktop investment face (apps/desktop constants/equipment.ts investmentIds).
@@ -45,17 +50,58 @@ const investmentSlots = [
 
 const STAT_NUMBER_PATTERN = /^[+-]?\d+(?:\.\d+)?%?$/
 
-export function characterRole(jobGrowName: unknown): CharacterRole | null {
+// The advancement name without the awakening prefix, e.g. '眞 뮤즈' -> '뮤즈'.
+function baseJobGrowName(jobGrowName: unknown): string | null {
   const name = textOrNull(jobGrowName)
   if (name === null) {
     return null
   }
-  const job = name.startsWith(awakeningPrefix) ? name.slice(awakeningPrefix.length).trim() : name
-  if (bufferJobs.has(job)) {
-    return 'buffer'
+
+  if (!name.startsWith(awakeningPrefix)) {
+    return name
   }
 
-  return 'dealer'
+  return name.slice(awakeningPrefix.length).trim()
+}
+
+// Male 크루세이더 shares the advancement name with the female one, so the base job name tells them apart.
+function crusaderTownStatName(jobName: unknown, value: StatValue): CharacterTownStatName {
+  if (jobName !== maleCrusaderJobName) {
+    return '지능'
+  }
+
+  const spirit = value('정신력')
+  const vitality = value('체력')
+  if (vitality !== null && (spirit === null || vitality > spirit)) {
+    return '체력'
+  }
+
+  return '정신력'
+}
+
+// Every buffer advancement with its main town stat; a new buffer job only needs an entry here.
+const bufferJobs = new Map<string, TownStatPicker>([
+  ['크루세이더', crusaderTownStatName],
+  ['인챈트리스', () => '지능'],
+  ['패러메딕', () => '정신력'],
+  ['뮤즈', () => '정신력']
+])
+
+const dealerJob: CharacterJob = { role: 'dealer' }
+
+// Builds the job from the advancement name; names missing from bufferJobs are dealers.
+function characterJob(jobGrowName: unknown): CharacterJob | null {
+  const job = baseJobGrowName(jobGrowName)
+  if (job === null) {
+    return null
+  }
+
+  const townStatName = bufferJobs.get(job)
+  if (townStatName === undefined) {
+    return dealerJob
+  }
+
+  return { role: 'buffer', townStatName }
 }
 
 // Neople sends most stats as numbers and some as "48.3%"; anything else is unknown.
@@ -79,25 +125,34 @@ function statusValues(status: unknown): Map<string, number | null> {
 }
 
 function projectStats(
-  role: CharacterRole | null,
+  job: CharacterJob | null,
+  jobName: unknown,
   status: unknown
 ): CharacterDealerStats | CharacterBufferStats | null {
   const values = statusValues(status)
   const value = (name: string) => values.get(name) ?? null
-  if (role === 'buffer') {
-    const townIntelligence = value('지능')
+  if (job?.role === 'buffer') {
+    const name = job.townStatName(jobName, value)
+    const townStat = value(name)
 
-    return { role, townIntelligence, buff30: null, buff50: null, switchingLevel: null }
+    return {
+      role: job.role,
+      townStatName: name,
+      townStat,
+      buff30: null,
+      buff50: null,
+      switchingLevel: null
+    }
   }
 
-  if (role === 'dealer') {
+  if (job?.role === 'dealer') {
     // The job attack type is not known here, so the larger of physical and magical applies.
     const criticals = [value('물리 크리티컬'), value('마법 크리티컬')].filter((v) => v !== null)
     const critical = criticals.length > 0 ? Math.max(...criticals) : null
     const attackIncrease = value('공격력 증가')
     const amplification = value('공격력 증폭')
 
-    return { role, attackIncrease, amplification, critical, switchingLevel: null }
+    return { role: job.role, attackIncrease, amplification, critical, switchingLevel: null }
   }
 
   return null
@@ -294,8 +349,9 @@ export function projectCharacterCard(
   serverRank: CharacterServerRank | null,
   grades: EnchantGradeTable
 ): CharacterCard {
-  const role = characterRole(details.character.jobGrowName)
-  const stats = projectStats(role, details.status.status)
+  const job = characterJob(details.character.jobGrowName)
+  const role = job?.role ?? null
+  const stats = projectStats(job, details.character.jobName, details.status.status)
   const set = projectSet(details.equipment)
   const oath = projectOath(details.oath)
   const investment = projectInvestment(details.equipment.equipment, grades)

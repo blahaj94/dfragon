@@ -18,28 +18,46 @@ it('딜러 스탯은 공격력 증가를 억% 두 자리, 증폭과 크리티컬
   ])
 })
 
-it('버퍼 스탯은 마을 지능을 단위 없이, 30레벨과 50레벨 버프 수치를 만 단위 한 자리로 보인다', () => {
+it('버퍼 스탯은 마을 주 스탯을 단위 없이, 30레벨과 50레벨 버프 수치를 만 단위 한 자리로 보인다', () => {
   expect(
     toCardStatItems({
       role: 'buffer',
-      townIntelligence: 31_420,
+      townStatName: '정신력',
+      townStat: 31_420,
       buff30: 1_284_000,
       buff50: 3_926_000,
       switchingLevel: 18
     })
   ).toEqual([
-    { label: '마을 지능', value: '31,420', unit: '' },
+    { label: '마을 정신력', value: '31,420', unit: '' },
     { label: '30레벨', value: '128.4', unit: '만' },
     { label: '50레벨', value: '392.6', unit: '만' },
     { label: '스위칭', value: '18', unit: 'Lv' }
   ])
 })
 
+it.each([
+  ['지능', '마을 지능'],
+  ['정신력', '마을 정신력'],
+  ['체력', '마을 체력']
+] as const)('버퍼 주 스탯이 %s이면 라벨은 %s이다', (townStatName, label) => {
+  const [townStat] = toCardStatItems({
+    role: 'buffer',
+    townStatName,
+    townStat: 9000,
+    buff30: null,
+    buff50: null,
+    switchingLevel: null
+  })
+  expect(townStat).toEqual({ label, value: '9,000', unit: '' })
+})
+
 it('모르는 값은 0으로 바꾸지 않고 단위 없는 -로, 스탯이 없으면 딜러 라벨 네 칸을 모두 -로 둔다', () => {
   expect(
     toCardStatItems({
       role: 'buffer',
-      townIntelligence: 0,
+      townStatName: '지능',
+      townStat: 0,
       buff30: null,
       buff50: 3_926_000,
       switchingLevel: null

@@ -122,7 +122,13 @@ const characterCard = object({
       ),
       object({
         role: { type: 'string', enum: ['buffer'] },
-        townIntelligence: nullableNumber,
+        townStatName: {
+          type: 'string',
+          enum: ['지능', '정신력', '체력'],
+          description:
+            '버퍼 주 스탯. 뮤즈, 패러메딕은 정신력, 남자 크루세이더는 정신력과 체력 중 큰 쪽, 그 밖은 지능'
+        },
+        townStat: { ...nullableNumber, description: '마을 스탯 창의 townStatName 값' },
         buff30: nullableNumber,
         buff50: nullableNumber,
         switchingLevel: nullableNumber

@@ -360,7 +360,8 @@ export const apiBufferCard: CharacterCard = {
   role: 'buffer',
   stats: {
     role: 'buffer',
-    townIntelligence: 5847,
+    townStatName: '정신력',
+    townStat: 7692,
     buff30: null,
     buff50: null,
     switchingLevel: null

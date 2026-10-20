@@ -214,7 +214,7 @@ describe('카드 strict 스키마', () => {
     ['알 수 없는 역할', { ...dealerCard, role: 'tank' }],
     [
       '역할에 맞지 않는 스탯 칸',
-      { ...dealerCard, stats: { role: 'dealer', townIntelligence: 1, switchingLevel: null } }
+      { ...dealerCard, stats: { role: 'dealer', townStat: 1, switchingLevel: null } }
     ],
     [
       '문자 공격력 증가',

@@ -144,7 +144,7 @@ const raidMembers = [
   ['샘플닌자', '眞 쿠노이치', 119900, null, undefined]
 ] as const
 
-// 공대 카드 스탯 한 줄의 합성 값. 딜러는 공격력 증가, 증폭, 크리티컬, 스위칭 레벨, 버퍼는 마을 지능과 버프
+// 공대 카드 스탯 한 줄의 합성 값. 딜러는 공격력 증가, 증폭, 크리티컬, 스위칭 레벨, 버퍼는 마을 주 스탯과 버프
 // 수치, 스위칭 레벨이다.
 function dealerStats(seed: number): CardStats {
   return {
@@ -156,10 +156,14 @@ function dealerStats(seed: number): CardStats {
   }
 }
 
-function bufferStats(seed: number): CardStats {
+// 미리보기 버퍼의 주 스탯. 뮤즈는 정신력, 그 밖의 미리보기 버퍼(여자 크루세이더, 인챈트리스)는 지능이다.
+function bufferStats(seed: number, job: string): CardStats {
+  const townStatName = job === '眞 뮤즈' ? '정신력' : '지능'
+
   return {
     role: 'buffer',
-    townIntelligence: 31_420 + seed * 120,
+    townStatName,
+    townStat: 31_420 + seed * 120,
     buff30: 1_284_000 + seed * 10_000,
     buff50: 3_926_000 + seed * 30_000,
     switchingLevel: 18 + (seed % 3)
@@ -179,7 +183,7 @@ export const raidPreviewCharacters: readonly (CardCharacter | null)[] = [
         ? null
         : previewCard({
             base: buffer ? bufferCard : dealerCard,
-            stats: buffer ? bufferStats(index) : dealerStats(index),
+            stats: buffer ? bufferStats(index, job) : dealerStats(index),
             score: 414806 - index * 4210,
             rank: serverRank
           })

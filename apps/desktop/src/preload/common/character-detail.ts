@@ -70,7 +70,8 @@ const dealerStats = exactObject({
 })
 const bufferStats = exactObject({
   role: oneOf('buffer'),
-  townIntelligence: isNullableFiniteNumber,
+  townStatName: oneOf('지능', '정신력', '체력'),
+  townStat: isNullableFiniteNumber,
   buff30: isNullableFiniteNumber,
   buff50: isNullableFiniteNumber,
   switchingLevel: isNullableFiniteNumber

@@ -52,7 +52,8 @@ function attackIncreaseItem(value: number | null): CardStatItem {
 
 /**
  * 스탯 한 줄의 네 칸을 정한다(DFragon 디자인 캔버스의 공대 보드와 카드 면 보드). 딜러는 공격력 증가(억%나 만%),
- * 증폭, 크리티컬, 스위칭 레벨을, 버퍼는 마을 지능, 30레벨과 50레벨 버프 수치(만), 스위칭 레벨을 보인다.
+ * 증폭, 크리티컬, 스위칭 레벨을, 버퍼는 마을 주 스탯(지능, 정신력, 체력 중 직업의 것), 30레벨과 50레벨 버프
+ * 수치(만), 스위칭 레벨을 보인다.
  * 스탯이 없으면 역할을 알 수 없어 딜러 라벨로 자리만 두고 값은 모두 `-`다.
  */
 export function toCardStatItems(
@@ -62,7 +63,7 @@ export function toCardStatItems(
   const label = statLabels[labelLength]
   if (stats?.role === 'buffer') {
     return [
-      item('마을 지능', stats.townIntelligence, (value) => integer.format(value)),
+      item(`마을 ${stats.townStatName}`, stats.townStat, (value) => integer.format(value)),
       item(label.buff30, stats.buff30, (value) => fixedOneDecimal.format(value / 10_000), '만'),
       item(label.buff50, stats.buff50, (value) => fixedOneDecimal.format(value / 10_000), '만'),
       item('스위칭', stats.switchingLevel, (value) => integer.format(value), 'Lv')

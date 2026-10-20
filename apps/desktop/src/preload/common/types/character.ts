@@ -19,6 +19,8 @@ export type CharacterScoreCalculator = 'equipment' | 'buff'
 export type CharacterCardPoint = Readonly<{ current: number; min: number; max: number }>
 export type CharacterRarityCount = Readonly<{ rarity: string; count: number }>
 
+export type CharacterTownStatName = '지능' | '정신력' | '체력'
+
 export type CharacterCardStats =
   | Readonly<{
       role: 'dealer'
@@ -29,7 +31,9 @@ export type CharacterCardStats =
     }>
   | Readonly<{
       role: 'buffer'
-      townIntelligence: number | null
+      /** 버퍼 주 스탯. 뮤즈, 패러메딕은 정신력, 남자 크루세이더는 정신력과 체력 중 큰 쪽, 그 밖은 지능이다. */
+      townStatName: CharacterTownStatName
+      townStat: number | null
       buff30: number | null
       buff50: number | null
       switchingLevel: number | null
