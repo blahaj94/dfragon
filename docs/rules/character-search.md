@@ -52,7 +52,7 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 2. 명성이 같으면 Neople 응답 순서를 유지한다.
 3. `fame === null`인 후보를 나머지 후보 뒤에 Neople 응답 순서대로 붙인다. 공급자 응답에서 명성이 누락된 경우에도 기존 정제 규칙에 따라 null이다.
 
-검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, 5초 upstream deadline, 자동 retry 없음 정책을 사용한다. 두 검색 경로에는 클라이언트별 호출 제한이 없고, 공급자 전체 호출 예산을 함께 소비한다. 후보 API는 상세 서비스를 호출하지 않으며, DB는 위 모험단명을 읽을 때만 쓴다.
+검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, 5초 upstream deadline, 자동 retry 없음 정책을 사용한다. 두 검색 경로에는 클라이언트별, 서버 전체 호출 제한이 없다. 후보 API는 상세 서비스를 호출하지 않으며, DB는 위 모험단명을 읽을 때만 쓴다.
 
 ### Desktop의 식별 흐름
 
@@ -77,7 +77,7 @@ API와 Desktop의 역할은 다음 순서로 나눈다. 이 API 구현은 후보
 7. 수치 열 종류나 수치를 읽지 못했거나 비교할 값을 하나도 얻지 못하면 그룹 안 최고 명성 후보를 고른다(`highest-fame`).
 8. 공대 카드는 확정한 선택이면 안내 없이 스탯 줄을 보이고, 확정하지 못했으면 추정 안내를, `highest-fame`이면 직업과 수치를 확인하지 못했다는 안내를 보인다. 공대 카드에 후보 줄은 두지 않는다.
 
-이 흐름은 공대 수명의 요청 하나 안에서 기존 취소, 만료, 15초 예산을 그대로 따른다. 비교 대상 상세 조회도 공급자 전체 호출 예산을 쓴다.
+이 흐름은 공대 수명의 요청 하나 안에서 기존 취소, 만료, 15초 예산을 그대로 따른다.
 
 ## Server map
 
@@ -133,7 +133,7 @@ Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Ups
 
 | 순서       | 조건                                                                                  | 결과                                                   |
 | ---------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Local      | 우리 query 오류 / 호출자 제한 초과                                                    | 각각 400 / 429; query 검증 우선, upstream 없음.        |
+| Local      | 우리 query 오류                                                                       | 400; upstream 없음.                                    |
 | Local      | 우리 설정, 내부 오류                                                                   | 500; upstream 여부는 오류 발생 지점에 따름.            |
 | Upstream 1 | 호출 deadline 도달                                                                    | 504; 도착이 늦은 response나 code로 결과를 바꾸지 않음. |
 | Upstream 2 | 식별한 `API000`, `API003`, `API004`, `API005`                                         | Upstream HTTP와 관계없이 500.                          |
@@ -152,15 +152,17 @@ Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Ups
 
 Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 정리한다. Deadline 이전 network/body read 실패는 502, deadline에 따른 abort는 504로 구분한다. Redirect는 따라가지 않는 안이며 3xx는 위 fallback 오류다. 늦게 끝난 작업으로 추가 응답하거나 retry하지 않는다. Event loop 지연 때문에 실제 HTTP write가 정확히 5,000ms 안에 일어난다고 보장하지 않는다.
 
-순수 adapter는 **검증된 검색 값 → 공급자 예산 확인, URL 구성, transport 1회, 전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. 공급자 전체 호출 예산은 검색, 상세, 공용 상세 adapter가 공유한다. Transport, clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding, status, body, 취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v26.x/api/globals.html#fetch)
+순수 adapter는 **검증된 검색 값 → URL 구성, transport 1회, 전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. Transport, clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding, status, body, 취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v26.x/api/globals.html#fetch)
 
 ## 공개 검색과 호출 제한
 
 2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무, 유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT, session DB 조회, 활동 갱신, refresh는 검색 경로에서 수행하지 않는다. `/me` 등 계정 전용 endpoint의 인증은 유지한다. 이 변경은 구현, 검증과 같은 PR의 사용자 merge로 적용한다.
 
-검색에는 **클라이언트별 호출 제한이 없다**. 2026-10-20 [#774](https://github.com/blahaj94/dfragon/issues/774)의 사용자 결정으로 이전의 클라이언트별 최근 60초 10회 한도를 없앴다. 공대 12자리 조회 한 번이 이 한도를 넘어 일부 자리가 429로 실패했기 때문이다. 검색 호출은 아래 공급자 전체 예산만 제한하므로, 한 클라이언트가 그 예산을 많이 쓰면 다른 클라이언트의 검색도 429를 받을 수 있다. 이 변경은 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
+검색에는 **클라이언트별 호출 제한이 없다**. 2026-10-20 [#774](https://github.com/blahaj94/dfragon/issues/774)의 사용자 결정으로 이전의 클라이언트별 최근 60초 10회 한도를 없앴다. 공대 12자리 조회 한 번이 이 한도를 넘어 일부 자리가 429로 실패했기 때문이다. 이 변경은 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
 
-프로세스가 사용하는 Neople API key의 호출은 모든 검색, 캐릭터 섹션, 공용 상세를 합쳐 최근 60초 600회, 동시에 12회까지 허용한다. 이는 서비스의 보호 상한이며 공급자의 공식 할당량을 뜻하지 않는다. 실제 transport 시작을 기록하고 실패해도 환불하지 않는다. 동시 슬롯은 body 수신, 검증 완료까지 유지하고 완료, 실패 때 반환한다. 초과는 기존 정제 429와 `Retry-After`로 거절하며 queue, 자동 재시도는 없다. 공용 상세 실패는 기존 unavailable 표현을 유지한다. 이 보안 수정 요청의 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
+Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778](https://github.com/blahaj94/dfragon/issues/778)의 사용자 결정으로 모든 검색, 캐릭터 섹션, 공용 상세가 함께 쓰던 프로세스 전체 최근 60초 600회, 동시 12회 예산을 없앴다. 공대 12자리가 동시에 조회하면 동시 12회에 닿아 일부 자리가 429로 실패할 수 있었기 때문이다. 이제 API는 검색에서 429를 반환하지 않으며, 많은 요청이 몰려 Neople API key의 공식 할당량을 넘으면 key가 막혀 모든 사용자의 검색, 상세가 공급자 오류로 실패할 수 있다. 캐시 적중은 Neople을 부르지 않으므로 앞단 proxy의 요청 수 제한으로 이 위험을 똑같이 막지는 못한다. 이 변경은 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
+
+위 표의 `429 SEARCH_RATE_LIMITED`는 앞단 proxy가 호출 제한을 둘 때 쓸 응답 형식으로 남긴다. Desktop은 429 body의 `error.code`가 이 값일 때만 `Retry-After`를 읽으므로, proxy의 429는 위 표의 body와 양의 정수 초 `Retry-After`를 함께 반환한다. 상세 경로의 429는 [캐릭터 상세](character-details.md#오류-호출-제한)의 `CHARACTER_RATE_LIMITED` 형식을 따른다.
 
 단일 호스트 Caddy 배포는 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의
 1-hop `trust proxy`와 `request.ip`를 사용한다. Caddy가 `X-Forwarded-For`를 직접 연결한
@@ -170,8 +172,8 @@ Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 �
 구현, 검증 범위이며 사용자 merge 후 다른 작업과 운영 설정에 적용한다. 2026-10-20 [#778](https://github.com/blahaj94/dfragon/issues/778)의 결정으로 [모험단 검색](character-details.md#모험단명-검색)의 IP별 한도까지 없앤 뒤에는 API에 IP를 key로 쓰는 한도가 없어 이 설정이 응답에 영향을 주지 않는다. 운영 설정을 바꾸지 않도록 설정 자체의 제거는 후속 작업으로 둔다.
 
 - API 키 설정은 DB 연결과 listen 전에 검증한다. 서비스는 준비된 검색 어댑터를 주입받으며 요청 단계에서 키를 다시 읽거나 검사하지 않는다. 누락, 빈 값, 공백뿐인 키는 HTTP 응답이 아닌 시작 실패다. [Runtime의 설정 책임](api-runtime.md#실행과-검증-경계)을 따른다.
-- 요청에서는 raw query를 먼저 검증한다. 입력 실패는 upstream이 없다. 공급자 예산 초과는 upstream을 시작하지 않는다. 공급자가 반환하는 키 오류 등 기존 정제 500 정책은 유지한다.
-- 같은 peer의 동시 요청도 모두 공급자 예산 확인으로 넘어간다. 예산이 풀리기를 기다리는 queue, 자동 retry는 없다.
+- 요청에서는 raw query를 먼저 검증한다. 입력 실패는 upstream이 없다. 공급자가 반환하는 키 오류 등 기존 정제 500 정책은 유지한다.
+- 같은 peer의 동시 요청도 모두 upstream으로 넘어간다. Queue, 자동 retry는 없다.
 
 ### Authentication activity contract
 
@@ -193,6 +195,6 @@ Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 �
 | 정상 미등록 응답 서버                                 | 200 / ID 유지, `serverName: null`                         | 1        |
 | `API003` + HTTP 401 / `API002` + HTTP 400             | 500 / `INTERNAL_SERVER_ERROR`, 503 / `NEOPLE_UNAVAILABLE` | 각 1     |
 | 5,000ms 도달, body 미완료                             | 504 / `NEOPLE_TIMEOUT`, retry 없음                        | 1        |
-| 같은 peer가 60초 안에 보낸 12번째 요청                | 공급자 예산 안이면 upstream 결과                          | 1        |
+| 같은 peer가 60초 안에 보낸 12번째 요청                | upstream 결과                                             | 1        |
 
 상세 acceptance matrix와 실행 evidence는 기존 작업 기록이나 PR에 둔다. Runtime 도구와 실제 실행 계획은 [`api-runtime.md`](api-runtime.md), 변경별 검증은 [검증 명령](../../scripts/README.md#native-validation)를 따른다. 길이, raw decoding, deadline, quota 정책과 승인된 인증 통합의 변경을 후속 구현자의 일반 선택으로 숨기지 않는다.

@@ -9,7 +9,7 @@ last-reviewed: 2026-10-07
 
 `GET /characters`는 로그인 없이 제공한다. 계약은 [캐릭터 검색](../rules/character-search.md)을 따른다. 이전 인증, DB 검색 구현 이력은 기존 PR에 보존하며 현재 공개 검색의 선행 조건으로 사용하지 않는다.
 
-`GET /characters/candidates?characterName=...`는 Desktop의 OCR 식별을 위한 동일 단어 검색이다. `all`, `match`, `limit=200`을 고정하고 명성 내림차순, null 마지막 순서로 후보를 반환한다. 각 후보에는 `zoom=1`의 네오플 캐릭터 `imageUrl`을 포함한다. 이름 하나씩 호출하므로 Desktop이 첫 OCR 후보의 이미지 비교를 마친 뒤 두 번째 이름으로 넘어갈 수 있다. 기존 `GET /characters`의 `full` 검색과 응답 순서는 유지한다. 두 경로에는 클라이언트별 호출 제한이 없고 공급자 전체 예산만 함께 쓴다.
+`GET /characters/candidates?characterName=...`는 Desktop의 OCR 식별을 위한 동일 단어 검색이다. `all`, `match`, `limit=200`을 고정하고 명성 내림차순, null 마지막 순서로 후보를 반환한다. 각 후보에는 `zoom=1`의 네오플 캐릭터 `imageUrl`을 포함한다. 이름 하나씩 호출하므로 Desktop이 첫 OCR 후보의 이미지 비교를 마친 뒤 두 번째 이름으로 넘어갈 수 있다. 기존 `GET /characters`의 `full` 검색과 응답 순서는 유지한다. 두 경로에는 클라이언트별, 서버 전체 호출 제한이 없다.
 
 ```http
 GET /characters/candidates?characterName=%EA%B0%80%EB%82%98
@@ -42,4 +42,4 @@ GET /characters/candidates?characterName=%EA%B0%80%EB%82%98
 - `apps/api/src/http-response.ts`: 검색, 상세, 모험단 컨트롤러의 응답 연결 수명을 공유한다. 비정상 연결 종료 때 요청별 취소 신호를 전달하고 닫힌 응답에는 결과를 쓰지 않는다. 성공과 실패 때 등록한 리스너만 정리하고 오류 변환은 기존 전역 filter에 맡긴다. 입력과 HTTP method 검증은 각 컨트롤러와 서비스에 유지한다.
 - 검색에는 JWT 검증, session 조회, 활동 갱신, 별도 DB 연결이 없다. 검색을 해도 로그인 session의 활동 기간이 연장되지 않는다. `/me` 등 계정 endpoint는 기존 인증을 유지한다.
 
-`pnpm --filter @dfragon/api test`는 build와 타입 검사 후 공개 HTTP, query, quota, adapter와 domain API 회귀를 검사한다. OCR 후보 검증은 고정 `all/match`, 명성 정렬과 null 후순위, 이미지 URL, 빈 결과, 잘못된 입력과 공급자 응답, 같은 IP의 연속 요청이 클라이언트별 한도로 거절되지 않는지 확인한다. 가짜 공급자 또는 loopback HTTP를 사용하므로 실제 Neople 이미지의 가용성이나 인게임 얼굴 비교 정확도를 보장하지 않는다. DB 통합은 별도 `test:database`이며 후보 API에는 DB 변경이 없다.
+`pnpm --filter @dfragon/api test`는 build와 타입 검사 후 공개 HTTP, query, adapter와 domain API 회귀를 검사한다. OCR 후보 검증은 고정 `all/match`, 명성 정렬과 null 후순위, 이미지 URL, 빈 결과, 잘못된 입력과 공급자 응답, 같은 IP의 연속 요청이 클라이언트별 한도로 거절되지 않는지 확인한다. 가짜 공급자 또는 loopback HTTP를 사용하므로 실제 Neople 이미지의 가용성이나 인게임 얼굴 비교 정확도를 보장하지 않는다. DB 통합은 별도 `test:database`이며 후보 API에는 DB 변경이 없다.
