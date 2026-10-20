@@ -152,7 +152,7 @@ node scripts/import-skill-data.mjs --coordinates <skill-coordinates.json> --pvf 
 node scripts/import-equipment-icons.mjs --pvf <data_layers 폴더> --samples <네오플 캐릭터 응답 표본 폴더>
 ```
 
-`--pvf`는 dnf-reverse-engineering의 `continuation/outputs/handoff/phase31_live/data_layers`, `--samples`는 같은 저장소의 `spec/vectors`입니다. 아이콘이 있는 세트의 이름을 표본에서 찾지 못하거나, 같은 세트 이름에 `setItemId`가 둘이거나, 원본 PNG SHA-256 불일치, 원본 픽셀과 다른 sprite 칸이 있으면 파일을 쓰기 전에 실패합니다. 이름과 희귀도가 같은데 아이콘이 다른 서약은 빼고 그 목록을 출력합니다. sprite를 묶는 방법은 스킬 아이콘과 같은 `scripts/icon-sprite.mjs`를 씁니다. 입력과 규칙은 [`@dfragon/icons` 안내](../packages/icons/README.md#서약-세트-아이콘)에 있습니다.
+`--pvf`는 dnf-reverse-engineering의 `continuation/outputs/handoff/phase31_live/data_layers`, `--samples`는 같은 저장소의 `spec/vectors`입니다. 아이콘이 있는 세트의 이름을 표본에서 찾지 못하거나, 같은 세트 이름에 `setItemId`가 둘이거나, 원본 PNG SHA-256 불일치, 원본 픽셀과 다른 sprite 칸이 있으면 파일을 쓰기 전에 실패합니다. 버프 아이콘 표시에만 쓰는 장착 불가 서약 아이템은 처음부터 빼고, 남은 서약 중 이름과 희귀도가 같은데 아이콘이 다른 서약은 빼고 그 목록을 출력합니다. sprite를 묶는 방법은 스킬 아이콘과 같은 `scripts/icon-sprite.mjs`를 씁니다. 입력과 규칙은 [`@dfragon/icons` 안내](../packages/icons/README.md#서약-세트-아이콘)에 있습니다.
 
 ## `verify`
 
