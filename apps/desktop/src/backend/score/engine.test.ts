@@ -279,6 +279,18 @@ describe('점수 엔진 호출과 결과 검증', () => {
     expect(native.reports).toEqual([])
   })
 
+  it('엔진 계약상 근사값이 없는 버프 점수 결과에 근사값이 오면 점수 없이 진단을 남긴다', () => {
+    const buffApproximate = {
+      ...approximateResult,
+      calculator: 'buff',
+      display: { role: 'buffer', switchingLevel: 3, buff30: 1, buff50: 2 }
+    }
+    const native = nativeEngine({ output: JSON.stringify(buffApproximate) })
+
+    expect(loadScoreEngine(native.options)!(input, 'buff')).toBeNull()
+    expect(native.reports).toEqual(['SCORE_ENGINE_FAILED'])
+  })
+
   it('근사값 칸을 보내지 않는 rev14 이전 엔진의 결과는 근사값 없이 받는다', () => {
     const { approximate_score, approximate_source, warning, ...rev12 } = {
       ...skippedResult,
