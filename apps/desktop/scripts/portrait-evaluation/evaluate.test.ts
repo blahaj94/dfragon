@@ -108,7 +108,7 @@ describe('evaluateCase', () => {
   it.each([
     [true, { x: 78, y: 98 }],
     [false, null]
-  ])('anchors=%s면 후보 직업의 얼굴 위치를 비교기에 그만큼 넘긴다', async (anchors, anchor) => {
+  ])('anchors=%s면 직업 얼굴 위치나 null을 비교기에 넘긴다', async (anchors, anchor) => {
     const spy = vi.fn<PortraitColorScorer>(async () => null)
     const archer = { ...candidate('c0', candidateImage(gradient), true), jobName: '아처' }
 
