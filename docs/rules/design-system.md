@@ -36,7 +36,7 @@ last-reviewed: 2026-10-19
 
 색 토큰은 현재 Desktop 색 토큰의 이름(`bgCanvas`, `bgSurface`, `bgInset`, `bgControl*`, `borderDefault`, `borderStrong`, `fgDefault`, `fgMuted`, `fgSubtle`, `fgSuccess`, `fgDanger`, `card*`, 희귀도, 강화, 게임, 속성 색)을 유지하고 다음을 바꾼다.
 
-- 추가: `bgBar`, `bgWell`, `signal`(`#F8E8C8`), `onSignal`(`#111012`), `brandLogo`(`#E83830`), `fgAdventure`, `tierTop`(`#FFB400`), `tierRanker`(`#50E3C2`), 점수 숫자의 역할 색 `scoreDealer`(`#4FA3FF`), `scoreBuffer`(`#3CC985`), `bracket*`, `hatchAlert`, `gridLine`, 검색 실패의 노란색 `cardFailure`, `cardFailureWeak`(`#FFD54A`와 그 14% 면)
+- 추가: `bgBar`, `bgWell`, `signal`(`#F8E8C8`), `onSignal`(`#111012`), `brandLogo`(`#E83830`), `fgAdventure`, `tierTop`(`#FFB400`), `tierRanker`(`#50E3C2`), 점수 숫자의 역할 색 `scoreDealer`(`#4FA3FF`), `scoreBuffer`(`#3CC985`), `bracket*`, `hatchAlert`, `gridLine`, 검색 실패의 노란색 `cardFailure`, `cardFailureWeak`(`#FFD54A`와 그 14% 면), 묵언의 진의 옵션 색 `oathUpgradeDamage`(`#FF4848`), `oathUpgradeCooldown`(`#4FA3FF`), `oathUpgradeOathPoint`(`#3CC985`), `oathUpgradeSpeed`(`#FFB400`), `oathUpgradeRange`(`#A066FF`). 묵언의 진의 색은 점수 역할 색, `rarity.epic`과 값이 같아도 뜻이 달라 따로 둔다(2026-10-20 사용자 결정, dfragon-design PR #45)
 - 삭제: `bgBrand*`, `fgBrand`, `fgInfo`, `borderBrand`, `borderFocus` 같은 파랑 계열 전부
 - 주의 톤: 2026-10-19 결정으로 DFragon 디자인 캔버스의 캡처 보드 값인 `fgWarning`(`#FFB400`)과 그 12% 면 `bgWarningWeak`을 다시 들인다. 라이트 값은 `provisional`이다. 이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다.
 
