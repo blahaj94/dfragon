@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'vitest'
-import { createSearchHttp, SearchHttpFailure } from '../../src/backend/search/http'
+import { createSearchHttp } from '../../src/backend/search/http'
 import { withSearchServer } from './runtime.mjs'
 
 const apiOrigin = 'https://desktop-search.test.invalid'
@@ -24,7 +24,7 @@ const upstreamRows = [
   { characterId: 'fixture-third', characterName: 'fixture', serverId: 'anton' }
 ]
 
-test('Desktop HTTP client consumes public API defaults and peer quota without credentials', async () => {
+test('Desktop HTTP client consumes public API defaults without peer quota or credentials', async () => {
   await withSearchServer(async ({ base, neople }) => {
     const requests: Array<{ query: string; hasAuthorization: boolean }> = []
     const statuses: number[] = []
@@ -97,37 +97,14 @@ test('Desktop HTTP client consumes public API defaults and peer quota without cr
     assert.equal(neople.calls.length, 3, 'invalid input must not reach upstream')
 
     neople.upstream.body = { rows: [] }
-    for (let request = 3; request < 10; request += 1) {
+    for (let request = 3; request < 13; request += 1) {
       assert.deepEqual(await search(searchInput), [])
     }
-    await assert.rejects(search(searchInput), (error: unknown) => {
-      const isSearchHttpFailure = error instanceof SearchHttpFailure
-      assert(isSearchHttpFailure)
-      assert.equal(error.code, 'SEARCH_RATE_LIMITED')
-      assert.equal(error.retryAfterReceivedAt, 1234)
-      const seconds = error.retryAfterSeconds
-      const hasSeconds = seconds != null
-      const isSafeInteger = Number.isSafeInteger(seconds)
-      const assertionMessage = 'Desktop must consume the real peer Retry-After header'
-      if (!hasSeconds) {
-        assert(false, assertionMessage)
-
-        return true
-      }
-      const isPositiveWait = seconds > 0
-      if (!isPositiveWait) {
-        assert(false, assertionMessage)
-
-        return true
-      }
-      const isInServerWindow = seconds <= 60
-      const hasValidWait = isSafeInteger && isInServerWindow
-      assert(hasValidWait, assertionMessage)
-
-      return true
-    })
-    assert.equal(statuses.at(-1), 429)
-    assert.equal(neople.calls.length, 10, 'quota rejection must not retry or call upstream')
+    assert(
+      statuses.slice(-10).every((status) => status === 200),
+      'the same peer must not be rejected by a per-client quota'
+    )
+    assert.equal(neople.calls.length, 13)
     assert(
       requests.every(({ hasAuthorization }) => !hasAuthorization),
       'public search must never send credentials'

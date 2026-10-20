@@ -203,7 +203,7 @@ test('자동, 명시 갱신 실패는 기존 저장값을 보존하고 만료된
   assert.equal(state.writes, 1)
 })
 
-test('GET 캐시 적중과 명시 갱신은 IP별 10회 한도를 함께 소비한다', async (t) => {
+test('같은 IP의 GET 캐시 적중과 명시 갱신은 공대 비교 상세 36회를 넘어도 IP별 한도로 거절하지 않는다', async (t) => {
   const { state, store } = memory(rowsAt(initialTime))
   let calls = 0
   const service = createCharacterDetailService({
@@ -220,15 +220,11 @@ test('GET 캐시 적중과 명시 갱신은 IP별 10회 한도를 함께 소비�
   }
   state.now += 30_000
   await service.refresh('192.0.2.1', identity, signal)
-  await assert.rejects(
-    service.get('192.0.2.1', identity, signal),
-    (e: unknown) =>
-      e instanceof CharacterDetailFailure && e.status === 429 && (e.retryAfter ?? 0) > 0
-  )
+  for (let i = 0; i < 36; i++) {
+    await service.get('192.0.2.1', identity, signal)
+  }
   assert.equal(calls, 1)
-  assert.equal(state.reads, 10)
-  await service.get('192.0.2.2', identity, signal)
-  assert.equal(calls, 1)
+  assert.equal(state.reads, 46)
 })
 
 test('다른 IP의 명시 갱신도 캐릭터별 30초 cooldown과 남은 초를 지킨다', async (t) => {

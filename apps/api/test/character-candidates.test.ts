@@ -3,7 +3,7 @@ import { createServer } from 'node:http'
 import test from 'node:test'
 import type { TestContext } from 'node:test'
 import { createNeopleCharacterSearchForTest } from '../src/characters/neople-character-search.js'
-import type { CharacterSearchDependencies, SearchClock } from '../src/characters/types.js'
+import type { CharacterSearchDependencies } from '../src/characters/types.js'
 import { createApiHttpApp } from '../src/http.js'
 import type { NeopleCharacterSearchTestDependencies } from '../src/types/neople-character-search.js'
 
@@ -26,7 +26,6 @@ function jsonResponse(body: unknown, status = 200): Response {
 async function startApp(
   t: TestContext,
   dependencies: NeopleCharacterSearchTestDependencies,
-  clock?: SearchClock,
   findAdventureNames?: CharacterSearchDependencies['findAdventureNames']
 ): Promise<string> {
   const searchCharacters = createNeopleCharacterSearchForTest(
@@ -35,7 +34,6 @@ async function startApp(
   )
   const app = await createApiHttpApp({
     searchCharacters,
-    clock,
     findAdventureNames
   })
   t.after(() => app.close())
@@ -409,50 +407,30 @@ test('후보의 ID 검증은 256자 안전 문자를 허용하며 일반 검색�
   })
 })
 
-test('공급자 실패는 빈 후보로 숨기지 않으며 일반 검색과 실패 요청까지 IP 한도를 공유한다', async (t) => {
+test('공급자 실패는 빈 후보로 숨기지 않으며 같은 IP의 공대 12명 이상 검색도 IP별 한도로 거절하지 않는다', async (t) => {
   let calls = 0
-  const clock: SearchClock = {
-    now: () => 0,
-    setTimer: () => 0,
-    clearTimer: () => undefined
-  }
-  const origin = await startApp(
-    t,
-    {
-      fetch: async () => {
-        calls += 1
-        if (calls === 1) {
-          return jsonResponse({ error: { code: 'API901' }, rows: [] }, 503)
-        }
-
-        return jsonResponse({ rows: [] })
+  const origin = await startApp(t, {
+    fetch: async () => {
+      calls += 1
+      if (calls === 1) {
+        return jsonResponse({ error: { code: 'API901' }, rows: [] }, 503)
       }
-    },
-    clock
-  )
+
+      return jsonResponse({ rows: [] })
+    }
+  })
   const failed = await fetch(`${origin}${candidatePath}`)
   assert.equal(failed.status, 502)
   assert.deepEqual(await failed.json(), providerError)
 
   const fullPath = '/characters?characterName=normal'
-  for (let index = 1; index < 10; index += 1) {
+  for (let index = 1; index <= 12; index += 1) {
     const path = index % 2 === 0 ? candidatePath : fullPath
     const response = await fetch(`${origin}${path}`)
     assert.equal(response.status, 200)
     assert.deepEqual(await response.json(), { rows: [] })
   }
-  for (const path of [candidatePath, fullPath]) {
-    const response = await fetch(`${origin}${path}`)
-    assert.equal(response.status, 429)
-    assert.equal(response.headers.get('retry-after'), '60')
-    assert.deepEqual(await response.json(), {
-      error: {
-        code: 'SEARCH_RATE_LIMITED',
-        message: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
-      }
-    })
-  }
-  assert.equal(calls, 10)
+  assert.equal(calls, 13)
 })
 
 test('후보마다 저장된 모험단명을 붙이고 저장되지 않은 후보는 null로 둔다', async (t) => {
@@ -468,7 +446,6 @@ test('후보마다 저장된 모험단명을 붙이고 저장되지 않은 후�
           ]
         })
     },
-    undefined,
     async (characterIds) => {
       requested.push([...characterIds])
 
@@ -496,7 +473,6 @@ test('모험단명 조회가 실패해도 후보 응답은 성공하고 모험�
           rows: [{ characterId: 'stored', characterName, serverId: 'cain', fame: 200 }]
         })
     },
-    undefined,
     async () => {
       throw new Error('synthetic database failure')
     }
