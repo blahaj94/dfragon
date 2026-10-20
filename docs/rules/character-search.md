@@ -52,7 +52,7 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 2. 명성이 같으면 Neople 응답 순서를 유지한다.
 3. `fame === null`인 후보를 나머지 후보 뒤에 Neople 응답 순서대로 붙인다. 공급자 응답에서 명성이 누락된 경우에도 기존 정제 규칙에 따라 null이다.
 
-검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, 5초 upstream deadline, 자동 retry 없음 정책을 사용한다. 두 검색 경로는 같은 IP별 최근 60초 10회 한도를 공유하며, 공급자 전체 호출 예산도 함께 소비한다. 후보 API는 상세 서비스를 호출하지 않으며, DB는 위 모험단명을 읽을 때만 쓴다.
+검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, 5초 upstream deadline, 자동 retry 없음 정책을 사용한다. 두 검색 경로에는 클라이언트별 호출 제한이 없고, 공급자 전체 호출 예산을 함께 소비한다. 후보 API는 상세 서비스를 호출하지 않으며, DB는 위 모험단명을 읽을 때만 쓴다.
 
 ### Desktop의 식별 흐름
 
@@ -77,7 +77,7 @@ API와 Desktop의 역할은 다음 순서로 나눈다. 이 API 구현은 후보
 7. 수치 열 종류나 수치를 읽지 못했거나 비교할 값을 하나도 얻지 못하면 그룹 안 최고 명성 후보를 고른다(`highest-fame`).
 8. 공대 카드는 확정한 선택이면 안내 없이 스탯 줄을 보이고, 확정하지 못했으면 추정 안내를, `highest-fame`이면 직업과 수치를 확인하지 못했다는 안내를 보인다. 공대 카드에 후보 줄은 두지 않는다.
 
-이 흐름은 공대 수명의 요청 하나 안에서 기존 취소, 만료, 15초 예산을 그대로 따른다. 비교 대상 상세 조회도 같은 IP별 상세 호출 한도를 쓴다.
+이 흐름은 공대 수명의 요청 하나 안에서 기존 취소, 만료, 15초 예산을 그대로 따른다. 비교 대상 상세 조회도 공급자 전체 호출 예산을 쓴다.
 
 ## Server map
 
@@ -152,13 +152,13 @@ Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Ups
 
 Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 정리한다. Deadline 이전 network/body read 실패는 502, deadline에 따른 abort는 504로 구분한다. Redirect는 따라가지 않는 안이며 3xx는 위 fallback 오류다. 늦게 끝난 작업으로 추가 응답하거나 retry하지 않는다. Event loop 지연 때문에 실제 HTTP write가 정확히 5,000ms 안에 일어난다고 보장하지 않는다.
 
-순수 adapter는 **검증된 검색 값 → 공급자 예산 확인, URL 구성, transport 1회, 전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. 공급자 전체 호출 예산은 검색, 상세, 공용 상세 adapter가 공유하며 클라이언트별 admission과 구분한다. Transport, clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding, status, body, 취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v26.x/api/globals.html#fetch)
+순수 adapter는 **검증된 검색 값 → 공급자 예산 확인, URL 구성, transport 1회, 전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. 공급자 전체 호출 예산은 검색, 상세, 공용 상세 adapter가 공유한다. Transport, clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding, status, body, 취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v26.x/api/globals.html#fetch)
 
 ## 공개 검색과 호출 제한
 
 2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무, 유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT, session DB 조회, 활동 갱신, refresh는 검색 경로에서 수행하지 않는다. `/me` 등 계정 전용 endpoint의 인증은 유지한다. 이 변경은 구현, 검증과 같은 PR의 사용자 merge로 적용한다.
 
-호출 제한은 **클라이언트별 최근 60초 10회**다. IPv4-mapped IPv6는 IPv4로 정규화하고 IPv6는 동일 /64 대역의 한도를 공유한다. 기본 실행은 서버가 직접 연결받은 peer IP를 사용하며 요청 query, Authorization, X-Forwarded-For를 제한 key로 신뢰하지 않는다. IP는 단일 process의 만료되는 quota entry에만 쓰고 log, DB에 남기지 않는다. 같은 NAT 주소를 공유하면 한도를 공유하며, 여러 process의 전체 한도를 보장하지 않는다. 다중 process 공유 저장소는 추가하지 않는다.
+검색에는 **클라이언트별 호출 제한이 없다**. 2026-10-20 [#774](https://github.com/blahaj94/dfragon/issues/774)의 사용자 결정으로 이전의 클라이언트별 최근 60초 10회 한도를 없앴다. 공대 12자리 조회 한 번이 이 한도를 넘어 일부 자리가 429로 실패했기 때문이다. 검색 호출은 아래 공급자 전체 예산만 제한하므로, 한 클라이언트가 그 예산을 많이 쓰면 다른 클라이언트의 검색도 429를 받을 수 있다. 이 변경은 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
 
 프로세스가 사용하는 Neople API key의 호출은 모든 검색, 캐릭터 섹션, 공용 상세를 합쳐 최근 60초 600회, 동시에 12회까지 허용한다. 이는 서비스의 보호 상한이며 공급자의 공식 할당량을 뜻하지 않는다. 실제 transport 시작을 기록하고 실패해도 환불하지 않는다. 동시 슬롯은 body 수신, 검증 완료까지 유지하고 완료, 실패 때 반환한다. 초과는 기존 정제 429와 `Retry-After`로 거절하며 queue, 자동 재시도는 없다. 공용 상세 실패는 기존 unavailable 표현을 유지한다. 이 보안 수정 요청의 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
 
@@ -167,13 +167,11 @@ Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 �
 클라이언트 주소로 덮어쓰고, API의 공개 port는 loopback으로 제한한다. 외부의 유일한 경로가
 Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 직접 접근 주체까지 인증하는
 설정은 아니다. 다중 proxy, 외부 직접 접근으로 확대하지 않는다. 이 예외는 배포 PR #471의
-구현, 검증 범위이며 사용자 merge 후 다른 작업과 운영 설정에 적용한다.
+구현, 검증 범위이며 사용자 merge 후 다른 작업과 운영 설정에 적용한다. 검색과 상세에 클라이언트별 한도가 없어진 뒤에는 클라이언트별 한도가 남은 [모험단 검색](character-details.md)의 한도 key에만 이 설정이 영향을 준다. IPv4-mapped IPv6는 IPv4로 정규화하고 IPv6는 동일 /64 대역의 한도를 공유한다.
 
 - API 키 설정은 DB 연결과 listen 전에 검증한다. 서비스는 준비된 검색 어댑터를 주입받으며 요청 단계에서 키를 다시 읽거나 검사하지 않는다. 누락, 빈 값, 공백뿐인 키는 HTTP 응답이 아닌 시작 실패다. [Runtime의 설정 책임](api-runtime.md#실행과-검증-경계)을 따른다.
-- 요청에서는 raw query를 먼저 검증한다. 입력 실패와 클라이언트 한도 초과는 upstream과 예약이 없다. 공급자 예산 초과는 이미 소비한 클라이언트 한도를 환불하지 않으며 upstream을 시작하지 않는다. 공급자가 반환하는 키 오류 등 기존 정제 500 정책은 유지한다.
-- Upstream 직전에 단조 clock의 `(t - 60,000ms, t]` 예약을 prune/count하고 10개 미만이면 원자적으로 예약한 뒤 즉시 호출한다. 성공, 0건, upstream 실패, timeout은 환불하지 않는다.
-- 10개면 `Retry-After = max(1, ceil((oldest + 60,000 - t) / 1,000))`와 429다. 거절은 제한 창을 연장하지 않는다. 같은 peer의 동시 11개는 최대 10개만 통과하고 다른 peer는 독립적이다.
-- 만료 entry를 정리하고 재시작 시 이력은 사라진다. Quota가 풀리기를 기다리는 queue, 자동 retry는 없다.
+- 요청에서는 raw query를 먼저 검증한다. 입력 실패는 upstream이 없다. 공급자 예산 초과는 upstream을 시작하지 않는다. 공급자가 반환하는 키 오류 등 기존 정제 500 정책은 유지한다.
+- 같은 peer의 동시 요청도 모두 공급자 예산 확인으로 넘어간다. 예산이 풀리기를 기다리는 queue, 자동 retry는 없다.
 
 ### Authentication activity contract
 
@@ -195,7 +193,6 @@ Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 �
 | 정상 미등록 응답 서버                                 | 200 / ID 유지, `serverName: null`                         | 1        |
 | `API003` + HTTP 401 / `API002` + HTTP 400             | 500 / `INTERNAL_SERVER_ERROR`, 503 / `NEOPLE_UNAVAILABLE` | 각 1     |
 | 5,000ms 도달, body 미완료                             | 504 / `NEOPLE_TIMEOUT`, retry 없음                        | 1        |
-| 예약 10개가 t=0, 요청 t=59,999ms                      | 429 / `SEARCH_RATE_LIMITED`, `Retry-After: 1`             | 0        |
-| 같은 상태, 요청 t=60,000ms                            | 허용 후 upstream 결과, 이전 10개 만료                     | 1        |
+| 같은 peer가 60초 안에 보낸 12번째 요청                | 공급자 예산 안이면 upstream 결과                          | 1        |
 
 상세 acceptance matrix와 실행 evidence는 기존 작업 기록이나 PR에 둔다. Runtime 도구와 실제 실행 계획은 [`api-runtime.md`](api-runtime.md), 변경별 검증은 [검증 명령](../../scripts/README.md#native-validation)를 따른다. 길이, raw decoding, deadline, quota 정책과 승인된 인증 통합의 변경을 후속 구현자의 일반 선택으로 숨기지 않는다.

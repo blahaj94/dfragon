@@ -55,7 +55,7 @@ Query는 `adventureName`, 선택 `limit`, 선택 `after`만 허용하며 중복,
 
 응답은 `adventureName`, `scope`, `rows`, `nextAfter`다. 각 행은 캐릭터, 서버 ID, 서버명, 캐릭터명, 레벨, 직업, 전직명, 명성과 기본정보의 `lastSuccessfulFetchAt`을 담는다. 공급자의 표시 값이 기대한 문자열, 숫자가 아니면 null로 반환하며 JSONB 원본은 보존한다. characterId 오름차순으로 조회하고 다음 페이지에는 같은 모험단명과 `nextAfter`를 `after`로 전달한다. 마지막 페이지의 `nextAfter`는 null이다. 페이지 사이의 캐릭터 갱신에 대한 고정 snapshot은 제공하지 않는다.
 
-이 검색은 기존 검색, 상세 조회와 독립적으로 IP당 최근 60초 10회를 허용한다. 유효한 요청은 DB 읽기 전에 한도를 소비하고 DB 실패도 반환하지 않는다. Admission 대기, DB 풀 연결 확보, statement에는 기존 2초 제한을 사용한다. 연결 종료, 서버 종료 시 후속 처리를 중단한다. 오류는 기존 캐릭터 오류 형식의 400 `INVALID_CHARACTER_QUERY`, 429 `CHARACTER_RATE_LIMITED`와 `Retry-After`, 500 `INTERNAL_SERVER_ERROR`이며 DB 오류 원문은 반환하지 않는다.
+이 검색은 IP당 최근 60초 10회를 허용한다. IPv6 /64 묶음과 Proxy 신뢰 경계는 [캐릭터 검색](character-search.md)을 따른다. 유효한 요청은 DB 읽기 전에 한도를 소비하고 DB 실패도 반환하지 않는다. Admission 대기, DB 풀 연결 확보, statement에는 기존 2초 제한을 사용한다. 연결 종료, 서버 종료 시 후속 처리를 중단한다. 오류는 기존 캐릭터 오류 형식의 400 `INVALID_CHARACTER_QUERY`, 429 `CHARACTER_RATE_LIMITED`와 `Retry-After`, 500 `INTERNAL_SERVER_ERROR`이며 DB 오류 원문은 반환하지 않는다.
 
 ## 공용 아이템, 스킬, 세트 상세
 
@@ -95,11 +95,11 @@ PostgreSQL의 JSONB 비교에서 같으면 payload, revision, content_updated_at
 
 ## 오류, 호출 제한
 
-상세 GET과 명시 갱신 POST는 클라이언트별 최근 60초 10회 한도를 공유하며 검색 한도와는 별도로 계산한다. GET 캐시 적중과 공유 갱신의 각 대기자도 한도를 소비한다. 캐릭터 갱신은 최대 11회의 Neople 호출을 소비하며 공용 상세 캐시 미스 시 추가 호출이 발생한다. 모든 Neople 호출은 검색과 공유하는 프로세스 전체 최근 60초 600회, 동시 12회 예산에도 포함된다. 단일 프로세스 메모리 한도이며 재시작, 여러 인스턴스의 통합 제한은 제공하지 않는다. IPv6 /64 한도와 Proxy 신뢰 경계는 [캐릭터 검색](character-search.md)을 따른다.
+상세 GET과 명시 갱신 POST에는 클라이언트별 호출 제한이 없다. 2026-10-20 [#774](https://github.com/blahaj94/dfragon/issues/774)의 사용자 결정으로 이전의 클라이언트별 최근 60초 10회 한도를 없앴으며, 같은 PR에서 채택하고 사용자 merge 후 적용한다. 캐릭터 갱신은 최대 11회의 Neople 호출을 소비하며 공용 상세 캐시 미스 시 추가 호출이 발생한다. 모든 Neople 호출은 검색과 공유하는 프로세스 전체 최근 60초 600회, 동시 12회 예산에도 포함된다. 단일 프로세스 메모리 한도이며 재시작, 여러 인스턴스의 통합 제한은 제공하지 않는다.
 
-입력, 설정 확인 뒤 DB 읽기 전에 한도를 소비한다. DB, upstream 실패도 한도를 돌려주지 않으며 잘못된 HTTP 입력은 소비하지 않는다. Admission 대기와 갱신 시작 DB 시각 확보에는 각각 취소 가능한 2초 제한을 적용하고 DB 풀 연결 확보는 2초로 제한한다. 읽기 transaction의 statement와 저장 transaction의 statement, lock 대기는 각각 2초다. 연결 해제, 종료 신호를 확인해 취소된 요청의 후속 쓰기를 중단한다.
+갱신 시작 DB 시각 확보에는 취소 가능한 2초 제한을 적용하고 DB 풀 연결 확보는 2초로 제한한다. 읽기 transaction의 statement와 저장 transaction의 statement, lock 대기는 각각 2초다. 연결 해제, 종료 신호를 확인해 취소된 요청의 후속 쓰기를 중단한다.
 
-오류 body는 `error.code`, `error.message`만 가진다. 입력 400 `INVALID_CHARACTER_QUERY`, 로컬 한도 429 `CHARACTER_RATE_LIMITED`와 `Retry-After`, 내부/DB 오류 500 `INTERNAL_SERVER_ERROR`, 공급자 오류 502 `NEOPLE_API_ERROR`, 이용 불가 503 `NEOPLE_UNAVAILABLE`, Neople 제한 시간 504 `NEOPLE_TIMEOUT`이다. 공급자 code 분류는 기존 검색과 같고 상세 조회용 고정 문구로 반환한다. 키, 공급자 원문 오류, SQL, 요청 원문을 로그나 응답에 포함하지 않는다.
+오류 body는 `error.code`, `error.message`만 가진다. 입력 400 `INVALID_CHARACTER_QUERY`, 명시 갱신 cooldown과 공급자 예산 초과 429 `CHARACTER_RATE_LIMITED`와 `Retry-After`, 내부/DB 오류 500 `INTERNAL_SERVER_ERROR`, 공급자 오류 502 `NEOPLE_API_ERROR`, 이용 불가 503 `NEOPLE_UNAVAILABLE`, Neople 제한 시간 504 `NEOPLE_TIMEOUT`이다. 공급자 code 분류는 기존 검색과 같고 상세 조회용 고정 문구로 반환한다. 키, 공급자 원문 오류, SQL, 요청 원문을 로그나 응답에 포함하지 않는다.
 
 ## DB 변경과 검증
 
