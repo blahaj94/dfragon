@@ -2,8 +2,7 @@ import type { CharacterPayload } from '../details/sections.js'
 
 export const CATALOG_LIMITS = {
   maximumBatchKeys: 15,
-  maximumReferencesPerLoad: 128,
-  maximumConcurrentBatches: 3
+  maximumReferencesPerLoad: 128
 } as const
 
 export type CatalogKey =

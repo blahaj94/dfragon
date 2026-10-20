@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { NeopleBudget } from '../src/characters/provider-budget.js'
 import { setTimeout as delay } from 'node:timers/promises'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
@@ -179,7 +178,7 @@ test('DB가 재조회한 저장값만 제공하고 저장, 읽기 실패의 upst
   )
 })
 
-test('중복을 제거한 128개까지만 조회하고 15개 배치와 동시 3개 호출 한도를 지킨다', async () => {
+test('중복을 제거한 128개까지만 조회하고 15개 이하 배치 9개를 모두 동시에 시작한다', async () => {
   let active = 0,
     peak = 0,
     count = 0
@@ -204,7 +203,8 @@ test('중복을 제거한 128개까지만 조회하고 15개 배치와 동시 3�
   })
   const result = await service.load([...keys, keys[0]!], signal)
   assert.equal(count, 128)
-  assert(peak > 0 && peak <= 3)
+  // 예전 동시 3 batch 제한에서는 peak가 3이었다.
+  assert.equal(peak, 9)
   assert.equal(result.size, 140)
   for (const [index, key] of keys.entries()) {
     const expectedData = index < 128 ? catalogPayload(key) : null
@@ -218,7 +218,7 @@ test('중복을 제거한 128개까지만 조회하고 15개 배치와 동시 3�
   }
 })
 
-test('처리 기한이 끝나면 대기 중인 스킬 조회를 시작하지 않고 취소된 요청은 전송하지 않는다', async () => {
+test('처리 기한이 끝나면 진행 중인 스킬 조회를 저장하지 않고 취소된 요청은 전송하지 않는다', async () => {
   let writes = 0,
     calls = 0
   const store = memoryStore()
@@ -249,7 +249,8 @@ test('처리 기한이 끝나면 대기 중인 스킬 조회를 시작하지 않
     5
   )
   const result = await service.load(keys, signal)
-  assert(calls > 0 && calls <= 3)
+  // 스킬 10개는 기한 전에 모두 동시에 시작한다.
+  assert.equal(calls, 10)
   const started = calls
   for (const entry of result.values()) {
     assert.deepEqual(entry.detail, { data: null, fetchedAt: null, status: 'unavailable' })
@@ -412,30 +413,17 @@ test('연결 종료 뒤 늦은 성공은 저장하지 않고 연결된 요청의
   }
 })
 
-test('이미 취소된 공용 상세 요청은 전송과 공급자 호출 예산을 소비하지 않는다', async () => {
-  const budget = new NeopleBudget(() => 0)
-  for (let count = 0; count < 599; count++) {
-    await budget.run(async () => undefined)
-  }
+test('이미 취소된 공용 상세 요청은 전송하지 않는다', async () => {
   let calls = 0
-  const adapter = createNeopleCatalog(
-    'fixture-key',
-    async () => {
-      calls++
+  const adapter = createNeopleCatalog('fixture-key', async () => {
+    calls++
 
-      return Response.json({ rows: [] })
-    },
-    budget
-  )
+    return Response.json({ rows: [] })
+  })
   const controller = new AbortController()
   controller.abort()
   await assert.rejects(adapter([item], controller.signal), { message: 'Catalog lookup failed' })
   assert.equal(calls, 0)
-  assert.equal(await budget.run(async () => '정상 transport'), '정상 transport')
-  await assert.rejects(
-    budget.run(async () => '예산 초과 transport'),
-    { status: 429 }
-  )
 })
 
 test('공용 상세는 DB 시각으로 정확히 24시간에 만료되고 성공 갱신 후 새 조회 시각을 반환한다', async (t) => {

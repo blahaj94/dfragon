@@ -13,7 +13,7 @@ import type { CharacterSearchDependencies } from './characters/types.js'
 import { CHARACTER_DETAIL_SERVICE, CharacterDetailController } from './characters/details/http.js'
 import { createCharacterDetailService } from './characters/details/service.js'
 import type { CharacterDetailDependencies } from './characters/details/service.js'
-import { characterDetailFailure } from './characters/details/errors.js'
+import { CharacterDetailFailure, characterDetailFailure } from './characters/details/errors.js'
 import { NeopleSearchFailure, neopleSearchFailure } from './errors/neople-search.js'
 import { setupSwagger } from './swagger/setup.js'
 import { API_BUILD_INFO, ApiVersionController, readApiBuildInfo } from './build-info.js'
@@ -52,7 +52,7 @@ class ApiHttpFilter implements ExceptionFilter {
       failure = characterDetailFailure(error)
     }
 
-    if (failure.retryAfter != null) {
+    if (failure instanceof CharacterDetailFailure && failure.retryAfter != null) {
       response.setHeader('Retry-After', String(failure.retryAfter))
     }
     recordAccessLogErrorCode(response, failure.body.error.code)

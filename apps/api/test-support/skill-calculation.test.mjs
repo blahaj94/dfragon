@@ -208,7 +208,7 @@ function scenario() {
   return { options, skillPackage, providers, requested, ids, maximumConcurrency }
 }
 
-test('필요한 모든 상세를 최대 세 개씩 조회하고 계산, 보류, 미습득을 구분한다', async () => {
+test('필요한 모든 상세를 한 번에 동시 조회하고 계산, 보류, 미습득을 구분한다', async () => {
   const context = scenario()
   const summary = await verifyCharacterSkills(
     context.options,
@@ -216,7 +216,7 @@ test('필요한 모든 상세를 최대 세 개씩 조회하고 계산, 보류, 
     context.providers
   )
   assert.deepEqual(context.requested.sort(), [...context.ids].sort())
-  assert.equal(context.maximumConcurrency(), 3)
+  assert.equal(context.maximumConcurrency(), context.ids.length)
   assert.deepEqual(summary.counts, {
     calculated: 1,
     held: 1,

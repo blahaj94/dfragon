@@ -131,7 +131,7 @@ test('모험단 query는 잘못된 구조, UTF-8, 이름, 페이지 경계를 �
   }
 })
 
-test('공개 모험단 HTTP는 입력 실패를 한도에 포함하지 않고 DB 실패와 한도 오류를 정제한다', async (t) => {
+test('공개 모험단 HTTP는 입력 실패를 store에 보내지 않고 DB 실패를 정제하며 같은 IP의 연속 요청을 거절하지 않는다', async (t) => {
   let calls = 0
   let failing = false
   const app = await createApiHttpApp({ searchCharacters: unusedSearchCharacters }, undefined, {
@@ -175,25 +175,14 @@ test('공개 모험단 HTTP는 입력 실패를 한도에 포함하지 않고 DB
   assert.equal(failed.headers.get('cache-control'), 'no-store')
   assert.deepEqual(await failed.json(), internalFailure.body)
   failing = false
-  for (let i = 0; i < 8; i++) {
+  // 예전 IP별 60초 10회 한도보다 많이 보내도 같은 IP의 요청은 모두 store까지 간다.
+  for (let i = 0; i < 12; i++) {
     const success = await fetch(origin + url)
     assert.equal(success.status, 200)
+    assert.equal(success.headers.get('retry-after'), null)
     assert.deepEqual(await success.json(), empty)
   }
-  const limited = await fetch(origin + url)
-  assert.equal(limited.status, 429)
-  assert.equal(limited.headers.get('cache-control'), 'no-store')
-  assert.deepEqual(await limited.json(), {
-    error: {
-      code: 'CHARACTER_RATE_LIMITED',
-      message: '캐릭터 조회 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
-    }
-  })
-  const retryAfter = limited.headers.get('retry-after')
-  assert.match(retryAfter ?? '', /^[1-9][0-9]*$/)
-  const seconds = Number(retryAfter)
-  assert(Number.isInteger(seconds) && seconds >= 1 && seconds <= 60)
-  assert.equal(calls, 10)
+  assert.equal(calls, 14)
 })
 
 test('종료는 활성 모험단 읽기를 취소하고 정리를 기다리며 늦은 성공을 거절한다', {

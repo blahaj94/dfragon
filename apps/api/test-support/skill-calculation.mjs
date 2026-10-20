@@ -233,35 +233,24 @@ async function fetchRequiredSkills(requirements, fetchCatalog) {
   const controller = new AbortController()
   const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)])
   const skills = {}
-  let next = 0
-  const workers = Array.from(
-    { length: Math.min(CATALOG_LIMITS.maximumConcurrentBatches, ids.length) },
-    async () => {
-      while (next < ids.length) {
-        signal.throwIfAborted()
-        const skillId = ids[next++]
-        const jobId = requirements.jobId
-        const key = { kind: 'skill', jobId, skillId }
-        const values = await fetchCatalog([key], signal)
-        signal.throwIfAborted()
-        if (
-          values.length !== 1 ||
-          values[0].key.skillId !== skillId ||
-          values[0].key.jobId !== jobId
-        ) {
-          throw new Error()
-        }
-        skills[skillId] = values[0].payload
-      }
+  const requests = ids.map(async (skillId) => {
+    signal.throwIfAborted()
+    const jobId = requirements.jobId
+    const key = { kind: 'skill', jobId, skillId }
+    const values = await fetchCatalog([key], signal)
+    signal.throwIfAborted()
+    if (values.length !== 1 || values[0].key.skillId !== skillId || values[0].key.jobId !== jobId) {
+      throw new Error()
     }
-  )
+    skills[skillId] = values[0].payload
+  })
   try {
-    await Promise.all(workers)
+    await Promise.all(requests)
 
     return skills
   } catch {
     controller.abort()
-    await Promise.allSettled(workers)
+    await Promise.allSettled(requests)
     throw new SkillVerificationFailure('CATALOG_LOOKUP_FAILED')
   }
 }

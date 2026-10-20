@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import test from 'node:test'
-import { NeopleBudget } from '../src/characters/provider-budget.js'
 import type {
   CharacterDetailSection,
   CharacterPayloads
@@ -122,12 +121,7 @@ test('실제 HTTP transport는 미완성 body의 전체 제한 시간을 지키�
   }
 })
 
-test('기본 응답 뒤 취소되면 남은 섹션은 전송하지 않고 공급자 호출 예산도 소비하지 않는다', async () => {
-  const budget = new NeopleBudget(() => 0)
-  // 600회 예산에 기본 조회와 정상 후속 transport 한 번만 남겨 둔다.
-  for (let count = 0; count < 598; count++) {
-    await budget.run(async () => undefined)
-  }
+test('기본 응답 뒤 취소되면 남은 섹션은 전송하지 않는다', async () => {
   const controller = new AbortController()
   let started!: () => void
   const entered = new Promise<void>((resolve) => {
@@ -139,7 +133,6 @@ test('기본 응답 뒤 취소되면 남은 섹션은 전송하지 않고 공급
   })
   let calls = 0
   const adapter = createNeopleCharacterDetailsForTest('fixture-key', {
-    budget,
     fetch: async () => {
       calls++
       started()
@@ -155,11 +148,6 @@ test('기본 응답 뒤 취소되면 남은 섹션은 전송하지 않고 공급
   finish()
   await rejected
   assert.equal(calls, 1)
-  assert.equal(await budget.run(async () => '정상 transport'), '정상 transport')
-  await assert.rejects(
-    budget.run(async () => '예산 초과 transport'),
-    { status: 429 }
-  )
 })
 
 test('상세 ID는 대소문자와 ASCII 경계 1~256자를 보존하고 빈 값, 257자, 비ASCII를 거절한다', () => {
@@ -230,7 +218,7 @@ const sectionsByPath = new Map<string, CharacterDetailSection>([
   ['/skill/buff/equip/creature', 'buff_creature']
 ])
 
-test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원문, 옵션, null을 모두 반환한다', {
+test('기본 식별 응답을 확인한 뒤 나머지 10개를 동시에 시작해 11개 원문, 옵션, null을 모두 반환한다', {
   timeout: 2000
 }, async (t) => {
   let basicStarted!: () => void, finishBasic!: () => void
@@ -240,9 +228,9 @@ test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원�
   const basicBody = new Promise<void>((resolve) => {
     finishBasic = resolve
   })
-  let sectionStarted!: () => void, finishSections!: () => void
-  const enteredSection = new Promise<void>((resolve) => {
-    sectionStarted = resolve
+  let allSectionsStarted!: () => void, finishSections!: () => void
+  const enteredAllSections = new Promise<void>((resolve) => {
+    allSectionsStarted = resolve
   })
   const sectionBodies = new Promise<void>((resolve) => {
     finishSections = resolve
@@ -272,7 +260,10 @@ test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원�
         basicStarted()
         await basicBody
       } else {
-        sectionStarted()
+        // 예전 3개씩 조회에서는 응답 전에 10개가 모두 시작되지 않아 timeout으로 실패한다.
+        if (active === 10) {
+          allSectionsStarted()
+        }
         await sectionBodies
       }
       active--
@@ -284,13 +275,13 @@ test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원�
   await enteredBasic
   assert.deepEqual(requested, [''])
   finishBasic()
-  await enteredSection
-  assert(active > 0 && active <= 3)
+  await enteredAllSections
+  assert.equal(active, 10)
   finishSections()
 
   assert.deepEqual(await pending, completePayloads)
   assert.deepEqual(requested.sort(), [...sectionsByPath.keys()].sort())
-  assert(peak > 0 && peak <= 3)
+  assert.equal(peak, 10)
   assert.equal(active, 0)
 })
 
@@ -331,7 +322,7 @@ test('각 상세 섹션의 필수 최상위 envelope를 검사하되 미장착 n
   }
 })
 
-test('기본 응답 뒤 한 섹션이 실패하면 부분 성공을 반환하거나 다음 그룹을 조회하지 않는다', async () => {
+test('기본 응답 뒤 한 섹션이 실패하면 부분 성공을 반환하지 않는다', async () => {
   const paths: string[] = []
   const adapter = createNeopleCharacterDetailsForTest('fixture-key', {
     fetch: async (input) => {
@@ -356,6 +347,7 @@ test('기본 응답 뒤 한 섹션이 실패하면 부분 성공을 반환하거
 
     return true
   })
-  assert(paths.length >= 2 && paths.length <= 4)
+  // 나머지 10개는 basic 뒤 한꺼번에 시작하므로 실패와 관계없이 각 섹션을 한 번씩 부른다.
+  assert.equal(paths.length, 11)
   assert.equal(new Set(paths).size, paths.length)
 })

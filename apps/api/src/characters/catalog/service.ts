@@ -62,34 +62,30 @@ export function createCatalogService(
             (key) => results.get(catalogKey(key))!.detail.status !== 'fresh'
           )
           const groups = createCatalogRequestGroups(pending)
-          let next = 0
           await Promise.all(
-            Array.from(
-              { length: Math.min(CATALOG_LIMITS.maximumConcurrentBatches, groups.length) },
-              async () => {
-                while (next < groups.length && !signal.aborted) {
-                  const group = groups[next++]!
-                  try {
-                    const values = await fetchCatalog(group, signal)
-                    signal.throwIfAborted()
-                    if (values.length === 0) {
-                      continue
-                    }
-                    const stored = await store.saveAndRead(values, snapshot.requestedAt, signal)
-                    for (const entry of stored.entries) {
-                      const detail: CatalogDetail = {
-                        data: entry.payload,
-                        fetchedAt: entry.fetchedAt.toISOString(),
-                        status: entry.expiresAt > stored.now ? 'fresh' : 'stale'
-                      }
-                      results.set(catalogKey(entry.key), { key: entry.key, detail })
-                    }
-                  } catch {
-                    // Only committed catalog data may be returned. An unsuccessful refresh retains its prior value.
-                  }
-                }
+            groups.map(async (group) => {
+              if (signal.aborted) {
+                return
               }
-            )
+              try {
+                const values = await fetchCatalog(group, signal)
+                signal.throwIfAborted()
+                if (values.length === 0) {
+                  return
+                }
+                const stored = await store.saveAndRead(values, snapshot.requestedAt, signal)
+                for (const entry of stored.entries) {
+                  const detail: CatalogDetail = {
+                    data: entry.payload,
+                    fetchedAt: entry.fetchedAt.toISOString(),
+                    status: entry.expiresAt > stored.now ? 'fresh' : 'stale'
+                  }
+                  results.set(catalogKey(entry.key), { key: entry.key, detail })
+                }
+              } catch {
+                // Only committed catalog data may be returned. An unsuccessful refresh retains its prior value.
+              }
+            })
           )
         } catch {
           // Catalog storage is optional enrichment; character persistence has already succeeded.

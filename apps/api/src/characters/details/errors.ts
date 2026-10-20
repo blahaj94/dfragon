@@ -58,9 +58,7 @@ export function characterDetailFailure(error: unknown): CharacterDetailFailure {
 
   if (error instanceof NeopleSearchFailure) {
     let kind: keyof typeof failures = 'internal'
-    if (error.status === 429) {
-      kind = 'limited'
-    } else if (error.status === 503) {
+    if (error.status === 503) {
       kind = 'unavailable'
     } else if (error.status === 504) {
       kind = 'timeout'
@@ -68,7 +66,7 @@ export function characterDetailFailure(error: unknown): CharacterDetailFailure {
       kind = 'api'
     }
 
-    return new CharacterDetailFailure(kind, { retryAfter: error.retryAfter, cause: error })
+    return new CharacterDetailFailure(kind, { cause: error })
   }
 
   return new CharacterDetailFailure('internal', { cause: error })
