@@ -22,6 +22,8 @@ pnpm --filter @dfragon/desktop run test:portrait-evaluation
 | `DFRAGON_PORTRAIT_MIN_COVERAGE` | `minCoverage`. 기본 0.5 |
 | `DFRAGON_PORTRAIT_MIN_COMPARED_CELLS` | `minComparedCells`. 기본 6 |
 | `DFRAGON_PORTRAIT_TOP_FRACTION` | `topFraction`. 기본 0.5 |
+| `DFRAGON_PORTRAIT_ANCHOR_RADIUS` | `anchorRadius`. 기본 2 |
+| `DFRAGON_PORTRAIT_ANCHORS` | `0`이면 직업별 얼굴 위치를 쓰지 않고 모든 후보를 `topFraction` 범위에서 찾는다. 기본은 제품처럼 사용 |
 
 세 정책 기본값은 `portrait.evaluation.ts` 상단의 `DEFAULT_POLICY`이며 실표본 결과로 정할 후보값입니다. `gridSize`는 4, 6, 8을 모두 측정합니다.
 
@@ -37,7 +39,7 @@ pnpm --filter @dfragon/desktop run test:portrait-evaluation
       "hud": "case-01/hud.png",
       "rasterScale": 1,
       "candidates": [
-        { "id": "c0", "image": "case-01/candidate-0.png", "correct": true },
+        { "id": "c0", "image": "case-01/candidate-0.png", "correct": true, "jobName": "귀검사(남)" },
         { "id": "c1", "image": "case-01/candidate-1.png" }
       ]
     }
@@ -50,6 +52,7 @@ pnpm --filter @dfragon/desktop run test:portrait-evaluation
 - `image`가 null인 후보는 비교하지 않고 표의 `skipped`에 셉니다.
 - 후보 PNG는 zoom=1 캐릭터 이미지 원본입니다.
 - id에는 `case-01`, `c0` 같은 익명 값을 씁니다.
+- `jobName`은 후보의 기본 직업명이며 생략하면 null입니다. 값이 있으면 제품과 같이 `portraitAnchorOf`의 직업별 얼굴 위치 주변만 비교합니다.
 
 ## 지표
 
