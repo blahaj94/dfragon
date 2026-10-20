@@ -1,5 +1,6 @@
 import { Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
+import { upgradeFill } from '../constants/oath-upgrade.style'
 import { rarityFill, rarityText } from '../constants/rarity.style'
 import type { SummaryView, UpgradeCellView } from '../lib/card-faces'
 import { CardImage } from './CardImage'
@@ -48,10 +49,7 @@ export function EquipmentSummary({
                       role="listitem"
                       aria-label={cell.label}
                       title={cell.label}
-                      {...stylex.props(
-                        styles.upgradeCell,
-                        cell.filled ? styles.upgradeFilled : styles.upgradeEmpty
-                      )}
+                      {...stylex.props(styles.upgradeCell, upgradeFill[cell.kind])}
                     />
                   ))}
                 </div>

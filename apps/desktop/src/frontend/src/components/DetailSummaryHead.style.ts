@@ -43,8 +43,6 @@ export const styles = stylex.create({
     outline: { default: 'none', ':focus-visible': `2px solid ${colors.cardSignal}` },
     outlineOffset: 1
   },
-  upgradeFilled: { backgroundColor: colors.cardFg },
-  upgradeEmpty: { boxShadow: `inset 0 0 0 1px ${colors.cardBorder}` },
   upgradeTip: {
     backgroundColor: colors.cardInset,
     boxShadow: `inset 0 0 0 1px ${colors.cardBorderStrong}`,

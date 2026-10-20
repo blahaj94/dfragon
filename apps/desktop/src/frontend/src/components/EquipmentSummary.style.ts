@@ -42,8 +42,6 @@ export const styles = stylex.create({
   upgradeGroup: { display: 'flex', gap: 2, minWidth: 0 },
   upgradeGroupWidth: (cells: number) => ({ flex: `${cells} 1 ${cells * 20}px` }),
   upgradeCell: { boxSizing: 'border-box', flex: '1 1 18px', minWidth: 0, maxWidth: 18, height: 8 },
-  upgradeFilled: { backgroundColor: colors.cardFg },
-  upgradeEmpty: { boxShadow: `inset 0 0 0 1px ${colors.cardBorder}` },
   point: {
     display: 'flex',
     alignItems: 'flex-end',

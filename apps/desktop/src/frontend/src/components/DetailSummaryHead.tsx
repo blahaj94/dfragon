@@ -1,5 +1,6 @@
 import { Tooltip } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
+import { upgradeFill } from '../constants/oath-upgrade.style'
 import { rarityText } from '../constants/rarity.style'
 import type { SummaryView, UpgradeCellView } from '../lib/card-faces'
 import { CardImage } from './CardImage'
@@ -51,10 +52,7 @@ export function DetailSummaryHead({
                     delay={0}
                     closeDelay={0}
                     render={<span role="listitem" tabIndex={0} aria-label={cell.label} />}
-                    {...stylex.props(
-                      styles.upgradeCell,
-                      cell.filled ? styles.upgradeFilled : styles.upgradeEmpty
-                    )}
+                    {...stylex.props(styles.upgradeCell, upgradeFill[cell.kind])}
                   />
                   <Tooltip.Popup side="top" sideOffset={6} {...stylex.props(styles.upgradeTip)}>
                     {cell.label}

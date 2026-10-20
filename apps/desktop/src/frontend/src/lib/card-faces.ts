@@ -3,6 +3,7 @@ import { investmentIds } from '../constants/equipment'
 import type { CharacterCard } from '../types/cards'
 import { type CardStatItem, type CardStatLabelLength, toCardStatItems } from './card-stats'
 import { type ItemPicture, oathIcon, setIcon } from './equipment-icons'
+import { type OathUpgradeKind, oathUpgradeKind, oathUpgradeKindLabels } from './oath-upgrades'
 
 /** 희귀도 색 토큰 키. 컴포넌트가 이 키로 `rarity.*` 색을 고르고, 모르는 희귀도는 `unknown`이다. */
 export type RarityTone =
@@ -64,8 +65,11 @@ export type SummaryView = {
   counts: RarityCountView[]
 }
 
-/** 묵언의 진의 한 칸. 접근 가능한 이름은 `N단계 <옵션명>`이고 빈 칸은 `N단계 비어 있음`이다. */
-export type UpgradeCellView = { filled: boolean; label: string }
+/**
+ * 묵언의 진의 한 칸. 연 칸은 옵션 종류(`kind`) 색이고 이름은 `N단계 · <종류> (<옵션명>)`이다. 종류를 모르는
+ * 옵션은 `other`(카드 글자색)에 `N단계 · <옵션명>`, 빈 칸은 `empty`에 `N단계 비어 있음`이다.
+ */
+export type UpgradeCellView = { kind: OathUpgradeKind | 'other' | 'empty'; label: string }
 
 export type EquipmentFaceView = {
   set: SummaryView
@@ -353,10 +357,14 @@ function toUpgradeCells(
     const step = index + 1
     const optionName = optionByStep.get(step)
     if (optionName == null) {
-      return { filled: false, label: `${step}단계 비어 있음` }
+      return { kind: 'empty', label: `${step}단계 비어 있음` }
+    }
+    const kind = oathUpgradeKind(optionName)
+    if (kind === undefined) {
+      return { kind: 'other', label: `${step}단계 · ${optionName}` }
     }
 
-    return { filled: true, label: `${step}단계 ${optionName}` }
+    return { kind, label: `${step}단계 · ${oathUpgradeKindLabels[kind]} (${optionName})` }
   })
 
   return [cells.slice(0, UPGRADE_FIRST_GROUP), cells.slice(UPGRADE_FIRST_GROUP)]
