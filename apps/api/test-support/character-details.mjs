@@ -438,16 +438,13 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     assert.equal(providerCalls, beforeCachedFailure)
     assert.deepEqual(await snapshot(), beforeFailure)
 
-    mark('상세 호출 한도는 provider 호출 전에 거절')
+    mark('같은 IP의 상세 호출은 IP별 한도 없이 캐시로 응답')
     fail = false
-    for (let i = 0; i < 4; i++) {
+    const callsBeforeRepeat = providerCalls
+    for (let i = 0; i < 12; i++) {
       assert.equal((await fetch(url)).status, 200)
     }
-    const callsBeforeLimit = providerCalls
-    const limited = await fetch(url)
-    assert.equal(limited.status, 429)
-    assert(Number(limited.headers.get('Retry-After')) > 0)
-    assert.equal(providerCalls, callsBeforeLimit)
+    assert.equal(providerCalls, callsBeforeRepeat)
     assert.equal((await snapshot()).find((r) => r.section === 'equipment').revision, 4)
   } finally {
     await app?.close()

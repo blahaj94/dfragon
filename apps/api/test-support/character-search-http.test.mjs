@@ -56,12 +56,6 @@ function expectEmptyRows(response, name) {
 }
 
 const queryMessage = '검색 조건을 확인해 주세요.'
-const limitedMessage = '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
-const fixedClock = {
-  now: () => 0,
-  setTimer: () => Symbol('timer'),
-  clearTimer: () => undefined
-}
 
 const authorizationCases = [
   { name: 'Authorization 없는 요청', headers: {} },
@@ -143,78 +137,97 @@ test('검색 HTTP는 raw 구조와 UTF-8 오류를 공급자 호출 전에 거�
   })
 })
 
-test('HEAD와 잘못된 검색 query는 정상 GET의 열 번 한도를 소비하지 않는다', async () => {
-  await withSearchApp(
-    {},
-    async ({ base, calls }) => {
-      const head = await fetch(`${base}/characters?characterName=ab`, { method: 'HEAD' })
-      assert.equal(head.status, 400)
-      assert.equal(head.headers.get('cache-control'), 'no-store')
-      assert.equal(await head.text(), '')
-      expectSearchError(
-        await rawGet(base, '/characters?characterName=ab&unknown=1'),
-        400,
-        'INVALID_SEARCH_QUERY',
-        queryMessage
-      )
-      assert.deepEqual(calls, [])
-      for (let index = 0; index < 10; index++) {
-        expectEmptyRows(await rawGet(base, '/characters?characterName=ab'))
-      }
-      const limited = await rawGet(base, '/characters?characterName=ab')
-      expectSearchError(limited, 429, 'SEARCH_RATE_LIMITED', limitedMessage)
-      assert.equal(limited.headers['retry-after'], '60')
-      assert.equal(calls.length, 10)
-    },
-    { clock: fixedClock }
-  )
+test('HEAD와 잘못된 검색 query는 공급자를 호출하지 않고 같은 IP의 정상 GET은 IP별 한도 없이 처리한다', async () => {
+  await withSearchApp({}, async ({ base, calls }) => {
+    const head = await fetch(`${base}/characters?characterName=ab`, { method: 'HEAD' })
+    assert.equal(head.status, 400)
+    assert.equal(head.headers.get('cache-control'), 'no-store')
+    assert.equal(await head.text(), '')
+    expectSearchError(
+      await rawGet(base, '/characters?characterName=ab&unknown=1'),
+      400,
+      'INVALID_SEARCH_QUERY',
+      queryMessage
+    )
+    assert.deepEqual(calls, [])
+    for (let index = 0; index < 12; index++) {
+      expectEmptyRows(await rawGet(base, '/characters?characterName=ab'))
+    }
+    assert.equal(calls.length, 12)
+  })
 })
 
-test('공개 검색은 Authorization 형식과 무관하게 성공하고 전달 IP를 바꿔도 접속 IP 한도를 공유한다', async () => {
-  await withSearchApp(
-    {},
-    async ({ base, calls }) => {
-      for (const [index, { name, headers }] of authorizationCases.entries()) {
-        const response = await rawGet(base, '/characters?characterName=ab', {
-          'x-forwarded-for': `192.0.2.${index + 1}`,
-          ...headers
-        })
-        expectEmptyRows(response, name)
-      }
-      const limited = await rawGet(base, '/characters?characterName=ab', {
-        'x-forwarded-for': '198.51.100.1',
-        authorization: 'Bearer another-access-value'
+test('공개 검색은 Authorization 형식과 전달 IP와 무관하게 IP별 한도 없이 성공한다', async () => {
+  await withSearchApp({}, async ({ base, calls }) => {
+    for (const [index, { name, headers }] of authorizationCases.entries()) {
+      const response = await rawGet(base, '/characters?characterName=ab', {
+        'x-forwarded-for': `192.0.2.${index + 1}`,
+        ...headers
       })
-      expectSearchError(limited, 429, 'SEARCH_RATE_LIMITED', limitedMessage)
-      assert.equal(limited.headers['retry-after'], '60')
-      assert.equal(calls.length, 10)
-    },
-    { clock: fixedClock }
-  )
+      expectEmptyRows(response, name)
+    }
+    const response = await rawGet(base, '/characters?characterName=ab', {
+      'x-forwarded-for': '198.51.100.1',
+      authorization: 'Bearer another-access-value'
+    })
+    expectEmptyRows(response, '열한 번째 요청')
+    assert.equal(calls.length, 11)
+  })
 })
+
+const adventurePath = '/adventures/characters?adventureName=' + encodeURIComponent('합성모험단')
+const adventureLimitedMessage = '캐릭터 조회 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+
+// 캐릭터 검색과 상세에는 IP별 한도가 없어 IP 한도 key의 proxy 경계는 모험단 검색으로 확인한다.
+async function withAdventureApp(options, operation) {
+  let calls = 0
+  const app = await createApiHttpApp(
+    {
+      ...options,
+      async searchCharacters() {
+        throw new Error('예상하지 않은 공급자 호출')
+      }
+    },
+    undefined,
+    {
+      async search(input) {
+        calls++
+
+        return { adventureName: input.adventureName, scope: 'stored', rows: [], nextAfter: null }
+      }
+    }
+  )
+  try {
+    await app.listen(0, '127.0.0.1')
+    await operation({ base: await app.getUrl(), calls: () => calls })
+  } finally {
+    await app.close()
+  }
+}
+
+function expectAdventureLimited(response) {
+  assert.equal(response.status, 429)
+  assert.deepEqual(JSON.parse(response.body), {
+    error: { code: 'CHARACTER_RATE_LIMITED', message: adventureLimitedMessage }
+  })
+  assert.match(response.headers['retry-after'], /^[1-9][0-9]*$/)
+}
 
 test('단일 proxy의 오른쪽 클라이언트 IP로 한도를 구분하고 왼쪽 위조 주소는 무시한다', async () => {
-  await withSearchApp(
-    {},
-    async ({ base, calls }) => {
-      for (const client of ['192.0.2.1', '192.0.2.2']) {
-        for (let index = 0; index < 10; index++) {
-          expectEmptyRows(
-            await rawGet(base, '/characters?characterName=ab', {
-              'x-forwarded-for': `198.51.100.${index + 1}, ${client}`
-            })
-          )
-        }
-        const limited = await rawGet(base, '/characters?characterName=ab', {
-          'x-forwarded-for': `203.0.113.1, ${client}`
+  await withAdventureApp({ trustedProxyHops: 1 }, async ({ base, calls }) => {
+    for (const client of ['192.0.2.1', '192.0.2.2']) {
+      for (let index = 0; index < 10; index++) {
+        const response = await rawGet(base, adventurePath, {
+          'x-forwarded-for': `198.51.100.${index + 1}, ${client}`
         })
-        expectSearchError(limited, 429, 'SEARCH_RATE_LIMITED', limitedMessage)
-        assert.equal(limited.headers['retry-after'], '60')
+        assert.equal(response.status, 200)
       }
-      assert.equal(calls.length, 20)
-    },
-    { trustedProxyHops: 1, clock: fixedClock }
-  )
+      expectAdventureLimited(
+        await rawGet(base, adventurePath, { 'x-forwarded-for': `203.0.113.1, ${client}` })
+      )
+    }
+    assert.equal(calls(), 20)
+  })
 })
 
 test('단일 proxy는 IPv4-mapped IPv6와 같은 IPv6 /64의 주소를 동일 한도로 묶는다', async (t) => {
@@ -227,30 +240,20 @@ test('단일 proxy는 IPv4-mapped IPv6와 같은 IPv6 /64의 주소를 동일 �
     ]
   ]) {
     await t.test(name, async () => {
-      await withSearchApp(
-        {},
-        async ({ base, calls }) => {
-          for (let index = 0; index < 10; index++) {
-            expectEmptyRows(
-              await rawGet(base, '/characters?characterName=ab', {
-                'x-forwarded-for': addresses[index % addresses.length]
-              })
-            )
-          }
-          for (const address of addresses) {
-            const limited = await rawGet(base, '/characters?characterName=ab', {
-              'x-forwarded-for': address
-            })
-            expectSearchError(limited, 429, 'SEARCH_RATE_LIMITED', limitedMessage)
-            assert.equal(limited.headers['retry-after'], '60')
-          }
-          expectEmptyRows(
-            await rawGet(base, '/characters?characterName=ab', { 'x-forwarded-for': independent })
-          )
-          assert.equal(calls.length, 11)
-        },
-        { trustedProxyHops: 1, clock: fixedClock }
-      )
+      await withAdventureApp({ trustedProxyHops: 1 }, async ({ base, calls }) => {
+        for (let index = 0; index < 10; index++) {
+          const response = await rawGet(base, adventurePath, {
+            'x-forwarded-for': addresses[index % addresses.length]
+          })
+          assert.equal(response.status, 200)
+        }
+        for (const address of addresses) {
+          expectAdventureLimited(await rawGet(base, adventurePath, { 'x-forwarded-for': address }))
+        }
+        const response = await rawGet(base, adventurePath, { 'x-forwarded-for': independent })
+        assert.equal(response.status, 200)
+        assert.equal(calls(), 11)
+      })
     })
   }
 })
