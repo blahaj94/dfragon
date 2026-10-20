@@ -38,7 +38,6 @@ GET /characters/candidates?characterName=%EA%B0%80%EB%82%98
 - `apps/api/src/runtime/configuration.ts`: 환경변수 또는 명시한 secret 파일에서 API 키를 읽고, 누락, 빈 값, 공백뿐인 값은 DB 연결과 listen 전에 거절한다. 키 값을 정규화하거나 오류에 노출하지 않는다.
 - `apps/api/src/runtime/application.ts`: 검증한 키로 검색, 상세, 카탈로그 어댑터를 만들어 주입한다. 서비스와 HTTP 앱 factory는 API 키를 받지 않으며 테스트는 준비한 fake 어댑터를 전달한다.
 - `apps/api/src/characters/search-service.ts`: raw query를 검증하고 주입받은 `searchCharacters`를 호출한다. 서비스 종료, peer 누락, 이미 취소된 요청은 공급자를 호출하지 않는다. Authorization과 전달 헤더는 검색 자격으로 사용하지 않는다.
-- `search-admission.ts`: 단일 process memory의 60초 10회 예약, 만료, 동시성 제어다. 지금은 모험단 검색만 쓰며 캐릭터 검색과 상세에는 쓰지 않는다. IP를 DB나 log에 기록하지 않는다.
 - `neople-character-search.ts`: 기존 upstream 입력, 응답, 오류 projection과 5초 deadline, 자동 retry 없음 정책을 유지한다.
 - `apps/api/src/http-response.ts`: 검색, 상세, 모험단 컨트롤러의 응답 연결 수명을 공유한다. 비정상 연결 종료 때 요청별 취소 신호를 전달하고 닫힌 응답에는 결과를 쓰지 않는다. 성공과 실패 때 등록한 리스너만 정리하고 오류 변환은 기존 전역 filter에 맡긴다. 입력과 HTTP method 검증은 각 컨트롤러와 서비스에 유지한다.
 - 검색에는 JWT 검증, session 조회, 활동 갱신, 별도 DB 연결이 없다. 검색을 해도 로그인 session의 활동 기간이 연장되지 않는다. `/me` 등 계정 endpoint는 기존 인증을 유지한다.
