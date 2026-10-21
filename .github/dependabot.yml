@@ -1,4 +1,5 @@
 version: 2
+# Monthly updates keep the number of Dependabot PRs, each of which runs the full CI, small.
 updates:
   - package-ecosystem: github-actions
     # "/" covers .github/workflows. Composite actions live under .github/actions.
@@ -6,7 +7,7 @@ updates:
       - /
       - /.github/actions/*
     schedule:
-      interval: weekly
+      interval: monthly
     cooldown:
       default-days: 7
     groups:
@@ -17,7 +18,7 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
     cooldown:
       default-days: 7
       semver-major-days: 14
@@ -51,7 +52,7 @@ updates:
   - package-ecosystem: docker
     directories: ['/apps/accounts', '/apps/api', '/apps/ocr']
     schedule:
-      interval: weekly
+      interval: monthly
     cooldown:
       default-days: 7
     groups:

@@ -16,6 +16,8 @@ const gatedWorkflows = [
   {
     file: 'desktop-windows.yml',
     gate: 'Desktop Windows gate',
+    // The Windows tests also wait for the (build) scope from Build Scope.
+    buildScope: true,
     // Neighbors of the push paths that must not start the Windows tests.
     unrelatedPaths: [
       'apps/api/src/main.ts',
@@ -27,6 +29,7 @@ const gatedWorkflows = [
   {
     file: 'workflow-lint.yml',
     gate: 'Workflow Lint gate',
+    buildScope: false,
     unrelatedPaths: ['.gitignore', '.github-templates/workflow.yml', 'apps/desktop/src/main.ts']
   }
 ]
@@ -87,10 +90,11 @@ async function readWorkflow(file) {
   )
   const changes = jobs.find((job) => jobIdOf(job) === 'changes')
   const gate = jobs.find((job) => jobIdOf(job) === 'gate')
-  const checks = jobs.filter((job) => job !== changes && job !== gate)
+  const scope = jobs.find((job) => jobIdOf(job) === 'scope')
+  const checks = jobs.filter((job) => job !== changes && job !== gate && job !== scope)
   const pathStep = stepsOf(changes).find((step) => /^ {8}id: paths\s*$/mu.test(step))
 
-  return { triggers, jobs, pushPaths, changes, gate, checks, pathStep }
+  return { triggers, jobs, pushPaths, changes, gate, scope, checks, pathStep }
 }
 
 // A file under each push path, so the pull request check covers the same range as the push filter.
@@ -173,7 +177,7 @@ async function runGate(workflow, results) {
   return runStep(step, root, { RESULTS: results.join(' ') })
 }
 
-for (const { file, gate, unrelatedPaths } of gatedWorkflows) {
+for (const { file, gate, buildScope, unrelatedPaths } of gatedWorkflows) {
   const workflow = await readWorkflow(file)
 
   test(`${file}: PR은 paths 필터 없이 실행하고 main push는 paths 필터를 유지한다`, () => {
@@ -223,14 +227,37 @@ for (const { file, gate, unrelatedPaths } of gatedWorkflows) {
     for (const job of workflow.checks) {
       const settings = settingsOf(job)
 
-      assert.match(settings, /^ {4}needs: changes\s*$/mu, jobIdOf(job))
-      assert.match(
-        settings,
-        /^ {4}if: needs\.changes\.outputs\.needed == 'true'\s*$/mu,
-        jobIdOf(job)
-      )
+      if (buildScope) {
+        assert.match(settings, /^ {4}needs:\s*\n {6}- scope\s*\n {6}- changes\s*$/mu, jobIdOf(job))
+        assert.match(
+          settings,
+          /^ {4}if: needs\.scope\.outputs\.build == 'true' && needs\.changes\.outputs\.needed == 'true'\s*$/mu,
+          jobIdOf(job)
+        )
+      } else {
+        assert.match(settings, /^ {4}needs: changes\s*$/mu, jobIdOf(job))
+        assert.match(
+          settings,
+          /^ {4}if: needs\.changes\.outputs\.needed == 'true'\s*$/mu,
+          jobIdOf(job)
+        )
+      }
+
       assert.doesNotMatch(settings, /^ {4}continue-on-error:/mu, jobIdOf(job))
     }
+  })
+
+  test(`${file}: build scope는 ${buildScope ? 'Build Scope workflow를 조건 없이 호출한다' : '쓰지 않는다'}`, () => {
+    if (!buildScope) {
+      assert.equal(workflow.scope, undefined)
+
+      return
+    }
+
+    const settings = settingsOf(workflow.scope)
+
+    assert.match(settings, /^ {4}uses: \.\/\.github\/workflows\/build-scope\.yml\s*$/mu)
+    assert.doesNotMatch(settings, /^ {4}(?:if|continue-on-error):/mu)
   })
 
   test(`${file}: gate는 needs 전체 결과를 받아 failure, cancelled면 실패하고 success, skipped면 통과한다`, async () => {

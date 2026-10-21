@@ -24,4 +24,4 @@ pnpm --filter @dfragon/web build
 
 `index.html` → `src/main.tsx`가 제품 진입점입니다. Entry가 UI `tokens.css`, `foundation.css`를 가져오고 StyleX compiler가 production CSS를 연결합니다. `index.html` head의 일반 script `public/color-theme.js`가 첫 페인트 전에 시스템 색 모드를 `document.documentElement.dataset.theme`(`light`, `dark`)에 넣고 이후 변경도 따릅니다. 선행 UI build가 없는 소비 경로의 기존 회귀검사는 [공용 UI 소비 검사 안내](../../packages/ui/test/consumer-resolution.md)에 있습니다. 이 검사는 여러 앱의 생성물, cache를 정리하므로 전용 checkout에서 실행해야 합니다.
 
-Code Quality CI는 PR과 main push에서 Web의 lint, format과 함께 `test`, `build`를 실행합니다. `build`가 `tsc -b`를 포함하므로 CI에서 `typecheck`를 따로 실행하지 않습니다. 위 jsdom 한계처럼 실제 레이아웃과 키보드 동작은 CI 성공에 포함되지 않습니다.
+Code Quality CI는 PR과 main push에서 Web의 lint, format을, PR 제목 scope가 `(build)`일 때 `test`, `build`도 실행합니다. `build`가 `tsc -b`를 포함하므로 CI에서 `typecheck`를 따로 실행하지 않습니다. 위 jsdom 한계처럼 실제 레이아웃과 키보드 동작은 CI 성공에 포함되지 않습니다.

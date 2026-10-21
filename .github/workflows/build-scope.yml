@@ -1,0 +1,48 @@
+name: Build Scope
+
+# Code Quality, Desktop Windows, Windows Test Build and Product Images call this workflow so every
+# build and full test run follows one rule: the PR title scope is (build), the PR is from
+# Dependabot, or the run was started by hand. Main pushes read the title of the merged PR.
+on:
+  workflow_call:
+    outputs:
+      build:
+        description: "'true' when the run should build and run the full test suite"
+        value: ${{ jobs.scope.outputs.build }}
+
+permissions:
+  contents: read
+
+jobs:
+  scope:
+    name: Read the build request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      # Main pushes look up the merged PR of the pushed commit.
+      pull-requests: read
+    outputs:
+      build: ${{ steps.scope.outputs.build }}
+    steps:
+      - name: Checkout the build scope script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            package.json
+            scripts/build-scope.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: package.json
+      - name: Decide whether to build
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          # workflow_run's github.sha can be a newer main commit. Read the tested commit.
+          SOURCE_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/build-scope.mjs

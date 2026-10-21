@@ -96,6 +96,8 @@ DB suite에는 Docker와 Playwright Chromium이 필요하다. 이미지 입력�
 세 이미지에 영향을 줍니다. 이미지 workflow, 선택 도구, 커밋 정보 생성기
 (`scripts/server-build-info.mjs`) 변경도 세 이미지를 검사합니다.
 서버 이미지 입력이 없는 문서, Desktop, Web 전용 변경은 이미지 빌드, 발행을 건너뜁니다.
+PR 제목 scope가 `(build)`가 아닌 PR과 그 main push도 이미지를 빌드, 발행하지 않으며, 그 변경은 다음
+`(build)` main push가 함께 발행합니다. 규칙은 [Repository Map의 CI 설명](repository-map.md)에 있습니다.
 
 PR은 base와 빌드할 merge commit을 비교해 선택한 이미지를 빌드만 합니다.
 기존 Code Quality는 앱 테스트, 정적 검사를 계속 담당하며, main push 전체의 `before`부터

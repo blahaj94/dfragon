@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Run workflow on any branch from the Actions page to run the full suite without (build).
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,6 +16,15 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Pre-push runs pnpm verify locally, so CI repeats only the cheap checks on every PR. The other
+  # check jobs run when the PR title scope is (build), as Build Scope decides.
+  scope:
+    name: Build scope
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: ./.github/workflows/build-scope.yml
+
   static:
     name: Static checks
     runs-on: ubuntu-latest
@@ -42,6 +53,8 @@ jobs:
 
   packages:
     name: Shared packages
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -55,6 +68,8 @@ jobs:
 
   desktop:
     name: Desktop test
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -70,6 +85,8 @@ jobs:
 
   desktop-typecheck:
     name: Desktop typecheck
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -82,6 +99,8 @@ jobs:
 
   api:
     name: API test
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -94,6 +113,8 @@ jobs:
   # The database jobs run the pinned PostgreSQL image on the runner's Docker daemon.
   api-database:
     name: API database integration
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -105,6 +126,8 @@ jobs:
 
   accounts:
     name: Accounts test
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -116,6 +139,8 @@ jobs:
 
   accounts-database:
     name: Accounts database integration
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -130,6 +155,8 @@ jobs:
 
   ocr:
     name: OCR test
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -142,6 +169,8 @@ jobs:
 
   web:
     name: Web test and build
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -155,6 +184,8 @@ jobs:
 
   desktop-search:
     name: Desktop search integration
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -183,7 +214,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '26'
+          node-version-file: package.json
       - name: Select images from the complete main push
         run: node scripts/product-image-plan.mjs select "$RUNNER_TEMP/product-image-plan.json"
       # Product Images reads this artifact only after the whole Code Quality run succeeds.
@@ -196,10 +227,12 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  # The main ruleset requires this check name. It passes only when every check job succeeded.
+  # The main ruleset requires this check name. It passes when the build scope and the checks that
+  # always run succeeded and every other check job succeeded or was skipped without (build).
   lint-and-format:
     if: always()
     needs:
+      - scope
       - static
       - tooling
       - packages
@@ -215,18 +248,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Require every Code Quality job to succeed
+      - name: Require every Code Quality job to succeed or skip without (build)
         env:
           RESULTS: ${{ join(needs.*.result, ' ') }}
+          REQUIRED_RESULTS: ${{ needs.scope.result }} ${{ needs.static.result }} ${{ needs.tooling.result }}
         run: |
           if [[ -z "$RESULTS" ]]; then
             echo "No Code Quality job results reached the aggregate check"
             exit 1
           fi
 
-          for result in $RESULTS; do
+          for result in $REQUIRED_RESULTS; do
             if [[ "$result" != success ]]; then
-              echo "A Code Quality job finished with: $result"
+              echo "A Code Quality job that always runs finished with: $result"
               exit 1
             fi
+          done
+
+          for result in $RESULTS; do
+            case "$result" in
+              success | skipped) ;;
+              *)
+                echo "A Code Quality job finished with: $result"
+                exit 1
+                ;;
+            esac
           done
