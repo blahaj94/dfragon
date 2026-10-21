@@ -1,4 +1,3 @@
-# The main ruleset requires one approving review from a code owner. A pull request author cannot
-# approve their own pull request, and a new push dismisses earlier approvals. Repository admins
-# may bypass these rules when merging a pull request.
+# The main ruleset requires pull requests and the required checks, but no approving review. This
+# file only picks who is asked to review. Repository admins may bypass the rules when merging.
 * @blahaj94
