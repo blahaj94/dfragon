@@ -168,6 +168,8 @@ function positiveId(value) {
 
 const GITHUB_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/
 const GITHUB_API_BASE_PATH_SUFFIX_PATTERN = /\/$/
+// 이 수만큼의 최근 성공 실행에 발행 계획이 없으면 baseline 없이 모든 이미지를 다시 만든다.
+const BASELINE_RUN_LIMIT = 30
 
 export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = fetch }) {
   let baseUrl
@@ -208,48 +210,47 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
     }
   }
 
+  // (build) 없는 main push의 실행은 발행 없이 성공하고 계획 artifact를 남기지 않으므로 건너뛴다.
   const runs = await request(
-    `${repoUrl}/actions/workflows/product-images.yml/runs?branch=main&event=workflow_run&status=success&per_page=1`
+    `${repoUrl}/actions/workflows/product-images.yml/runs?branch=main&event=workflow_run&status=success&per_page=${BASELINE_RUN_LIMIT}`
   )
   if (!isRecord(runs) || !Array.isArray(runs.workflow_runs)) {
     throw new Error('Expected a GitHub workflow runs response')
   }
-  const run = runs.workflow_runs[0]
-  if (run === undefined) {
-    return null
-  }
 
-  if (
-    !isRecord(run) ||
-    !positiveId(run.id) ||
-    run.event !== 'workflow_run' ||
-    run.head_branch !== 'main' ||
-    run.conclusion !== 'success'
-  ) {
-    throw new Error('Expected a successful main product image workflow run')
-  }
+  for (const run of runs.workflow_runs) {
+    if (
+      !isRecord(run) ||
+      !positiveId(run.id) ||
+      run.event !== 'workflow_run' ||
+      run.head_branch !== 'main' ||
+      run.conclusion !== 'success'
+    ) {
+      throw new Error('Expected a successful main product image workflow run')
+    }
 
-  const artifacts = await request(`${repoUrl}/actions/runs/${run.id}/artifacts?per_page=100`)
-  if (
-    !isRecord(artifacts) ||
-    !Array.isArray(artifacts.artifacts) ||
-    artifacts.artifacts.some(
-      (artifact) =>
-        !isRecord(artifact) ||
-        !positiveId(artifact.id) ||
-        typeof artifact.name !== 'string' ||
-        typeof artifact.expired !== 'boolean'
-    )
-  ) {
-    throw new Error('Expected a GitHub workflow artifacts response')
-  }
+    const artifacts = await request(`${repoUrl}/actions/runs/${run.id}/artifacts?per_page=100`)
+    if (
+      !isRecord(artifacts) ||
+      !Array.isArray(artifacts.artifacts) ||
+      artifacts.artifacts.some(
+        (artifact) =>
+          !isRecord(artifact) ||
+          !positiveId(artifact.id) ||
+          typeof artifact.name !== 'string' ||
+          typeof artifact.expired !== 'boolean'
+      )
+    ) {
+      throw new Error('Expected a GitHub workflow artifacts response')
+    }
 
-  if (
-    artifacts.artifacts.some(
-      (artifact) => artifact.name === 'product-image-plan' && !artifact.expired
-    )
-  ) {
-    return run.id
+    if (
+      artifacts.artifacts.some(
+        (artifact) => artifact.name === 'product-image-plan' && !artifact.expired
+      )
+    ) {
+      return run.id
+    }
   }
 
   return null

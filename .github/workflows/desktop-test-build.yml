@@ -24,7 +24,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # A Windows build runs only for a (build) PR or a run started from the Actions page.
+  scope:
+    name: Build scope
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: ./.github/workflows/build-scope.yml
+
   build:
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: windows-latest
     timeout-minutes: 30
     # The test environment holds test-channel variables. PR builds are not deployments, so record none.

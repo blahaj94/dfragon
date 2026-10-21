@@ -15,14 +15,25 @@ env:
   SOURCE_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
-  select:
-    name: Select changed images
+  # Images build and publish only for a (build) PR or the main push of one. A main push without
+  # (build) leaves no plan artifact, so the next (build) push publishes its changes too.
+  scope:
+    name: Build scope
     if: >-
       github.event_name == 'pull_request' ||
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push' &&
        github.event.workflow_run.head_branch == 'main' &&
        github.event.workflow_run.head_repository.full_name == github.repository)
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: ./.github/workflows/build-scope.yml
+
+  select:
+    name: Select changed images
+    needs: scope
+    if: needs.scope.outputs.build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
