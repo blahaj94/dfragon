@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
@@ -81,6 +81,37 @@ test('실행 파일을 찾지 못한 명령도 실패로 보고한다', (t) => {
 
   assert.equal(code, 1)
   assert.match(output, /missing: dfragon-verify-missing-command \(.*ENOENT/u)
+})
+
+test('pnpm script로 시작하면 PATH 대신 실행 중인 pnpm으로 pnpm 명령을 시작한다', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'verify-pnpm-'))
+  t.after(() => rm(directory, { recursive: true, force: true }))
+  const trace = join(directory, 'trace')
+  const previous = process.env.npm_execpath
+  // step fixture를 pnpm JavaScript 진입점으로 보고 node로 실행하는지 확인한다.
+  process.env.npm_execpath = join(dirname(stepScript), 'pnpm.mjs')
+  t.after(() => {
+    if (previous === undefined) {
+      delete process.env.npm_execpath
+    } else {
+      process.env.npm_execpath = previous
+    }
+  })
+  t.mock.method(console, 'log', () => {})
+  t.mock.method(console, 'error', () => {})
+
+  const code = runJobs([
+    {
+      job: 'static',
+      commands: [
+        ['pnpm', trace, 'lint', '0'],
+        ['pnpm', trace, 'docs', '0']
+      ]
+    }
+  ])
+
+  assert.equal(code, 0)
+  assert.deepEqual((await readFile(trace, 'utf8')).trim().split('\n'), ['lint', 'docs'])
 })
 
 test('알 수 없는 인자는 검사를 실행하지 않고 사용법과 함께 2로 끝난다', async () => {
