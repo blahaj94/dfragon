@@ -17,7 +17,7 @@
 ## 검증
 
 - `pnpm verify`가 Code Quality workflow의 Docker 없는 검사 job을 같은 순서로 실행한다. Root `pnpm test`도 `pnpm verify`를 실행한다.
-- `pnpm install`이 husky `pre-push` hook을 설치하며, hook이 push 전에 `pnpm verify`를 실행한다.
+- `pnpm install`이 husky `pre-push` hook을 설치하며, hook이 push 전에 `pnpm verify`를 실행한다. CI는 PR 제목 scope가 `(build)`일 때만 앱 테스트와 빌드를 실행한다. 규칙은 [Repository Map의 CI 설명](docs/reference/repository-map.md)에 있다.
 - Docker가 있으면 `pnpm verify:database`로 API, accounts의 `test:database`와 Desktop 검색 통합을 실행한다.
 - 변경 범위별 명령 조합은 [Native validation](scripts/README.md#native-validation), 준비 조건은 [`verify` 안내](scripts/README.md#verify)를 따른다.
 - OCR UI smoke(`test:ui`)와 accounts DB 테스트에는 Playwright Chromium이 필요하다. Root에서 `pnpm exec playwright install chromium`으로 한 번 설치한다. [OCR 테스트 범위](apps/ocr/README.md#테스트의-검증-범위)를 참고한다.

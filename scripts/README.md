@@ -107,6 +107,11 @@ main에서는 `baseline`으로 마지막 성공 발행 실행을 찾고 `catch-u
 아직 발행되지 않은 변경도 합칩니다. 성공 목록이 없거나 만료되었으면 전체 이미지 빌드로 복구합니다.
 `output <plan-file>`은 source commit, 서비스 목록을 검증한 뒤 `GITHUB_OUTPUT`에 matrix와
 `has_changes`를 기록합니다. 빈 목록이면 빌드, 발행을 건너뜁니다.
+`baseline`은 계획 artifact가 없는 성공 실행(build scope가 아닌 main push)을 건너뛰고 최근 30개 안에서 찾습니다.
+
+## `build-scope`
+
+PR 제목, PR 작성자, 실행 event로 빌드와 전체 테스트를 실행할지 정해 `GITHUB_OUTPUT`에 `build=true` 또는 `build=false`를 기록합니다. [`build-scope.yml`](../.github/workflows/build-scope.yml)이 이 도구를 실행하며 규칙은 [Repository Map의 CI 설명](../docs/reference/repository-map.md)에 있습니다. main push와 그 뒤의 `workflow_run`은 GitHub API로 commit을 merge한 PR을 찾고, 조회에 실패하면 빌드를 건너뛰지 않고 실패합니다. 새 dependency 없이 Node.js 26을 사용합니다.
 
 검증: `pnpm test:product-images`, `node --check scripts/product-image-plan.mjs`.
 
@@ -158,9 +163,9 @@ node scripts/import-equipment-icons.mjs --pvf <data_layers 폴더> --samples <�
 
 `pnpm verify`는 Code Quality workflow의 검사 job 가운데 Docker가 필요 없는 job을 로컬에서 다시 실행합니다. Root `pnpm test`도 같은 명령입니다. 정적 검사(`lint`, `format:check`, `check:writing`, `check:docs`), 루트 도구 테스트, 공용 package, Desktop test와 typecheck, API, accounts, OCR, Web job의 run 명령을 workflow와 같은 순서로 실행합니다. Docker PostgreSQL을 쓰는 API, accounts의 `test:database`와 Desktop 검색 통합은 `pnpm verify:database`로 따로 실행합니다.
 
-명령 목록은 `scripts/verify.mjs`에 있고, `scripts/test/code-quality-workflow.test.mjs`가 workflow의 job, run 명령과 어긋나면 실패합니다. CI가 runner를 준비하려고 실행하는 Playwright 설치, main push의 이미지 선택(`image-plan`)과 결과 집계(`lint-and-format`) job은 대응에서 제외합니다. 의존성 설치는 먼저 끝냈다고 봅니다.
+명령 목록은 `scripts/verify.mjs`에 있고, `scripts/test/code-quality-workflow.test.mjs`가 workflow의 job, run 명령과 어긋나면 실패합니다. CI가 runner를 준비하려고 실행하는 Playwright 설치, build scope 판정(`scope`), main push의 이미지 선택(`image-plan`)과 결과 집계(`lint-and-format`) job은 대응에서 제외합니다.
 
-`pnpm install`이 설치하는 husky `pre-push` hook이 push 전에 `pnpm verify`를 실행하고 Docker daemon에 연결되면 `pnpm verify:database`도 실행합니다. 실패하면 push가 중단됩니다.
+CI는 PR 제목 scope가 `(build)`일 때만 앱 테스트를 실행하므로, `pnpm install`이 설치하는 husky `pre-push` hook이 push 전에 `pnpm verify`를 실행하고 Docker daemon에 연결되면 `pnpm verify:database`도 실행합니다. 실패하면 push가 중단됩니다. 규칙은 [Repository Map의 CI 설명](../docs/reference/repository-map.md)에 있습니다. 의존성 설치는 먼저 끝냈다고 봅니다.
 
 Job 안에서는 앞 명령이 실패하면 남은 명령을 건너뛰고 다른 job은 계속 실행합니다. 끝에 실패한 job, 명령, 종료 코드와 건너뛴 명령 수를 모아 출력하고 non-zero로 종료합니다. Job끼리 같은 build 산출물을 쓰므로 병렬로 실행하지 않습니다. 의존성과 Electron runtime이 준비된 Apple silicon Mac에서 전체 실행에 약 3분 걸렸습니다.
 
@@ -210,7 +215,7 @@ Schema First 작성, 생성, 적용 순서는 [`database-development.md`](../doc
 
 Accounts와 API의 PostgreSQL 컨테이너, 이미지 검증, 정리 원본은 `scripts/test-support/docker-postgres.mjs`입니다. 앱별 runner는 schema와 seed 등 앱 책임만 유지합니다. 공통 회귀 검증은 `node --test scripts/test/docker-postgres.test.mjs`로 실행하며 두 앱의 `test`에도 포함됩니다. Docker를 실행하는 실제 DB, 컨테이너 통합 검증과 이 mock 기반 helper 검증은 구분합니다.
 
-Code Quality는 PR과 main push마다 API와 accounts의 `test:database`를 GitHub runner의 Docker에서 별도 job(`API database integration`, `Accounts database integration`)으로 실행하며, 로컬에서는 `pnpm verify:database`가 두 job과 Desktop 검색 통합 job의 명령을 차례로 실행합니다. Runner는 `linux/amd64`이므로 고정 PostgreSQL 이미지의 amd64 digest를 검증합니다. Accounts job은 패스키 시나리오의 가상 인증기를 위해 Playwright Chromium을 먼저 설치합니다. 두 job은 main ruleset의 필수 check인 `lint-and-format` 집계에 포함되어 실패하면 PR merge가 막힙니다. main에서는 Product Images가 Code Quality 전체 실행의 성공을 확인하므로, 두 job이 실패하면 이미지도 빌드, 발행하지 않습니다.
+Code Quality는 build scope의 PR과 main push에서 API와 accounts의 `test:database`를 GitHub runner의 Docker에서 별도 job(`API database integration`, `Accounts database integration`)으로 실행하며, 로컬에서는 `pnpm verify:database`가 두 job과 Desktop 검색 통합 job의 명령을 차례로 실행합니다. Runner는 `linux/amd64`이므로 고정 PostgreSQL 이미지의 amd64 digest를 검증합니다. Accounts job은 패스키 시나리오의 가상 인증기를 위해 Playwright Chromium을 먼저 설치합니다. 두 job은 main ruleset의 필수 check인 `lint-and-format` 집계에 포함되어 실패하면 PR merge가 막히고, build scope가 아니어서 건너뛰면 통과로 봅니다. main에서는 Product Images가 Code Quality 전체 실행의 성공을 확인하므로, 두 job이 실패하면 이미지도 빌드, 발행하지 않습니다.
 
 API의 `test:database`는 Docker daemon이 없거나 고정 image, native platform을 검증할 수 없으면 skip하지 않고 실패합니다. Run마다 생성한 credential, `127.0.0.1` dynamic port, ownership label이 붙은 container와 named volume만 사용하며 정상, 오류, timeout, 처리 가능한 signal 뒤 exact resource 부재를 확인합니다. 자원을 만들기 전에 stdout에 secret이나 연결 정보가 없는 recovery run ID와 exact container, volume 이름을 기록합니다.
 
