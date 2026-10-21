@@ -12,4 +12,4 @@ node scripts/generate-brand-icons.mjs
 - Desktop `resources/icon.png`: 실행 중인 창, Dock 아이콘
 - Desktop `resources/brand.png`: 화면 안의 브랜드 표시와 파비콘
 - Web `public/favicon.png`: 브라우저 파비콘
-- API `browser/icon.png`: 패스키 인증 화면의 브랜드 표시와 파비콘
+- Accounts `browser/icon.png`: 패스키 인증 화면의 브랜드 표시와 파비콘
