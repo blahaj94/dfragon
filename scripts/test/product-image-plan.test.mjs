@@ -487,7 +487,7 @@ test('baseline 조회는 만료되지 않은 계획 artifact가 있는 성공한
   assert.equal(runId, 123)
   assert.equal(
     requests[0].url,
-    'https://api.github.com/repos/example/product/actions/workflows/product-images.yml/runs?branch=main&event=workflow_run&status=success&per_page=1'
+    'https://api.github.com/repos/example/product/actions/workflows/product-images.yml/runs?branch=main&event=workflow_run&status=success&per_page=30'
   )
   assert.equal(
     requests[1].url,
@@ -497,6 +497,33 @@ test('baseline 조회는 만료되지 않은 계획 artifact가 있는 성공한
   assert.equal(requests[0].options.redirect, 'error')
   assert.ok(requests[0].options.signal instanceof AbortSignal)
   assert.equal(requests[0].options.signal.aborted, false)
+})
+
+test('baseline 조회는 계획 artifact가 없는 최근 성공 실행을 건너뛰고 그 전 발행 실행을 고른다', async () => {
+  const { successfulRun, baselineArtifact, apiOptions, baselineApi } =
+    createProductImageApiFixture()
+  const skippedRun = { ...successfulRun, id: 124 }
+  const requests = []
+  const runId = await findBaselineRun({
+    ...apiOptions,
+    fetchImpl: baselineApi(
+      [
+        { workflow_runs: [skippedRun, successfulRun] },
+        { artifacts: [] },
+        { artifacts: [baselineArtifact] }
+      ],
+      requests
+    )
+  })
+
+  assert.equal(runId, 123)
+  assert.deepEqual(
+    requests.slice(1).map(({ url }) => url),
+    [
+      'https://api.github.com/repos/example/product/actions/runs/124/artifacts?per_page=100',
+      'https://api.github.com/repos/example/product/actions/runs/123/artifacts?per_page=100'
+    ]
+  )
 })
 
 test('성공 실행이 없거나 artifact가 없거나 만료되면 사용 가능한 baseline이 없다', async () => {

@@ -62,9 +62,12 @@ const command = runCommandOf(toolingStep)
 const aggregateJob = jobs.find((job) => jobIdOf(job) === 'lint-and-format')
 assert.ok(aggregateJob, 'main ruleset의 required check인 lint-and-format job이 있어야 한다')
 
-// These jobs check nothing in the repository. image-plan hands the main push image list to
-// Product Images, and lint-and-format only collects the other job results.
-const nonCheckJobs = new Set(['image-plan', 'lint-and-format'])
+// These jobs check nothing in the repository. scope decides whether the full suite runs,
+// image-plan hands the main push image list to Product Images, and lint-and-format only collects
+// the other job results.
+const nonCheckJobs = new Set(['scope', 'image-plan', 'lint-and-format'])
+// Pre-push runs pnpm verify locally, so only these cheap checks run on every PR and main push.
+const alwaysRunJobs = new Set(['static', 'tooling'])
 // CI prepares a fresh runner with these commands. Local verify expects the developer to have done
 // the same setup once, as scripts/README.md describes, instead of installing system packages.
 const runnerPreparation = new Map([
@@ -99,9 +102,13 @@ async function runToolingFixture(t, failedSuite) {
 }
 
 // The aggregate step uses GitHub's default Linux shell, which runs bash with -e.
-async function runAggregate(results) {
+async function runAggregate(results, requiredResults = ['success', 'success', 'success']) {
   const [step] = stepsOf(aggregateJob)
-  const env = { ...process.env, RESULTS: results.join(' ') }
+  const env = {
+    ...process.env,
+    RESULTS: results.join(' '),
+    REQUIRED_RESULTS: requiredResults.join(' ')
+  }
 
   return run('bash', ['-e', '-c', runCommandOf(step)], { env, timeout: 20_000 })
 }
@@ -117,38 +124,64 @@ test('Code Quality는 PR과 main push에서 루트 도구 집계를 조건 없�
   assert.doesNotMatch(toolingStep, /^(?: {8})?(?:if|continue-on-error):/mu)
 })
 
-test('이미지 계획 외의 job은 조건 없이 실행되고 lint-and-format이 항상 모두 기다린다', () => {
+test('static, tooling은 조건 없이, 나머지 검사 job은 build scope일 때만 실행하고 lint-and-format이 모두 기다린다', () => {
   const settings = settingsOf(aggregateJob)
   const needs = /^ {4}needs:\s*\n((?: {6}- [\w-]+\s*\n)+)/mu.exec(settings)
   assert.ok(needs, 'lint-and-format은 기다릴 job을 needs 목록으로 선언해야 한다')
-  // Only the main push image plan may be conditional. Product Images reads it after the whole run.
-  const checkJobs = jobs.filter((job) => {
+  const scopeJob = jobs.find((job) => jobIdOf(job) === 'scope')
+  // Only the main push image plan may be left out. Product Images reads it after the whole run.
+  const waitedJobs = jobs.filter((job) => {
     return job !== aggregateJob && jobIdOf(job) !== 'image-plan'
   })
+  const checkJobs = jobs.filter((job) => !nonCheckJobs.has(jobIdOf(job)))
 
   assert.match(settings, /^ {4}if: always\(\)\s*$/mu)
   assert.doesNotMatch(settings, /^ {4}continue-on-error:/mu)
   assert.ok(checkJobs.includes(toolingJob))
+  assert.match(settingsOf(scopeJob), /^ {4}uses: \.\/\.github\/workflows\/build-scope\.yml\s*$/mu)
+  assert.doesNotMatch(settingsOf(scopeJob), /^ {4}(?:if|continue-on-error):/mu)
 
   for (const job of checkJobs) {
-    assert.doesNotMatch(settingsOf(job), /^ {4}(?:if|continue-on-error):/mu, jobIdOf(job))
+    const id = jobIdOf(job)
+
+    assert.doesNotMatch(settingsOf(job), /^ {4}continue-on-error:/mu, id)
+
+    if (alwaysRunJobs.has(id)) {
+      assert.doesNotMatch(settingsOf(job), /^ {4}(?:if|needs):/mu, id)
+    } else {
+      assert.match(settingsOf(job), /^ {4}needs: scope\s*$/mu, id)
+      assert.match(settingsOf(job), /^ {4}if: needs\.scope\.outputs\.build == 'true'\s*$/mu, id)
+    }
   }
 
   assert.deepEqual(
     [...needs[1].matchAll(/- ([\w-]+)/gu)].map(([, id]) => id).sort(),
-    checkJobs.map(jobIdOf).sort()
+    waitedJobs.map(jobIdOf).sort()
   )
 })
 
-test('lint-and-format은 needs 전체 결과를 받아 모두 성공일 때만 통과한다', async () => {
+test('lint-and-format은 scope, static, tooling 성공과 나머지 job의 성공 또는 건너뜀일 때만 통과한다', async () => {
   const [step] = stepsOf(aggregateJob)
 
   assert.match(step, /^ {10}RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}\s*$/mu)
+  assert.match(
+    step,
+    /^ {10}REQUIRED_RESULTS: \$\{\{ needs\.scope\.result \}\} \$\{\{ needs\.static\.result \}\} \$\{\{ needs\.tooling\.result \}\}\s*$/mu
+  )
   await runAggregate(['success', 'success', 'success'])
+  await runAggregate(['success', 'skipped', 'success'])
   await assert.rejects(runAggregate([]), { code: 1 }, '전달된 결과 없음')
 
-  for (const result of ['failure', 'cancelled', 'skipped']) {
+  for (const result of ['failure', 'cancelled']) {
     await assert.rejects(runAggregate(['success', result, 'success']), { code: 1 }, result)
+  }
+
+  for (const result of ['failure', 'cancelled', 'skipped']) {
+    await assert.rejects(
+      runAggregate(['success', 'success', 'success'], ['success', result, 'success']),
+      { code: 1 },
+      `항상 실행하는 job의 ${result}`
+    )
   }
 })
 
