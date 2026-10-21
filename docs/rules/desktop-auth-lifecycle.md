@@ -5,18 +5,16 @@ enforcement: approval-required
 scope: apps/desktop authentication lifecycle and recovery
 last-reviewed: 2026-10-20
 rationale: callback, 재시작, rotation, 취소 경합에서 중복 credential 사용과 거짓 로그인 성공을 막는다.
-evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; docs/rules/auth-api.md, auth-passkeys.md, auth-session.md; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성; 2026-10-11 사용자 결정: Windows 실기에서 확인한 로그인 복귀 뒤 창 활성화 한계 수용; 2026-10-20 사용자 결정: 인증 완료 페이지의 앱으로 돌아가기 버튼 제거"
-exceptions: 설계 승인은 구현 착수가 아니며 서버 grace, 취소/status endpoint 또는 session 정책을 추가하지 않는다.
-review-after: 최초 로그인, refresh, 저장 실패 integration validation 시
+evidence: "2026-09-05 PR #60 merge, 설계 Issue #55; 2026-09-08 PR #139 복원 종료 merge; docs/rules/auth-api.md, auth-passkeys.md, auth-session.md; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성; 2026-10-11 사용자 결정: Windows 실기에서 확인한 로그인 복귀 뒤 창 활성화 한계 수용; 2026-10-20 사용자 결정: 인증 완료 페이지의 앱으로 돌아가기 버튼 제거"
+exceptions: 서버 grace, 취소/status endpoint 또는 session 정책을 추가하지 않는다.
+review-after: 로그인, refresh, 저장 실패 처리 변경 시
 ---
 
 # Desktop Authentication Lifecycle
 
 게임 캡처, OCR, 공개 검색은 [로그인 선택 정책](desktop-auth.md#최소-화면과-capture-경계)을 따른다. 이 문서의 인증 이탈, 보호 기능 cleanup은 계정 인증 작업에 적용하며 진행 중 캡처를 중단하지 않는다.
 
-승인 상태와 process/IPC/화면은 [Desktop contract](desktop-auth.md), OS, durable write protocol은 [platform](desktop-auth-platform.md)이 canonical source다. 아래 상태는 승인된 contract이며 현재 구현, 실행 evidence가 아니다. 서버의 [auth API](auth-api.md), [패스키](auth-passkeys.md), [session](auth-session.md), [활동](auth-activity.md) 계약을 그대로 소비한다.
-
-단, [저장 확정 뒤 복원 종료 제안](#저장-확정-뒤-복원-종료-제안)은 PR #139의 사용자 승인, merge로 active가 됐다. 제품 구현과 실제 환경 검증은 별도 실행 범위다.
+Process/IPC/화면은 [Desktop contract](desktop-auth.md), OS, durable write protocol은 [platform](desktop-auth-platform.md)이 canonical source다. 서버의 [auth API](auth-api.md), [패스키](auth-passkeys.md), [session](auth-session.md), [활동](auth-activity.md) 계약을 그대로 소비한다.
 
 이 문서의 pending/credential 수명은 기존 로그인, 기기 session 범위다. 탈퇴 전용 statusToken과 준비/확정 이후 local auth 정리, 재시작 상태 조회는 [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 최소 연결을 따른다. 이 확장으로 아래 main login의 pending memory-only, refresh 단일 실행을 바꾸지 않는다.
 
@@ -86,7 +84,7 @@ sequenceDiagram
 ## Main HTTP 계약
 
 - Trusted 배포 설정의 exact HTTPS API origin과 고정 endpoint만 사용한다. Renderer URL/redirect/proxy 선택을 받지 않는다. 인증 JSON fetch는 credential cookie를 보내지 않고 redirect를 따라가지 않는다. TLS certificate 오류를 무시하지 않는다.
-- Login-request/exchange/refresh/logout/`GET /me` 호출 각각은 시작부터 header, body 전체까지 **단일 15초 deadline**, 자동 network retry 0회다. 이는 승인된 Desktop 대기 예산이며 서버 TTL, 검색 deadline을 바꾸지 않는다. Abort/timeout은 서버 rollback 증거가 아니다. 검색의 별도 예산은 후속 검색 task가 기존 contract에 맞춰 정한다.
+- Login-request/exchange/refresh/logout/`GET /me` 호출 각각은 시작부터 header, body 전체까지 **단일 15초 deadline**, 자동 network retry 0회다. 이는 승인된 Desktop 대기 예산이며 서버 TTL, 검색 deadline을 바꾸지 않는다. Abort/timeout은 서버 rollback 증거가 아니다. 검색의 별도 예산은 [OCR 검색 연결](desktop-auth.md#전체-검색-예산과-제한-응답)을 따른다.
 - JSON 성공은 최대 16,384-byte stream, strict UTF-8, JSON object, 해당 endpoint의 exact field/type을 검사한다. TokenType은 Bearer, refresh는 canonical 32-byte base64url, request/user ID는 UUID, 날짜는 유효 UTC ISO다. accessToken은 nonempty ASCII compact JWS 형태이며 최대 8,192 byte만 허용한다. isNewUser는 boolean으로 검사한다. Nickname은 well-formed string인지 확인하되 서버의 trim/grapheme 결과를 client Unicode version으로 재정의하거나 OCR normalizer로 수정하지 않고 그대로 text 출력한다. Raw 오류는 버린다. Desktop의 응답 size/shape 상한은 서버 request parser와 별개인 새 client 소비 제약이다. 실서버 fixture가 이 상한을 넘으면 임의로 잘라 쓰지 말고 client 계약을 재검토한다.
 - JWT 서명 검증/권한 판정은 서버가 수행한다. Main은 HTTPS 응답의 expiry를 scheduling hint로만 쓰고 JWT claim에서 user/session을 복원하지 않는다. 204 logout은 body 없이 처리한다. 알 수 없는 HTTP/code, malformed/truncated response는 성공이 아니다.
 - Exchange/refresh에 200을 받았어도 parsing/저장 실패면 새 credential 사용을 중단한다. Raw refresh를 안전하게 식별한 경우에만 아래 폐기를 1회 시도한다. 불완전 body에서 임의 field를 추출해 credential로 사용하지 않는다.
@@ -103,7 +101,7 @@ sequenceDiagram
 
 ## 로컬 clock 신뢰
 
-이 절은 [Issue #414의 clock 후속 범위](https://github.com/blahaj94/ldb/issues/414#issuecomment-5639942825)에 따라 같은 PR의 구현과 함께 채택할 정책입니다. 해당 PR의 사용자 merge부터 적용합니다. 서버 시간, JWT 권한 판정, access 만료 시각과 refresh 회전 규칙은 바꾸지 않습니다.
+이 절은 Desktop 로컬 clock의 신뢰 정책이다. 서버 시간, JWT 권한 판정, access 만료 시각과 refresh 회전 규칙은 바꾸지 않는다.
 
 - 인증 clock은 신뢰 구간의 최초 wall/monotonic 관계를 고정하고 이후 관측의 상대 차이를 비교합니다. 두 시계가 모두 증가해도 상대 차이가 허용 범위를 벗어나면 신뢰를 잃습니다. 매번 비교 기준을 옮기지 않으므로 같은 방향의 작은 drift도 누적됩니다. 여기서 누적은 고정 기준에서의 순편차이며 모든 움직임의 절댓값 합계가 아닙니다.
 - 허용 예산은 양방향 **1,000 ms 이하**이며 읽기 표본의 불확실성도 이 안에 포함합니다. 이는 짧은 표본 오차를 수용하면서 보고된 5초 상대 차이를 거절하기 위한 클라이언트 정책 선택입니다. 측정된 OS 정확도, 서버 시간과의 일치 또는 만료 뒤 1초의 grace를 보장하지 않습니다. 경과 시간에 비례해 예산을 늘리지 않으므로 정상적인 장기 drift도 조기 pause를 일으킬 수 있습니다.
@@ -114,26 +112,24 @@ sequenceDiagram
 
 절대 wall 역행만 비교하면 두 시계가 모두 증가하는 상대 역행을 놓칩니다. Delta의 완전 일치는 표본 오차를 허용하지 않고, 매번 기준을 갱신하거나 시간에 비례한 예산을 쓰면 누적 변경의 고정 상한이 사라집니다. 선택한 정책은 서버 시간 증명 대신 로컬 access의 사용을 보수적으로 중단하며, 실제 clock과 절전 이벤트의 검증 한계는 [platform](desktop-auth-platform.md#clock과-절전-관측)에 둡니다.
 
-## 저장 확정 뒤 복원 종료 제안
+## 저장 확정 뒤 복원 종료
 
 ```yaml
 status: active
 enforcement: approval-required
 rationale: 저장 대기 중 access 만료, clock 불연속으로 복원이 끝나지 않거나 안전하지 않은 access를 사용하는 일을 막는다.
-evidence: "PR #139 사용자 승인: https://github.com/blahaj94/ldb/pull/139#issuecomment-5577289923 ; merge: cfb1fa7a9e1ce6e6ac9b704842be5d02183cbfbd ; 설계 근거: https://github.com/blahaj94/ldb/issues/137"
+evidence: "2026-09-08 PR #139 merge, 설계 Issue #137"
 exceptions: platform의 저장 확정, 실패, crash 복구와 기존 401 처리는 유지하며 clock 판정은 이 문서의 로컬 clock 신뢰 절을 따른다.
-review-after: 초기 restore, paused retry의 commit/finalize 지연과 후속 수동 재시도 검증 후
+review-after: 초기 restore, paused retry의 commit/finalize 지연 처리 변경 시
 ```
 
 1. 초기 restore와 `restorePaused`에서 시작한 `retryAuth` 모두에 적용한다. **저장 확정은 R1 credential commit과 marker 삭제 각각의 durability 확인까지**이며 [platform의 저장 순서](desktop-auth-platform.md#credential-file과-crash-복구)를 생략하지 않는다. Commit 또는 finalize 대기 중 시간 문제가 관측돼도 그 이유만으로 저장을 취소하지 않는다. 저장이 정상 확정되고 현재 generation인 경우에만 아래 pause 정책을 적용한다.
 2. 복원의 access 사용 가능 판정, `/me` 전송 직전과 signedIn 발행 직전에 현재 auth generation, credential, access 만료 시각과 clock 신뢰를 다시 검사한다. Commit/finalize 및 `/me` 응답, body 처리 등 비동기 대기 뒤도 포함한다. 이미 만료됐거나 clock 불연속을 관측해 신뢰를 잃은 access는 이후 clock 읽기가 정상이라는 이유로 되살리지 않는다. Clock 판정은 위 로컬 clock 신뢰 정책을 사용하며 JWT 기반 권한 판정은 추가하지 않는다.
-3. 저장이 확정된 R1의 access가 만료됐거나 clock 때문에 유효성을 신뢰할 수 없으면, 같은 복원 호출에서 **이 시간 문제를 이유로 한 자동 추가 rotation은 0회**다. R1은 보존하고 `restorePaused`와 [notice, 문구](desktop-auth.md#저장-확정-뒤-복원-안내-제안)로 끝낸다. 이 사유만으로 clear, logout, marker 재생성, R0 재사용을 하지 않는다. `/me` 전 검사에 실패하면 전송 0회, 성공 응답 뒤 검사에 실패하면 받은 user를 발행하지 않으며 둘 다 signedIn은 0회다. 지연 뒤에도 모든 검사가 유효하면 정상 `/me`와 signedIn/home을 계속한다.
+3. 저장이 확정된 R1의 access가 만료됐거나 clock 때문에 유효성을 신뢰할 수 없으면, 같은 복원 호출에서 **이 시간 문제를 이유로 한 자동 추가 rotation은 0회**다. R1은 보존하고 `restorePaused`와 [notice, 문구](desktop-auth.md#저장-확정-뒤-복원-안내)로 끝낸다. 이 사유만으로 clear, logout, marker 재생성, R0 재사용을 하지 않는다. `/me` 전 검사에 실패하면 전송 0회, 성공 응답 뒤 검사에 실패하면 받은 user를 발행하지 않으며 둘 다 signedIn은 0회다. 지연 뒤에도 모든 검사가 유효하면 정상 `/me`와 signedIn/home을 계속한다.
 4. 다음 사용자 `retryAuth`는 현재 access가 유효하고 clock 신뢰를 잃지 않았으면 `/me`만 재개한다. Access가 없거나 만료, 신뢰 상실 상태면 **현재 저장 확정 credential**로 정상 shared refresh를 한 번 수행한 뒤 같은 검사와 `/me`를 거친다. 이전에 소비된 R0나 불명 결과의 credential로 돌아가지 않는다. 새 응답의 access도 저장 대기 후 유효하지 않으면 새로 확정된 credential을 보존하며 다시 pause로 끝낸다. 연속 사용자 재시도는 가능하지만 자동 호출, rotation 반복, TTL 연장은 없다.
 5. HTTP, 저장 결과와 필요한 정리가 확정되면 해당 복원 작업이 소유한 writer, verification 대기를 끝내고 `restoring`에 남지 않는다. `retryAuth`는 처리가 끝난 현재 snapshot을 담은 기존 `AuthCommandResult`로 resolve하며, pause로 끝나면 다음 사용자 재시도를 받을 수 있어야 한다. 중복 호출은 현재 phase, writer 검사로 거절하고 새 작업을 queue하지 않는다. 이 종료 계약은 [동기 OS prompt](desktop-auth-platform.md#os-저장-선택)를 timer로 취소하거나 응답 시간을 보장한다는 뜻이 아니다.
 6. 기존 single writer, 같은 session generation의 shared refresh를 유지한다. 각 대기 완료와 발행 직전에 generation을 확인하고 logout, 복원 포기, 새 generation이 먼저 유효해졌으면 이전 작업은 pause나 signedIn으로 덮어쓰지 않는다. Logout과 저장 정리는 기존 직렬화, late response 폐기 규칙을 따른다.
 7. Commit 실패, 불명 결과, marker 삭제 durability 실패, 재확립 실패와 crash는 저장 확정으로 분류하지 않고 기존 platform 처리를 따른다. `/me` network/5xx와 인증 상실도 기존 원인별 처리를 유지한다. 위 자동 rotation 0회는 local 시간 문제의 정책이며, 기존 `/me` 등 read의 제한된 401 처리와 그 적용 경계를 새로 정하거나 대체하지 않는다.
-
-이 절은 [PR #139의 사용자 merge 승인](https://github.com/blahaj94/ldb/pull/139#issuecomment-5577289923)으로 substantive contract와 status 전환이 채택된 active Rule이다. 상세 상황표, 추가 rotation 대안, 후속 검증 계획은 Issue/PR에 둔다. 제품 반영은 Rule merge와 별도의 사용자 실행 범위에서 진행한다.
 
 ## 취소, 로그아웃, 실패의 최종 동작
 

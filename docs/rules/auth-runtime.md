@@ -2,38 +2,32 @@
 type: rule
 status: active
 enforcement: approval-required
-scope: apps/api authentication dependencies and database operations
+scope: apps/accounts authentication dependencies and database operations
 last-reviewed: 2026-10-11
 rationale: 인증의 runtime 호환성, Migration과 DB 실행 조건을 정의한다.
-evidence: "PR #48 사용자 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519 ; 설계 근거: Issue #39 Proposal Revision 2 https://github.com/blahaj94/ldb/issues/39#issuecomment-5551313691"
-exceptions: 문서 변경은 dependency 설치, lockfile 변경이나 DB 실행의 착수 허용이 아니다.
+evidence: "2026-09-05 PR #48 merge, 설계 Issue #39; 2026-09-05 PR #50 PostgreSQL 선택 merge; 2026-09-07 PR #128 설정 입력 merge"
 review-after: runtime 호환성 또는 DB 실행 조건 변경 시
 ---
 
 # Authentication Runtime Contract
 
-이 문서는 [PR #48의 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한 인증 runtime과 DB 실행 계약입니다. [`api-runtime.md`](api-runtime.md)의 Node 26/Nest 12/ESM/TypeScript 7.0 및 tsc→Node 검증 계약을 유지합니다. 정책 승인과 실제 구현, 호환성 검증 및 운영 실행은 구분하며, 후속 작업은 [제품 계약 적용 기준](../README.md#document-class)과 사용자 실행 허용 범위를 따릅니다.
+이 문서는 인증 runtime과 DB 실행 계약이다. [`api-runtime.md`](api-runtime.md)의 Node 26/Nest 12/ESM/TypeScript 7.0 및 tsc→Node 검증 계약을 유지한다. 운영 실행은 [제품 계약 적용 기준](../README.md#document-class)과 실행 권한 범위를 따른다.
 
 ## 의존성 기록과 호환성
 
-패키지 목록, 버전과 변경 절차는 [`API runtime의 의존성 관리`](api-runtime.md#의존성-관리)를 따릅니다. 인증 전용의 패키지 허용 목록이나 exact version별 재승인 조건은 두지 않습니다. 이 변경은 [Issue #302](https://github.com/blahaj94/ldb/issues/302)의 사용자 요청을 반영하며, 해당 문서 변경을 포함한 PR의 사용자 merge로 적용합니다.
+패키지 목록, 버전과 변경 절차는 [`API runtime의 의존성 관리`](api-runtime.md#의존성-관리)를 따릅니다. 인증 전용의 패키지 허용 목록이나 exact version별 재승인 조건은 두지 않습니다.
 
-기존 패키지 선택의 승인 이력은 [PR #48](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)과 [`@types/pg` 선택 PR #118](https://github.com/blahaj94/ldb/pull/118#issuecomment-5570381432)에 보존합니다. 실제 변경에서는 engine과 peer 조건, compiled ESM 및 TypeScript 호환성과 영향받는 인증, DB 동작을 검증합니다. 패키지 선택만으로 검증 성공을 주장하지 않습니다.
+실제 변경에서는 engine과 peer 조건, compiled ESM 및 TypeScript 호환성과 영향받는 인증, DB 동작을 검증합니다. 패키지 선택만으로 검증 성공을 주장하지 않습니다.
 
-로컬 DB는 기존 Docker-only 조건을 유지합니다. PostgreSQL server, image와 local validation의 선택 및 승인 상태는 아래 구간을 따릅니다.
+로컬 DB는 기존 Docker-only 조건을 유지합니다. PostgreSQL server, image와 local validation의 선택은 아래 구간을 따릅니다.
 
 ## PostgreSQL 선택과 Docker 검증
 
-| 상태 항목 | 현재 값 |
-| --- | --- |
-| 선택 상태 | **승인됨** |
-| 선택 승인 evidence | [PR #50 사용자 승인](https://github.com/blahaj94/ldb/pull/50#issuecomment-5552245712) (2026-09-05T13:48:26Z) |
-
-이 표와 다음 digest, version은 최초 선택의 승인 이력이다. 현재 실행 값은 검증 도구에서 확인하고 변경은 아래 이미지 갱신 기준을 따른다. 선택 이력 자체를 실제 호환성, 운영 검증 성공으로 표시하지 않는다.
+아래 digest, version은 2026-09-05 최초 선택의 값이다. 현재 실행 값은 검증 도구에서 확인하고 변경은 아래 이미지 갱신 기준을 따른다. 선택 이력 자체를 실제 호환성, 운영 검증 성공으로 표시하지 않는다.
 
 ### 선택과 근거
 
-2026-09-05 확인 기준 PostgreSQL 18의 current minor는 18.6이고 2030-11-14까지 지원된다. PostgreSQL은 지원 major의 current minor 사용을 권고한다. 기존 schema가 쓰는 constraint, `COLLATE "C"`, partial unique index, `INSERT ... ON CONFLICT`, row lock은 PostgreSQL 18 공식 문서에 있는 기능이다. 따라서 server major 18과 아래 Docker Official Image를 후속 local integration 기준으로 제안한다. 이 문서 검토는 `pg 8.23.0`, `typeorm 1.1.1`의 실제 ESM 연결 성공 evidence가 아니며 그 확인은 아래 실행 matrix에 남긴다.
+2026-09-05 확인 기준 PostgreSQL 18의 current minor는 18.6이고 2030-11-14까지 지원된다. PostgreSQL은 지원 major의 current minor 사용을 권고한다. 기존 schema가 쓰는 constraint, `COLLATE "C"`, partial unique index, `INSERT ... ON CONFLICT`, row lock은 PostgreSQL 18 공식 문서에 있는 기능이다. 따라서 server major 18과 아래 Docker Official Image를 local integration 기준으로 선택했다. `pg`, `typeorm`의 현재 버전은 `pnpm-workspace.yaml` catalog에서 확인한다.
 
 - Image reference: `docker.io/library/postgres:18.6-trixie@sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280`
 - 위 digest는 tag가 가리키는 `application/vnd.oci.image.index.v1+json` **manifest index digest**다. 실행 platform image manifest digest와 혼동하지 않는다.
@@ -49,7 +43,7 @@ PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VO
 ### 로컬 DB 격리와 재사용
 
 1. 로컬 PostgreSQL은 Docker의 비운영 전용 환경에서 실행한다. 개발 중에는 소유자와 사용 중인 작업이 명확한 container, volume을 재사용할 수 있다. 각 검증의 DB/schema, fixture를 격리하거나 초기화해 순서 의존과 이전 결과의 오염을 막는다. Fresh Migration, rollback, teardown 자체의 검증은 새 disposable DB에서 수행한다. Host bind는 `127.0.0.1`로 제한하고 병렬 실행은 port와 DB를 분리한다. Test credential은 비운영 값만 쓰며 repository나 log에 남기지 않는다.
-2. 현재 검증 도구에 고정된 image digest와 선택 platform을 사용하고 해당 image의 `PGDATA`/volume 경로를 따른다. 위 값은 최초 승인 조합의 이력이며 업데이트의 현재 값은 검증 도구와 변경 PR에서 관리한다. App schema용 init script를 `/docker-entrypoint-initdb.d`에 넣지 않는다. Image entrypoint는 empty `PGDATA`에 PostgreSQL cluster와 test DB를 초기화할 뿐이며 auth domain table은 readiness 뒤 compiled JavaScript Migration의 단일 명시 실행만 만든다.
+2. 현재 검증 도구에 고정된 image digest와 선택 platform을 사용하고 해당 image의 `PGDATA`/volume 경로를 따른다. 위 값은 최초 선택 조합이며 업데이트의 현재 값은 검증 도구와 변경 PR에서 관리한다. App schema용 init script를 `/docker-entrypoint-initdb.d`에 넣지 않는다. Image entrypoint는 empty `PGDATA`에 PostgreSQL cluster와 test DB를 초기화할 뿐이며 auth domain table은 readiness 뒤 compiled JavaScript Migration의 단일 명시 실행만 만든다.
 3. Readiness는 Migration이 쓸 것과 같은 host TCP 경로, database, user, password로 인증하고 bounded retry 안에서 `SELECT 1`이 성공해야 충족된다. Container running/health 상태나 `pg_isready`만으로 migration-ready를 주장하지 않는다. 환경을 생성, 갱신할 때 실제 server version과 선택 image/platform을 확인하고 기록한다. 같은 환경에서 테스트만 다시 실행할 때 이 조사를 반복하지 않는다.
 4. 일회성 환경은 정상 종료, 관측 가능한 실패, timeout, 처리 가능한 `SIGINT`, `SIGTERM`에서 `finally` 성격의 teardown을 수행한다. 재사용 환경은 작업이 만든 fixture, 연결을 정리하고 소유자가 종료할 때 container, volume을 회수한다. 기존 disposable 검증 도구를 수정 없이 재사용 모드로 실행할 수 있다고 가정하지 않는다. 각 자원에 run ownership ID를 붙이고 이번 run의 ID와 일치하는 exact container, named volume, network만 삭제해 부재를 확인한다. `SIGKILL`, host crash, Docker daemon 장애에서는 즉시 teardown을 보장하지 않으며 잔여 resource와 삭제 지연을 공개한다. 다음 실행의 recovery도 알려진 run ownership ID가 일치하는 exact resource만 회수한다. Global prune, 이름 pattern에 의한 광역 삭제, 기존, 운영 resource 삭제를 금지한다. Disposable volume 삭제는 test fixture teardown이며 [`auth-database.md`](auth-database.md)의 revoked/idle session과 인증 요청 row cleanup, 보관 정책을 실행하거나 바꾸는 것이 아니다.
 
@@ -74,15 +68,15 @@ PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VO
 
 - `synchronize:false`, `migrationsRun:false`로 앱 시작이 schema를 자동 변경하지 않는다.
 - TypeORM compiled JavaScript DataSource/Migration CLI로 승인된 tsc→Node ESM 실행을 유지한다. ts-node/Nest CLI나 새 runner를 추가하지 않는다.
-- 현재 schema는 [인증 DB](auth-database.md)의 5개 table을 사용한다. 과거 migration을 수정하지 않고 패스키 전환 migration을 이어 적용한다. 전환 up/down은 대상 table 쓰기를 잠근 뒤 users, auth_login_requests가 비었을 때만 허용한다. 새 DB apply, 재실행 no-op, 직접 constraint 위반 거절, Migration 목록/schema를 후속 검증한다.
+- 현재 schema는 [인증 DB](auth-database.md)의 5개 table을 사용한다. 과거 migration을 수정하지 않고 패스키 전환 migration을 이어 적용한다. 전환 up/down은 대상 table 쓰기를 잠근 뒤 users, auth_login_requests가 비었을 때만 허용한다. 새 DB apply, 재실행 no-op, 직접 constraint 위반 거절, Migration 목록/schema를 검증한다.
 - 배포 담당의 단일 명시 실행으로 transaction 적용하며 동시 자동 실행을 금지한다. 운영 destructive down을 자동 실행하지 않는다. Rollback 검증은 빈 disposable test DB에 한정한다.
 - 운영 변경은 검토한 forward migration/백업 절차의 별도 승인을 따른다. DB credential, key/패스키 필수 설정은 해당 module을 연결할 때부터 listen 전에 값/stack 없이 정제 검증한다. 미연결 runtime-only app에 이 설정을 요구하지 않는다.
 
-기존 Migration 명령과 구현은 `apps/accounts/package.json`과 `apps/accounts/src/database/`에서 확인한다. 현재 요청에 포함된 구현과 비운영 검증은 [제품 계약 적용 기준](../README.md#document-class)에 따라 진행한다. 과거 설계 작업의 설치, 실행 제외를 새 요청의 금지로 재사용하지 않으며, 실제 운영 DB와 파괴적 실행에는 해당 실행 권한이 필요하다.
+기존 Migration 명령과 구현은 `apps/accounts/package.json`과 `apps/accounts/src/database/`에서 확인한다. 실제 운영 DB와 파괴적 실행에는 해당 실행 권한이 필요하다.
 
 ## accounts의 배포 설정 입력
 
-인증 JSON을 시작 때 한 번 읽는 경계는 [PR #128](https://github.com/blahaj94/ldb/pull/128#issuecomment-5572382154)의 승인 이력을 유지한다. 현재 파일은 `accessJwt`와 `passkey` 두 object만 받는다. JWT 개인키는 기존 JSON 또는 외부 비밀값 입력 중 하나로 제공한다. 설정 예제는 [패스키 실행 안내](../reference/passkey-authentication.md)를 따른다.
+accounts는 인증 JSON을 시작 때 한 번 읽는다. 현재 파일은 `accessJwt`와 `passkey` 두 object만 받는다. JWT 개인키는 기존 JSON 또는 외부 비밀값 입력 중 하나로 제공한다. 설정 예제는 [패스키 실행 안내](../reference/passkey-authentication.md)를 따른다.
 
 - `accessJwt`: issuer, audience, signingKey(kid/privateKeyPem), verificationKeys(kid/publicKeyPem 배열). `AUTH_JWT_PRIVATE_KEY` 또는 `AUTH_JWT_PRIVATE_KEY_FILE`을 쓰면 signingKey에는 kid만 두며 JSON의 privateKeyPem과 함께 제공하면 거절한다. 기존 issuer/verifier와 키 일치 검증을 사용하고 정상 key 교체, 복원 예외는 [세션](auth-session.md)을 따른다.
 - `passkey`: apiOrigin, rpId, rpName과 선택 ocrReturnUrl. HTTPS exact origin, 같은 hostname의 RP ID와 고정 OCR HTTPS callback을 검증한다. Desktop `returnUrl`은 서버 설정에서 제거하고 로그인 요청에서 받아 형식을 검증해 저장한다. 배포 전에 기존 JSON의 `passkey.returnUrl` key를 제거해야 하며, 남아 있으면 unknown field로 기동을 거절한다. 설정 fingerprint가 바뀌면 기존 transient 요청을 거절한다. 인증은 [accounts 단일 origin](auth-passkeys.md#accounts-단일-인증-origin과-이전-종료)만 사용하며 이전 origin 설정은 허용하지 않는다.
@@ -96,15 +90,14 @@ HTTP 합성과 기존 계정, 검색 deadline은 유지한다. 제품의 인증 
 
 ## 승인과 미결정 gate
 
-API/security/schema/보관, key 주기, 활동 분류, admission/DB 장애, body/deadline 정책은 승인됐다. PostgreSQL server, image, local validation 선택의 상태와 evidence는 위 canonical 구간만 따른다. 선택 승인 여부와 별개로 다음 미정이 필요한 구현은 별도 결정/검증을 완료해야 한다.
+PostgreSQL server, image, local validation 선택은 위 canonical 구간만 따른다. 다음 항목에 의존하는 구현은 별도 결정, 검증을 완료해야 한다.
 
 - 선택한 운영 환경의 single process 조건, clock, cleanup, key 운영 절차. 실행 절차는 [인프라 책임](../reference/api-start-development.md#서버-이미지), 삭제, 복원 조건은 [제품 계약](auth-withdrawal-proposal.md)을 따름
 - 실제 선택한 dependency 조합의 compiled ESM/TypeScript/runtime compatibility
-- 실제 인증 HTTPS origin, RP ID, 앱 protocol과 Electron OS 저장/IPC, browser/OS 검증. Desktop의 남은 platform 조건은 [Desktop contract](desktop-auth.md)를 따름
-
+- Electron OS 저장/IPC의 browser/OS 실기 검증. Desktop 복귀는 loopback으로 정했고 남은 platform 조건은 [Desktop contract](desktop-auth.md)를 따름
 - 공개 ingress와 서비스 전체 abuse 대응. 구현된 process 단위 제한을 다중 instance 전체 제한으로 확대 해석하지 않음
 - [탈퇴, 삭제](auth-withdrawal-proposal.md)의 패스키 재인증, 경합 후속 설계, control store 내구성, writer fencing, 보관, 장애 대응과 선택한 복원 검증
 
-탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현, 백업/복원 실행의 자동 착수 지시가 아니다. 현재 요청에 구현, 비운영 검증이 포함되면 과거 설계 승인 때의 실행 제외를 이유로 재허락을 요구하지 않는다. 유효한 명시적 금지와 실제 credential, 운영 DB, 배포 권한은 유지하고, 요청한 범위에 [검증 명령](../../scripts/README.md#native-validation)의 관련 검증을 수행한다.
+탈퇴 Rule은 제품 구현, 백업/복원 실행의 자동 착수 지시가 아니다. 실제 credential, 운영 DB, 배포 권한은 유지하고, 요청한 범위에 [검증 명령](../../scripts/README.md#native-validation)의 관련 검증을 수행한다.
 
 인증 소유 app은 `apps/accounts`이며 domain API와 DB가 분리된다. 서비스, PostgreSQL, 역할, 백업의 독립 배포와 이전 인증 경로 정리 절차는 [인프라 운영 절차](../reference/api-start-development.md#서버-이미지)를 따른다. 기존 auth schema migration을 populated source에 재실행하지 않는다.

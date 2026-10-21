@@ -3,11 +3,12 @@ type: rule
 status: active
 scope: apps/accounts core authentication database
 last-reviewed: 2026-10-10
+evidence: "2026-09-05 PR #48 merge"
 ---
 
 # Authentication Database Contract
 
-회원 식별과 로그인은 [패스키 인증](auth-passkeys.md), 시간, refresh는 [세션](auth-session.md), 활동은 [계정 활동](auth-activity.md), DB 실행은 [runtime](auth-runtime.md)을 따른다. 기존 세션, 보관 정책의 승인 이력은 [PR #48](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)에 보존한다. 탈퇴 extension은 [탈퇴, 삭제](auth-withdrawal-proposal.md)의 별도 미구현 범위다.
+회원 식별과 로그인은 [패스키 인증](auth-passkeys.md), 시간, refresh는 [세션](auth-session.md), 활동은 [계정 활동](auth-activity.md), DB 실행은 [runtime](auth-runtime.md)을 따른다. 탈퇴 extension은 [탈퇴, 삭제](auth-withdrawal-proposal.md)의 별도 미구현 범위다.
 
 ## 공통 schema 규격
 

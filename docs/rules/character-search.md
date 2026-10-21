@@ -5,14 +5,14 @@ enforcement: approval-required
 scope: apps/api character search
 last-reviewed: 2026-10-20
 rationale: 검색 입력, 응답, 실패, 호출 제한을 후속 구현자가 추측하지 않게 한다.
-evidence: "PR #42 검색 승인: https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698 ; PR #48 인증 통합 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519"
+evidence: "2026-09-05 PR #42 검색 계약, PR #48 인증 통합 merge; 2026-10-20 #774, #778 호출 제한 제거"
 exceptions: 미확인 외부 규격과 새 정책은 사용자 결정 없이 구현하지 않는다.
-review-after: 검색 adapter 첫 validation 완료 또는 네오플 공식 규격 변경 시
+review-after: 네오플 공식 규격 변경 시
 ---
 
 # Character Search Contract
 
-이 문서는 [PR #42의 사용자 승인](https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698)을 반영한 Rule이다. 요청, 응답, 오류, deadline과 code point 입력 정책, 단일 process memory quota 및 명시된 한계가 승인 범위다. 이전 인증/session 통합은 아래 공개 검색 정책으로 대체한다. 검색 결과 저장, 캐싱, OCR 보정, 인증, DB 구현과 전체 서비스 한도는 이 문서의 범위 밖이다. 구현은 현재 요청 범위에서 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
+이 Rule은 검색 요청, 응답, 오류, deadline과 code point 입력 정책, 호출 제한 및 명시된 한계를 정한다. 이전 인증/session 통합은 아래 공개 검색 정책으로 대체한다. 검색 결과 저장, 캐싱, OCR 보정, 인증은 이 문서의 범위 밖이다. 구현은 현재 요청 범위에서 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
 
 ## 요청과 성공 응답
 
@@ -32,7 +32,7 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 
 ## OCR 캐릭터 식별 후보
 
-2026-10-07 요청에 따라 `GET /characters/candidates?characterName=...`를 공개 API로 추가한다. 이 절의 입력, 정렬, 이미지 URL 계약을 구현과 같은 PR에서 검토하고 사용자 merge 후 다른 작업에 적용한다. 기존 `GET /characters`의 `full` 검색, 입력, 응답 순서는 유지한다. 공식 검색 타입은 동일 단어 `match`, 전문 검색 `full`이며, 새 후보 API는 `match`를 사용한다. [네오플 캐릭터 검색](https://developers.neople.co.kr/contents/apiDocs/df)
+`GET /characters/candidates?characterName=...`는 2026-10-07에 추가한 공개 API다. 기존 `GET /characters`의 `full` 검색, 입력, 응답 순서는 유지한다. 공식 검색 타입은 동일 단어 `match`, 전문 검색 `full`이며, 새 후보 API는 `match`를 사용한다. [네오플 캐릭터 검색](https://developers.neople.co.kr/contents/apiDocs/df)
 
 ### 요청과 반환
 
@@ -156,20 +156,15 @@ Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 �
 
 ## 공개 검색과 호출 제한
 
-2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무, 유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT, session DB 조회, 활동 갱신, refresh는 검색 경로에서 수행하지 않는다. `/me` 등 계정 전용 endpoint의 인증은 유지한다. 이 변경은 구현, 검증과 같은 PR의 사용자 merge로 적용한다.
+2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무, 유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT, session DB 조회, 활동 갱신, refresh는 검색 경로에서 수행하지 않는다. `/me` 등 계정 전용 endpoint의 인증은 유지한다.
 
-검색에는 **클라이언트별 호출 제한이 없다**. 2026-10-20 [#774](https://github.com/blahaj94/dfragon/issues/774)의 사용자 결정으로 이전의 클라이언트별 최근 60초 10회 한도를 없앴다. 공대 12자리 조회 한 번이 이 한도를 넘어 일부 자리가 429로 실패했기 때문이다. 이 변경은 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
+검색에는 **클라이언트별 호출 제한이 없다**. 2026-10-20 [#774](https://github.com/blahaj94/dfragon/issues/774)의 사용자 결정으로 이전의 클라이언트별 최근 60초 10회 한도를 없앴다. 공대 12자리 조회 한 번이 이 한도를 넘어 일부 자리가 429로 실패했기 때문이다.
 
-Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778](https://github.com/blahaj94/dfragon/issues/778)의 사용자 결정으로 모든 검색, 캐릭터 섹션, 공용 상세가 함께 쓰던 프로세스 전체 최근 60초 600회, 동시 12회 예산을 없앴다. 공대 12자리가 동시에 조회하면 동시 12회에 닿아 일부 자리가 429로 실패할 수 있었기 때문이다. 이제 API는 검색에서 429를 반환하지 않으며, 많은 요청이 몰려 Neople API key의 공식 할당량을 넘으면 key가 막혀 모든 사용자의 검색, 상세가 공급자 오류로 실패할 수 있다. 캐시 적중은 Neople을 부르지 않으므로 앞단 proxy의 요청 수 제한으로 이 위험을 똑같이 막지는 못한다. 이 변경은 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
+Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778](https://github.com/blahaj94/dfragon/issues/778)의 사용자 결정으로 모든 검색, 캐릭터 섹션, 공용 상세가 함께 쓰던 프로세스 전체 최근 60초 600회, 동시 12회 예산을 없앴다. 공대 12자리가 동시에 조회하면 동시 12회에 닿아 일부 자리가 429로 실패할 수 있었기 때문이다. 이제 API는 검색에서 429를 반환하지 않으며, 많은 요청이 몰려 Neople API key의 공식 할당량을 넘으면 key가 막혀 모든 사용자의 검색, 상세가 공급자 오류로 실패할 수 있다. 캐시 적중은 Neople을 부르지 않으므로 앞단 proxy의 요청 수 제한으로 이 위험을 똑같이 막지는 못한다. 같은 결정으로 [캐릭터 상세](character-details.md#오류-호출-제한)의 동시 섹션 조회, 공용 상세 동시 호출 제한과 [모험단 검색](character-details.md#모험단명-검색)의 IP별 한도도 없앴다.
 
 위 표의 `429 SEARCH_RATE_LIMITED`는 앞단 proxy가 호출 제한을 둘 때 쓸 응답 형식으로 남긴다. Desktop은 429 body의 `error.code`가 이 값일 때만 `Retry-After`를 읽으므로, proxy의 429는 위 표의 body와 양의 정수 초 `Retry-After`를 함께 반환한다. 상세 경로의 429는 [캐릭터 상세](character-details.md#오류-호출-제한)의 `CHARACTER_RATE_LIMITED` 형식을 따른다.
 
-단일 호스트 Caddy 배포는 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의
-1-hop `trust proxy`와 `request.ip`를 사용한다. Caddy가 `X-Forwarded-For`를 직접 연결한
-클라이언트 주소로 덮어쓰고, API의 공개 port는 loopback으로 제한한다. 외부의 유일한 경로가
-Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 직접 접근 주체까지 인증하는
-설정은 아니다. 다중 proxy, 외부 직접 접근으로 확대하지 않는다. 이 예외는 배포 PR #471의
-구현, 검증 범위이며 사용자 merge 후 다른 작업과 운영 설정에 적용한다. 2026-10-20 [#778](https://github.com/blahaj94/dfragon/issues/778)의 결정으로 [모험단 검색](character-details.md#모험단명-검색)의 IP별 한도까지 없앤 뒤에는 API에 IP를 key로 쓰는 한도가 없어 이 설정이 응답에 영향을 주지 않는다. 운영 설정을 바꾸지 않도록 설정 자체의 제거는 후속 작업으로 둔다.
+단일 호스트 Caddy 배포는 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의 1-hop `trust proxy`와 `request.ip`를 사용한다. Caddy가 `X-Forwarded-For`를 직접 연결한 클라이언트 주소로 덮어쓰고, API의 공개 port는 loopback으로 제한한다. 외부의 유일한 경로가 Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 직접 접근 주체까지 인증하는 설정은 아니다. 다중 proxy, 외부 직접 접근으로 확대하지 않는다. 지금은 API에 IP를 key로 쓰는 한도가 없어 이 설정이 응답에 영향을 주지 않지만, 운영 설정을 바꾸지 않도록 설정 읽기는 남겨 둔다.
 
 - API 키 설정은 DB 연결과 listen 전에 검증한다. 서비스는 준비된 검색 어댑터를 주입받으며 요청 단계에서 키를 다시 읽거나 검사하지 않는다. 누락, 빈 값, 공백뿐인 키는 HTTP 응답이 아닌 시작 실패다. [Runtime의 설정 책임](api-runtime.md#실행과-검증-경계)을 따른다.
 - 요청에서는 raw query를 먼저 검증한다. 입력 실패는 upstream이 없다. 공급자가 반환하는 키 오류 등 기존 정제 500 정책은 유지한다.
@@ -181,7 +176,7 @@ Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 �
 
 ## 간결한 경계 예시
 
-아래는 승인된 검색 계약의 기대값이다. Upstream 횟수는 유효한 설정과 여유 quota를 전제로 한다.
+아래는 검색 계약의 기대값이다. Upstream 횟수는 유효한 설정을 전제로 한다.
 
 | 사례                                                  | HTTP / body의 핵심                                        | Upstream |
 | ----------------------------------------------------- | --------------------------------------------------------- | -------- |
@@ -197,4 +192,4 @@ Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 �
 | 5,000ms 도달, body 미완료                             | 504 / `NEOPLE_TIMEOUT`, retry 없음                        | 1        |
 | 같은 peer가 60초 안에 보낸 12번째 요청                | upstream 결과                                             | 1        |
 
-상세 acceptance matrix와 실행 evidence는 기존 작업 기록이나 PR에 둔다. Runtime 도구와 실제 실행 계획은 [`api-runtime.md`](api-runtime.md), 변경별 검증은 [검증 명령](../../scripts/README.md#native-validation)를 따른다. 길이, raw decoding, deadline, quota 정책과 승인된 인증 통합의 변경을 후속 구현자의 일반 선택으로 숨기지 않는다.
+상세 acceptance matrix와 실행 evidence는 기존 작업 기록이나 PR에 둔다. Runtime 도구와 실제 실행 계획은 [`api-runtime.md`](api-runtime.md), 변경별 검증은 [검증 명령](../../scripts/README.md#native-validation)를 따른다. 길이, raw decoding, deadline, 호출 제한 정책과 인증 통합의 변경을 후속 구현자의 일반 선택으로 숨기지 않는다.

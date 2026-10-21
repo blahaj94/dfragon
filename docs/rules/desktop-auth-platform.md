@@ -5,14 +5,13 @@ enforcement: approval-required
 scope: apps/desktop secure storage loopback login and validation
 last-reviewed: 2026-10-11
 rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
-evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 문서와 source; Electron 44.7.2 교체 재확인: 2026-10-21 v44.7.0...v44.7.2 비교, 인용한 공식 문서와 source 변경 없음; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성; 2026-10-11 사용자 결정: Windows 실기에서 확인한 로그인 복귀 뒤 창 활성화 한계 수용; 2026-10-11 사용자 결정: test 채널을 staging-accounts.dfragon.com 로그인으로 전환"
-exceptions: 실제 credential/keychain, legacy protocol registry 정리, 패스키 설정과 packaged E2E는 수행하지 않는다.
-review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, loopback 로그인 E2E 시
+evidence: "2026-09-05 PR #60 merge, 설계 Issue #55; 2026-10-21 현재 Electron 공식 문서와 source 재확인; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성; 2026-10-11 사용자 결정: Windows 실기에서 확인한 로그인 복귀 뒤 창 활성화 한계 수용; 2026-10-11 사용자 결정: test 채널을 staging-accounts.dfragon.com 로그인으로 전환"
+review-after: 지원 OS, package 또는 Electron 변경 시
 ---
 
 # Desktop Authentication Platform
 
-승인 상태, IPC/화면은 [Desktop contract](desktop-auth.md), 상태 전이는 [lifecycle](desktop-auth-lifecycle.md)을 따른다. 이 문서는 OS 동작을 이미 구현, 검증했다는 주장이 아니다.
+IPC/화면은 [Desktop contract](desktop-auth.md), 상태 전이는 [lifecycle](desktop-auth-lifecycle.md)을 따른다. 이 문서는 OS 동작을 이미 구현, 검증했다는 주장이 아니다.
 
 ## 확인한 사실과 근거의 한계
 
@@ -20,13 +19,13 @@ review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, loop
 
 | 분류 | 확인 내용 | 아직 증명하지 않은 것 |
 | --- | --- | --- |
-| Source/config (2026-10-21 갱신) | `pnpm-workspace.yaml` catalog의 Electron은 44.7.2(`apps/desktop/package.json`은 `catalog:` 참조), `pnpm-lock.yaml` 해결 version은 **44.7.2**(Chromium 152.0.7977.149, Node 24.21.0), electron-builder **26.15.3**. 2026-09-06 조사 시점은 `^39.2.6`, **39.8.10** | 설치 runtime 실행, 지원 최신성, 배포 안전성 |
+| Source/config | Electron, electron-builder 버전은 `pnpm-workspace.yaml` catalog(`apps/desktop/package.json`은 `catalog:` 참조)와 `pnpm-lock.yaml`이 정한다. 현재 Electron과 내장 Node 버전은 [설치](../../AGENTS.md#설치)에 있다 | 설치 runtime 실행, 지원 최신성, 배포 안전성 |
 | Packaging 선언 | `apps/desktop/build/electron-builder-config.ts`: Windows/NSIS, macOS/DMG, Linux AppImage/snap/deb 관련 설정 | DFragon의 실제 지원 OS/arch 약속, package 생성/설치, 인증 성공 |
 | Identity, 보호 기능 (2026-10-11 갱신) | appId와 identity는 `apps/desktop/build/channels.json`의 채널 값(배포 `dfragon`, 개발 `dfragon.dev`, test `dfragon.test`)이고, 로그인 설정이 있는 모든 채널(배포, 개발, test)에는 loopback 수신기, single-instance lock, safeStorage credential store가 구현됨. OS protocol 선언과 복귀 handler는 제거됨. `notarize: false`는 유지 | 서명, 공증과 legacy protocol 키 정리, 설치본 로그인 성공은 설치 검증 대상이며 설정 존재가 그 근거는 아님 |
 | Host 관측 | macOS **26.6.2 / arm64**, `sw_vers -productVersion`, `uname -m` 읽기 | macOS 앱/Keychain 성공, Windows/Linux 실행 성공 |
-| Electron 공식 범위 (2026-10-10 갱신) | Pinned README는 macOS 13(Ventura)+ Intel/Apple Silicon, Windows 10+ x64/arm64, Linux x64/arm64와 Chromium, 배포판 제작사가 함께 지원하는 주요 배포판 version을 명시. 39.8.10 README의 macOS 12, Windows x86, Ubuntu 18.04+/Fedora 32+/Debian 10+ 목록은 빠짐 | Electron 지원 설명은 DFragon 최소 OS나 해당 OS의 현재 보안 지원 기간을 확정하지 않음 |
+| Electron 공식 범위 (2026-10-10 갱신) | Pinned README는 macOS 13(Ventura)+ Intel/Apple Silicon, Windows 10+ x64/arm64, Linux x64/arm64와 Chromium, 배포판 제작사가 함께 지원하는 주요 배포판 version을 명시 | Electron 지원 설명은 DFragon 최소 OS나 해당 OS의 현재 보안 지원 기간을 확정하지 않음 |
 
-근거: [Electron 44.7.2 README](https://raw.githubusercontent.com/electron/electron/v44.7.2/README.md), [safeStorage](https://raw.githubusercontent.com/electron/electron/v44.7.2/docs/api/safe-storage.md), [app lifecycle/path](https://raw.githubusercontent.com/electron/electron/v44.7.2/docs/api/app.md), [pinned Deep Links guide](https://raw.githubusercontent.com/electron/electron/v44.7.2/docs/tutorial/launch-app-from-url-in-another-app.md). 2026-09-06 최초 조사는 같은 문서의 v39.8.10 판을 기준으로 했다. 문서 확인을 실제 DFragon E2E 결과로 표시하지 않는다. 출시 전 Electron/OS 지원 상태도 다시 확인하며 version 교체는 별도 변경 범위다.
+근거: [Electron 44.7.2 README](https://raw.githubusercontent.com/electron/electron/v44.7.2/README.md), [safeStorage](https://raw.githubusercontent.com/electron/electron/v44.7.2/docs/api/safe-storage.md), [app lifecycle/path](https://raw.githubusercontent.com/electron/electron/v44.7.2/docs/api/app.md), [pinned Deep Links guide](https://raw.githubusercontent.com/electron/electron/v44.7.2/docs/tutorial/launch-app-from-url-in-another-app.md). 문서 확인을 실제 DFragon E2E 결과로 표시하지 않는다. 출시 전 Electron/OS 지원 상태도 다시 확인하며 version 교체는 별도 변경 범위다.
 
 ## Clock과 절전 관측
 
@@ -48,7 +47,7 @@ Node `performance.now()`는 process 기준의 monotonic 값이고 서버 시간�
 
 `setUsePlainTextEncryption(true)` 및 평문/renderer storage/access-only fallback은 금지한다. 안전한 backend가 없으면 로그인과 로그인 유지가 불가능하다는 명시적 선택이다. Capture, 브라우저 권한 변경으로 저장 문제를 우회하지 않는다.
 
-Pinned safeStorage는 동기 API이며 OS prompt가 main thread를 막을 수 있다. Electron 44.7.2 문서는 비동기 API를 권장하고 동기 API가 앞으로 deprecated될 수 있다고 적는다. OS 사용자 승인/취소가 필요할 수 있고 JavaScript timer로 prompt를 취소하거나 일정 시간 내 UI 응답을 보장하지 않는다. 앱은 저장소 접근 전 별도 확인/안내 창을 열지 않고 startup에서 저장소 검사를 진행한다. OS prompt와 안전한 저장소 backend 검사는 유지하며, 실패하거나 사용자가 거절하면 기존 fail-closed 상태로 반영한다. JS HTTP deadline은 이 OS prompt의 강제 종료 예산이 아니다.
+Pinned safeStorage는 동기 API이며 OS prompt가 main thread를 막을 수 있다. Pinned Electron 문서는 비동기 API를 권장하고 동기 API가 앞으로 deprecated될 수 있다고 적는다. OS 사용자 승인/취소가 필요할 수 있고 JavaScript timer로 prompt를 취소하거나 일정 시간 내 UI 응답을 보장하지 않는다. 앱은 저장소 접근 전 별도 확인/안내 창을 열지 않고 startup에서 저장소 검사를 진행한다. OS prompt와 안전한 저장소 backend 검사는 유지하며, 실패하거나 사용자가 거절하면 기존 fail-closed 상태로 반영한다. JS HTTP deadline은 이 OS prompt의 강제 종료 예산이 아니다.
 
 | 대안 | 비교, 판단 |
 | --- | --- |
@@ -74,10 +73,10 @@ enforcement: approval-required
 rationale: 최종 profile이 private이어도 교체 가능한 상위 directory를 통해 profile과 credential 경로가 훼손되는 경계를 보수적으로 제한한다.
 evidence: Issue #425, PR #422 review discussion_r3992882587
 exceptions: sticky bit를 이용한 group/other write 예외를 두지 않으며, POSIX mode bits로 확장 ACL이나 Windows ACL을 보장하지 않는다.
-review-after: Issue #425 구현 PR의 사용자 merge와 POSIX, native profile 검증 후
+review-after: profile 경로 검사 변경 시
 ```
 
-이 절의 substantive contract는 Issue #425 구현 PR의 채택 대상이며 사용자 merge 후부터 active Rule로 적용한다. Merge 전에는 다른 작업의 active Rule로 사용하지 않으며, 이 경계를 위해 별도 승인 대기를 만들지 않는다. POSIX UID를 조회할 수 있는 경우, existing profile ancestor와 final direct parent는 root UID `0` 또는 현재 process UID가 소유하고 `mode & 0o022 === 0`이어야 한다. Final profile directory의 기존 current-UID `0700` 검사와 missing component의 `0700` 생성은 유지한다. 이 조건을 확인하기 전에는 `mkdir`, Electron `setPath`, app name, app identity setter를 시작하지 않는다. POSIX UID를 조회할 수 없는 환경과 Windows는 mode bits로 owner/ACL 안전성을 추정하지 않으며 실행 시 native ACL, reparse-point 검사 결과로 판단한다.
+POSIX UID를 조회할 수 있는 경우, existing profile ancestor와 final direct parent는 root UID `0` 또는 현재 process UID가 소유하고 `mode & 0o022 === 0`이어야 한다. Final profile directory의 기존 current-UID `0700` 검사와 missing component의 `0700` 생성은 유지한다. 이 조건을 확인하기 전에는 `mkdir`, Electron `setPath`, app name, app identity setter를 시작하지 않는다. POSIX UID를 조회할 수 없는 환경과 Windows는 mode bits로 owner/ACL 안전성을 추정하지 않으며 실행 시 native ACL, reparse-point 검사 결과로 판단한다.
 
 네트워크 transaction과 disk write를 원자적으로 묶을 수 없으므로 **결과 불명 token은 사용하지 않는 marker 방식**을 선택한다. 순서는 다음과 같다.
 
@@ -136,17 +135,17 @@ Claimed HTTPS는 domain association, OS별 배포 검증을 추가하므로 채�
 
 ### 로컬 개발용 등록값
 
-이전 로컬 개발 tuple은 [PR #455](https://github.com/blahaj94/ldb/pull/455)에서 `ldb.dev://auth/callback`과 `ldb.dev` identity로 승인됐다. 이번 이름 변경에서는 이를 `dfragon.dev://auth/callback`과 새 `dfragon.dev` identity로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 이전 앱 복귀 값 `dfragon.dev://auth/callback`과 protocol 등록은 제거했다. 로그인 복귀는 위 loopback 주소다. Identity, profile 값은 그대로 쓴다.
+로컬 개발 구성은 다음과 같다. 로그인 복귀는 위 loopback 주소이며 OS protocol 복귀 값과 등록은 두지 않는다.
 
 | 항목 | 로컬 개발 구성 |
 | --- | --- |
 | 환경, 대상 | `development`, 사용자가 지정한 Windows 개발 컴퓨터의 현재 사용자, x64 NSIS |
-| API, 인증 | 같은 컴퓨터의 `https://localhost:3443`, 패스키 |
+| API, 인증 | 같은 컴퓨터의 API `https://localhost:3443`, accounts `https://localhost:3444`, 패스키 |
 | RP ID | `localhost` |
 | 앱 복귀 | `http://127.0.0.1:<port>/auth/callback` |
 | 개발 앱 identity, profile | `dfragon.dev`, Electron `appData` 아래의 `dfragon.dev` |
 
-이 절과 아래 Windows MVP 배포 구성, test 채널 구성은 승인 기록이다. 채널 identity와 공개 빌드 설정의 원본은 `apps/desktop/build/channels.json`이며, `apps/desktop/build/channels.test.ts`가 그 값이 이 기록과 같은지 고정한다. 로그인 복귀 주소는 채널 설정에 두지 않고 pending의 loopback 수신기가 정한다. 값을 바꾸려면 이 Rule을 먼저 갱신한다.
+이 절과 아래 Windows MVP 배포 구성, test 채널 구성의 채널 identity와 공개 빌드 설정의 원본은 `apps/desktop/build/channels.json`이며, `apps/desktop/build/channels.test.ts`가 그 값을 고정한다. 로그인 복귀 주소는 채널 설정에 두지 않고 pending의 loopback 수신기가 정한다. 값을 바꾸려면 이 Rule을 먼저 갱신한다.
 
 이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `dfragon.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 실제 설치는 실행 허용 범위 안에서 서버 설정의 API, RP ID와 loopback 복귀 형식 일치를 확인한 뒤 수행한다. NSIS는 protocol을 등록하거나 다른 앱 소유를 이유로 설치를 중단하지 않는다. 설치와 제거 때 HKCU의 legacy `dfragon.dev` 키에서 `shell\open\command`가 정확히 `"$INSTDIR\${APP_EXECUTABLE_FILENAME}" "%1"`인 경우에만 해당 키를 지운다. 다른 앱의 키는 보존한다.
 
@@ -154,7 +153,7 @@ Claimed HTTPS는 domain association, OS별 배포 검증을 추가하므로 채�
 
 ### Windows MVP 배포 구성
 
-기존 Windows x64 NSIS 설정은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용했다. 이번 이름 변경은 이를 `DFragon`, `dfragon.exe`, identity/profile `dfragon`, `dfragon://auth/callback`으로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다. 이전 복귀 주소 `dfragon://auth/callback`과 NSIS protocol 등록은 제거했다. 이름, identity, profile 값은 그대로 쓴다.
+Windows x64 NSIS 배포는 이름 `DFragon`, executable `dfragon.exe`, app identity와 `appData` 아래 profile `dfragon`, 인증 환경 `production`을 쓴다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다. 로그인 복귀는 loopback이며 NSIS는 protocol을 등록하지 않는다.
 
 배포 API는 빌드 시 지정한 canonical HTTPS origin을 main bundle에 포함하며 localhost 개발 origin을 배포 기본값으로 사용하지 않는다. RP ID는 해당 origin의 hostname이며 서버는 `returnUrl`을 loopback 형식 `http://127.0.0.1:<port>/auth/callback`으로 검증한다. 공개 설정만 포함하고 서버 secret, credential은 설치 파일에 넣지 않는다. 실제 서버, HTTPS 연결, 패스키 설정의 준비와 성공을 이 namespace 선택으로 대신하지 않는다.
 
@@ -210,4 +209,4 @@ VM 강제 종료의 지점별 반복, 물리 정전, 장기 clock drift, profile
 
 배포 대상과 실제 사용한 OS, architecture, package, API HTTPS origin, RP ID, loopback 복귀 형식과 identity를 구분해 기록한다. 선택하지 않은 플랫폼 검증이나 서명/업데이트 시험이 현재 대상의 로그인 구현을 막지 않는다. 설치 파일에 필요한 native 모듈이 포함되고 복귀 형식이 서버와 앱에서 일치해야 한다. 로컬 개발은 위 개발 tuple을 사용하고 운영 등록값을 placeholder로 추정하지 않는다.
 
-패스키와 브라우저 hybrid QR 지원은 현재 구현과 실제 브라우저, 기기 연결 결과로 판단한다. 선택하지 않은 기기의 미완료 검증을 현재 환경의 성공으로 확대하지 않는다. 실제 credential, 패스키 설정, 운영 DB, 배포 실행 권한은 검증 절차 제거만으로 새로 생기지 않는다. 후속 작업과 PR은 [제품 계약 적용 기준](../README.md#document-class)을 따르며 사용자만 merge한다.
+패스키와 브라우저 hybrid QR 지원은 현재 구현과 실제 브라우저, 기기 연결 결과로 판단한다. 선택하지 않은 기기의 미완료 검증을 현재 환경의 성공으로 확대하지 않는다. 실제 credential, 패스키 설정, 운영 DB, 배포 실행 권한은 검증 절차 제거만으로 새로 생기지 않는다. 작업과 PR은 [제품 계약 적용 기준](../README.md#document-class)과 [작업 경계](../../AGENTS.md#작업-경계)를 따른다.
