@@ -20,7 +20,7 @@ catalog:
   '@simplewebauthn/server': 14.0.3
   '@stylexjs/stylex': 0.19.1
   '@stylexjs/unplugin': 0.19.1
-  '@tanstack/react-query': 5.104.1
+  '@tanstack/react-query': 5.104.2
   '@types/cookie-parser': 1.4.10
   '@types/express': 5.0.6
   '@types/node': 26.6.5
@@ -46,7 +46,7 @@ catalog:
   ky: 2.2.0
   onnxruntime-web: 1.30.0
   pg: 8.23.1
-  playwright: 1.64.0
+  playwright: 1.64.1
   pngjs: 7.0.0
   raw-body: 4.0.0
   react: 19.3.0
@@ -63,7 +63,7 @@ catalog:
   vite: 8.3.4
   vitest: 5.0.4
   xstate: 5.33.2
-  zod: 4.6.5
+  zod: 4.6.7
 
 catalogs:
   # Desktop main, preload는 Electron 44.7.0 내장 Node 24.21.0에서 실행되므로 Node 타입도 24에 맞춘다.
