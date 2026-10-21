@@ -89,7 +89,7 @@ SPA는 TanStack Query로 세션, 필터별 목록, 통계를 조회합니다. 30
 
 기본 파일은 [코드에 고정한 출처와 SHA-256](src/base-model.ts)에 일치해야 저장됩니다. 2026-09-30 공식 HTTPS URL에서 확인한 가중치 110,996,478 bytes의 SHA-256은 `8975dede5e0c2f47e0a7712b3d79ffdc766972f872fd0441ebcccd9d77cd52a3`입니다. PaddleOCR commit `b03f46425e8ff4442b268ce449e3eef758146cd4`의 사전 47,451 bytes는 `a88071c68c01707489baa79ebe0405b7beb5cca229f4fc94cc3ef992328802d7`입니다. 이 값은 저장소가 검토해 고정한 기준이며 공급자가 별도 서명한 배포 manifest를 뜻하지 않습니다. 이후 원격 파일이 바뀌면 자동으로 신뢰하지 않습니다. 기존 기본 모델이 불일치해도 자동 삭제, 덮어쓰기를 하지 않으므로 파일과 출처를 확인한 뒤 별도 복구를 판단해야 합니다.
 
-별도 [Windows 평가 앱](https://github.com/blahaj94/dfragon-ocr-eval-tool)이 웹 로그인 후 모델과 train/val/test 데이터를 REST로 내려받아 로컬 입력을 고정하고 GPU로 학습, 평가합니다. 앱 구현과 검증은 [앱 PR #1](https://github.com/blahaj94/dfragon-ocr-eval-tool/pull/1)에서 확인할 수 있습니다. 앱은 main process의 웹 로그인 세션으로 브라우저 경로를 호출합니다. 사용자가 **미니PC에 올리기**를 누르면 학습된 가중치, 사전, 평가 요약을 새로운 모델로 등록합니다. 자동 결과 업로드는 없습니다. 일반 파인튜닝은 시작 모델 사전의 SHA-256을 유지합니다. 문자 확장 모델은 기존 문자 순서를 보존하고 명시 선택한 문자만 뒤에 추가하며, 새 모델 ID로 보관합니다.
+별도 [Windows 평가 앱](https://github.com/blahaj94/dfragon-ocr-eval-tool)이 웹 로그인 후 모델과 train/val/test 데이터를 REST로 내려받아 로컬 입력을 고정하고 GPU로 학습, 평가합니다. 앱은 main process의 웹 로그인 세션으로 브라우저 경로를 호출합니다. 사용자가 **미니PC에 올리기**를 누르면 학습된 가중치, 사전, 평가 요약을 새로운 모델로 등록합니다. 자동 결과 업로드는 없습니다. 일반 파인튜닝은 시작 모델 사전의 SHA-256을 유지합니다. 문자 확장 모델은 기존 문자 순서를 보존하고 명시 선택한 문자만 뒤에 추가하며, 새 모델 ID로 보관합니다.
 
 | Method / path | 동작 |
 | --- | --- |
@@ -250,7 +250,7 @@ HTTP 오류의 식별자, 상태, 안내 문구 원본은 `src/errors.ts`의 `OC
 
 ## Desktop 수집 연결
 
-로그인한 Desktop의 main process가 기존 access token으로 `POST /api/desktop/captures`에 원본 PNG와 크롭 좌표를 보냅니다. 업로드 JSON은 `/api/captures`와 같습니다. 서버는 기존 인증 API `/me`로 활성 세션과 `OCR_OWNER_ID`를 확인하며 cookie만 있는 요청이나 Origin이 있는 브라우저 요청은 받지 않습니다. 관리 API와 자료실 로그인은 기존 owner cookie 경계를 유지합니다. 새 DB migration, 환경 변수, 별도 역할은 없습니다. `raid`를 받는 OCR 서버를 먼저 배포한 뒤 공대원창 수집이 포함된 Desktop을 배포합니다. 공대원창은 닉네임 크롭을 같은 정답, 제외, 분할, 평가 흐름으로 제공합니다. 공대원 행 번호는 해당 캡처의 화면 위치이므로, 공대원이 나가 목록이 위로 당겨지면 같은 번호가 다른 사람을 가리킬 수 있습니다.
+로그인한 Desktop의 main process가 기존 access token으로 `POST /api/desktop/captures`에 원본 PNG와 크롭 좌표를 보냅니다. 업로드 JSON은 `/api/captures`와 같습니다. 서버는 기존 인증 API `/me`로 활성 세션과 `OCR_OWNER_ID`를 확인하며 cookie만 있는 요청이나 Origin이 있는 브라우저 요청은 받지 않습니다. 관리 API와 자료실 로그인은 owner cookie로 인증합니다. Desktop 수집 전용 환경 변수나 별도 역할은 없습니다. `raid`를 받는 OCR 서버를 먼저 배포한 뒤 공대원창 수집이 포함된 Desktop을 배포합니다. 공대원창은 닉네임 크롭을 같은 정답, 제외, 분할, 평가 흐름으로 제공합니다. 공대원 행 번호는 해당 캡처의 화면 위치이므로, 공대원이 나가 목록이 위로 당겨지면 같은 번호가 다른 사람을 가리킬 수 있습니다.
 
 ### 테스트 버전의 비로그인 HUD 수집
 
@@ -280,4 +280,4 @@ HTTP 오류의 식별자, 상태, 안내 문구 원본은 `src/errors.ts`의 `OC
 
 개발 단계의 테스트 수집은 IP별, 전체 요청 횟수, 동시 업로드 수, 누적 저장 용량과 원본 개수로 거절하지 않습니다. `OCR_MAX_BYTES`의 통합 저장 용량 검사와 일반 업로드의 동시 처리 슬롯에서도 제외합니다. 테스트 수집 전용 30초 수신 제한은 제거하고 서버 공통 HTTP 수신 시간 설정을 따릅니다. 본문 23 MiB, PNG 16 MiB, 한 축 8192, 총 16,777,216 pixels의 개별 이미지 검증과 기존 일반 업로드 한도는 유지합니다. 기존 자료를 자동 삭제하지 않습니다.
 
-새 SQL 테이블, 컬럼, migration은 없습니다. 기존 `captures.metadata` JSON에 수집 출처, 전체 슬롯 좌표, 미검수 예측과 서버 계산 content hash를 추가합니다. 기존 자료, 정답, 분할은 변경하지 않습니다. 이 기능만 되돌린 서버에서도 기존 canonical 닉네임 크롭을 읽을 수 있지만 새 문맥과 예측 표시는 제공하지 않습니다.
+테스트 수집의 수집 출처, 전체 슬롯 좌표, 미검수 예측과 서버 계산 content hash는 별도 테이블이 아니라 `captures.metadata` JSON에 저장합니다. 테스트 수집은 기존 자료, 정답, 분할을 변경하지 않습니다.

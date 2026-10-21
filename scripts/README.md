@@ -28,7 +28,7 @@ node scripts/start-task.mjs api 123 fix-character-search ../dfragon-worktrees/ap
 
 `project`에는 `api`, `desktop`, `web`, `ui`, `cross`, `repo` 중 하나를 전달합니다. 이 명명법은 도구를 선택했을 때의 입력 계약이며 모든 작업 브랜치에 강제하지 않습니다. `description`은 `fix-character-search`처럼 변경 동사로 시작하는 소문자 설명을 정합니다. 스크립트는 소문자로 시작하고 소문자, 숫자를 하이픈 하나로 연결하는 형식을 검증하며, 동사 의미나 Issue 범위의 적합성은 담당자가 판단합니다.
 
-기존 두 인자 명령은 사용법 오류로 거절합니다. 기존 브랜치, worktree를 바꾸거나 지우지 않으며, 같은 이름의 로컬 브랜치나 대상 경로가 이미 존재하면 생성을 거절합니다.
+기존 브랜치, worktree를 바꾸거나 지우지 않으며, 같은 이름의 로컬 브랜치나 대상 경로가 이미 존재하면 생성을 거절합니다.
 
 Root alias `pnpm start-task api 123 fix-character-search ../dfragon-worktrees/api-123-fix-character-search`도 제공합니다. 새 checkout에서는 pnpm이 dependency install을 먼저 수행할 수 있으므로, 준비만 할 때는 위 Node command를 사용합니다.
 
@@ -109,11 +109,13 @@ main에서는 `baseline`으로 마지막 성공 발행 실행을 찾고 `catch-u
 `has_changes`를 기록합니다. 빈 목록이면 빌드, 발행을 건너뜁니다.
 `baseline`은 계획 artifact가 없는 성공 실행(build scope가 아닌 main push)을 건너뛰고 최근 30개 안에서 찾습니다.
 
+검증: `pnpm test:product-images`, `node --check scripts/product-image-plan.mjs`.
+
 ## `build-scope`
 
 PR 제목, PR 작성자, 실행 event로 빌드와 전체 테스트를 실행할지 정해 `GITHUB_OUTPUT`에 `build=true` 또는 `build=false`를 기록합니다. [`build-scope.yml`](../.github/workflows/build-scope.yml)이 이 도구를 실행하며 규칙은 [Repository Map의 CI 설명](../docs/reference/repository-map.md)에 있습니다. main push와 그 뒤의 `workflow_run`은 GitHub API로 commit을 merge한 PR을 찾고, 조회에 실패하면 빌드를 건너뛰지 않고 실패합니다. 새 dependency 없이 Node.js 26을 사용합니다.
 
-검증: `pnpm test:product-images`, `node --check scripts/product-image-plan.mjs`.
+검증: `node --test scripts/test/build-scope.test.mjs`, `node --check scripts/build-scope.mjs`.
 
 ## `server-build-info`
 
@@ -178,7 +180,7 @@ pnpm verify:database
 - Desktop 테스트는 HOME의 모든 상위 디렉터리가 root나 현재 사용자 소유이고 group, other 쓰기 권한이 없어야 통과합니다. [Desktop 테스트 범위](../apps/desktop/README.md#테스트-범위와-실행)를 참고합니다.
 - `verify:database`에는 같은 host의 Docker daemon(Docker Desktop 포함)과 Buildx, 고정 PostgreSQL 이미지를 받을 네트워크, accounts 패스키 시나리오용 Playwright Chromium이 필요합니다. Chromium은 `pnpm exec playwright install chromium`으로 한 번 설치하고, Linux에서 브라우저 시스템 라이브러리가 없으면 CI처럼 `--with-deps`를 붙입니다.
 
-로컬 통과는 Linux runner의 Code Quality 결과, Windows의 Desktop workflow, Product Images 실행을 대신하지 않습니다. 실행기는 macOS, Linux에서 확인했고 Windows에서는 확인하지 않았습니다. Shell 없이 `pnpm`을 시작하므로 `pnpm.cmd`만 있는 Windows 환경에서는 명령을 시작하지 못할 수 있습니다.
+로컬 통과는 Linux runner의 Code Quality 결과, Windows의 Desktop workflow, Product Images 실행을 대신하지 않습니다. 실행기는 macOS, Linux에서 확인했고 Windows에서는 확인하지 않았습니다. `pnpm verify`로 실행하면 `npm_execpath`의 pnpm을 직접 시작하므로 `pnpm.cmd`만 있는 Windows 환경에서도 명령을 시작합니다. `node scripts/verify.mjs`로 직접 실행하면 shell 없이 `pnpm`을 찾으므로 이런 환경에서는 시작하지 못할 수 있습니다.
 
 ## Native validation
 
@@ -225,33 +227,29 @@ API의 `test:database`는 Docker daemon이 없거나 고정 image, native platfo
 
 ## `create-app`
 
-새로운 API 애플리케이션 workspace를 생성합니다.
+새 애플리케이션 workspace를 생성합니다.
 
 저장소 루트에서 실행:
-
-```bash
-pnpm create-app --name @dfragon/api
-```
-
-`-n` 축약 옵션도 지원합니다.
-
-```bash
-pnpm create-app -n @dfragon/api
-```
-
-스크립트 프로젝트의 생성기를 직접 실행할 수도 있습니다.
-
-```bash
-node scripts/create-app.mjs --name @dfragon/api
-```
-
-패키지명은 `@dfragon/<app-name>` 형식이어야 하며, 앱 이름은 소문자 영문, 숫자와 하이픈으로 구성해야 합니다.
 
 ```bash
 pnpm create-app --name @dfragon/party-api
 ```
 
-생성 결과:
+`-n` 축약 옵션도 지원합니다.
+
+```bash
+pnpm create-app -n @dfragon/party-api
+```
+
+스크립트 프로젝트의 생성기를 직접 실행할 수도 있습니다.
+
+```bash
+node scripts/create-app.mjs --name @dfragon/party-api
+```
+
+패키지명은 `@dfragon/<app-name>` 형식이어야 하며, 앱 이름은 소문자 영문, 숫자와 하이픈으로 구성해야 합니다.
+
+`@dfragon/party-api`의 생성 결과:
 
 ```text
 apps/party-api/
@@ -277,7 +275,7 @@ apps/party-api/
 }
 ```
 
-`dev`, `build`, `test` 스크립트는 API 서버 프레임워크를 정한 뒤 구현합니다.
+`dev`, `build`, `test` 스크립트는 비어 있으므로 생성 후 앱에 맞게 채웁니다.
 
 ### 안전 규칙
 
@@ -293,7 +291,7 @@ pnpm list -r --depth -1
 npm으로 루트 명령을 실행하는 경우에는 스크립트 인자 앞에 `--`를 추가합니다.
 
 ```bash
-npm run create-app -- --name @dfragon/api
+npm run create-app -- --name @dfragon/party-api
 ```
 
 구현은 같은 디렉터리의 [`create-app.mjs`](./create-app.mjs)에 있습니다.

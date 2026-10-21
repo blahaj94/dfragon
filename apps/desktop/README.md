@@ -1,6 +1,6 @@
 # DFragon Desktop
 
-던전앤파이터 캐릭터를 직접 검색하거나 게임 화면의 닉네임을 PaddleOCR로 읽어 검색하는 Windows 앱입니다. 검색, 캡처와 OCR은 로그인 없이 사용합니다. 던파 창이 하나면 자동으로 등록하고, **Alt+R**을 누를 때마다 한 프레임으로 네 파티 슬롯을 인식하고 검색합니다. 각 카드 중앙에 OCR부터 조회 완료까지 진행 상태를 표시합니다. OCR 첫 번째 이름만 검색하며 외형을 확인하지 못하면 최고 명성 후보를 대체 표시합니다. 서버와 닉네임은 항상 수정할 수 있고 별도 상세 창에서 기본 정보를 비교할 수 있습니다. 장비 카드 확장과 실제 Windows 검증은 별도입니다.
+던전앤파이터 캐릭터를 직접 검색하거나 게임 화면의 닉네임을 PaddleOCR로 읽어 검색하는 Windows 앱입니다. 검색, 캡처와 OCR은 로그인 없이 사용합니다. 던파 창이 하나면 자동으로 등록하고, **Alt+R**을 누를 때마다 한 프레임으로 네 파티 슬롯을 인식하고 검색합니다. 각 카드 중앙에 OCR부터 조회 완료까지 진행 상태를 표시합니다. OCR 첫 번째 이름만 검색하며 외형을 확인하지 못하면 최고 명성 후보를 대체 표시합니다. 서버와 닉네임은 항상 수정할 수 있고, 카드는 캐릭터, 장비, 기타 세 면으로 보며 별도 상세 창에서 기본 정보를 비교할 수 있습니다.
 
 ## 테스트 버전 자료 수집
 
@@ -20,9 +20,7 @@
 
 ## 피아노 사운드 패키지
 
-`@blahaj94/piano-sound`는 import하는 코드와 재생 UI가 없어 의존성에서 뺐습니다. 이 패키지를 배포한 GitHub Packages npm registry는 공개 패키지도 설치할 때 토큰이 필요합니다([GitHub 안내](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#authenticating-to-github-packages)). pnpm은 일부 workspace만 설치해도 lockfile 전체의 공급망 정책을 검사하므로, lockfile에 이 패키지가 있으면 토큰 없는 checkout과 fork PR은 어떤 workspace도 설치하지 못합니다.
-
-다시 쓰려면 npmjs 공개 배포나 저장소 안 tarball(`file:`)처럼 토큰 없이 설치되는 방식으로 연결합니다. CI와 서버 이미지 빌드는 registry 토큰 없이 설치하며, `scripts/test/token-free-install.test.mjs`가 설치 경로의 토큰 전달을 검사합니다.
+`@blahaj94/piano-sound`는 쓰는 코드가 없어 의존성에서 뺐습니다. 다시 쓰려면 GitHub Packages처럼 설치에 토큰이 필요한 registry 대신 npmjs 공개 배포나 저장소 안 tarball(`file:`)로 연결합니다. CI와 서버 이미지 빌드는 registry 토큰 없이 설치하며 `scripts/test/token-free-install.test.mjs`가 이를 검사합니다.
 
 ## 설정과 라이선스 사용고지
 
@@ -39,9 +37,9 @@
 5. 검색의 **공대** 화면에서는 **Alt+R** 또는 공대 머리의 캡처 버튼이 공대 회차를 시작합니다. 게임에서 12행 공대 상세 창을 연 채로 누르면 공대원 이름을 화면 순서대로 1~12번 자리에 넣고 자리마다 조회합니다. 공대 상세 창에는 서버가 없어 같은 이름의 후보 중 명성이 가장 높은 캐릭터를 대체 표시하며, 서버와 이름은 카드에서 고쳐 다시 조회할 수 있습니다. 공대 회차는 파티 카드를 바꾸지 않고 테스트 수집에도 쓰지 않습니다.
 6. 캡처를 중지하면 슬롯 결과가 정리됩니다. 중지한 캡처는 **Alt+R**로 다시 시작하지 않으며, 화면 캡처 창에서 게임 창을 다시 선택한 다음 **Alt+R**을 눌러야 합니다. 창을 변경하면 이전 회차와 검색을 정리하고 새 창만 등록합니다. 캡처가 실패했을 때는 창을 다시 고르지 않고 **Alt+R**로 다시 시작할 수 있습니다. 종료할 때는 캡처를 중지하고 창의 X를 누릅니다.
 
-앱 identity를 DFragon 이름으로 전환했습니다. 기존 `ldb`, `ldb.dev` profile은 새 앱으로 가져오지 않으며 자동 삭제하지도 않습니다. DFragon은 새 profile을 만들고 다시 로그인이 필요합니다. 로그인 복귀는 요청마다 연 `127.0.0.1` loopback 수신기를 사용합니다. 서버 인증 설정에서 `passkey.returnUrl` key를 제거하고, 요청별 loopback 복귀를 지원하는 accounts를 사용해야 합니다.
+로그인 복귀는 요청마다 연 `127.0.0.1` loopback 수신기를 사용합니다.
 
-작은 한글 닉네임 오인식은 [Issue #463](https://github.com/blahaj94/ldb/issues/463)에 남아 있습니다. 해상도와 UI 배율을 고정하지 않고 HP, MP 프레임의 위치와 배율을 매번 검출합니다. 잔량이 줄어든 전투 화면과 폰트 변경은 검증하지 않았습니다. 검색이 실패하면 인터넷, 배포 API 상태를 확인하고 다시 시도합니다. 로그인 문제는 비로그인 검색, 캡처의 선행 조건이 아닙니다.
+해상도와 UI 배율을 고정하지 않고 HP, MP 프레임의 위치와 배율을 매번 검출합니다. 잔량이 줄어든 전투 화면과 폰트 변경은 검증하지 않았습니다. 검색이 실패하면 인터넷, 배포 API 상태를 확인하고 다시 시도합니다. 로그인 문제는 비로그인 검색, 캡처의 선행 조건이 아닙니다.
 
 배포 앱은 시작할 때와 이후 6시간마다 GitHub Release 목록을 확인하고, 현재보다 높은 버전이 있으면 카드 화면 위에 새 버전과 **Release 열기** 버튼을 보입니다. 정식 버전은 정식, beta는 beta와 정식, alpha는 alpha, beta, 정식 가운데 가장 높은 버전 하나를 알립니다. alpha에서 beta나 정식으로 옮기면 OCR 자료 수집이 꺼진다는 안내를 함께 보입니다. **닫기**를 누르면 앱을 다시 시작할 때까지 같은 버전을 다시 알리지 않습니다. 확인할 때 github.com에 IP와 User-Agent가 전달되며 언어 설정, cookie, 로그인 정보 같은 그 밖의 정보는 보내지 않습니다. 확인에 실패하면 화면에 표시하지 않고 진단 기록에 `UPDATE_CHECK_FAILED`를 남깁니다. test, development 채널과 소스 실행은 확인하지 않습니다. 기준은 [Desktop 새 버전 알림](../../docs/rules/desktop-update-proposal.md#1단계-새-버전-알림)에 있습니다.
 
@@ -49,7 +47,7 @@
 
 ## Windows 배포 빌드
 
-현재 소스를 빌드하면 카드의 서버, 닉네임 수정과 장비 상세 창이 포함됩니다. 네오플 캐릭터 이미지의 색 비교로 자동 식별하며 API의 candidates endpoint 배포가 필요합니다. 장비 카드 연결은 후속입니다.
+현재 소스를 빌드하면 카드의 서버, 닉네임 수정과 장비 상세 창이 포함됩니다. 네오플 캐릭터 이미지의 색 비교로 자동 식별하며 API의 candidates endpoint 배포가 필요합니다.
 
 Node.js 26과 저장소의 pnpm을 준비한 Windows x64에서 저장소 루트 기준으로 실행합니다.
 
@@ -104,11 +102,11 @@ gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test
 
 NSIS는 protocol을 등록하지 않으며 다른 앱의 scheme 소유를 이유로 설치를 중단하지 않습니다. 설치와 제거 때 `build/legacy-protocol-cleanup.nsh`가 HKCU의 기존 채널 scheme 키를 확인하고, `shell\open\command`가 정확히 이 앱 실행 파일과 인자를 가리킬 때만 지웁니다. 다른 앱의 키는 보존합니다. 패스키 로그인에는 API의 HTTPS origin과 RP ID가 맞아야 하며, 서버와 앱이 같은 loopback 복귀 형식을 사용해야 합니다. [패스키 설정](../../docs/reference/passkey-authentication.md)을 참고합니다.
 
-### 서버 준비와 설치본 확인
+### 배포 API와 설치본 확인
 
-다른 PC가 접근할 수 있는 HTTPS API와 PostgreSQL DB가 필요합니다. 미니 PC에서 기존 API를 운영할 수 있으며 실제 서버, OS, 외부 연결, HTTPS 주소, 공개 범위를 정한 뒤 [API 설정](../../docs/reference/api-start-development.md)에 연결합니다. localhost 개발 API나 예시 업데이트 주소를 배포 서버로 취급하지 않습니다.
+배포 앱은 다른 PC가 접근할 수 있는 HTTPS API를 사용합니다. 운영 API는 `https://api.dfragon.com`이며 test 채널도 변수가 없으면 이 주소를 씁니다(`build/channels.json`). 서버 설정은 [API 설정](../../docs/reference/api-start-development.md)을 따릅니다. localhost 개발 API나 예시 주소를 배포 서버로 취급하지 않습니다.
 
-실제 배포 origin으로 빌드한 설치 앱에서 **비로그인 직접 검색 → 지정한 게임 창 캡처 → OCR → 결과**를 확인합니다. 닉네임 수정 유지, OCR 복귀, 중지 후 정리도 같은 흐름에서 확인합니다. 빌드, unit test, 합성 데이터 UI 확인은 이 실제 확인을 대신하지 않습니다. 서버가 준비되기 전에는 배포 API 연결과 실제 설치본 흐름은 미검증입니다.
+실제 배포 origin으로 빌드한 설치 앱에서 **비로그인 직접 검색 → 지정한 게임 창 캡처 → OCR → 결과**를 확인합니다. 닉네임 수정 유지, OCR 복귀, 중지 후 정리도 같은 흐름에서 확인합니다. 빌드, unit test, 합성 데이터 UI 확인은 이 실제 확인을 대신하지 않습니다.
 
 ## 카드 화면 개발
 
@@ -122,7 +120,7 @@ pnpm --filter @dfragon/desktop dev
 
 `dev`, `dev:app`은 Electron 실행 파일이 없으면 먼저 내려받고, Node의 `--env-file-if-exists=.env`로 앱 폴더의 설정을 읽은 뒤 기존 Electron 개발 실행을 시작합니다. `.env`가 없어도 카드 화면을 실행할 수 있으며, 이미 설정된 process 환경변수가 우선합니다. 인증 설정을 바꾸면 개발 명령을 종료하고 다시 실행합니다. 배포, 패키징의 인증 설정 방식은 바뀌지 않습니다.
 
-`pnpm --filter @dfragon/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. `dev:app`도 같은 화면을 엽니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 상단 바의 게임 연결 상태 칩을 눌러 창을 선택하면 main에 등록만 합니다. **Alt+R**이나 파티 머리의 캡처 버튼을 누르면 개발자 모드와 같은 Windows GDI 모듈로 프레임 한 장을 읽고, 이 회차 프레임으로 닉네임, 얼굴 크롭, OCR, 검색과 테스트 수집을 처리합니다. OCR은 연속 관측을 기다리지 않고 첫 후보의 앞뒤 공백만 제거해 확정하며 두 번째 후보로 보정하지 않습니다. 처리를 마치면 추가 프레임을 읽지 않고 회차 결과를 유지하며 반복 인식과 인식 간격 설정은 제공하지 않습니다. 다른 창에 가려진 픽셀은 인식에서 제외합니다. 창 전체가 가려졌거나 최소화됐거나 파티 프레임을 검출하지 못하면 안내 후 회차 인식을 끝냅니다. 화면이 돌아와도 자동 재개하지 않으며 **Alt+R**이나 캡처 버튼을 다시 눌러야 합니다. 최소화된 창의 백그라운드 캡처는 지원하지 않습니다. OCR 식별 상태와 선택된 캐릭터의 기본 정보를 슬롯별로 표시하며, 같은 회차 프레임의 얼굴 크롭을 동명 후보의 네오플 캐릭터 이미지와 색으로 비교합니다. 비교로 한 명을 가르지 못하면 최고 명성 후보를 얼굴 확정과 구분해 표시합니다. 연결중 팝업 등으로 일부 슬롯만 검출되지 않으면 그 슬롯은 비워 두고 검색하지 않으며 다른 슬롯은 같은 프레임으로 처리합니다. 모달을 닫거나 로그인 상태가 바뀌어도 캡처는 유지되며 별도 중지 버튼으로 정리합니다. 식별된 슬롯의 상세 버튼은 아래 상세 창을 엽니다. 이름 수정과 장비 면 연결은 후속입니다. 합성 데이터의 자동 식별 상태, 네 면 비교와 상세 전환은 `pnpm --filter @dfragon/desktop dev:preview`로 확인합니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
+`pnpm --filter @dfragon/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. `dev:app`도 같은 화면을 엽니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 상단 바의 게임 연결 상태 칩을 눌러 창을 선택하면 main에 등록만 합니다. **Alt+R**이나 파티 머리의 캡처 버튼을 누르면 개발자 모드와 같은 Windows GDI 모듈로 프레임 한 장을 읽고, 이 회차 프레임으로 닉네임, 얼굴 크롭, OCR, 검색과 테스트 수집을 처리합니다. OCR은 연속 관측을 기다리지 않고 첫 후보의 앞뒤 공백만 제거해 확정하며 두 번째 후보로 보정하지 않습니다. 처리를 마치면 추가 프레임을 읽지 않고 회차 결과를 유지하며 반복 인식과 인식 간격 설정은 제공하지 않습니다. 다른 창에 가려진 픽셀은 인식에서 제외합니다. 창 전체가 가려졌거나 최소화됐거나 파티 프레임을 검출하지 못하면 안내 후 회차 인식을 끝냅니다. 화면이 돌아와도 자동 재개하지 않으며 **Alt+R**이나 캡처 버튼을 다시 눌러야 합니다. 최소화된 창의 백그라운드 캡처는 지원하지 않습니다. OCR 식별 상태와 선택된 캐릭터의 기본 정보를 슬롯별로 표시하며, 같은 회차 프레임의 얼굴 크롭을 동명 후보의 네오플 캐릭터 이미지와 색으로 비교합니다. 비교로 한 명을 가르지 못하면 최고 명성 후보를 얼굴 확정과 구분해 표시합니다. 연결중 팝업 등으로 일부 슬롯만 검출되지 않으면 그 슬롯은 비워 두고 검색하지 않으며 다른 슬롯은 같은 프레임으로 처리합니다. 모달을 닫거나 로그인 상태가 바뀌어도 캡처는 유지되며 별도 중지 버튼으로 정리합니다. 식별된 슬롯의 상세 버튼은 아래 상세 창을 엽니다. 합성 데이터의 자동 식별 상태, 네 면 비교와 상세 전환은 `pnpm --filter @dfragon/desktop dev:preview`로 확인합니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
 
 캐릭터 상세는 서로 다른 서버와 캐릭터 ID마다 별도 창을 엽니다. 같은 캐릭터를 다시 선택하면 기존 창을 복원하고 앞으로 가져오며, 처음 열 때의 정보를 유지합니다. 캡처 중지나 슬롯 변경은 이미 열린 창의 내용을 바꾸지 않습니다. 닫고 다시 열면 현재 선택에 보관된 정보를 표시하며 추가 API 조회는 하지 않습니다. 메인 창이 실제로 닫히면 상세 창도 모두 닫습니다.
 
@@ -149,7 +147,7 @@ pnpm --filter @dfragon/desktop dev
 
 게임이 도는 Windows PC에 저장소를 받아 소스로 실행하면 빌드, 업로드, 다운로드 왕복 없이 수정을 바로 확인할 수 있습니다. 개발 실행도 캡처는 같은 Windows GDI 모듈, OCR과 검색은 같은 코드로 동작합니다. 패키징에서만 생기는 동작(asar, fuses, 관리자 권한 manifest, 포터블 압축 해제)은 아래 포터블 빌드나 PR의 Windows Test Build로 확인합니다.
 
-1. Node.js 26과 저장소의 pnpm, Git, GitHub CLI를 준비하고 저장소를 받은 뒤 [파인튜닝 OCR 모델](#파인튜닝-ocr-모델로-빌드하기) 절의 submodule 명령을 한 번 실행합니다.
+1. Node.js 26과 저장소의 pnpm, Git, GitHub CLI를 준비하고 저장소를 받은 뒤 [`@dfragon/models` 받기](../../packages/models/README.md#받기)의 submodule 명령을 한 번 실행합니다.
 2. `pnpm install --frozen-lockfile`로 의존성을 설치합니다. 패키지 registry 토큰은 필요하지 않습니다.
 3. 검색만 실제 API로 확인하려면 `apps/desktop/.env`에 `DFRAGON_API_ORIGIN=<배포 API origin>` 한 줄만 둡니다. 로그인까지 보려면 [카드 화면 개발](#카드-화면-개발) 절의 `.env` 설정을 따릅니다. 개발 실행은 패키지가 아니므로 [테스트 버전 자료 수집](#테스트-버전-자료-수집)이 켜집니다.
 4. `pnpm --filter @dfragon/desktop dev`를 실행하고 게임 창을 띄웁니다. 던파가 관리자 권한으로 실행 중이면 이 명령도 관리자 권한 PowerShell에서 실행합니다. 권한이 낮으면 게임 창이 활성일 때 Alt+R, Alt+Print Screen 단축키를 받지 못하고, 개발자 모드의 Print Screen 수집은 관리자 권한 필요로 거절됩니다. 패키지는 실행할 때 관리자 권한을 요청하도록 빌드되므로 이 차이가 없습니다. 소스를 고치면 renderer는 즉시, main은 다시 시작할 때 반영됩니다.
@@ -162,18 +160,7 @@ CI를 기다리지 않고 포터블을 만들려면 같은 PC에서 `pnpm --filt
 
 파인튜닝 모델은 공개 저장소 [dfragon-ocr-models](https://github.com/blahaj94/dfragon-ocr-models)의 루트 `model.onnx`, `characters.txt` 한 쌍으로 관리합니다. 부모 저장소는 `packages/models/ocr-finetuned` submodule에서 특정 커밋을 고정하고, workspace 패키지 `@dfragon/models`로 Desktop에 제공합니다. 모델 저장소에 파일을 올리는 것만으로 기존 빌드의 모델이 바뀌지는 않습니다.
 
-처음 checkout할 때 실행합니다. Code Quality, Windows Test Build와 Windows Portable CI도 고정된 submodule 커밋을 가져옵니다.
-
-```sh
-git submodule update --init --recursive packages/models/ocr-finetuned
-```
-
-실제 모델을 업로드한 뒤 부모의 작업 브랜치에서 해당 커밋으로 갱신합니다. 빌드 중 최신 브랜치를 자동으로 가져오지 않습니다.
-
-```sh
-git -C packages/models/ocr-finetuned fetch origin
-git -C packages/models/ocr-finetuned checkout <모델을-포함한-커밋-SHA>
-```
+처음 checkout할 때와 실제 모델을 업로드한 뒤 고정 커밋을 옮길 때의 submodule 명령은 [`@dfragon/models` 안내](../../packages/models/README.md#받기)를 따릅니다. Code Quality, Windows Test Build와 Windows Portable CI도 고정된 submodule 커밋을 가져오며, 빌드 중 최신 브랜치를 자동으로 가져오지 않습니다.
 
 [`ocr-model.config.mjs`](ocr-model.config.mjs)에는 `bundledOcrModel`, `fineTunedOcrModel` 두 설정이 있습니다. 마지막 줄 하나가 빌드에 넣을 모델을 정하며 현재 값은 다음과 같습니다.
 
@@ -202,7 +189,7 @@ git add packages/models/ocr-finetuned apps/desktop/ocr-model.config.mjs
 
 준비 단계는 앱과 같은 [ONNX Runtime WASM의 추론 API](https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.html)로 `[1, 3, 48, 320]` 입력을 실행해 출력 형식과 사전 클래스 수를 검사합니다. 출력은 유한한 0~1의 softmax 확률이고 시점별 클래스 확률 합이 1이어야 하며, 합계 오차는 0.001까지 허용합니다. 런타임 디코더도 같은 조건을 검사하고 허용된 합계 오차만 보정합니다. logits에 softmax를 다시 적용하지 않습니다. 파일 누락이나 호환성 오류는 빌드 실패로 처리하며 기본 모델로 대체하지 않습니다. 이 검사가 실패하면 기존 public OCR 산출물을 지우지 않습니다. 인식 정확도와 같은 문자 수를 가진 사전의 순서 일치는 자동으로 보장하지 못하므로, 개발자 평가에서 실제 정답 이미지로 확인합니다.
 
-`decodeCtcCandidates(data, steps, characters, candidateCount = 2)`는 네 번째 인자로 받은 개수까지 `{ rank, modelScore, nickname }`을 최종 모델 점수 내림차순으로 반환하며 `rank`는 1부터 시작합니다. 인자를 생략하면 최대 2개, `5`를 넘기면 최대 5개를 반환합니다. 개수는 양의 안전한 정수여야 하며 실제 후보가 부족하면 있는 만큼 반환합니다. 탐색 폭은 기본 32개이고, 더 많은 후보를 요청하면 그 개수로 늘어 계산량도 증가합니다. 후보 탐색은 제한된 prefix beam search이므로 전체 가능한 문자열의 정확한 상위 후보를 보장하지 않습니다. 남은 후보 각각은 그 문자열을 만드는 모든 CTC 경로의 확률을 합산해 다시 채점하며, `modelScore`는 이 합의 100배입니다. 실제 정답률이나 후보 사이의 상대 비율이 아니며, 반환한 후보 점수의 합을 100으로 맞추지 않습니다. `decodeCtc`는 같은 후보 목록의 첫 닉네임 문자열을 반환합니다. [디코딩 방식과 응답 호환성](../../docs/reference/desktop-character-search.md#ctc-후보와-모델-점수)을 참고합니다.
+OCR 후보 탐색과 `modelScore`의 의미는 [CTC 후보와 모델 점수](../../docs/reference/desktop-character-search.md#ctc-후보와-모델-점수)에 있습니다.
 
 생성된 `src/frontend/public/ocr/provenance.json`에는 선택한 모델 이름과 실제 배포 파일의 SHA-256을 기록합니다. 사용자 모델을 기본 upstream revision으로 표시하거나 로컬 경로를 산출물에 넣지 않습니다. 기존 PaddleOCR와 ONNX Runtime 라이선스 고지는 유지합니다.
 

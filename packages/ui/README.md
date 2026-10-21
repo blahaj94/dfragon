@@ -131,5 +131,3 @@ Browser에서는 `dev:examples`와 `preview:examples`, Web의 `dev`, `preview`�
 - `pnpm --filter @dfragon/desktop ui:fixture example dark`
 
 두 번째 인자는 `system`, `light`, `dark`이며 fixture process의 Theme만 변경한다. 제품 main/preload/auth는 로드하지 않는다. Source 목록과 선택은 synthetic bridge이며 native media API는 거절 stub으로 교체한다. Stub 설치 확인 전 window를 보이지 않고 실패 시 종료하며 fallback하지 않는다. Start는 `UI fixture: media capture blocked.` 상태로 callback 진입만 확인하고 stream, OCR를 실행하지 않는다. 실제 capture 성공이나 OS permission 검증은 이 evidence의 범위가 아니다. Desktop App component test와 fixture 검증의 경계를 구분한다.
-
-최초 구현의 실제 환경과 검증 결과는 superseded로 표시한 `docs/reference/ui-validation.md`에 이력으로 남아 있다.
