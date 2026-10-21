@@ -150,10 +150,17 @@ test('잘못된 조회 설정은 네트워크 요청 전에 거절한다', async
 })
 
 test('잘못된 응답은 거절하고 API 실패는 token 없이 실패한다', async () => {
-  for (const body of [{}, [null], [{ merged_at: '2026-10-21T00:00:00Z', user: {} }]]) {
+  for (const [body, message] of [
+    [{}, 'Expected a GitHub pull requests response'],
+    [[null], 'Expected a GitHub pull requests response'],
+    [
+      [{ merged_at: '2026-10-21T00:00:00Z', user: {} }],
+      'Expected a merged pull request with a title and author'
+    ]
+  ]) {
     await assert.rejects(
       findMergedPullRequest({ ...apiOptions, fetchImpl: pullRequestsApi(body) }),
-      /Expected a (?:GitHub pull requests response|merged pull request)/u
+      { message }
     )
   }
 
