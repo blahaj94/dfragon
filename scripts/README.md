@@ -160,6 +160,8 @@ node scripts/import-equipment-icons.mjs --pvf <data_layers 폴더> --samples <�
 
 명령 목록은 `scripts/verify.mjs`에 있고, `scripts/test/code-quality-workflow.test.mjs`가 workflow의 job, run 명령과 어긋나면 실패합니다. CI가 runner를 준비하려고 실행하는 Playwright 설치, main push의 이미지 선택(`image-plan`)과 결과 집계(`lint-and-format`) job은 대응에서 제외합니다. 의존성 설치는 먼저 끝냈다고 봅니다.
 
+`pnpm install`이 설치하는 husky `pre-push` hook이 push 전에 `pnpm verify`를 실행하고 Docker daemon에 연결되면 `pnpm verify:database`도 실행합니다. 실패하면 push가 중단됩니다.
+
 Job 안에서는 앞 명령이 실패하면 남은 명령을 건너뛰고 다른 job은 계속 실행합니다. 끝에 실패한 job, 명령, 종료 코드와 건너뛴 명령 수를 모아 출력하고 non-zero로 종료합니다. Job끼리 같은 build 산출물을 쓰므로 병렬로 실행하지 않습니다. 의존성과 Electron runtime이 준비된 Apple silicon Mac에서 전체 실행에 약 3분 걸렸습니다.
 
 ```bash

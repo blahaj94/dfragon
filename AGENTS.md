@@ -10,13 +10,14 @@
 
 ## 설치
 
-- Node.js 26(API, accounts, OCR의 `engines`는 `>=26.11.1 <27`)과 pnpm 12.11.2(root `package.json`의 `packageManager`)를 쓴다. Desktop main, preload는 Electron 44.7.0이 내장한 Node 24.21.0에서 실행되고, 호스트 Node 26은 Desktop의 테스트, 빌드 실행기로만 쓴다.
+- Node.js 26(root `package.json`의 `devEngines.runtime`이 고정한 버전을 pnpm이 내려받아 script에 쓴다. API, accounts, OCR의 `engines`는 `>=26.11.1 <27`)과 pnpm 12.11.2(root `package.json`의 `packageManager`)를 쓴다. Desktop main, preload는 Electron 44.7.0이 내장한 Node 24.21.0에서 실행되고, 호스트 Node 26은 Desktop의 테스트, 빌드 실행기로만 쓴다.
 - 의존성은 `pnpm install --frozen-lockfile`로 설치한다.
 - Desktop을 CI와 같은 입력으로 테스트, 빌드하려면 `git submodule update --init --recursive packages/models/ocr-finetuned`로 OCR 모델 submodule을 받는다. 비공개 점수 엔진 submodule은 읽기 권한이 있을 때만 `git submodule update --init --checkout packages/models/score-engine`로 받으며, 없으면 점수 없이 빌드된다.
 
 ## 검증
 
 - `pnpm verify`가 Code Quality workflow의 Docker 없는 검사 job을 같은 순서로 실행한다. Root `pnpm test`도 `pnpm verify`를 실행한다.
+- `pnpm install`이 husky `pre-push` hook을 설치하며, hook이 push 전에 `pnpm verify`를 실행한다.
 - Docker가 있으면 `pnpm verify:database`로 API, accounts의 `test:database`와 Desktop 검색 통합을 실행한다.
 - 변경 범위별 명령 조합은 [Native validation](scripts/README.md#native-validation), 준비 조건은 [`verify` 안내](scripts/README.md#verify)를 따른다.
 - OCR UI smoke(`test:ui`)와 accounts DB 테스트에는 Playwright Chromium이 필요하다. Root에서 `pnpm exec playwright install chromium`으로 한 번 설치한다. [OCR 테스트 범위](apps/ocr/README.md#테스트의-검증-범위)를 참고한다.

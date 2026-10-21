@@ -36,6 +36,8 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 `.github/workflows/workflow-lint.yml`은 모든 PR과 `.github` 경로가 바뀐 main push에서 실행된다. PR에서는 `.github` 경로가 바뀐 경우에만 actionlint(runner의 shellcheck 포함)와 zizmor로 workflow, composite action, Dependabot 설정을 검사하고, 바뀐 경로가 없으면 검사 job을 건너뛴다. zizmor 무시 항목과 사유는 `.github/zizmor.yml`에 둔다. `.github/workflows/desktop-windows.yml`도 같은 방식으로 Desktop 관련 경로가 바뀐 PR에서만 Windows 테스트를 실행한다. 두 workflow는 결과를 `Workflow Lint gate`, `Desktop Windows gate` check로 모으며, gate는 앞 job이 성공하거나 건너뛰면 통과하고 실패하거나 취소되면 실패한다. 두 gate는 `lint-and-format`과 함께 main ruleset의 required check다. 저장소 Actions 설정은 외부 action을 40자리 commit SHA로 고정하도록 요구하므로 tag로 참조한 action은 실행되지 않는다. 저장소 안의 composite action을 `./.github/actions/...` 경로로 부르는 참조 자체는 이 요구의 대상이 아니지만, 그 composite action 안에서 부르는 외부 action은 같은 방식으로 고정해야 한다. Action, npm catalog, Docker base image 갱신은 `.github/dependabot.yml`이 기본 7일 cooldown(npm major는 14일)을 둔 주간 PR로 제안하며, 관련 패키지와 이미지는 group으로 묶는다.
 
+Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify`를 실행하고, Docker daemon에 연결되면 `pnpm verify:database`도 실행한다. 실패하면 push를 막는다. Node.js 버전은 root `package.json`의 `devEngines.runtime`으로 고정하며, pnpm이 이 버전을 내려받아 script를 실행하고 CI의 `actions/setup-node`도 같은 값을 읽는다.
+
 ## Shared library
 
 - Package: `@dfragon/lib`, 위치: `packages/lib`. 앱, UI, 플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
