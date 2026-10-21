@@ -32,7 +32,7 @@ last-reviewed: 2026-10-10
 
 Rule은 동작과 제약을 정의하고, Reference는 현재 code, config, command를 설명한다. `docs/rules/**`, `docs/architecture/**`의 제품 계약이 Rule이며 `type: reference`인 문서는 예외다. 작업의 일시적인 상태는 필요한 Issue, PR에서 관리한다.
 
-Reference의 오류는 실제 파일, 설정에 맞춰 고친다. Rule과 구현의 중요한 제품 계약 충돌은 임의로 선택하지 않고 영향받는 부분만 확인한다. 허용된 Rule 변경은 채택 범위, status를 PR에 명시해 구현, 검증한다. Proposed 제품 계약의 링크, 절차 정리만으로 그 내용을 채택하지 않는다.
+Reference의 오류는 실제 파일, 설정에 맞춰 고친다. Rule과 구현의 중요한 제품 계약 충돌은 임의로 선택하지 않고 영향받는 부분만 확인한다. 허용된 Rule 변경은 채택 범위, status를 PR에 명시해 구현, 검증하고, 다른 작업에는 사용자 merge 후 적용한다. Proposed 제품 계약의 링크, 절차 정리만으로 그 내용을 채택하지 않는다.
 
 제품의 필수 책임 경계는 Rule에 두고, Reference와 앱 안내는 해당 Rule 및 현재 대표 구현을 연결한다. 예제나 기존 코드의 우연한 형태를 다른 앱의 필수 구조로 확대하지 않는다.
 
