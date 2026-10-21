@@ -1,9 +1,22 @@
 name: Dependency Review
 
+# Not a required check, so a paths filter is safe. Only dependency changes need a new snapshot.
 on:
   pull_request:
+    paths:
+      - '**/package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/dependency-review.yml'
+      - 'scripts/dependency-snapshot.mjs'
   push:
     branches: [main]
+    paths:
+      - '**/package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/dependency-review.yml'
+      - 'scripts/dependency-snapshot.mjs'
 
 permissions:
   contents: read
