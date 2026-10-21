@@ -559,7 +559,7 @@ describe('capture main document and source boundary', () => {
     })
   })
 
-  // Electron 44.7.0은 null을 예외 없는 거절로 처리한다. {}는 별도 TypeError도 낸다.
+  // Electron 44.7.2는 null을 예외 없는 거절로 처리한다. {}는 별도 TypeError도 낸다.
   it.each(['선택 없음', '선택 후 캡처 중'])(
     '창 등록의 display media 요청은 %s 상태에서도 native null로 한 번 거절한다',
     async (state) => {
