@@ -34,13 +34,13 @@ Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번�
 
 ## OCR 관리 웹 연결
 
-OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts RP의 패스키와 고정 HTTPS callback, PKCE, client별 configuration fingerprint로 OCR 서버에 로그인 결과를 전달한다. OCR 요청은 `returnUrl`을 보내지 않으며 Desktop의 요청별 `returnUrl`과 기존 세션 계약에 영향을 주지 않는다. 추가 경계는 [OCR 자료실](ocr-workspace.md)을 따르며 사용자 merge 후 다른 작업에 적용한다.
+OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts RP의 패스키와 고정 HTTPS callback, PKCE, client별 configuration fingerprint로 OCR 서버에 로그인 결과를 전달한다. OCR 요청은 `returnUrl`을 보내지 않으며 Desktop의 요청별 `returnUrl`과 기존 세션 계약에 영향을 주지 않는다. 추가 경계는 [OCR 자료실](ocr-workspace.md)을 따른다.
 
 ## 휴대폰 로그인
 
 휴대폰 패스키는 브라우저 패스키 창의 `다른 기기 사용` hybrid QR로 처리한다. DFragon 화면에는 휴대폰 버튼, QR, 확인 번호가 없고 패스키 응답 검증은 서버가 한다. 휴대폰의 기존 패스키는 별도 계정 이관 없이 같은 RP에서 사용한다.
 
-2026-10-10 사용자 결정에 따라 DFragon 자체 휴대폰 QR 로그인과 패스키 관리 QR을 제거했다. `GET /auth/login/phone`, QR 생성, 상태 조회, claim, 직접 로그인 전환, 취소와 phone action, phone cookie를 더 이상 제공하지 않는다. 로그인 페이지는 `패스키로 로그인`, `새 계정 만들기`만 표시한다. 회원가입 페이지는 2026-10-17에 없앴다. 휴대폰 버튼, QR 화면, 확인 번호, 남은 시간과 닫기 버튼은 제거했다. 2026-09-26 Penpot 리뷰에서 정한 자체 휴대폰 화면 동작은 폐기했다.
+2026-10-10 사용자 결정에 따라 DFragon 자체 휴대폰 QR 로그인과 패스키 관리 QR, phone endpoint, action, cookie는 두지 않는다. 제거 migration은 [인증 DB 계약](auth-database.md#자체-휴대폰-qr-제거)에 있다.
 
 ## 예비 패스키 관리
 
@@ -54,17 +54,17 @@ OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts
 
 `users`는 UUID, nickname, created_at을 저장한다. `auth_passkeys`는 credential ID, RP ID, user FK, 공개키, counter, transports, device type, backup flag, 등록/최근 사용 시각을 저장한다. 개인키, 지문, 얼굴, PIN은 수집하지 않는다. 공개키도 계정에 연결된 데이터이므로 로그나 공개 응답에 내보내지 않는다.
 
-`auth_login_requests`는 login/manage 목적, 설정 fingerprint, Desktop 로그인의 요청별 loopback 복귀 주소, 만료, 상태, 앱 proof hash, browser binding hash, WebAuthn challenge와 목적, 등록 예정 회원, 검증 회원, credential ID, code hash와 deadline을 저장한다. `RemovePhoneQrLogin` forward migration은 자체 휴대폰 QR의 ticket hash, phone binding hash, 확인 번호 column과 phone 상태를 제거한다. 활성 QR 요청은 proof와 회원 연결을 지우고 실패로 종료하며 진행 중 직접 로그인, 관리 요청과 기존 회원, 패스키, session, refresh는 보존한다. 완료 상태에서는 proof, 회원 연결 정보를 null 처리한다. 전체 만료, 완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
+`auth_login_requests`는 login/manage 목적, 설정 fingerprint, Desktop 로그인의 요청별 loopback 복귀 주소, 만료, 상태, 앱 proof hash, browser binding hash, WebAuthn challenge와 목적, 등록 예정 회원, 검증 회원, credential ID, code hash와 deadline을 저장한다. 완료 상태에서는 proof, 회원 연결 정보를 null 처리한다. 전체 만료, 완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
 
 잠금은 request → user → credential 순서다. 마지막 키 개수 검사와 추가/삭제는 user 잠금으로 직렬화한다. 모든 관련 잠금과 서명 검증 뒤 fresh DB 시각으로 만료를 재확인한다. 로그인 세션 발급 시 기존 user → session → refresh 순서를 이어 사용한다.
 
-2026-10-20 [#778](https://github.com/blahaj94/dfragon/issues/778) 결정으로 인증 서버 안의 IP별, 전체 요청 횟수 한도(60초 창의 클라이언트별 120회, 전체 1,200회)를 두지 않는다. 생성, 인증 진입, 관리 시작, 브라우저 mutation, exchange, refresh, logout, 닉네임 변경과 `GET /me`는 횟수로 거절하지 않으며, 같은 발신 IP에서 OCR 서버의 이미지별 활성 세션 확인이 몰려도 마찬가지다. IP별 남용 차단은 앞단 proxy가 맡는다. `/me`의 JWT 검증과 매 요청의 DB 활성 세션 확인은 유지한다. 기존 단일 신뢰 proxy 설정은 그대로 두며, 앱은 이 설정으로 client IP를 한도에 쓰지 않는다.
+인증 서버 안에는 IP별, 전체 요청 횟수 한도를 두지 않는다([호출 제한 결정](character-search.md#공개-검색과-호출-제한)). 생성, 인증 진입, 관리 시작, 브라우저 mutation, exchange, refresh, logout, 닉네임 변경과 `GET /me`는 횟수로 거절하지 않으며, 같은 발신 IP에서 OCR 서버의 이미지별 활성 세션 확인이 몰려도 마찬가지다. IP별 남용 차단은 앞단 proxy가 맡는다. `/me`의 JWT 검증과 매 요청의 DB 활성 세션 확인은 유지한다. 기존 단일 신뢰 proxy 설정은 그대로 두며, 앱은 이 설정으로 client IP를 한도에 쓰지 않는다.
 
-같은 HTTP 앱의 로그인, 세션, 계정 service는 전체 최대 32개만 동시에 실행한다. 초과 요청은 DB 작업 시작 전에 정제 429와 `Retry-After`로 거절하고 대기 queue를 만들지 않는다. 연결 종료만으로 실행 중인 DB 작업의 슬롯을 반환하지 않으며 실제 service 완료, 실패 때 반환한다. 다중 instance 전체 제한, 1인 1계정, 분산 공격 방지를 보장하지 않는다. 이 보안 수정 요청의 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
+같은 HTTP 앱의 로그인, 세션, 계정 service는 전체 최대 32개만 동시에 실행한다. 초과 요청은 DB 작업 시작 전에 정제 429와 `Retry-After`로 거절하고 대기 queue를 만들지 않는다. 연결 종료만으로 실행 중인 DB 작업의 슬롯을 반환하지 않으며 실제 service 완료, 실패 때 반환한다. 다중 instance 전체 제한, 1인 1계정, 분산 공격 방지를 보장하지 않는다.
 
 ## Migration과 검증 범위
 
-기존 migration은 이력으로 보존한다. 새 schema에서 생성한 forward migration으로 이전 외부 인증 field를 제거하고 패스키 table을 만든다. 변경 transaction은 대상 table 쓰기를 먼저 잠근 뒤 users, 로그인 요청이 비어있는지 검사한다. 데이터가 있으면 up/down 모두 거부하며 자동 삭제, 자동 이관하지 않는다. 운영 DB에는 이 작업에서 migration을 실행하지 않는다.
+기존 migration은 이력으로 보존한다. 새 schema에서 생성한 forward migration으로 이전 외부 인증 field를 제거하고 패스키 table을 만든다. 변경 transaction은 대상 table 쓰기를 먼저 잠근 뒤 users, 로그인 요청이 비어있는지 검사한다. 데이터가 있으면 up/down 모두 거부하며 자동 삭제, 자동 이관하지 않는다.
 
 실제 WebAuthn 가상 인증기를 사용하는 브라우저/DB 검증, 단일 소비, 만료, 잘못된 서명/계정, 삭제된 키, 예비 키, 세션 회귀를 검사한다. 가상 인증기 성공을 실제 브라우저 hybrid QR, Bluetooth, 운영 HTTPS, packaged Desktop loopback 복귀 검증으로 확대하지 않는다.
 

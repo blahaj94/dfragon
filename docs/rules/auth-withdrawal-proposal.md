@@ -3,11 +3,12 @@ type: rule
 status: active
 scope: account deletion retention and recovery; passkey withdrawal integration pending
 last-reviewed: 2026-09-29
+evidence: "2026-09-06 PR #72 D1–D5 merge; 2026-09-07 PR #132 운영 설계 merge"
 ---
 
 # 탈퇴, 삭제, 복원 Contract
 
-[PR #72의 D1–D5 승인](https://github.com/blahaj94/ldb/pull/72#issuecomment-5557976162)과 당시 검토 결과는 이력으로 보존한다. 패스키 전환에 따라 외부 계정 연결 해제와 외부 identity에 의존한 구현 설명은 폐기한다. 이 문서는 여전히 유효한 삭제 확정, 보관, 복원 정책을 유지하며, 패스키 탈퇴 API, schema가 이미 구현됐다는 의미가 아니다. 현재 로그인, 예비 키 관리는 [패스키 계약](auth-passkeys.md)을 따른다.
+패스키 전환에 따라 외부 계정 연결 해제와 외부 identity에 의존한 구현 설명은 폐기했다. 이 문서는 여전히 유효한 삭제 확정, 보관, 복원 정책을 유지하며, 패스키 탈퇴 API, schema가 이미 구현됐다는 의미가 아니다. 현재 로그인, 예비 키 관리는 [패스키 계약](auth-passkeys.md)을 따른다.
 
 ## 유지하는 정책과 후속 설계
 
@@ -21,7 +22,7 @@ last-reviewed: 2026-09-29
 
 백업 생성과 백업에서 복원한 auth DB의 공개는 별개이며 공개 복원은 선택 기능이다. D1의 durable intent, 이전 writer 차단, D4의 보관, 삭제, D5의 사본 기한은 유지한다. 공개 복원을 제공하지 않아도 만든 사본의 보관, 폐기 조건은 적용한다. 검증할 수 없는 auth 사본을 복원해 공개하거나 복구 가능성, RPO/RTO를 약속하지 않는다. 복원 기능 미제공에 따른 데이터 손실, 서비스 중단 가능성도 실제 제공 범위와 함께 알린다.
 
-서버 배치, 운영 권한, 백업, 복구 실행은 [저장소 책임 경계](../reference/api-start-development.md#서버-이미지)의 인프라 담당 범위다. [PR #132의 이전 운영 설계](https://github.com/blahaj94/ldb/pull/132)는 이력으로 보존하며 장비, 운영 인원, 전체 장애 matrix를 제품 기능의 기본 착수 조건으로 요구하지 않는다.
+서버 배치, 운영 권한, 백업, 복구 실행은 [저장소 책임 경계](../reference/api-start-development.md#서버-이미지)의 인프라 담당 범위다. 장비, 운영 인원, 전체 장애 matrix를 제품 기능의 기본 착수 조건으로 요구하지 않는다.
 
 ## 확정, 권한, 시간 경계
 
@@ -76,6 +77,6 @@ Durable 성공은 저장소의 transaction commit, flush 계약과 오류 처리
 
 ## 구현, 검증 경계
 
-패스키 로그인, 예비 키 관리가 탈퇴 구현을 포함하지 않는다. 탈퇴 API, schema, Desktop receipt/조회는 후속이며, 공개 복원 검증은 그 기능을 제공할 때 적용한다. 과거 승인, 실패 기록은 [PR #72](https://github.com/blahaj94/ldb/pull/72)에 남기고 현재 동작의 성공 evidence로 재사용하지 않는다.
+패스키 로그인, 예비 키 관리가 탈퇴 구현을 포함하지 않는다. 탈퇴 API, schema, Desktop receipt/조회는 아직 구현하지 않았으며, 공개 복원 검증은 그 기능을 제공할 때 적용한다.
 
 후속 검증은 같은 계정의 새 재인증, 잘못된 purpose/account/proof, TTL과 실제 lock 대기, 동시 exchange/키 삭제/refresh, journal ACK 유실, writer fencing, DELETE rollback/commit 불명, receipt 만료, 사본과 journal 삭제를 확인한다. 공개 복원 최초 제공이나 의미 변경에는 기존 검증과 격리 복원으로 삭제 회원 부활, 옛 자격 사용이 없고 새 요청은 정상 동작하며 근거 누락 시 공개를 거절하는지 확인한다. 검증은 제공 기능과 변경 위험에 맞춰 선택하며 미제공 복원이나 모든 물리 장애 시험을 일반 기능의 선행 조건으로 붙이지 않는다. Runtime, DB, 운영 복원 성공을 문서 검사나 mock으로 대체하지 않는다. 실제 삭제, 복원, credential 실행은 맡은 운영 권한 범위에서만 수행한다.

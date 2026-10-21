@@ -2,17 +2,16 @@
 type: rule
 status: active
 enforcement: approval-required
-scope: apps/api access JWT refresh and session lifecycle
+scope: apps/accounts access JWT refresh and session lifecycle
 last-reviewed: 2026-09-05
 rationale: 기기별 만료, rotation, 재사용의 최종 상태를 시간과 transaction 경합까지 정의한다.
-evidence: "PR #48 사용자 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519 ; 설계 근거: Issue #39 Proposal Revision 2 https://github.com/blahaj94/ldb/issues/39#issuecomment-5551313691"
-exceptions: 사용자 구현 금지 조건을 유지하며 실제 key 운영 교체 절차는 별도 gate다.
+evidence: "2026-09-05 PR #48 merge, 설계 Issue #39"
 review-after: 최초 session 경합 validation 또는 key 정책 변경 시
 ---
 
 # Session and Token Contract
 
-이 문서는 [PR #48의 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한 Rule이다. 현재 구현, 검증 성공을 뜻하지 않으며 미결정 gate 유지와 구현 금지 조건을 따른다. API는 [`auth-api.md`](auth-api.md), DB/잠금/보관은 [`auth-database.md`](auth-database.md), 활동, 잔여 JWT 검색은 [`auth-activity.md`](auth-activity.md)가 canonical contract다. 각 성공 로그인은 별도 기기 session을 만들고 한 session의 활동/logout/reuse가 다른 기기를 변경하지 않는다.
+이 Rule은 session과 token의 계약을 정한다. API는 [`auth-api.md`](auth-api.md), DB/잠금/보관은 [`auth-database.md`](auth-database.md), 활동, 잔여 JWT 검색은 [`auth-activity.md`](auth-activity.md)가 canonical contract다. 각 성공 로그인은 별도 기기 session을 만들고 한 session의 활동/logout/reuse가 다른 기기를 변경하지 않는다.
 
 ## 시간과 idle 만료
 
@@ -73,4 +72,4 @@ Logout은 제출한 known current/consumed refresh의 session만 잠그고 폐�
 
 활성 session의 전체 발급/소비 이력은 보존하고 종료 뒤 정리는 [`auth-database.md`](auth-database.md)를 따른다. 30일 활동 기준을 absolute session lifetime으로 바꾸지 않는다.
 
-근거는 #39가 2026-09-05에 검토한 [PostgreSQL 시간 함수](https://www.postgresql.org/docs/current/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT), [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725.html), [Node crypto](https://nodejs.org/docs/latest-v24.x/api/crypto.html)다. 시간, 경합, key rotation의 실행 성공 evidence가 아니다.
+근거는 #39가 2026-09-05에 검토한 [PostgreSQL 시간 함수](https://www.postgresql.org/docs/current/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT), [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725.html), [Node crypto](https://nodejs.org/docs/latest-v26.x/api/crypto.html)다. 시간, 경합, key rotation의 실행 성공 evidence가 아니다.

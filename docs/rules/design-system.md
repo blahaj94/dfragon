@@ -9,9 +9,9 @@ last-reviewed: 2026-10-19
 
 ## 적용 상태와 범위
 
-2026-10-18 결정으로 모든 workspace의 browser UI에서 SEED Design을 걷어낸다. `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하고, 외형은 StyleX로 직접 그린다. Desktop은 아래 [DFragon 디자인 규칙](#dfragon-디자인-규칙)으로 다시 그리고, OCR, Accounts, Web은 SEED만 걷어내며 화면 배치는 유지한다. [PR #89의 이전 결정](https://github.com/blahaj94/ldb/pull/89)과 [SEED 채택 근거](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)는 이력으로 보존하며 2026-10-18 결정으로 대체한다.
+2026-10-18 결정으로 모든 workspace의 browser UI에서 SEED Design을 걷어냈다. `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하고, 외형은 StyleX로 직접 그린다. Desktop은 아래 [DFragon 디자인 규칙](#dfragon-디자인-규칙)으로 다시 그리고, OCR, Accounts, Web은 SEED만 걷어내며 화면 배치는 유지한다.
 
-이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다. 코드 이행은 토큰, 공용 Component, 앱별 SEED 제거, SEED 잔여 삭제 순서로 마쳐 저장소에 SEED 코드와 의존성이 남아 있지 않다. Desktop DFragon 디자인 적용은 후속 PR에서 화면별로 진행한다.
+저장소에는 SEED 코드와 의존성이 남아 있지 않다. Desktop DFragon 디자인 적용은 화면별로 진행한다.
 
 - `@dfragon/ui`에 대응하는 토큰이나 Component가 있으면 새 사용처는 그것을 쓴다.
 - Desktop의 이전 brand 색 재매핑 CSS는 삭제했으며 대신할 전역 override 예외는 두지 않는다.
@@ -38,7 +38,7 @@ last-reviewed: 2026-10-19
 
 - 추가: `bgBar`, `bgWell`, `signal`(`#F8E8C8`), `onSignal`(`#111012`), `brandLogo`(`#E83830`), `fgAdventure`, `tierTop`(`#FFB400`), `tierRanker`(`#50E3C2`), 점수 숫자의 역할 색 `scoreDealer`(`#4FA3FF`), `scoreBuffer`(`#3CC985`), `bracket*`, `hatchAlert`, `gridLine`, 검색 실패의 노란색 `cardFailure`, `cardFailureWeak`(`#FFD54A`와 그 14% 면), 묵언의 진의 옵션 색 `oathUpgradeDamage`(`#FF4848`), `oathUpgradeCooldown`(`#4FA3FF`), `oathUpgradeOathPoint`(`#3CC985`), `oathUpgradeSpeed`(`#FFB400`), `oathUpgradeRange`(`#A066FF`). 묵언의 진의 색은 점수 역할 색, `rarity.epic`과 값이 같아도 뜻이 달라 따로 둔다(2026-10-20 사용자 결정, dfragon-design PR #45)
 - 삭제: `bgBrand*`, `fgBrand`, `fgInfo`, `borderBrand`, `borderFocus` 같은 파랑 계열 전부
-- 주의 톤: 2026-10-19 결정으로 DFragon 디자인 캔버스의 캡처 보드 값인 `fgWarning`(`#FFB400`)과 그 12% 면 `bgWarningWeak`을 다시 들인다. 라이트 값은 `provisional`이다. 이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다.
+- 주의 톤: 2026-10-19 결정으로 DFragon 디자인 캔버스의 캡처 보드 값인 `fgWarning`(`#FFB400`)과 그 12% 면 `bgWarningWeak`을 다시 들인다. 라이트 값은 `provisional`이다.
 
 라이트 모드는 유지한다. 라이트 값은 현재 값에서 임시로 가져온 `provisional`이며, `signal`과 티어 색처럼 대응 값이 없는 토큰도 임시 값이다. dfragon-design이 라이트 값을 정하면 함께 바꾼다.
 
@@ -92,7 +92,7 @@ Desktop 화면은 아래 규칙으로 그린다. OCR, Accounts, Web은 공용 �
 
 ## Typo의 명시적 예외
 
-이번 Typo 요청은 `@dfragon/ui`에 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`, `txtM`, `txtS`, `caption`을 추가하는 범위로 채택한다. 지정한 크기, 행간, 굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute, event와 `className`, `style`, `color`, `align`, `weight`를 지원한다. 공용 컴포넌트 추가는 PR #504에서 채택했다. 2026-09-19 후속 요청은 Penpot 클라이언트 시안과 Desktop의 현재 카드, 상세 미리보기, 설정, 캡처 화면, API가 제공하는 패스키 인증 browser 화면에 이 규격을 적용하는 범위다. 기존 공용 Component의 interaction은 유지하며 label에는 Typo를 조합한다. 라이브러리가 생성하는 서버 선택 텍스트는 공개 `typographyVariants`를 적용하고, 검색 input은 TextField의 요소 합성 API(`render`)에 Typo를 연결한다. focus가 필요한 HTML element는 태그에 맞는 `ref`를 전달한다. 이 적용 범위와 browser 전용 소비 경로는 해당 PR의 사용자 merge 후 채택한다.
+`@dfragon/ui`는 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`, `txtM`, `txtS`, `caption`을 제공한다. 지정한 크기, 행간, 굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute, event와 `className`, `style`, `color`, `align`, `weight`를 지원한다. 2026-09-19 요청으로 Desktop의 카드, 상세 미리보기, 설정, 캡처 화면과 accounts의 패스키 인증 browser 화면에 이 규격을 적용한다. 기존 공용 Component의 interaction은 유지하며 label에는 Typo를 조합한다. 라이브러리가 생성하는 서버 선택 텍스트는 공개 `typographyVariants`를 적용하고, 검색 input은 TextField의 요소 합성 API(`render`)에 Typo를 연결한다. focus가 필요한 HTML element는 태그에 맞는 `ref`를 전달한다.
 
 ## 글꼴과 한국어 타이포그래피
 
@@ -103,9 +103,9 @@ Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들
 - 같은 전역 CSS에 `word-break: keep-all`, `overflow-wrap: anywhere`를 두어 한국어를 어절 단위로 줄바꿈하고 긴 문자열은 영역 안에서 나눈다. `packages/ui/foundation.css`는 이 글꼴 적용 범위가 아닌 Accounts, Web도 공유하므로 이 기준을 두지 않는다.
 - 기울임, `text-transform: uppercase`, 양수 자간을 새로 쓰지 않는다.
 - 수치, 표, 타이머는 `font-variant-numeric: tabular-nums`를 쓴다. 기존 사용처는 유지하며 기존 코드의 일괄 정리는 이 기준의 선행 조건이 아니다.
-- API 패스키 browser는 기존 글꼴 상속을 유지하고, Web은 이 글꼴 적용 범위가 아니다.
+- Accounts 패스키 browser는 기존 글꼴 상속을 유지하고, Web은 이 글꼴 적용 범위가 아니다.
 
-값과 규칙의 디자인 기준은 디자인 인계 저장소의 [Typography](https://github.com/blahaj94/dfragon-design/blob/main/design/typography.md)다. Pretendard 기준은 사용자가 승인한 Pretendard 전환 요청으로 채택했고, Barlow Condensed 기준은 2026-10-18 결정으로 채택하며 이 변경의 사용자 merge 후 적용한다.
+값과 규칙의 디자인 기준은 디자인 인계 저장소의 [Typography](https://github.com/blahaj94/dfragon-design/blob/main/design/typography.md)다. Pretendard 기준은 사용자가 승인한 Pretendard 전환 요청으로 채택했고, Barlow Condensed 기준은 2026-10-18 결정으로 채택했다.
 
 ## 공통 자산과 화면의 책임
 
@@ -124,7 +124,7 @@ Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들
 
 ## 화면별 스타일 조정
 
-Desktop, API 패스키, OCR, Web의 화면별 간격, 정렬, 너비, 영역 padding, 반응형 배치는 StyleX로 작성한다. 모든 앱은 공통 compiler 설정과 workspace catalog의 버전을 사용한다. 공용 토큰 CSS, vendor 스타일, font-face, reset, 공용 foundation 같은 전역 기반 CSS는 유지한다. 이 공통화는 사용자 요청 범위로 해당 PR에서 구현, 검증하며 사용자 merge 후 적용한다. 연결 위치와 구현 예시는 [앱 공통 StyleX](../reference/app-styling.md)를 따른다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style, className, CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
+Desktop, Accounts 패스키, OCR, Web의 화면별 간격, 정렬, 너비, 영역 padding, 반응형 배치는 StyleX로 작성한다. 모든 앱은 공통 compiler 설정과 workspace catalog의 버전을 사용한다. 공용 토큰 CSS, vendor 스타일, font-face, reset, 공용 foundation 같은 전역 기반 CSS는 유지한다. 연결 위치와 구현 예시는 [앱 공통 StyleX](../reference/app-styling.md)를 따른다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style, className, CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
 
 컴포넌트 전용 StyleX는 옆의 `{name}.style.ts`에 module scope의 `stylex.create`와 named export로 둔다. JSX는 `stylex.props(base, condition && variant)`로 필요한 스타일을 합성한다. 다른 `className`과 함께 쓰면 한쪽을 덮어쓰지 않도록 합친다. 전용 스타일이 없는 컴포넌트에 빈 파일을 만들지 않는다.
 

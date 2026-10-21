@@ -4,17 +4,16 @@ status: active
 enforcement: approval-required
 scope: apps/desktop authentication process IPC and screens
 last-reviewed: 2026-10-19
-rationale: renderer가 credential이나 인증 성공을 소유하지 않고 후속 구현자가 process 경계를 추측하지 않도록 한다.
-evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; 서버 기반 PR #48 승인, PR #53 merge; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성"
-exceptions: 설계 승인은 제품 구현 착수, 실제 인증 및 OS 등록, credential 저장소 변경을 포함하지 않는다.
-review-after: 최초 Desktop 인증 구현 및 packaged platform validation 시
+rationale: renderer가 credential이나 인증 성공을 소유하지 않고 구현자가 process 경계를 추측하지 않도록 한다.
+evidence: "2026-09-05 PR #60 merge, 설계 Issue #55, 서버 기반 PR #48, #53; 2026-09-08 PR #139 복원 안내 merge; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성"
+review-after: 인증 IPC 또는 packaged platform 조건 변경 시
 ---
 
 # Desktop Authentication Contract
 
-이 문서와 [lifecycle](desktop-auth-lifecycle.md), [platform, 저장, 검증](desktop-auth-platform.md)은 [PR #60의 명시적 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475)을 받은 Desktop contract다. PR #60은 2026-09-05T18:13:24Z에 사용자 squash merge됐으며 merge commit은 `97b9903`다. 설계 승인은 실제 OS/배포 검증 성공이나 후속 구현 착수 지시를 대체하지 않는다. [Architecture](../architecture/overview.md)의 실제 지원 환경, 등록값, native 검증 gate는 유지한다.
+이 문서와 [lifecycle](desktop-auth-lifecycle.md), [platform, 저장, 검증](desktop-auth-platform.md)은 Desktop 인증 contract다. [Architecture](../architecture/overview.md)의 실제 지원 환경, 등록값, native 검증 gate는 유지한다.
 
-2026-09-15 사용자 요구에 따라 로그인은 선택 사항이다. 게임 창 선택, 캡처, OCR, 캐릭터 검색, 결과 표시는 인증 여부와 독립적이다. 이 PR은 아래 화면, 검색 계약을 함께 변경하며 사용자 merge 후 다른 작업에도 적용한다. 계정 자체의 인증, credential, 저장 계약은 유지한다.
+2026-09-15 사용자 요구에 따라 로그인은 선택 사항이다. 게임 창 선택, 캡처, OCR, 캐릭터 검색, 결과 표시는 인증 여부와 독립적이다. 계정 자체의 인증, credential, 저장 계약은 유지한다.
 
 서버의 [API](auth-api.md), [패스키](auth-passkeys.md), [session](auth-session.md), [활동](auth-activity.md), [runtime gate](auth-runtime.md)를 전제로 한다. Endpoint, TTL, JWT/refresh/session 정책, 패스키 설정과 DB는 서버 계약을 따른다. `clientId:"desktop"`은 public 등록 선택값이다. 실제 운영 URL, app identity와 loopback 수신기 조건은 platform 문서를 따른다.
 
@@ -31,19 +30,11 @@ Main은 OS 사용자, app profile당 현재 계정/session 하나만 활성화�
 
 인증이 유효한지는 main 상태와 서버 응답으로 결정한다. Renderer의 route, React state, 임의로 만든 snapshot, `isNewUser`는 권한 증거가 아니다. Token은 renderer storage, browser cookie, IndexedDB, React state, IPC, URL, log에 넣지 않는다. 인증된 HTTP는 main의 고정 endpoint별 기능에서 수행하며 범용 `fetch(url,options)` IPC를 만들지 않는다.
 
-## 기존 구조와 연결
+## 구현 위치와 renderer 격리
 
-2026-09-06, main `a82547c`에서 source/config를 읽어 확인한 내용이다. 실행 성공 evidence는 아니다.
+인증 feature는 `apps/desktop/src/backend/auth/**`, `apps/desktop/src/preload/api/auth.ts`, `apps/desktop/src/preload/common/types/auth.ts`, `apps/desktop/src/frontend/src/hooks/useAuthBridge.ts`에 있다. Shared IPC contract에 아래 명령 type을 두고 backend/preload는 거기서 파생한다. `main.ts`/preload `index.ts`에는 생성, 등록, 노출만 둔다. 새 package나 dependency, 범용 service framework는 필요하지 않다.
 
-- `apps/desktop/src/backend/main.ts`는 window/lifecycle composition root이며 capture 등록과 `loadURL`/`loadFile`을 담당한다. Auth/protocol/single-instance/store는 없다. 현재 `sandbox:false`와 임의 popup URL의 `shell.openExternal` 경로가 있다.
-- `apps/desktop/src/backend/ipc.ts`, `apps/desktop/src/preload/ipc.ts`, `apps/desktop/src/preload/common/types/ipc.ts`는 `AsyncIPCFunctions`로 handler/invoker type을 연결한다. Runtime validation은 feature handler가 담당한다.
-- `apps/desktop/src/backend/capture/ipc-handler.ts`는 등록 window의 `webContents`를 검사하고, display-media는 main frame, 선택 source, user gesture 등도 검사한다. 안정화 OCR 문자열은 현재 log까지만 전달하며 HTTP 검색은 없다.
-- `apps/desktop/src/frontend/src/App.tsx`는 capture 화면 하나다. `usePartyCapture`, `usePartyCaptureSession`, `usePartyRecognition`은 선택, stream/worker, OCR 안정화 책임을 나누고 unmount 시 capture resource를 정리한다. 계정 화면, 검색 후보 화면은 없다.
-- `apps/desktop/src/preload/index.ts`는 feature API 외 toolkit `electronAPI`와 context isolation이 꺼진 fallback도 노출한다. `apps/desktop/src/frontend/index.html`은 local CSP를 가진다.
-
-후속 구현의 feature 위치는 `apps/desktop/src/backend/auth/**`, `apps/desktop/src/preload/api/auth.ts`, `apps/desktop/src/preload/common/types/auth.ts`, `apps/desktop/src/frontend/src/sections/Auth*.tsx`, `apps/desktop/src/frontend/src/hooks/useAuthBridge.ts`를 권장한다. Shared IPC contract에는 아래 명령 type을 추가하고 backend/preload는 거기서 파생한다. `main.ts`/preload `index.ts`에는 생성, 등록, 노출만 둔다. 새 package나 dependency, 범용 service framework는 필요하지 않다.
-
-인증 경계를 연결할 때 `contextIsolation:true`, `nodeIntegration:false`, `sandbox:true`를 명시하고 isolation-off fallback, 범용 `window.electron` 노출을 제거한다. 기존 capture 전용 API는 유지한다. 제품 Renderer의 navigation/새 window는 차단한다. Main은 검증한 로그인 launch URL과 고정된 패스키 관리 경로만 Electron `shell.openExternal`로 시스템 기본 브라우저에서 열고, 앱 안에 인증용 BrowserWindow를 만들지 않는다. 복귀는 main이 `beginLogin`마다 127.0.0.1의 임시 포트(1024~65535)에 여는 loopback 수신기가 받는다. 수신기는 pending 하나에 하나이며 GET `/auth/callback` 한 번만 받고, 다른 경로와 method에는 404, loopback 밖 원격 주소는 거부한다. 교환 시작, 취소, 만료 중 먼저 오는 때 닫는다. 이전 인증 창이 주던 메모리 session, exact origin 제한, 팝업과 다운로드 차단 격리는 시스템 브라우저에 적용되지 않으며, 세션 cookie는 브라우저가 보관한다. 같은 OS user의 다른 프로세스가 loopback 포트에 요청을 보낼 수 있지만 pending과 PKCE verifier가 없으면 code를 교환할 수 없다. 인증을 위해 CSP/webSecurity를 완화하지 않는다. Preload bundle, OCR worker, capture가 sandbox에서 작동하는지는 후속 회귀 검증 대상이며 검증 전 현재 기능과의 호환성을 주장하지 않는다. 시스템 브라우저와 loopback 복귀는 2026-10-10 사용자 결정이며 OS private protocol 등록과 복귀 처리는 제거했다. [Electron security 근거](https://www.electronjs.org/docs/latest/tutorial/security)
+제품 window는 `contextIsolation:true`, `nodeIntegration:false`, `sandbox:true`를 명시하고 isolation-off fallback, 범용 `window.electron`을 노출하지 않는다. 기존 capture 전용 API는 유지한다. 제품 Renderer의 navigation/새 window는 차단한다. Main은 검증한 로그인 launch URL과 고정된 패스키 관리 경로만 Electron `shell.openExternal`로 시스템 기본 브라우저에서 열고, 앱 안에 인증용 BrowserWindow를 만들지 않는다. 복귀는 main이 `beginLogin`마다 127.0.0.1의 임시 포트(1024~65535)에 여는 loopback 수신기가 받는다. 수신기는 pending 하나에 하나이며 GET `/auth/callback` 한 번만 받고, 다른 경로와 method에는 404, loopback 밖 원격 주소는 거부한다. 교환 시작, 취소, 만료 중 먼저 오는 때 닫는다. 이전 인증 창이 주던 메모리 session, exact origin 제한, 팝업과 다운로드 차단 격리는 시스템 브라우저에 적용되지 않으며, 세션 cookie는 브라우저가 보관한다. 같은 OS user의 다른 프로세스가 loopback 포트에 요청을 보낼 수 있지만 pending과 PKCE verifier가 없으면 code를 교환할 수 없다. 인증을 위해 CSP/webSecurity를 완화하지 않는다. 시스템 브라우저와 loopback 복귀는 2026-10-10 사용자 결정이며 OS private protocol 등록과 복귀 처리는 제거했다. [Electron security 근거](https://www.electronjs.org/docs/latest/tutorial/security)
 
 ## 최소 IPC 계약
 
@@ -98,31 +89,31 @@ Source 열거, 선택, 프레임 읽기, OCR와 검색 IPC는 등록된 renderer
 
 Main의 token 소유, account endpoint 권한 검사, sandbox와 navigation 차단은 유지한다. Renderer가 인증을 조작하지 않아도 기능을 사용할 수 있게 하며 임의 화면, camera/microphone 허용으로 확대하지 않는다. 제품의 화면 캡처와 Electron 권한 처리는 [Windows 제품 캡처 정책](desktop-windows-capture.md#windows-제품-캡처-정책)을 따른다.
 
-## 저장 확정 뒤 복원 안내 제안
+## 저장 확정 뒤 복원 안내
 
 ```yaml
 status: active
 enforcement: approval-required
 rationale: 저장이 확정돼도 access를 안전하게 사용할 수 없는 복원을 종료하고 사용자 재시도를 제공한다.
-evidence: "PR #139 사용자 승인: https://github.com/blahaj94/ldb/pull/139#issuecomment-5577289923 ; merge: cfb1fa7a9e1ce6e6ac9b704842be5d02183cbfbd ; 설계 근거: https://github.com/blahaj94/ldb/issues/137"
+evidence: "2026-09-08 PR #139 merge, 설계 Issue #137"
 exceptions: 기존 저장 실패, 결과 불명, 인증 상실 안내와 IPC shape를 바꾸지 않는다.
 review-after: 초기 restore, paused retry의 저장 지연, clock 회귀와 화면 검증 후
 ```
 
-- [저장 확정 뒤 복원 종료 제안](desktop-auth-lifecycle.md#저장-확정-뒤-복원-종료-제안)의 시간 문제로 복원을 마치지 못하면 `restorePaused/RESTORE_RETRY_REQUIRED`로 안내한다.
+- [저장 확정 뒤 복원 종료](desktop-auth-lifecycle.md#저장-확정-뒤-복원-종료)의 시간 문제로 복원을 마치지 못하면 `restorePaused/RESTORE_RETRY_REQUIRED`로 안내한다.
 - 고정 문구는 “로그인 상태 확인을 마치지 못했습니다. 다시 시도해 주세요.”다. Network, 서버, 저장 장애나 인증 상실을 뜻하지 않는다. `user`와 `entry`는 null이고 보호 화면, capture는 열지 않는다.
 - 처리 종료 뒤 “다시 시도”(`retryAuth`)와 현재 기기 logout을 제공한다. 진행 중에는 복원 중 표시와 중복 실행 차단을 유지하고, 다시 pause로 끝나면 다음 수동 재시도를 제공한다. 저장된 credential만으로 로그인 성공을 표시하지 않는다.
-- 기존 `retryAuth`의 인자 0개, `AuthCommandResult`, snapshot/event 순서와 `ok:true`의 명령 처리 의미를 유지한다. 새 IPC, snapshot field, browser login 또는 자동 재시도를 추가하지 않는다. 이 절과 연결된 lifecycle 절은 PR #139의 substantive contract 채택, merge로 active가 됐으며, 제품 구현은 사용자가 허용한 후속 작업 범위에서 수행한다.
+- 기존 `retryAuth`의 인자 0개, `AuthCommandResult`, snapshot/event 순서와 `ok:true`의 명령 처리 의미를 유지한다. 새 IPC, snapshot field, browser login 또는 자동 재시도를 추가하지 않는다.
 
 ## 승인된 선택과 서버 별도 결정
 
-권장안은 main 단독 소유 + feature IPC + memory-only pending/access + 암호화 refresh 보관 + 시스템 브라우저와 loopback 복귀 + 최소 welcome/home이다. Renderer token 보관은 bridge 노출면을 늘리고, 시스템 브라우저 인증은 제품 renderer와 session, 권한을 분리하면서 브라우저가 제공하는 패스키 hybrid QR을 그대로 쓴다. 등록 private protocol과 인증 BrowserWindow를 loopback으로 바꾼 것은 2026-10-10 사용자 결정에 따른다. 저장/복귀의 실질 대안 비교는 platform 문서에 둔다.
+선택한 구조는 main 단독 소유 + feature IPC + memory-only pending/access + 암호화 refresh 보관 + 시스템 브라우저와 loopback 복귀 + 최소 welcome/home이다. Renderer token 보관은 bridge 노출면을 늘리고, 시스템 브라우저 인증은 제품 renderer와 session, 권한을 분리하면서 브라우저가 제공하는 패스키 hybrid QR을 그대로 쓴다. 등록 private protocol과 인증 BrowserWindow를 loopback으로 바꾼 것은 2026-10-10 사용자 결정에 따른다. 저장/복귀의 실질 대안 비교는 platform 문서에 둔다.
 
 휴대폰 로그인은 [패스키 계약](auth-passkeys.md)의 브라우저 hybrid QR만 사용하며 DFragon 자체 QR의 상태 조회, 서버 취소는 제공하지 않는다. Main의 login pending은 메모리에만 유지하며 재시작 복구, code/refresh 응답 유실의 idempotent 재전달, error URL parameter, refresh grace, 계정 연결은 추가하지 않는다. [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 withdrawal 전용 status/resume, main-owned receipt, 재시작 1회/사용자 gesture 조회는 별도로 승인된 확장이다. 기존 login pending의 memory-only/재시작 복구 없음과 혼합하지 않으며 구체적 feature IPC, UI/OS 구현과 검증은 후속 범위다.
 
-## OCR 검색 연결 제안
+## OCR 검색 연결
 
-현재 구현된 검색 연결에 로그인 선택 정책을 적용한다. 이전 PR #131, #149의 auth generation, authorization, 401 refresh 의존은 이 변경으로 대체한다. 아래 capture, slot 수명과 입력, 응답 검증, deadline과 수동 재시도는 유지한다.
+검색 연결에는 로그인 선택 정책을 적용하며 auth generation, authorization, 401 refresh에 의존하지 않는다. 아래 capture, slot 수명과 입력, 응답 검증, deadline과 수동 재시도는 유지한다.
 
 ### 입력과 권한의 소유
 
@@ -138,15 +129,15 @@ review-after: 초기 restore, paused retry의 저장 지연, clock 회귀와 화
 
 크롭이 없거나 main에 검증된 비교 기준이 없으면 각각 `waiting-portrait`, `waiting-policy` 상태이며 HTTP를 시작하지 않는다. 두 상태는 기존 슬롯 식별자와 이름, `rows: []`, `error: null`을 유지하며 `selected`는 없다. 성공 상태에서만 선택된 한 행과 일치하는 기본 요약 `selected`를 추가할 수 있다. 기존 다섯 필드 rows와 일반 검색 snapshot은 계속 허용하며 전체 상세를 snapshot에 넣지 않는다.
 
-같은 후보와 유효 얼굴 픽셀은 현재 요청과 시간 예산을 유지한다. 다른 입력은 이전 요청과 선택을 무효화하며, 재시도에는 원래 OCR 입력을 사용한다. 변경, 종료와 오래된 결과 차단은 기존 캡처 계약을 유지한다. 기존 `notifyStableNicknameDetected`, 수동 검색과 인증 경계는 바꾸지 않는다. 이 확장은 구현과 같은 PR의 사용자 merge 후 적용한다.
+같은 후보와 유효 얼굴 픽셀은 현재 요청과 시간 예산을 유지한다. 다른 입력은 이전 요청과 선택을 무효화하며, 재시도에는 원래 OCR 입력을 사용한다. 변경, 종료와 오래된 결과 차단은 기존 캡처 계약을 유지한다. 기존 `notifyStableNicknameDetected`, 수동 검색과 인증 경계는 바꾸지 않는다.
 
 ### 최소 feature IPC
 
-검색 연결에서 아래 이름과 shape를 사용한다. 기존 `notifyStableNicknameDetected`를 확장하고, 검색 제어 invoke 하나와 event 하나를 추가하는 제안이다. 기존 source 열거, 선택, 프레임 읽기와 auth IPC의 권한 검사는 유지한다.
+검색 연결에서 아래 이름과 shape를 사용한다. 기존 `notifyStableNicknameDetected`를 확장하고, 검색 제어 invoke 하나와 event 하나를 둔다. 기존 source 열거, 선택, 프레임 읽기와 auth IPC의 권한 검사는 유지한다.
 
 | Channel / preload API                                           | 정확한 입력                                                       | 의미                                                                                                           |
 | --------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `notifyStableNicknameDetected`                                  | object 1개 `{captureId,slot,observationRevision,nickname}`        | 현재 capture의 확정 OCR 입력. 기존 `{slot,nickname}`/`Promise<void>` 확장은 후속 검색 구현에만 적용             |
+| `notifyStableNicknameDetected`                                  | object 1개 `{captureId,slot,observationRevision,nickname}`        | 현재 capture의 확정 OCR 입력 |
 | `controlCharacterSearch`                                        | object 1개 `{action:"read"}`                                      | main의 현재 `SearchSnapshot` 조회. HTTP, 활동, capture 시작 없음                                                 |
 | 같은 invoke                                                     | `{action:"begin"}`                                                | Start 의도. 등록 document에서 선택 source가 있을 때 새 capture 수명 생성. 이미 살아 있는 capture가 있으면 거절 |
 | 같은 invoke                                                     | `{action:"end",captureId}`                                        | 해당 수명만 무효화. 이미 끝난 ID는 no-op이며 새 capture에 영향 없음                                            |
@@ -198,10 +189,6 @@ Renderer는 event를 먼저 구독한 뒤 `read`하고 같은 runId에서 더 �
 - 429는 실패로 표시하고 유효한 양의 정수 `Retry-After`를 main의 monotonic 대기로 적용한다. 만료 시 같은 실패의 버튼만 활성화한다. 누락, 부적합 header는 null로 정제하고 수동 retry를 허용한다. 자동 GET이나 quota 대기열을 만들지 않는다.
 - Stop, source/document 변경, capture 종료는 해당 요청과 timer를 취소하고 늦은 결과를 버린다. 다른 slot은 독립적이며 로그인, 로그아웃으로 취소하지 않는다.
 
-## 인증 준비 미완료 검색 종료 제안
-
-PR #149의 `SEARCH_AUTH_NOT_READY`와 인증 회복 오류는 공개 검색 전환으로 제품 검색에서 사용하지 않는다. 기존 승인 이력은 해당 PR에 보존하며 계정 인증, 저장, 복원 정책을 변경하는 근거로 사용하지 않는다.
-
 ## 닉네임 직접 입력과 슬롯 수정
 
 2026-09-15 사용자가 요청한 직접 검색, 수정 검색은 기존 공개 검색과 같은 입력, 응답, quota, 15초 예산을 사용한다. 이름을 trim, OCR 정규화, 자동 교정하지 않으며 2~12 code point 및 바깥 공백, 잘못된 Unicode 검사를 main에서 다시 수행한다. 로그인은 필요하지 않다.
@@ -209,7 +196,7 @@ PR #149의 `SEARCH_AUTH_NOT_READY`와 인증 회복 오류는 공개 검색 전�
 - 직접 검색은 source 선택, 캡처, OCR 없이 사용할 수 있다. 별도 검색 수명을 사용하므로 캡처 Stop/source 변경과 서로의 결과를 지우지 않는다. 등록 document 종료, navigation, renderer 종료는 모두 정리한다. 수동 검색 ID로 캡처 프레임을 읽거나 캡처 검색을 조작할 수 없다.
 - Preload의 `window.manualSearch`는 기존 `SearchApi`의 control/subscribe shape와 `notifyManualNickname(SearchObservation)`을 제공한다. IPC는 `controlManualSearch`, `notifyManualNickname`, `manualSearchChanged`다. 동일한 sender/main frame/exact document, exact own key, DTO 검사를 적용한다. Shared DTO의 `captureId`는 수동 채널에서는 독립 검색 세션 ID이며 캡처 프레임 읽기 권한이 아니다.
 - 공대 카드는 같은 control/subscribe shape의 `window.raidSearch`를 쓰며 IPC는 `controlRaidSearch`, `raidSearchChanged`다. 이 수명은 12자리이고 서버 없는 직접 이름 통지 채널은 두지 않는다. 같은 sender, main frame, exact document, exact own key, DTO 검사를 적용한다.
-- 2026-10-19 사용자 요청으로 공대 캡처 회차가 같은 공대 수명에 `readRaidCaptureFrame`과 `notifyRaidOcrCandidatesDetected`를 쓴다. 이 변경은 구현 PR의 사용자 merge 후 적용한다. 공대 수명의 `begin`은 그때의 source 선택 세대를 함께 기록한다. 프레임 요청은 현재 공대 수명 ID 하나만 받고, 등록 renderer의 sender, main frame, exact document와 source 선택이 기록한 세대와 같으며 선택 중이 아닐 때만 선택 창을 한 번 읽는다. 읽은 뒤 공대 수명, 문서, source를 다시 확인하고, 공대 상세 창의 12행 닉네임 크롭만 반환하며 프레임 원본은 반환하지 않는다. 공대 수명 ID로 파티 캡처 프레임을, 파티 캡처 ID로 공대 프레임을 읽을 수 없다. OCR 이름 통지는 파티 캡처의 OCR DTO와 같은 검사에 자리 번호 0 이상 11 이하를 적용하며 서버는 받지 않는다. 공대 수명을 다시 시작하거나 문서가 바뀌면 이전 요청을 취소하고 늦은 결과를 버린다. Source 변경과 Stop은 공대 조회 결과를 지우지 않지만, 이전 선택으로 시작한 공대 수명의 프레임 요청과 OCR 이름 통지, OCR 실패의 재시도를 거절한다. 진행 중인 OCR 기원 요청은 취소하고 그 자리를 비우며 늦은 결과를 반영하지 않는다. 사용자가 서버와 이름으로 직접 조회한 자리와 그 조회, 재시도는 source와 무관하게 같은 수명에서 유지된다.
+- 2026-10-19 사용자 요청으로 공대 캡처 회차가 같은 공대 수명에 `readRaidCaptureFrame`과 `notifyRaidOcrCandidatesDetected`를 쓴다. 공대 수명의 `begin`은 그때의 source 선택 세대를 함께 기록한다. 프레임 요청은 현재 공대 수명 ID 하나만 받고, 등록 renderer의 sender, main frame, exact document와 source 선택이 기록한 세대와 같으며 선택 중이 아닐 때만 선택 창을 한 번 읽는다. 읽은 뒤 공대 수명, 문서, source를 다시 확인하고, 공대 상세 창의 12행 닉네임 크롭만 반환하며 프레임 원본은 반환하지 않는다. 공대 수명 ID로 파티 캡처 프레임을, 파티 캡처 ID로 공대 프레임을 읽을 수 없다. OCR 이름 통지는 파티 캡처의 OCR DTO와 같은 검사에 자리 번호 0 이상 11 이하를 적용하며 서버는 받지 않는다. 공대 수명을 다시 시작하거나 문서가 바뀌면 이전 요청을 취소하고 늦은 결과를 버린다. Source 변경과 Stop은 공대 조회 결과를 지우지 않지만, 이전 선택으로 시작한 공대 수명의 프레임 요청과 OCR 이름 통지, OCR 실패의 재시도를 거절한다. 진행 중인 OCR 기원 요청은 취소하고 그 자리를 비우며 늦은 결과를 반영하지 않는다. 사용자가 서버와 이름으로 직접 조회한 자리와 그 조회, 재시도는 source와 무관하게 같은 수명에서 유지된다.
 - 수동 `begin`은 이전 수동 세션을 종료하고 새 수명을 만든다. 시작 응답 유실 후 사용자 재검색으로 복구할 수 있고 늦은 이전 `end`, HTTP 결과는 새 세션에 영향을 주지 않는다. 캡처 `begin`의 source 전제는 유지한다.
 - 슬롯에서 ‘닉네임 수정’을 선택하면 해당 슬롯의 이전 검색을 취소하고 자동 검색 제출을 멈춘다. 다른 슬롯의 회차 처리는 계속 동작한다. 편집 입력과 수정 검색 결과는 이후 도착한 OCR로 덮어쓰지 않으며 ‘OCR 다시 사용’을 누르면 보관한 회차의 OCR 결과로 자동 검색을 재개한다. 이때 새 프레임은 읽지 않는다. Stop/source 변경, capture 종료 시 수정 모드를 해제한다.
 - 검색은 Enter 또는 명시적 버튼으로 제출하며 한글 조합 중 Enter는 제출하지 않는다. 중복된 진행 요청은 추가로 보내지 않고 새로운 이름은 이전 요청을 취소, 교체한다. 오류, 빈 결과, 429, 수동 retry는 기존 결과 UI를 재사용한다. 화면 입력값, 닉네임, 검색 결과를 log나 영구 저장소에 추가 기록하지 않는다.

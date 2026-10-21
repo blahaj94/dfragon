@@ -11,7 +11,7 @@ last-reviewed: 2026-10-09
 
 ## 설정과 소유권
 
-Root의 `biome.json`, `scripts/biome/`의 GritQL lint 플러그인, `scripts/statement-spacing.mjs`를 모든 프로젝트가 공유한다. 실제 version, command, 범위는 [Repository Map](../reference/repository-map.md#공통-정적-검사와-정렬)과 package/config가 설명한다. 이전 ESLint, Prettier 공통 설정의 승인 근거는 [PR #163](https://github.com/blahaj94/ldb/pull/163), [PR #165](https://github.com/blahaj94/ldb/pull/165)에 남아 있다.
+Root의 `biome.json`, `scripts/biome/`의 GritQL lint 플러그인, `scripts/statement-spacing.mjs`를 모든 프로젝트가 공유한다. 실제 version, command, 범위는 [Repository Map](../reference/repository-map.md#공통-정적-검사와-정렬)과 package/config가 설명한다.
 
 - `lint`, `format:check`는 비수정 검사, `lint:fix`, `format`은 현재 설정 범위의 수정이다. `format`은 Biome 포맷 뒤 문장 간격 도구를 실행하고 `format:check`도 같은 순서로 검사한다. Biome assist의 import 정렬과 `biome check`의 일괄 수정은 사용하지 않는다.
 - Biome 포맷 범위의 줄바꿈, 들여쓰기, 따옴표, 세미콜론, trailing comma는 도구 출력을 따른다. 예전 수동 체인 배치, 백틱 위치나 이전 Prettier 출력으로 되돌리지 않는다.
