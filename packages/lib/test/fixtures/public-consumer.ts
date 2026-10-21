@@ -1,8 +1,5 @@
 import {
   validateDFNickname,
-  estimateDNFUIScale,
-  estimateDNFPartyScale,
-  projectDNFPartyRegions,
   detectDNFPartyParticipantWindow,
   cropDNFPartyParticipantNicknames,
   detectDNFRaidParticipantWindow,
@@ -17,7 +14,6 @@ import {
   type NicknameValidationResult,
   type DFNicknameValidationOptions,
   type DNFRectangle,
-  type DNFPartyRegionOptions,
   type DNFParticipantFrame,
   type DNFParticipantSlot,
   type DNFParticipantRow,
@@ -64,14 +60,6 @@ export function searchInput(nickname: string) {
   const maximum = DNF_SEARCH_NICKNAME_LIMITS.maximumCodePoints
 
   return { nickname, allowed, minimum, maximum }
-}
-
-export function candidateRegions(options: DNFPartyRegionOptions, uiPercent: number) {
-  const modelScale = estimateDNFUIScale(uiPercent, options.clientSize.height)
-  const observedScale = estimateDNFPartyScale(181)
-  const regions: DNFRectangle[] = projectDNFPartyRegions(options)
-
-  return { modelScale, observedScale, regions }
 }
 
 export function partyRows(frame: DNFParticipantFrame, heading: DNFParticipantFrame) {
