@@ -12,12 +12,7 @@ Desktop renderer의 화면별 스타일은 StyleX로 작성합니다. 공용 토
 
 [앱 공통 StyleX](app-styling.md)의 compiler 옵션, 버전을 사용한다. `apps/desktop/build/renderer-transforms.ts`가 공식 `@stylexjs/unplugin`과 React plugin의 순서를 관리합니다. 제품 electron-vite renderer, Vitest, auth bridge fixture가 이 설정을 함께 사용합니다. Vitest는 HTTP/HMR timer 없이 같은 compiler를 실행하는 Rollup adapter를 사용합니다. Main, preload에는 StyleX 변환을 적용하지 않습니다.
 
-- StyleX를 React보다 먼저 실행해 Fast Refresh를 유지합니다.
-- `runtimeInjection: false`로 빌드 시 CSS를 추출합니다. `useCSSLayers: false`로 공용 토큰 CSS, foundation, 앱 글꼴 CSS와 같은 cascade에서 조합합니다.
-- 각 browser entry는 `@dfragon/ui/tokens.css`, `@dfragon/ui/foundation.css`, `assets/fonts.css` 순서로 한 번 import합니다. Production에서는 생성된 StyleX CSS가 이 CSS asset에 합쳐지고 HTML의 링크가 갱신됩니다.
-- HTML entry를 사용하는 개발 서버에는 plugin이 CSS와 HMR runtime을 연결합니다. 수동 CSS 생성이나 별도의 StyleX CLI 실행은 필요하지 않습니다.
-
-통합 방식은 [공식 Vite 안내](https://stylexjs.com/docs/learn/installation/vite/)와 [unplugin 설정](https://stylexjs.com/docs/api/configuration/unplugin/)을 참고합니다. 설치 버전은 workspace catalog와 lockfile에서 관리합니다.
+Plugin 순서, CSS 추출, entry의 CSS import 순서는 [앱 공통 StyleX](app-styling.md#공통-설정과-소비-경로)를 따릅니다. Desktop의 앱 전역 글꼴 CSS는 `assets/fonts.css`이며, HTML entry를 사용하는 개발 서버에는 plugin이 CSS와 HMR runtime을 연결하므로 수동 CSS 생성이나 별도의 StyleX CLI 실행은 필요하지 않습니다.
 
 ## 컴포넌트 작성
 

@@ -7,7 +7,7 @@ last-reviewed: 2026-10-07
 
 # 공개 캐릭터 검색 개발
 
-`GET /characters`는 로그인 없이 제공한다. 계약은 [캐릭터 검색](../rules/character-search.md)을 따른다. 이전 인증, DB 검색 구현 이력은 기존 PR에 보존하며 현재 공개 검색의 선행 조건으로 사용하지 않는다.
+`GET /characters`는 로그인 없이 제공한다. 계약은 [캐릭터 검색](../rules/character-search.md)을 따른다.
 
 `GET /characters/candidates?characterName=...`는 Desktop의 OCR 식별을 위한 동일 단어 검색이다. `all`, `match`, `limit=200`을 고정하고 명성 내림차순, null 마지막 순서로 후보를 반환한다. 각 후보에는 `zoom=1`의 네오플 캐릭터 `imageUrl`을 포함한다. 이름 하나씩 호출하므로 Desktop이 첫 OCR 후보의 이미지 비교를 마친 뒤 두 번째 이름으로 넘어갈 수 있다. 기존 `GET /characters`의 `full` 검색과 응답 순서는 유지한다. 두 경로에는 클라이언트별, 서버 전체 호출 제한이 없다.
 

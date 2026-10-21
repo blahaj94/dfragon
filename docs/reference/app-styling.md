@@ -6,7 +6,7 @@ scope: all application browser surfaces
 
 # 앱 공통 StyleX
 
-Desktop renderer, API 패스키 페이지, OCR 관리 SPA, Web은 화면 스타일을 StyleX로 작성한다. 공통 UI 책임은 [Design System](../rules/design-system.md)을 따른다. 공용 색, 간격, 반지름, 모션은 `@dfragon/ui`의 자체 토큰을, 공용 Component는 Base UI 기반 `@dfragon/ui` Component를 쓴다.
+Desktop renderer, accounts 패스키 페이지, OCR 관리 SPA, Web은 화면 스타일을 StyleX로 작성한다. 공통 UI 책임은 [Design System](../rules/design-system.md)을 따른다. 공용 색, 간격, 반지름, 모션은 `@dfragon/ui`의 자체 토큰을, 공용 Component는 Base UI 기반 `@dfragon/ui` Component를 쓴다.
 
 ## 공통 설정과 소비 경로
 
@@ -14,7 +14,7 @@ StyleX runtime과 compiler 버전은 `pnpm-workspace.yaml`의 catalog에서 관�
 
 `catalog:`는 [pnpm의 버전 참조 문법](https://pnpm.io/catalogs#the-catalog-protocol-catalog)이다. 예를 들어 앱의 `"@stylexjs/stylex": "catalog:"`는 `pnpm-workspace.yaml`의 기본 `catalog`에서 같은 패키지의 버전을 읽는다. 현재 지정된 값은 정확한 고정 버전이며 최신 버전을 자동 선택하지 않는다. 여러 앱의 manifest에 버전 번호를 반복하는 대신 catalog 한 곳을 수정하고 lockfile을 갱신해 함께 올린다. `workspace:*`는 저장소 내부 패키지를 연결하는 문법이고, `catalog:`는 의존성 버전을 참조하는 문법이다.
 
-API와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild용 플러그인 진입점이다. 기존 browser build가 esbuild로 React, TypeScript와 npm 의존성을 브라우저용 JS, CSS로 묶으므로 여기에 StyleX 변환을 연결한다. 패스키 API는 그 정적 산출물을 직접 제공한다. `build.mjs`는 Node에서 실행하는 ESM 빌드 스크립트이며, 브라우저가 이 파일이나 compiler를 실행하지 않는다. 앱마다 bundler는 유지하고 StyleX 옵션, 버전을 공유한다.
+accounts와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild용 플러그인 진입점이다. 기존 browser build가 esbuild로 React, TypeScript와 npm 의존성을 브라우저용 JS, CSS로 묶으므로 여기에 StyleX 변환을 연결한다. accounts는 그 정적 산출물을 직접 제공한다. `build.mjs`는 Node에서 실행하는 ESM 빌드 스크립트이며, 브라우저가 이 파일이나 compiler를 실행하지 않는다. 앱마다 bundler는 유지하고 StyleX 옵션, 버전을 공유한다.
 
 - `runtimeInjection: false`: production CSS를 빌드 시 추출해 기존 CSP와 정적 stylesheet 경로를 유지한다.
 - `useCSSLayers: false`: 공용 토큰 CSS, foundation, 앱 전역 글꼴 CSS 같은 전역 기반 스타일과 같은 cascade에서 조합한다.
@@ -26,7 +26,7 @@ API와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild�
 | 소비자 | 연결 위치 |
 | --- | --- |
 | Desktop 제품, test, fixture | `apps/desktop/build/renderer-transforms.ts` |
-| API 패스키 | `apps/accounts/browser/build.mjs` |
+| accounts 패스키 | `apps/accounts/browser/build.mjs` |
 | OCR 관리 SPA | `apps/ocr/browser/build.mjs` |
 | Web | `apps/web/vite.config.ts`, `vitest.config.ts` |
 | 공용 UI Example, test | `packages/ui/examples/vite.config.ts`, `packages/ui/vitest.config.ts` |

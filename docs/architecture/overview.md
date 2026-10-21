@@ -14,6 +14,7 @@ DFragon은 pnpm workspace monorepo다.
 
 ```text
 apps/
+  accounts/
   api/
   web/
   desktop/
@@ -21,18 +22,22 @@ apps/
 packages/
   ui/
   lib/
+  icons/
   licenses/
   models/
+  skill-layouts/
 scripts/
 ```
 
 - `apps/accounts`: NestJS 인증 서비스와 패스키 UI. accounts.dfragon.com과 별도 PostgreSQL container, volume, 역할을 소유한다.
 - `apps/api`: 캐릭터, 모험단 공개 NestJS API workspace. 승인된 ESM runtime, dependency, build/test 계약은 [`../rules/api-runtime.md`](../rules/api-runtime.md)를 따른다. 구현 현황은 Reference에서 확인한다.
 - `apps/web`: React, TypeScript, Vite 기반 web application.
-- `apps/ocr`: 개인 OCR 자료의 Node 26, NestJS 서버와 React 관리 SPA. 원본, 좌표, 정답은 서버의 SQLite에 보관하고 accounts의 패스키로 인증한다. 이 요청의 신규 app, 저장, 배포 경계는 [OCR 계약](../rules/ocr-workspace.md)을 따른다.
+- `apps/ocr`: 개인 OCR 자료의 Node 26, NestJS 서버와 React 관리 SPA. 원본, 좌표, 정답은 서버의 SQLite에 보관하고 accounts의 패스키로 인증한다. 저장, 배포 경계는 [OCR 계약](../rules/ocr-workspace.md)을 따른다.
 - `apps/desktop`: Electron, React, TypeScript, electron-vite 기반 desktop application.
 - `packages/ui`: 현재 tracked shared UI package `@dfragon/ui`. 실제 구현, 명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
 - `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@dfragon/lib`. 아래 Shared library boundary를 따른다.
+- `packages/icons`: 제품 화면이 번들하는 게임 아이콘 `@dfragon/icons`. 코드 없이 sprite와 JSON을 제공한다.
+- `packages/skill-layouts`: 직업별 스킬트리 배치 `@dfragon/skill-layouts`. 코드 없이 `layouts.json`을 제공한다.
 - `packages/licenses`: 빌드 시 고지 원문, 수집, 배포 자료를 관리하는 `@dfragon/licenses`. 제품 runtime에서 import하지 않는다.
 - `packages/models`: 빌드에 넣는 학습 모델 파일을 제공하는 `@dfragon/models`. 아래 Model package boundary를 따른다.
 - `scripts`: repository 생성, 관리 script.
@@ -41,12 +46,12 @@ scripts/
 
 ## Approved boundary
 
-현재 workspace, app boundary와 API runtime, 검증 기반이 승인됐다. 검색의 입력, 응답, 오류, 계정 제한은 [`../rules/character-search.md`](../rules/character-search.md)를 따른다. 근거는 [PR #42 사용자 승인](https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698)이다. 인증, 핵심 DB, 서버 통신의 추가 승인 범위는 아래 Authentication boundary contract를 따른다.
+현재 workspace, app boundary와 API runtime, 검증 기반이 승인됐다. 검색의 입력, 응답, 오류, 계정 제한은 [`../rules/character-search.md`](../rules/character-search.md)를 따른다. 인증, 핵심 DB, 서버 통신의 범위는 아래 Authentication boundary contract를 따른다.
 
-PostgreSQL의 최초 선택 이력과 현재 갱신, 검증 기준은 [`auth-runtime.md`](../rules/auth-runtime.md)를 따른다. 실제 고정 image는 검증 도구에서 확인하며 일반 패치마다 Rule 승인을 반복하지 않는다. 로컬 검증 성공을 운영 환경의 성공으로 확대하지 않는다. 인증 운영 설계의 추가 승인은 아래 Authentication boundary contract를 따르며, 다음 사항은 구체 결정, 확보 또는 검증이 남아 있다.
+PostgreSQL의 갱신, 검증 기준은 [`auth-runtime.md`](../rules/auth-runtime.md)를 따른다. 실제 고정 image는 검증 도구에서 확인하며 일반 패치마다 Rule 승인을 반복하지 않는다. 로컬 검증 성공을 운영 환경의 성공으로 확대하지 않는다. 다음 사항은 구체 결정, 확보 또는 검증이 남아 있다.
 
 - 선택한 인증 운영 환경의 권한, 저장과 기능 검증. 공개 복원은 선택했을 때만 확인
-- Web/mobile client, 실제 Desktop 지원 OS, 배포 identity, callback/protocol 등록값 및 native 저장/복귀 검증
+- Web/mobile client
 - 아래 Shared UI, Shared library boundary 이외의 shared package 종류와 dependency direction
 - 승인된 탈퇴, 삭제/재가입, 백업 복원 정책의 실제 저장소, 권한, 실행 검증 gate
 - 현재 요청과 MVP 운영 기준을 벗어나는 새로운 deployment boundary
@@ -55,17 +60,17 @@ PostgreSQL의 최초 선택 이력과 현재 갱신, 검증 기준은 [`auth-run
 
 ## Authentication boundary contract
 
-accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 회원, 공개키, session을 저장한다. 인증 UI, 패스키 로그인, 키 관리는 accounts.dfragon.com의 단일 origin과 RP를 사용한다. Desktop public client는 시스템 기본 브라우저에서 인증하고 loopback 수신기로 받은 앱 복귀 code를 S256으로 보호해 교환한다. 계약은 [패스키](../rules/auth-passkeys.md), [HTTP 경계](../rules/auth-api.md), [세션](../rules/auth-session.md), [DB](../rules/auth-database.md), [활동](../rules/auth-activity.md), [runtime](../rules/auth-runtime.md)을 따른다. 이전 인증 설계 승인은 [PR #48](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)에 보존한다.
+accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 회원, 공개키, session을 저장한다. 인증 UI, 패스키 로그인, 키 관리는 accounts.dfragon.com의 단일 origin과 RP를 사용한다. Desktop public client는 시스템 기본 브라우저에서 인증하고 loopback 수신기로 받은 앱 복귀 code를 S256으로 보호해 교환한다. 계약은 [패스키](../rules/auth-passkeys.md), [HTTP 경계](../rules/auth-api.md), [세션](../rules/auth-session.md), [DB](../rules/auth-database.md), [활동](../rules/auth-activity.md), [runtime](../rules/auth-runtime.md)을 따른다.
 
-위 승인은 서버 인증/DB contract 범위다. 추가로 [PR #60 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475)으로 Desktop main/IPC/화면, 인증 lifecycle, OS 저장, protocol 설계가 승인됐다. Canonical contract는 [`../rules/desktop-auth.md`](../rules/desktop-auth.md), [`../rules/desktop-auth-lifecycle.md`](../rules/desktop-auth-lifecycle.md), [`../rules/desktop-auth-platform.md`](../rules/desktop-auth-platform.md)다.
+Desktop main/IPC/화면, 인증 lifecycle, OS 저장의 canonical contract는 [`../rules/desktop-auth.md`](../rules/desktop-auth.md), [`../rules/desktop-auth-lifecycle.md`](../rules/desktop-auth-lifecycle.md), [`../rules/desktop-auth-platform.md`](../rules/desktop-auth-platform.md)다.
 
-탈퇴 D1–D5와 공개 복원의 삭제 보존, 최신성, 옛 자격 폐기 조건은 [탈퇴 계약](../rules/auth-withdrawal-proposal.md)을 따른다. 한 운영자, 단일 서버를 허용하고 공개 복원은 선택 기능으로 유지한다. API/accounts와 각각의 PostgreSQL, volume, 역할 분리는 유지하며 같은 host의 분리를 물리 장애 격리로, 같은 운영자의 계정 분리를 독립 관리자에 의한 침해 방지로 설명하지 않는다. 서버 배치, 배포, 백업, 복구 실행은 [저장소 책임 경계](../reference/api-start-development.md#서버-이미지)의 인프라 담당 범위다. [PR #132](https://github.com/blahaj94/ldb/pull/132)의 3대, journal/witness 설계는 이전 결정 이력이며 새 기능의 기본 착수 조건이 아니다.
+탈퇴 D1–D5와 공개 복원의 삭제 보존, 최신성, 옛 자격 폐기 조건은 [탈퇴 계약](../rules/auth-withdrawal-proposal.md)을 따른다. 한 운영자, 단일 서버를 허용하고 공개 복원은 선택 기능으로 유지한다. API/accounts와 각각의 PostgreSQL, volume, 역할 분리는 유지하며 같은 host의 분리를 물리 장애 격리로, 같은 운영자의 계정 분리를 독립 관리자에 의한 침해 방지로 설명하지 않는다. 서버 배치, 배포, 백업, 복구 실행은 [저장소 책임 경계](../reference/api-start-development.md#서버-이미지)의 인프라 담당 범위다.
 
-설계와 실제 구현, 환경 검증을 구분한다. 현재 사용자 요청에 포함된 구현, 비운영 검증에는 과거 설계 작업의 착수 제외를 다시 적용하지 않는다. 미제공 복원 기능이 독립 작업을 막지 않으며, 실제 credential, 인증 도메인 설정, 운영 DB, 배포 권한과 유효한 명시적 금지는 유지한다.
+설계와 실제 구현, 환경 검증을 구분한다. 미제공 복원 기능이 독립 작업을 막지 않으며, 실제 credential, 인증 도메인 설정, 운영 DB, 배포 권한과 유효한 명시적 금지는 유지한다.
 
 ## 점수 엔진 경계
 
-2026-10-19 결정으로 비공개 저장소가 만든 C 네이티브 점수 엔진(Windows DLL, macOS dylib)을 Desktop main이 `koffi`로 불러 쓰는 아래 경계를 채택한다. 추적은 [Issue #716](https://github.com/blahaj94/dfragon/issues/716)이다. 이 절은 채택 PR의 사용자 merge 후 다른 작업에 적용한다.
+비공개 저장소가 만든 C 네이티브 점수 엔진(Windows DLL, macOS dylib)은 Desktop main이 `koffi`로 불러 쓴다(2026-10-19 결정, [Issue #716](https://github.com/blahaj94/dfragon/issues/716)). 로더는 `apps/desktop/src/backend/score/engine.ts`다.
 
 | 대상 | 책임 |
 | --- | --- |
@@ -79,7 +84,7 @@ accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 �
 
 ## Shared UI boundary
 
-2026-10-18 결정으로 browser UI에서 SEED Design을 걷어내고 `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하는 아래 UI 경계를 채택한다. [Issue #86의 SEED 채택 결정](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)은 이력으로 보존하며 이 결정으로 대체한다. 이 절은 채택 PR의 사용자 merge 후 active 계약으로 적용했고, 코드 이행을 마쳐 저장소에 SEED 코드, 의존성과 그 경계 검사가 남아 있지 않다. 아래 경계의 build 산출물 검사는 `packages/ui/scripts/verify-build.mjs`가 맡는다. UI 내부 배치, 스타일, 토큰, Example 범위와 이행 기준은 [Design System](../rules/design-system.md)을 따른다.
+`@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유한다(2026-10-18 결정). 아래 경계의 build 산출물 검사는 `packages/ui/scripts/verify-build.mjs`가 맡는다. UI 내부 배치, 스타일, 토큰, Example 범위와 이행 기준은 [Design System](../rules/design-system.md)을 따른다.
 
 | 대상 | 책임과 dependency direction |
 | --- | --- |
@@ -104,22 +109,23 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web, Ele
 
 ## Shared library boundary
 
-`packages/lib`의 `@dfragon/lib`는 앱 → library 방향으로 소비하는 순수 함수를 제공하며 앱 source, UI, Node/Electron 전용 runtime, 네트워크, 저장소에 의존하지 않는다. 범위는 CP949 기반 던파 캐릭터명 형식 검사, 요청 제한용 IP 키 변환, DNF UI 좌표 계산, 호출자가 제공한 RGBA의 HUD 파티 프레임과 파티참가인원 검출, 크롭, 공개 타입, 빌드, 검증이다. 이번 RGBA 공통 함수 범위는 사용자 merge 후 적용한다. IP 키 변환은 API, accounts, OCR의 동일한 IPv4 정규화, IPv6 /64 묶기, 잘못된 주소 공유 규칙을 공용 함수로 모으는 사용자 요청 범위이며 해당 PR의 사용자 merge 후 적용한다. 신뢰할 접속 IP 선택, 프록시 설정, 요청 한도와 카운터는 각 서버 앱이 소유한다. 이미지 디코딩, 게임 캡처, OCR, 저장과 화면 연결은 소비 앱이 소유한다. 함수의 보장 범위와 사용법은 [공용 함수 안내](../../packages/lib/README.md)를 따른다.
+`packages/lib`의 `@dfragon/lib`는 앱 → library 방향으로 소비하는 순수 함수를 제공하며 앱 source, UI, Node/Electron 전용 runtime, 네트워크, 저장소에 의존하지 않는다. 제공하는 함수의 범위는 [공용 함수 안내](../../packages/lib/README.md)를 따른다. IP 키 변환은 API, accounts, OCR의 동일한 IPv4 정규화, IPv6 /64 묶기, 잘못된 주소 공유 규칙을 모은다. 신뢰할 접속 IP 선택, 프록시 설정, 요청 한도와 카운터는 각 서버 앱이 소유한다. 이미지 디코딩, 게임 캡처, OCR, 저장과 화면 연결은 소비 앱이 소유한다.
 
 ## License tooling boundary
 
-`@dfragon/licenses`는 UI, Web, Desktop, 공용 library의 **빌드 도구 의존성**으로 고지 원문, 수집, 산출물 생성을 담당한다. 제품 runtime 의존성으로 연결하지 않는다. 소유 app/package는 source provenance와 사용 자산을 전달하고, 중앙 도구는 소유 앱의 제품 코드를 import하지 않는다. 기존 고지 원문의 중앙 관리와 빌드 수집 도구 이전을 이번 요청의 적용 범위로 채택하며 사용자 merge 후 적용한다. 기존 LICENSE/NOTICE와 source 수정 표시는 보존한다. 확인되지 않은 원문과 법률상 추가 조건을 수집 성공으로 대체하지 않는다. [사용법과 한계](../../packages/licenses/README.md)를 따른다.
+`@dfragon/licenses`는 UI, Web, Desktop, 공용 library의 **빌드 도구 의존성**으로 고지 원문, 수집, 산출물 생성을 담당한다. 제품 runtime 의존성으로 연결하지 않는다. 소유 app/package는 source provenance와 사용 자산을 전달하고, 중앙 도구는 소유 앱의 제품 코드를 import하지 않는다. 기존 LICENSE/NOTICE와 source 수정 표시는 보존한다. 확인되지 않은 원문과 법률상 추가 조건을 수집 성공으로 대체하지 않는다. [사용법과 한계](../../packages/licenses/README.md)를 따른다.
 
 ## Model package boundary
 
-2026-10-19 사용자 요청으로 Desktop 폴더 안의 OCR 파인튜닝 모델 submodule을 `packages/models`의 workspace package `@dfragon/models`로 옮기는 아래 경계를 채택한다. 모델 파일의 위치를 앱 폴더 밖에서 찾을 수 있게 하는 저장소 구조 정리이며 빌드에 넣는 모델은 바꾸지 않는다. 이 절은 채택 PR의 사용자 merge 후 다른 작업에 적용한다.
+OCR 파인튜닝 모델 submodule은 `packages/models`의 workspace package `@dfragon/models`에 둔다.
 
 | 대상 | 책임과 dependency direction |
 | --- | --- |
 | `packages/models`의 `@dfragon/models` | 모델 저장소를 submodule로 고정 커밋에 묶고 `exports`로 모델, 사전 파일 경로를 제공한다. 코드와 dependency가 없으며 앱 source를 참조하지 않는다. |
 | `apps/desktop` | 빌드 설정에서 패키지 이름으로 모델 파일을 찾아 renderer 자원으로 복사한다. 어떤 모델을 넣을지와 호환성 검증은 Desktop이 소유한다. |
 
-2026-10-20 사용자 요청으로 점수 엔진 바이너리도 같은 패키지의 submodule(`score-engine`)로 입수 방식을 통일한다. 바이너리 저장소가 비공개라 기본 checkout에서 빠지며(`update = none`) 권한이 없는 checkout은 점수 없이 빌드한다. 어떤 엔진을 넣을지는 submodule 커밋으로 고정하고 Desktop이 플랫폼별 파일을 패키지 자원으로 복사한다. 이 문단은 채택 PR의 사용자 merge 후 다른 작업에 적용한다.
+점수 엔진 바이너리도 같은 패키지의 submodule(`score-engine`)로 입수한다. 바이너리 저장소가 비공개라 기본 checkout에서 빠지며(`update = none`) 권한이 없는 checkout은 점수 없이 빌드한다. 어떤 엔진을 넣을지는 submodule 커밋으로 고정하고 Desktop이 플랫폼별 파일을 패키지 자원으로 복사한다.
+
 
 모델 원본과 학습은 모델 저장소가 소유하며 이 저장소에 모델 파일을 commit하지 않는다. 점수 엔진의 소스와 빌드는 비공개 엔진 저장소가 소유한다. 사용법과 갱신 절차는 [패키지 안내](../../packages/models/README.md)를 따른다.
 

@@ -59,7 +59,7 @@ const user = await users.findOneBy({ id: userId })
 ## 이력과 생성 한계
 
 - 이미 작성된 초기 Migration은 기존 이력으로 보존한다. 이후 EntitySchema를 수정해도 과거 Migration이 바뀌지 않도록 Migration에서 현재 schema file을 import하지 않는다.
-- TypeORM 1.1.1의 schema diff는 같은 이름의 CHECK expression 및 partial index의 WHERE 변경을 감지하지 않는다. 이런 표현을 변경할 때는 schema의 해당 constraint/index 이름도 새 이름으로 바꾸어 drop/create가 생성되도록 하고, 생성 SQL과 실제 위반 거절을 확인한다. PK 이름 변경 같은 metadata 변경 역시 SQL에 반영됐는지 확인한다.
+- TypeORM의 schema diff는 같은 이름의 CHECK expression 및 partial index의 WHERE 변경을 감지하지 않는다. 이런 표현을 변경할 때는 schema의 해당 constraint/index 이름도 새 이름으로 바꾸어 drop/create가 생성되도록 하고, 생성 SQL과 실제 위반 거절을 확인한다. PK 이름 변경 같은 metadata 변경 역시 SQL에 반영됐는지 확인한다.
 - `Database schema is current`는 TypeORM이 감지한 차이가 없다는 뜻이다. 모든 DB invariant가 같다는 증거로 대신 쓰지 않는다. 실제 DB test는 column/collation/precision, constraint definition, PK/FK/unique/index와 위반 거절도 따로 검증한다.
 - Generator는 TypeORM의 `createSchemaBuilder().log()`를 사용한다. 기본 CLI template의 일반 type import와 raw 오류 출력 대신 이 repository의 `import type`, transaction guard, 정제된 오류 출력을 유지하는 작은 writer를 사용한다.
 
@@ -87,7 +87,8 @@ Docker image는 고정 index, native child, config를 검증한 뒤 같은 local
 
 ## Refresh transaction core
 
-`apps/accounts/src/auth/refresh/index.ts`에 refresh rotation, 확인된 재사용 session 폐기를 commit까지 소유하는 내부 core가 구현됐다. 전용 unit, 실제 PostgreSQL 검증과 후속 HTTP 연결 경계는 [`auth-refresh-development.md`](auth-refresh-development.md)를 참고한다. 이 검증은 `/auth/refresh` HTTP 또는 logout, cleanup, 운영 연결 완료를 뜻하지 않는다.
+Refresh rotation과 확인된 재사용 session 폐기의 core, HTTP 연결과 검증은 [`auth-refresh-development.md`](auth-refresh-development.md)를 참고한다.
+
 
 ## 공용 상세 캐시
 

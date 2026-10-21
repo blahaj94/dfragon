@@ -56,7 +56,7 @@ PR 제목 scope가 `(build)`인 Desktop 관련 PR과 그 main push에서는 [Des
 
 `windows-credential-native.ts`가 이 결과를 `WindowsCredentialFiles.ownedTemporaries()`에 전달한다. 기존 UUID 기반 `.credential.v1.*.tmp`와 `.transition.v1.*.tmp` 선택 규칙, marker 교체 후 marker temp 정리, clear의 credential 및 소유 temp 삭제 순서는 유지한다. 목록 조회가 끝나기 전이나 실패한 경우 삭제를 시작하지 않는다. 개별 삭제의 HANDLE 기반 보안 검사도 유지하며 unrelated 파일을 정리 대상으로 확대하지 않는다.
 
-근거는 [GetFileInformationByHandleEx](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfileinformationbyhandleex), [FILE_FULL_DIR_INFO의 가변 길이와 정렬](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_full_dir_info), [Microsoft WIL의 목록 종료와 오류 처리](https://github.com/microsoft/wil/blob/master/include/wil/filesystem.h)다. 고정 설치본 `koffi@3.2.1`의 `doc/output.md`, `doc/pointers.md`, `index.d.ts`와 native pointer 전달 구현을 확인했다. 동기 호출 동안 Buffer의 실제 주소를 사용하는 계약과 BigInt HANDLE decode는 테스트에서 검증한다. 이는 Windows OS 실행 evidence와 구분한다.
+근거는 [GetFileInformationByHandleEx](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfileinformationbyhandleex), [FILE_FULL_DIR_INFO의 가변 길이와 정렬](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_full_dir_info), [Microsoft WIL의 목록 종료와 오류 처리](https://github.com/microsoft/wil/blob/master/include/wil/filesystem.h)다. 설치된 `koffi`의 `doc/output.md`, `doc/pointers.md`, `index.d.ts`와 native pointer 전달 구현을 확인했다. 동기 호출 동안 Buffer의 실제 주소를 사용하는 계약과 BigInt HANDLE decode는 테스트에서 검증한다. 이는 Windows OS 실행 evidence와 구분한다.
 
 ## 파일과 결과
 
@@ -105,8 +105,8 @@ Windows entry는 기존 `applyAuthRuntimeProfile`의 native ACL 검사를 사용
 
 ## Bootstrap 연결과 실제 로그인 확인
 
-제품 main은 single-instance lock 전에 app identity와 private userData profile을 적용하고, `app.ready` 이후 접근 안내를 표시한 뒤 runtime effects가 기본 Electron safeStorage를 사용하는 dependency를 생성하게 한다. 설정이 없거나 잘못되면 adapter, auth HTTP와 coordinator를 생성하지 않는다. 개발용 identity와 API는 [platform의 개발 tuple](../rules/desktop-auth-platform.md#로컬-개발용-등록값)을 사용하며 실행 시 실제 private root 권한을 검사한다. OS prompt는 동기 safeStorage 호출을 막을 수 있으며 JavaScript timer로 취소된다고 가정하지 않는다. 실제 브라우저 인증, packaged app과 production 저장 검증은 별도 통합 범위다.
+제품 main은 single-instance lock 전에 app identity와 private userData profile을 적용하고, `app.ready` 이후 runtime effects가 기본 Electron safeStorage를 사용하는 dependency를 생성하게 한다. 설정이 없거나 잘못되면 adapter, auth HTTP와 coordinator를 생성하지 않는다. 개발용 identity와 API는 [platform의 개발 tuple](../rules/desktop-auth-platform.md#로컬-개발용-등록값)을 사용하며 실행 시 실제 private root 권한을 검사한다. OS prompt는 동기 safeStorage 호출을 막을 수 있으며 JavaScript timer로 취소된다고 가정하지 않는다. 실제 브라우저 인증, packaged app과 production 저장 검증은 별도 통합 범위다.
 
-확인한 고정 조합은 Electron **44.7.2**, Node **24.21.0**, libuv **1.52.1**이다. [Electron DEPS](https://raw.githubusercontent.com/electron/electron/v44.7.2/DEPS), [Node의 libuv version](https://raw.githubusercontent.com/nodejs/node/v24.21.0/deps/uv/include/uv/version.h)과 설치 runtime을 대조했다. [Node의 libuv Apple 구현](https://raw.githubusercontent.com/nodejs/node/v24.21.0/deps/uv/src/unix/fs.c)은 `FileHandle.sync()` 경로에서 `F_FULLFSYNC`, 실패 시 `F_BARRIERFSYNC`, 다시 실패 시 `fsync`를 사용하며, 이 순서는 이전 고정 조합(Electron 39.8.10, Node 22.22.1, libuv 1.51.0)과 같다. JavaScript 성공은 선택된 fallback을 알려 주지 않으므로 실제 filesystem의 directory durability, 전원 손실 보장을 증명하지 않는다.
+Electron이 내장한 Node([설치](../../AGENTS.md#설치))의 [libuv Apple 구현](https://github.com/libuv/libuv/blob/v1.x/src/unix/fs.c)은 `FileHandle.sync()` 경로에서 `F_FULLFSYNC`, 실패 시 `F_BARRIERFSYNC`, 다시 실패 시 `fsync`를 사용한다. JavaScript 성공은 선택된 fallback을 알려 주지 않으므로 실제 filesystem의 directory durability, 전원 손실 보장을 증명하지 않는다.
 
 Native 합성 저장 성공도 Keychain 잠금/사용자 거절, 실제 서명, 공증, 다른 bundle, 업데이트/백업 복원 검증을 대체하지 않는다. 실제 확인한 정상 재실행 결과만 로그인 유지의 근거로 설명하며, 이 전체 시험 목록을 배포 조건으로 요구하지 않는다. 이 adapter는 OS profile rollback, 동일 user malware, physical erase를 보장하지 않는다.
