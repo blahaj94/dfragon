@@ -33,4 +33,4 @@ Windows Koffi/Win32 실행은 Mac의 mock 테스트로 증명하지 않는다. �
 
 이 검사는 관측 시점의 path entry와 POSIX owner/mode 조건을 보수적으로 제한하고 기존 native canonical, leaf `0700`, directory durability 검사를 유지한다. 확장 ACL, macOS inherited ACL, Windows ACL/reparse point, 다른 process가 검증 후 inode를 교체하는 경쟁, 모든 filesystem의 power-loss durability를 mode bits나 주입 filesystem test만으로 증명하지 않는다. 미검증 범위를 명시하고 배포 후 실제 문제에 맞춰 추가 검증한다.
 
-관련 보수적 POSIX 정책과 사용자 merge 후 적용 경계는 [Desktop Authentication Platform](../rules/desktop-auth-platform.md#posix-profile-ancestor-permissions)에서 관리한다.
+관련 보수적 POSIX 정책은 [Desktop Authentication Platform](../rules/desktop-auth-platform.md#posix-profile-ancestor-permissions)에서 관리한다.

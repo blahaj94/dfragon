@@ -72,8 +72,6 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 얼굴 마스크는 기준 픽셀로 바깥쪽 1px, 위쪽 2px과 좌우 위 모서리 각각 12×9px을 제외한다. 파티장 왕관, PC 표시와 테두리가 없는 슬롯에도 같은 영역을 제외해 장식 변화가 다른 얼굴 관측을 만들지 않게 한다. 비교에 남는 얼굴 정보가 줄어들므로 이 마스크의 적용 자체를 캐릭터 식별 정확도나 일치 기준의 검증으로 해석하지 않는다.
 
-원본 스크린샷 8장 중 정상 7장, 28개 슬롯과 연결중 화면의 정상 1개 슬롯에서 얼굴 크롭을 확인했다. 영상 크기는 1067×600, 1600×900, 1920×1080, 2560×1440, 3840×2160이며 검출 배율은 1.00, 1.20, 1.28, 1.42, 1.80, 1.82였다. UI 0%, 50%, 100% 표본을 포함하지만 모든 해상도와 UI 조합을 전수 검증한 결과는 아니다. 원본과 플레이어 이름은 저장소에 포함하지 않는다.
-
 ### 연결중과 가려진 슬롯
 
 `연결중..` 팝업이 닉네임, 얼굴과 HP, MP의 왼쪽을 가린 표본에서는 기존 프레임 검출기가 정상 1번만 반환하고 2~4번을 제외한다. 검출하지 못한 슬롯은 닉네임과 얼굴 전체를 null로 취급하므로 OCR과 후보 검색을 시작하지 않는다. 실제 닉네임일 수 있는 `연결중` 문자열을 금지어로 처리하지 않는다.
@@ -103,24 +101,11 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 | `minMargin` | 3 | 1위와 2위의 거리 차이 하한(포함) |
 | `maxCandidates` | 6 | 명성 순으로 비교할 후보 수 |
 
-이 값은 로컬 실표본 평가로 정했다. 표본 27건 가운데 후보가 둘 이상인 13건을 1위 정확도와 margin 계산에 썼고, 정답은 사람이 파티 얼굴과 후보 이미지를 나란히 놓고 골랐다. margin은 정답이 1위일 때 2위와의 거리 차이다. gridSize별 결과는 아래와 같다.
-
-| gridSize | 1위 정확도 | 정답 1위 margin 최솟값 | 같은 외형 후보 2건을 뺀 margin 최솟값 |
-| --- | --- | --- | --- |
-| 4 | 11/13 | 0.1 미만 | 1.3 |
-| 6 | 12/13 | 0.9 | 2.6 |
-| 8 | 12/13 | 0.6 | 3.9 |
-
-- **해상도**: N=8이 1위 정확도 12/13으로 N=6과 같고, 외형이 같은 후보를 뺀 margin 최솟값이 가장 커서 8을 골랐다.
-- **margin**: 외형이 같은 후보 2건을 뺀 N=8의 margin 최솟값 3.9보다 낮은 3을 하한으로 둔다. 같은 조건에서 N=8의 오답 1위는 0건이었다.
-- **distance**: 정답과 오답의 distance 범위가 겹쳐 거리 상한은 보조 조건이다. 후보가 여럿인 케이스에서 N=8의 정답 distance 최댓값은 33.9이고 `maxDistance`는 40이다.
-- **maxCandidates**: 평가 표본에서 정답의 명성 순위는 최대 4위였다. 4슬롯이 직렬 이미지 큐를 공유해도 15초 예산에 들도록, 서버 8곳의 후보 가운데 6명까지 비교한다.
-- **한계**: 표본이 13건이라 Windows 실시간 표본과 더 많은 동명 후보로 다시 검증해야 한다. 실제 이미지, 캐릭터명과 플레이어 식별자는 저장소와 CI에 포함하지 않는다.
-- **직업별 위치 도입 후**: 직업별 위치를 잰 Windows 캡처 15건(후보가 둘 이상인 7건)으로 N=8을 다시 평가했다. 7건 모두 정답 1위는 그대로였고, 정답과 가장 가까운 오답의 거리 차이는 7건 중 4건에서 커졌다(15.0→27.8, 18.7→27.8, 1.5→46.8, 62.9→92.9). 나머지 3건은 같았으며, 그중 1건은 외형이 같은 후보라 차이가 0.6이다. 후보 한 명의 비교 시간은 창을 25곳만 보므로 약 14ms에서 1ms 안쪽으로 줄었다. 이 평가는 위치를 잰 캡처를 그대로 썼으므로 다른 캐릭터에서의 정확도는 따로 확인해야 한다.
+값은 로컬 실표본 평가로 정했다. 실제 이미지, 캐릭터명과 플레이어 식별자는 저장소와 CI에 포함하지 않는다.
 
 ### 외형이 같은 후보의 한계
 
-서버가 다른 동명 후보의 아바타가 사실상 같으면 색으로 가를 수 없다. 평가 표본에서 13건 중 2건은 후보 둘의 거리 차이가 1 미만이었고, 1건은 거리가 완전히 같았다. [Issue #756](https://github.com/blahaj94/dfragon/issues/756) 결정에 따라 이 경우에도 거리 1위를 고르고, margin이 `minMargin`에 못 미치므로 카드에 후보를 보여 사용자가 바로잡게 한다. 최고 명성 후보로 대체하면 색 비교가 이미 걸러 낸 다른 외형을 고를 수 있어서다.
+서버가 다른 동명 후보의 아바타가 사실상 같으면 색으로 가를 수 없다. [Issue #756](https://github.com/blahaj94/dfragon/issues/756) 결정에 따라 이 경우에도 거리 1위를 고르고, margin이 `minMargin`에 못 미치므로 카드에 후보를 보여 사용자가 바로잡게 한다. 최고 명성 후보로 대체하면 색 비교가 이미 걸러 낸 다른 외형을 고를 수 있어서다.
 
 ### 후보 이미지 공급과 캐시
 
@@ -171,9 +156,9 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNicknames, portrait }`다. Main은 기존 sender, main frame, exact document 검사를 적용하고 후보 개수, 이름, 별칭의 일치, 이미지와 마스크 크기, 배율을 검증한다. 얼굴은 최대 512px/축, 262,144픽셀이며 원본 버퍼를 복사해 보관한다. 이 데이터는 로컬 프로세스 사이에서만 전달하고 API에 업로드하지 않는다.
 
-크롭 null도 후보를 조회해 최고 명성 선택을 시도한다. 비교기를 구성하지 않은 fixture나 API 미설정 상태의 `waiting-policy`는 유지한다. 제품 main은 `portraitEdgeMatchPolicy`를 구성하며 정책은 renderer가 보낼 수 없다. 기존 RGB 정책은 별도의 합성 검증 경로로만 남고 두 정책을 동시에 설정하면 거절한다. clear, 캡처 종료, source와 document 변경은 이전 요청, 얼굴과 선택 상세를 모두 비운다. 수동 카드 조회는 별도 수명에서 같은 취소와 최신성 검사를 적용한다.
+크롭 null도 후보를 조회해 최고 명성 선택을 시도한다. 비교기를 구성하지 않은 fixture나 API 미설정 상태의 `waiting-policy`는 유지한다. 제품 main은 `portraitColorPolicy`(`INITIAL_PORTRAIT_COLOR_POLICY`) 하나를 구성하며 정책은 renderer가 보낼 수 없다. clear, 캡처 종료, source와 document 변경은 이전 요청, 얼굴과 선택 상세를 모두 비운다. 수동 카드 조회는 별도 수명에서 같은 취소와 최신성 검사를 적용한다.
 
-성공한 슬롯의 `selected`에는 검증된 기본 요약과 [카드](#카드-전달과-점수-엔진)만 넣는다. 명성, 레벨, 직업과 모험단의 잘못된 표시 타입이나 누락은 null이며 다른 값으로 추정하지 않는다. 전체 상세는 main에 남기고 현재 capture, slot, requestId가 일치할 때만 내부 `selection`으로 읽는다. 이전 선택이 새 슬롯이나 캡처를 덮어쓰지 못하게 한다. Windows 실시간 캡처와 실제 캐릭터 정답을 이용한 일치 기준 검증은 여전히 후속이다.
+성공한 슬롯의 `selected`에는 검증된 기본 요약과 [카드](#카드-전달과-점수-엔진)만 넣는다. 명성, 레벨, 직업과 모험단의 잘못된 표시 타입이나 누락은 null이며 다른 값으로 추정하지 않는다. 전체 상세는 main에 남기고 현재 capture, slot, requestId가 일치할 때만 내부 `selection`으로 읽는다. 이전 선택이 새 슬롯이나 캡처를 덮어쓰지 못하게 한다. 일치 기준은 [얼굴 비교와 일치 기준](#얼굴-비교와-일치-기준)의 로컬 실표본 평가로 정했으며 더 많은 실시간 표본의 검증이 필요하다.
 
 ## 카드 전달과 점수 엔진
 
@@ -209,15 +194,13 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 ## PaddleOCR와 실제 게임 인식 영역
 
-현재 빌드 설정은 `@dfragon/models` 패키지의 모델 저장소 submodule(`packages/models/ocr-finetuned`)이 고정한 13에폭 파인튜닝 ONNX 모델(`dfragon-finetuned`)이며 `onnxruntime-web`의 로컬 WASM worker로 실행한다. 공식 `korean_PP-OCRv5_mobile_rec` 모델은 vendor 파일로 남아 있고 `ocr-model.config.mjs`의 마지막 줄로 되돌릴 수 있다. 모델, 문자 목록과 라이선스는 `apps/desktop/assets/ocr`에 고정하고 `provenance.json`에 원본과 checksum을 기록한다. `prepare-ocr-assets.mjs`는 checksum을 검사한 뒤 모델과 설치된 ONNX Runtime의 WASM을 renderer public assets로 복사한다. `.gitattributes`는 vendor assets의 줄바꿈 변환을 막아 Windows checkout에서도 고정 checksum을 유지한다. 이번 전처리 변경은 기본 모델을 교체하지 않는다.
+현재 빌드 설정은 `@dfragon/models` 패키지의 모델 저장소 submodule(`packages/models/ocr-finetuned`)이 고정한 13에폭 파인튜닝 ONNX 모델(`dfragon-finetuned`)이며 `onnxruntime-web`의 로컬 WASM worker로 실행한다. 공식 `korean_PP-OCRv5_mobile_rec` 모델은 vendor 파일로 남아 있고 `ocr-model.config.mjs`의 마지막 줄로 되돌릴 수 있다. 모델, 문자 목록과 라이선스는 `apps/desktop/assets/ocr`에 고정하고 `provenance.json`에 원본과 checksum을 기록한다. `prepare-ocr-assets.mjs`는 checksum을 검사한 뒤 모델과 설치된 ONNX Runtime의 WASM을 renderer public assets로 복사한다. `.gitattributes`는 vendor assets의 줄바꿈 변환을 막아 Windows checkout에서도 고정 checksum을 유지한다.
 
 일반 캡처는 [공용 파티 프레임 검출기](desktop-party-geometry.md)가 HP, MP와 주변 경계에서 확인한 닉네임 영역만 원본 크기로 자른다. BT.601 회색 변환과 Otsu 반전 이진화로 밝은 글자를 검게, 어두운 배경을 희게 만든다. 모델 worker에서 높이 48픽셀, 너비 최대 320픽셀로 한 번 리사이즈하고 실제 검은 글자 경계를 입력 폭 320의 가로 중앙으로 이동한다. 글자 크기와 세로 위치는 유지하며 새 좌우 여백은 이진화한 배경과 같은 흰색(정규화 값 1)으로 채운다. 구두점을 제거하는 잡음 필터나 세로 크롭은 추가하지 않는다. 제품 전처리 평가도 같은 중심화 경로를 사용하고 원본 평가만 기존 왼쪽 정렬을 유지한다. CTC 후보 디코더의 1위 문자열만 검색에 사용하며 모델 점수는 정답 확률이나 검색 허용 조건이 아니다.
 
 `createPartyOcrWorker`는 기존 인식 결과 소비 형태와 `terminate`를 유지한다. Capture AbortSignal을 받아 초기화, 인식 중에도 worker를 종료하고 대기 요청을 거절한다. 응답이 없는 요청은 30초 뒤 종료한다. 이전 회차의 결과는 기존 signal, 검색 수명 검사에서 차단하며 회차 프레임의 첫 OCR 결과를 공개 검색으로 연결한다. 검색은 인증과 독립적이며 sender, source, capture 검사는 유지한다.
 
-[PR #462](https://github.com/blahaj94/ldb/pull/462)에서 Windows 설치 앱의 실제 선택 창 → 영상 → 한 슬롯의 정확한 OCR → 인증 검색, 결과 표시를 확인했다. 이는 당시 Tesseract 빌드의 관측이며 PaddleOCR 전환의 실제 검색 완료 증거와 구분한다. 이번 PaddleOCR 비교는 선택한 게임 창의 허용된 닉네임 영역에서 실제 모델 실행을 확인했으나, 진단 중 검색 전송은 차단했다. UI 100%, 돋움은 비교 조건이며 제품의 지원 배율을 확장한 것이 아니다.
-
-작은 한글 글자와 특정 음절의 오인식은 남아 있다. 한 표본의 근접한 결과나 높은 모델 점수를 전체 정확도로 일반화하지 않는다. 영역 확장, 확대, 색 분리, Gemma 비교와 합성 입력 재현은 [Issue #463](https://github.com/blahaj94/ldb/issues/463)에 기록했으며 정확도 추가 개선은 MVP 이후로 미뤘다. 임시 비교 UI, 문자별 후보와 Gemma 연결은 제품에서 제거한다.
+한 표본의 근접한 결과나 높은 모델 점수를 전체 정확도로 일반화하지 않는다.
 
 ### CTC 후보와 모델 점수
 
@@ -257,11 +240,7 @@ pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 
-일반 tests는 API, DB, 네이티브 캡처를 실행하지 않는다. 실제 #125 API, disposable DB 소비 검증은 `apps/desktop/scripts/search-server-integration/README.md`의 별도 command와 격리를 따른다. 이는 Desktop HTTP 클라이언트 소비 검증이며 auth waiter, slot, IPC, renderer, 실제 캡처, OCR 성공을 대신하지 않는다. 최종 head의 unit/build, 독립 review, 실제 UI/media, 서버 검증 결과는 Issue #144와 PR #149에서 관리한다.
-
-## 이번 전환의 검증
-
-실제 Electron의 local PaddleOCR worker에 공개 합성 문자열을 전달한 단독 인식과 종료 정리는 통과했다. 실제 게임 영상의 PaddleOCR 진단 관측은 위에 구분하며, 새 공개 API를 포함한 Windows 설치 앱의 전체 게임 검색 흐름을 다시 확인한 것으로 주장하지 않는다. 정확도 후속 Issue #463은 열어 둔다.
+일반 tests는 API, DB, 네이티브 캡처를 실행하지 않는다. 실제 API, disposable DB 소비 검증은 `apps/desktop/scripts/search-server-integration/README.md`의 별도 command와 격리를 따른다. 이는 Desktop HTTP 클라이언트 소비 검증이며 auth waiter, slot, IPC, renderer, 실제 캡처, OCR 성공을 대신하지 않는다.
 
 ## 직접 검색과 수정 검색
 
@@ -285,6 +264,6 @@ Main의 공대 수명은 `SearchRuntime.ocrIdentification`을 `raid`로 두어 `
 
 `SlotNicknameEditor.tsx`와 `useCharacterSearch.ts`는 수정 중 입력을 유지하고 해당 슬롯의 OCR 검색 제출만 멈춘다. 해당 회차의 OCR 결과는 보관해 ‘OCR 다시 사용’ 때 반영하며 새 프레임을 읽지 않는다. 다른 슬롯은 계속 검색한다. Clear/revision을 통해 수정 전 검색의 늦은 결과를 차단한다. 입력 검사는 `manual-input.ts`와 main의 기존 검색 입력 검사를 사용한다.
 
-관련 UI, hook, IPC 검증은 합성 이름을 사용한다. 실제 설치 앱과 게임 확인 결과는 이번 PR에서 fixture 성공과 구분해 기록한다. 추가 OCR 튜닝은 #463의 MVP 이후 범위를 유지한다.
+관련 UI, hook, IPC 검증은 합성 이름을 사용하며 실제 설치 앱과 게임 확인을 대신하지 않는다.
 
 직접 검색은 성공, 0건 결과를 받은 뒤 같은 닉네임도 다시 제출할 수 있다. 진행 중 같은 입력의 중복 제출은 막고, 실패는 기존 retry 경로와 429 대기를 유지한다. 입력 길이는 API와 같은 2–12 Unicode 코드 포인트 기준이며, UTF-16 코드 유닛이나 화면상 글자 묶음(grapheme) 기준으로 변경하거나 정규화하지 않는다. 검색 action과 명령 오류는 shared `SEARCH_ACTIONS`, `SEARCH_COMMAND_ERRORS`에서 타입과 runtime 검증 값을 함께 정의한다.

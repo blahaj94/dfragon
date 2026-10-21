@@ -6,9 +6,9 @@ last-reviewed: 2026-09-08
 
 # 계정 프로필 조회와 nickname 변경 개발
 
-`apps/accounts/src/auth/login/http.ts`의 `createLoginHttpApp`은 선택적 세 번째 인자 `{ dataSource, verifyAccessJwt }`로 `GET /me`와 `PATCH /me/nickname`을 연결한다. 기존 DataSource와 `createAccessJwtVerifier`의 verifier를 명시적으로 주입한다. 두 번째 session service 인자의 refresh/logout 연결은 유지한다. 기본 main도 이 factory에 계정 dependency를 연결한다. 설정, 실행과 기본 entry의 후속 통합 검증은 [`api-start-development.md`](api-start-development.md)를 참고한다.
+`apps/accounts/src/auth/login/http.ts`의 `createLoginHttpApp`은 선택적 세 번째 인자 `{ dataSource, verifyAccessJwt }`로 `GET /me`와 `PATCH /me/nickname`을 연결한다. 기존 DataSource와 `createAccessJwtVerifier`의 verifier를 명시적으로 주입한다. 두 번째 session service 인자의 refresh/logout 연결은 유지한다. 기본 main도 이 factory에 계정 dependency를 연결한다. 설정, 실행과 기본 entry의 통합 검증은 [`api-start-development.md`](api-start-development.md)를 참고한다.
 
-Contract는 `docs/rules/auth-api.md`, `docs/rules/auth-activity.md`, `docs/rules/auth-session.md`, `docs/rules/auth-database.md`가 정의한다. 기존 schema, Migration, dependency와 JWT issuer/verifier는 변경하지 않았다. 인증 검색과 탈퇴 lifecycle, control store 통합은 이 module의 구현 범위가 아니다.
+Contract는 `docs/rules/auth-api.md`, `docs/rules/auth-activity.md`, `docs/rules/auth-session.md`, `docs/rules/auth-database.md`가 정의한다. 탈퇴 lifecycle, control store 통합은 이 module의 구현 범위가 아니다.
 
 ## 입력과 응답 경계
 
@@ -31,7 +31,7 @@ PATCH는 기존 `apps/accounts/src/auth/login/json-parser.ts`의 media/encoding 
 
 `apps/accounts/test-support/account-nickname.test.mjs`는 raw controls, lone surrogate, 빈 값, grapheme 경계와 emoji, 결합문자, 내부 공백 보존을 검증한다. `account-http.test.mjs`는 HEAD의 verifier, DB 호출 차단, JWT 이전 transport 거절, field 이전 JWT 거절, GET JSON 오류, 종료 chunk 이전 즉시 overflow 응답을 검증한다. Content-Length와 Transfer-Encoding 충돌은 Node HTTP framing 거절로 따로 검사하며 제품 JSON 오류로 해석하지 않는다.
 
-`account-http-fixtures.mjs`는 기존 identity/session fixture와 실제 JWT issuer/verifier를 재사용한다. `account-http-integration.mjs`의 50개 scenario가 기존 `database-integration.mjs`의 Docker-only disposable 수명주기와 Migration에 연결된다. HEAD characterization은 assertion 추출 전 기존 구현에서 먼저 통과를 확인했다.
+`account-http-fixtures.mjs`는 기존 identity/session fixture와 실제 JWT issuer/verifier를 재사용한다. `account-http-integration.mjs`의 scenario가 기존 `database-integration.mjs`의 Docker-only disposable 수명주기와 Migration에 연결된다.
 
 | 검증 경계 | Evidence |
 | --- | --- |
@@ -50,4 +50,5 @@ pnpm --filter @dfragon/accounts test:database
 git diff --check
 ```
 
-2026-09-07의 실행 환경은 Node `v24.19.0`, pnpm `11.23.0`, Unicode `17.0`, ICU `78.3`, Docker server `29.7.2`, native `linux/arm64/v8`, PostgreSQL `18.6 (Debian 18.6-1.pgdg13+2)`다. 기존 harness가 승인된 image index와 arm64 child digest를 대조하고 정상, 실패, timeout, SIGINT, SIGTERM, ownership mismatch teardown 및 해당 exact resource 부재를 확인했다. `linux/amd64`, 실제 provider/credential, Desktop, 탈퇴 통합, 운영 배포, proxy/APM, clock, cleanup과 물리 network 단절은 미검증이다.
+`linux/amd64`, 실제
+ provider/credential, Desktop, 탈퇴 통합, 운영 배포, proxy/APM, clock, cleanup과 물리 network 단절은 미검증이다.

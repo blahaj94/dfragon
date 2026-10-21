@@ -31,7 +31,8 @@ Compiled CLI `apps/accounts/src/auth/cleanup/cli.ts`는 정리와 연결 종료�
 
 각 row가 따로 commit되므로 뒤의 실패가 앞선 삭제를 되돌리지 않는다. Commit 응답이 유실되면 해당 삭제가 적용됐을 수도 있다. 실패를 전체 rollback 또는 전체 성공으로 해석하지 않으며 자동 retry하지 않는다. 다음 명시 실행은 현재 DB 상태를 다시 조회하므로 이미 삭제된 row를 재생성하지 않는다. 연결 정리 자체의 실패도 성공으로 바꾸지 않는다.
 
-## 검증과 남은 연결
+## 검증과 실행 연결
+
 
 전용 unit/command test는 `apps/accounts/test-support/cleanup.test.mjs`, `cleanup-command.test.mjs`다. 실제 PostgreSQL 검증은 `cleanup-database.mjs`, `cleanup-session-concurrency.mjs`를 기존 `database-integration.mjs`가 호출한다. 별도 Docker harness는 없다.
 
@@ -41,6 +42,6 @@ pnpm --filter @dfragon/accounts exec node --import reflect-metadata --test test-
 pnpm --filter @dfragon/accounts test:database
 ```
 
-DB 검증은 활성 refresh 이력과 인증 요청의 보존, 삭제, session 잠금 대기와 활동, refresh 경합, 부분 commit, 결과 불명과 CLI 연결 종료를 검사한다. 과거 cleanup 도입 결과는 [Issue #136](https://github.com/blahaj94/ldb/issues/136)에 보존하며 폐기한 인증 흐름의 검증을 현재 패스키 성공 근거로 사용하지 않는다. 현재 전체 결과는 패스키 전환 PR의 DB 검증을 따른다.
+DB 검증은 활성 refresh 이력과 인증 요청의 보존, 삭제, session 잠금 대기와 활동, refresh 경합, 부분 commit, 결과 불명과 CLI 연결 종료를 검사한다.
 
-시작 시 자동 호출은 아직 연결하지 않았다. 승인된 하루 1회 실행의 운영 연결, 실제 실행 시각과 실패 대응도 미완료다. 이 command만으로 주기 실행이나 10분, 24시간 이내 물리 삭제를 보장하지 않는다. 시작 호출은 API 수명주기 작업과, 정기 실행은 운영 후속 작업과 연결해야 한다.
+서비스 시작 시 자동 호출하지 않는다. 하루 1회 정기 실행의 스케줄, 실행 시각과 실패 대응은 [서버 이미지 안내](api-start-development.md#서버-이미지)처럼 인프라가 담당한다. 이 command만으로 주기 실행이나 10분, 24시간 이내 물리 삭제를 보장하지 않는다.

@@ -38,7 +38,7 @@ last-reviewed: 2026-10-10
 
 ## 권한과 수명
 
-Source 요청의 시작 및 비동기 완료에서 등록 window, sender, main frame, exact document와 선택 수명을 검사한다. 제품 main window의 display media 요청은 선택 여부와 관계없이 거절하며, 화면은 [Windows 제품 캡처 정책](../rules/desktop-windows-capture.md#windows-제품-캡처-정책)의 네이티브 프레임 읽기로만 얻는다. Electron 44.7.2는 `null`을 거절 값으로 정의하므로 창 등록의 display media handler는 `callback(null)`을 한 번 호출하고, 이미 소비됐을 수 있는 callback은 예외가 나도 다시 호출하지 않는다. 완료 전에 선택 해제, navigation 또는 window 변경이 일어나면 이전 요청의 결과를 전달하지 않는다.
+Source 요청의 시작 및 비동기 완료에서 등록 window, sender, main frame, exact document와 선택 수명을 검사한다. 제품 main window의 display media 요청은 선택 여부와 관계없이 거절하며, 화면은 [Windows 제품 캡처 정책](../rules/desktop-windows-capture.md#windows-제품-캡처-정책)의 네이티브 프레임 읽기로만 얻는다. 현재 Electron([설치](../../AGENTS.md#설치))은 `null`을 거절 값으로 정의하므로 창 등록의 display media handler는 `callback(null)`을 한 번 호출하고, 이미 소비됐을 수 있는 callback은 예외가 나도 다시 호출하지 않는다. 완료 전에 선택 해제, navigation 또는 window 변경이 일어나면 이전 요청의 결과를 전달하지 않는다.
 
 Renderer의 인증 presentation epoch와 auth runId 재연결은 계정 화면에만 적용한다. React가 로그아웃과 재로그인을 한 render로 합쳐도 capture와 직접 검색 component는 유지한다. 검색 연결 자체의 runId, capture 수명 변경은 검색 bridge가 별도로 처리한다.
 

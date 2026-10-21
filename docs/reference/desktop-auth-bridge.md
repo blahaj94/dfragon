@@ -21,7 +21,7 @@ last-reviewed: 2026-10-11
 | `apps/desktop/src/frontend/src/hooks/useAuthBridge.ts`     | machine과 React를 연결하고 API 교체 시 이전 계정 표시를 즉시 가린다. pending, 연결 실패는 machine 상태에서 파생한다.                |
 | `apps/desktop/src/frontend/src/sections/LoginSection.tsx`  | 로그인 버튼에 snapshot, intent를 연결하며 진행 중에는 현재 시도를 취소하고 조회, 복구를 재시도                                              |
 
-Core lifecycle은 [Desktop auth core](desktop-auth-core.md), 이전 계정 화면의 이력은 [Desktop auth UI](desktop-auth-ui.md)를 따른다. Credential type의 runtime import나 renderer가 제출하는 로그인 성공 상태는 없다. `ok:true`는 명령 처리 결과이며 계정 표시는 main snapshot에서만 결정한다.
+Core lifecycle은 [Desktop auth core](desktop-auth-core.md)를 따른다. Credential type의 runtime import나 renderer가 제출하는 로그인 성공 상태는 없다. `ok:true`는 명령 처리 결과이며 계정 표시는 main snapshot에서만 결정한다.
 
 허용되지 않은 sender는 snapshot 없는 `AUTH_NOT_ALLOWED` rejection이다. Query인 getAuthState의 추가 인자는 `INVALID_AUTH_COMMAND` rejection이고, 5 mutation의 형식 오류는 기존 AuthCommandResult로 반환한다. 정확한 key 검사에는 enumerable 여부와 무관한 own key 전체를 사용한다. Unexpected command exception은 고정 `AUTH_OPERATION_FAILED` 결과로 정제한다.
 
@@ -33,7 +33,7 @@ Renderer의 연결 machine은 구독 완료 → 초기 조회 → 준비 상태�
 
 ## 격리 Electron fixture
 
-`apps/desktop/scripts/auth-bridge-fixture.config.ts`는 production entry와 별개로 main/preload/renderer를 build한다. 이전 presentation-only fixture는 삭제됐으며 [검증 이력](desktop-auth-ui.md)만 남아 있다.
+`apps/desktop/scripts/auth-bridge-fixture.config.ts`는 production entry와 별개로 main/preload/renderer를 build한다.
 
 - `apps/desktop/scripts/auth-bridge-fixture.mjs`: 실행별 임시 profile과 detached child group을 소유하고, child 종료 뒤 profile 삭제와 부재를 확인한다.
 - `apps/desktop/scripts/auth-bridge-fixture/main.ts`: launcher가 전달한 profile을 검증하고 sandbox, contextIsolation 활성화, nodeIntegration 비활성화, network/media, navigation/popup 차단을 담당한다.
@@ -65,9 +65,10 @@ pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 
-Unit 경계 검증, 실제 Electron smoke, 수동 UI 확인은 별도 evidence다. Build에는 기존 node/web typecheck가 포함되며 fixture의 전용 TypeScript/build는 별도로 실행한다. 실행한 exact revision, 결과와 review는 Issue #116과 해당 PR에서 관리한다.
+Unit 경계 검증, 실제 Electron smoke, 수동 UI 확인은 별도 evidence다. Build에는 기존 node/web typecheck가 포함되며 fixture의 전용 TypeScript/build는 별도로 실행한다.
 
-Fixture는 제품 restore 종료 정책을 다시 선택하거나 새 notice를 만들지 않는다. Fake store는 빈 상태로 시작하므로 제품 main에 연결된 profile, store restore, 시스템 브라우저, capture composition의 native 성공을 검증하지 않는다. 실제 저장소 durability와 ACL, 시스템 브라우저, 서버/패스키 및 다른 OS/package 검증은 후속 gate다. Sandbox fixture 성공으로 production capture/OCR 호환성이나 native 인증 완료를 주장하지 않는다.
+Fixture는 제품 restore 종료 정책을 다시 선택하거나 새 notice를 만들지 않는다. Fake store는 빈 상태로 시작하므로 제품 main에 연결된 profile, store restore, 시스템 브라우저, capture composition의 native 성공을 검증하지 않는다. 실제 저장소 durability와 ACL, 시스템 브라우저, 서버/패스키 및 다른 OS/package 검증은 이 fixture의 범위가 아니다.
+ Sandbox fixture 성공으로 production capture/OCR 호환성이나 native 인증 완료를 주장하지 않는다.
 
 ## 제품 logout, 재로그인 조합 검증
 

@@ -18,7 +18,7 @@ last-reviewed: 2026-10-20
 }
 ```
 
-예제는 public 설정 부분만 보여준다. Desktop의 `returnUrl`은 서버 설정이 아니라 `POST /auth/login-requests` 요청값이다. 서버는 `http://127.0.0.1:<port>/auth/callback`에서 포트만 가변인 정규 형식을 검증해 요청 행에 저장하고, 인증 완료 때 그 주소에 code 하나만 붙여 돌려준다. 포트는 선행 0 없는 10진수 1024~65535다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3444`, RP ID `localhost`, 같은 형식의 복귀 `http://127.0.0.1:<port>/auth/callback`(포트는 실행마다 다름)을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
+예제는 public 설정 부분만 보여준다. Desktop의 `returnUrl`은 서버 설정이 아니라 `POST /auth/login-requests` 요청값이다. 서버는 `http://127.0.0.1:<port>/auth/callback`에서 포트만 가변인 정규 형식을 검증해 요청 행에 저장하고, 인증 완료 때 그 주소에 code 하나만 붙여 돌려준다. 포트는 선행 0 없는 10진수 1024~65535다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3444`, RP ID `localhost`, 같은 형식의 복귀 `http://127.0.0.1:<port>/auth/callback`(포트는 실행마다 다름)을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다.
 
 JWT 개인키는 기존 `accessJwt.signingKey.privateKeyPem` 또는 `AUTH_JWT_PRIVATE_KEY`,
 `AUTH_JWT_PRIVATE_KEY_FILE` 중 하나로 제공한다. 외부 입력을 쓰면 JSON의 signingKey에는 `kid`만
@@ -36,7 +36,7 @@ Node 26에서 ML-DSA-44는 실험적 Web Crypto API이므로 등록 알고리즘
 - `pnpm --filter @dfragon/accounts test:database`: 격리 Docker PostgreSQL, schema, migration, 가상 WebAuthn 브라우저, refresh, 계정 회귀. Playwright Chromium이 설치되어 있어야 한다.
 - `pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'`: 앱 상태, IPC, 화면 회귀와 build.
 
-자동 검증은 운영 배포와 실제 브라우저의 hybrid QR을 대신하지 않는다. 휴대폰 로그인은 시스템 브라우저의 패스키 창이 제공하는 hybrid QR로 처리하며, DFragon 자체 로그인 QR과 관리 QR은 제거했다. 시스템 브라우저 흐름의 Windows, iPhone 실기 결과는 [Windows 시스템 브라우저 로그인 확인](#windows-시스템-브라우저-로그인-확인)에 있다.
+자동 검증은 운영 배포와 실제 브라우저의 hybrid QR을 대신하지 않는다. 휴대폰 로그인은 시스템 브라우저의 패스키 창이 제공하는 hybrid QR로 처리하며, DFragon 자체 로그인 QR과 관리 QR은 제거했다. Windows에서 앱의 창 활성화는 best-effort이며, 창이 앞으로 나오지 않아도 로그인 완료와 상태 반영은 같다.
 
 ## OCR 관리 웹의 선택 연결
 
@@ -46,97 +46,13 @@ Node 26에서 ML-DSA-44는 실험적 Web Crypto API이므로 등록 알고리즘
 
 기존 accounts를 중지한 뒤 `AddLoginReturnUrl1791590400001`을 포함한 forward migration을 명시 적용하고, 인증 JSON에서 `passkey.returnUrl` key를 제거한 새 accounts를 시작한다. Key가 남아 있으면 strict 설정 검사가 기동을 거절한다. 새 accounts는 `return_url` column을 요구하므로 migration 전에 시작하지 않는다. 기존 비종료 Desktop, OCR 로그인과 관리 요청은 종료되며 새 인증이 필요하다. 회원, 패스키, session, refresh는 유지한다. 요청에 `returnUrl`을 보내는 Desktop 배포와 함께 적용한다.
 
-`test-support/login-return-url-migration.mjs`는 진행 요청 종료, 기존 인증 데이터 보존, schema drift, 빈 DB rollback을 검사한다. `test:database`는 요청별 주소 저장, code-only 자동 복귀, 수동 버튼과 OCR 고정 callback도 검증한다.
-
-## Windows 시스템 브라우저 로그인 확인
-
-2026-10-11에 [#668](https://github.com/blahaj94/dfragon/issues/668)의 실기 항목을 확인했다. 대상은 main `96f395d5`를 배포 채널(`DFRAGON_DISTRIBUTION_API_ORIGIN=https://api.dfragon.com`)로 로컬 빌드한 Windows x64 사용자별 NSIS 설치본과 포터블이다. Release workflow 산출물은 아니다. 운영 accounts는 `/version` 기준 `34b6d0b6`이며 main과 accounts 코드가 같다.
-
-PC는 Windows 10 22H2 x64(build 19045)이고 Windows Hello에 DFragon 패스키가 없으며 지문 센서도 없다. 브라우저는 Firefox 157, Chrome 154이고 휴대폰은 iCloud 키체인에 운영 패스키가 있는 iPhone이다. 앱은 로그인한 사용자 세션에서 관리자 권한으로 실행했다. 인증 상태와 수신 포트는 개발자 도구 포트와 PowerShell로 읽고, 브라우저 화면과 창 위치는 사용자가 확인했다.
-
-| 확인 | 결과 |
-| --- | --- |
-| 로그인 시작 | 메인의 `로그인`이 기본 브라우저(Firefox, Chrome)에서 accounts 로그인 페이지를 열고 같은 버튼이 `취소`가 된다. 수신기는 `127.0.0.1`의 임시 포트에서만 대기한다. 만료 시간은 600초이며 시작 직후 읽은 남은 시간은 594~595초다. |
-| Firefox 인증 | Windows 보안 창에 이 PC의 패스키가 없어 완료하지 못했다. Firefox의 휴대폰 QR은 확인하지 않았다. |
-| Chrome, iPhone hybrid QR | 설치본 2회, 포터블 2회 로그인을 완료했고 매번 앱이 `signedIn`이 되고 수신기가 닫혔다. 설치본과 포터블의 첫 회에서 브라우저에 수신기가 응답한 `이 탭을 닫아도 됩니다.` 페이지가 보이는 것을 사용자가 확인했다. |
-| 앱 창 활성화 | 설치본 첫 로그인에서는 앱 창이 앞으로 나왔고 두 번째는 확인하지 않았다. 포터블 2회는 Chrome 뒤에 남았고 그중 1회는 작업 표시줄 아이콘이 깜빡였다. |
-| 앱에서 취소 | 설치본, 포터블 모두 `signedOut`, `LOGIN_CANCELLED`가 되고 수신기가 바로 닫혔다. |
-| 취소 뒤 브라우저 완료 | 설치본에서 복귀 이동이 Chrome 기본 오류 페이지 `사이트에 연결할 수 없음`으로 끝나고 앱은 `signedOut`에 남는다. |
-| 600초 만료 | 설치본은 만료 6초 뒤, 포터블은 3초 뒤에 `signedOut`, `LOGIN_EXPIRED`였고 수신기가 닫혀 있었다. 설치본의 남은 탭에서 패스키 버튼을 누르면 요청이 유효하지 않다는 안내가 보인다. |
-| 두 번째 실행 | 새 프로세스는 끝나고 기존 프로세스와 창 하나가 유지된다. 창이 앞으로 나왔는지는 확인하지 않았다. |
-
-Windows는 마지막 입력을 받지 않은 프로세스의 foreground 전환을 제한한다. Windows에서 앱의 창 활성화는 best-effort이며, 창이 앞으로 나오지 않아도 로그인 완료와 상태 반영은 같다. 포터블 두 번째 로그인에서 renderer의 `document.hasFocus()`는 `true`였지만 창은 Chrome 뒤에 있었으므로 자동 확인에서 전면 표시 판정에 쓰지 않는다.
-
-예전 OS protocol 키 정리는 같은 PC의 사용자별 설치본으로 확인했다. 예전 설치본은 OS protocol 제거 전 main `34b6d0b6`의 빌드다.
-
-| 순서 | 결과 |
-| --- | --- |
-| 예전 설치본 설치 | `HKCU\Software\Classes\dfragon`이 설치 앱 실행 파일을 가리킨다. |
-| 새 설치본으로 업데이트 | 키가 삭제된다. |
-| 이 앱을 가리키는 키를 다시 만든 뒤 재설치 | 키가 삭제된다. |
-| 다른 앱을 가리키는 키를 만든 뒤 재설치 | 설치는 성공하고 키는 보존된다. |
-| 다른 앱을 가리키는 키가 있을 때 제거 | 키는 보존된다. |
-| 이 앱을 가리키는 키가 있을 때 제거 | 키가 삭제된다. |
-
-확인하지 않은 범위는 Windows 11, Windows Hello 패스키, Firefox와 Edge의 휴대폰 QR, 포터블에서 취소 뒤 브라우저 완료와 만료 뒤 브라우저 화면, 바로 가기로 직접 실행한 앱의 창 활성화, 인증 완료 페이지의 `앱으로 돌아가기` 버튼 수동 클릭이다(이 버튼은 2026-10-20에 없앴다). 이 결과를 다른 OS, 브라우저, 기기의 성공으로 확대하지 않는다.
+`test-support/login-return-url-migration.mjs`는 진행 요청 종료, 기존 인증 데이터 보존, schema drift, 빈 DB rollback을 검사한다. `test:database`는 요청별 주소 저장, code-only 자동 복귀와 OCR 고정 callback도 검증한다.
 
 ## accounts 분리
 
 현재 코드의 인증 서비스는 `apps/accounts`이며 검색은 `apps/api`에 남는다.
 accounts 단일 RP, 이전 인증 데이터 삭제 전제는 [인증 DB 계약](../rules/auth-database.md#별도-accounts-db와-이전-종료),
 실행 입력과 운영 책임은 [제품 안내](api-start-development.md#서버-이미지)를 따른다.
-아래 Windows 기록은 이전 revision의 확인 이력이며 현재 accounts 배포나 이전 경로 종료 검증을 뜻하지 않는다.
-
-## Windows 실기기 확인
-
-2026-09-17, 패스키 전환이 반영된 `1c97fc36`의 Windows 10 x64 개발 패키지와 신뢰한
-로컬 HTTPS, 격리 PostgreSQL에서 다음 흐름을 확인했다.
-
-- 휴대폰 QR로 첫 패스키 가입, 앱 복귀와 로그인 완료.
-- 현재 기기 로그아웃 후 같은 패스키로 재로그인. 서버에서 회원 수가 유지되고 이전 세션이
-  로그아웃 처리되며 새 세션만 활성화된 것을 확인했다.
-- 예비 패스키 추가, 삭제. 삭제 뒤 패스키 한 개와 기존 앱 세션이 남는 것을 확인했다.
-- 로그인 상태에서 앱 창을 닫고 재실행한 뒤 별도 패스키 인증 없이 계정 화면으로 복원.
-  서버에서 같은 활성 세션의 refresh가 교체된 것을 확인했다.
-
-이 개발 환경 결과는 아래 운영 도메인, 운영 DB, 배포 패키지 확인과 구분한다. 모든 브라우저, OS의
-QR 지원을 보장하지 않는다. 마지막 패스키 삭제 거부는 기존 자동 검증 범위이며 이 수동
-확인에는 포함하지 않았다.
-
-## Windows 운영 설치본 확인
-
-[Issue #415](https://github.com/blahaj94/ldb/issues/415)의 확인 대상은 `94e5d0fd`의
-Windows 10 x64 사용자별 NSIS 설치본이다. 공개 API origin은 `https://api.dfragon.com`,
-RP ID는 `api.dfragon.com`, 당시 앱 identity/profile은 `ldb`, 복귀 주소는
-`ldb://auth/callback`이었다. localhost 개발 패스키와 운영 패스키는 별개다.
-
-2026-09-17 운영자의 배포 완료 기록에서 기존 OAuth 테스트 계정의 명시적 삭제 승인,
-잠금 아래 대상 데이터 확인, 삭제 후 빈 인증 테이블 조건을 만족한 패스키 migration,
-권한 부여, 검색, 캐릭터 데이터 건수 보존과 같은 revision의 API 반영을 확인했다.
-운영 DB와 root 전용 release/image, 인증 설정을 이번 작업에서 직접 재조회한 것은 아니다.
-이전 배포 스크립트를 재실행하거나 현재 패스키 계정에 빈 테이블 조건을 다시 요구하지 않는다.
-
-직접 조회로 다음 범위를 확인했다.
-
-- Windows 설치된 `app.asar`와 해당 release 빌드 산출물의 SHA-256 일치,
-  설치 파일 checksum 일치, 당시 `ldb://` handler가 운영 설치 앱을 가리킴.
-- 공개 HTTPS 패스키 관리 화면, JS, CSS의 HTTP 200, 미인증 `/me`의 401,
-  잘못된 `/characters` 검색 입력의 400.
-- Caddy의 단일 loopback API 연결과 `X-Forwarded-For` 덮어쓰기, Caddy, 일일 인증 정리
-  timer의 active 상태. API의 `SEARCH_TRUST_PROXY=single-hop`은 배포 구성과 기존 적용
-  기록을 근거로 하며, 실행 컨테이너 환경을 이번에 직접 조회하지 않았다.
-
-사용자가 같은 운영 설치본과 Chrome, iPhone QR 경로에서 다음 실제 화면 동작을 확인했다.
-
-- 운영 도메인에서 새 패스키 가입, 로그인 후 설치 앱 복귀.
-- 로그인 상태로 X 종료 후 재실행하면 패스키 재인증 없이 계정 화면 복원.
-- 현재 기기 로그아웃, 로그인 취소 후 다시 로그인 성공.
-- 예비 패스키 추가, 삭제 후 기존 키 유지, 마지막 키 삭제 불가 표시, 보호.
-- 로그아웃 상태에서 직접 검색, 게임 캡처, OCR 사용 가능.
-
-정상 종료, 복원과 로그아웃 성공은 사용자 화면 확인이며 운영 DB의 session/refresh 집계를
-별도로 조회한 결과가 아니다. 서버 로그아웃 실패, 로컬 정리 실패를 주입하지 않았고,
-이 결과를 물리 정전 내구성이나 다른 OS, 브라우저, 기기의 성공으로 확대하지 않는다.
 
 ## Desktop 로그인 화면과 자체 QR 제거
 
@@ -146,10 +62,9 @@ accounts의 `browser/passkeys.tsx`는 로그인에서 DFragon 표시, `로그인
 
 화면 모양은 Claude 디자인 캔버스 "로그인과 회원가입" 페이지의 `AuthLogin`, `AuthExpired`, `AuthComplete` 보드를 따른다(`browser/passkeys.style.ts`). 모든 화면은 뷰포트 위아래 가운데의 최대 480px 패널(`bg.surface`, 네 모서리 꺾쇠)에 그리고, 로그인과 인증 완료는 내용을 가운데 정렬한다. 만료(`LOGIN_REQUEST_INVALID`)는 꺾쇠를 `fg.danger`로 바꾸고 오류 문구 앞에 `!` 칸을 둔다. 인증 완료는 꺾쇠를 `fg.success`로 바꾸고 `5초 뒤에 페이지가 닫힙니다.` 숫자와 줄어드는 막대를 같은 5초 주기로 보여 준다. 숫자는 1초마다 바뀌고 막대는 CSS 애니메이션이다. reduced motion에서는 막대만 멈추고, 글자만 바뀌는 숫자는 계속 줄어든다. 카운트다운은 표시일 뿐 탭을 닫지 않는다. 관리 화면은 같은 패널 모양만 쓰고 왼쪽 정렬과 기존 흐름을 유지한다. 시스템 색 모드에 따라 토큰의 라이트 값도 쓰며, 보드의 Pretendard 대신 페이지 CSP 안의 시스템 글꼴을 쓴다.
 
-자체 QR 생성, 확인 번호, 남은 시간, 상태 조회, claim과 휴대폰 승인 화면, 관리 QR은 제거했다. `RemovePhoneQrLogin1791590400000` forward migration은 활성 QR 요청을 실패로 종료하고 QR column과 상태를 제거한다. 회원, 패스키, session, refresh와 진행 중 직접 로그인, 관리 요청은 보존한다. `AddPhoneQrLogin1789601588410` 등 기존 적용 migration은 변경하지 않는다. 새 accounts는 QR column을 읽거나 쓰지 않아 이전 schema에서도 동작하지만, 이전 accounts는 column이 지워지면 로그인 요청을 처리하지 못한다. 이 설명은 QR 제거만 반영한 revision의 배포 순서다. 요청별 Desktop 복귀 주소까지 함께 배포할 때는 위의 [배포 순서](#요청별-desktop-복귀-주소-배포)를 따른다.
+자체 QR 생성, 확인 번호, 남은 시간, 상태 조회, claim과 휴대폰 승인 화면, 관리 QR은 제거했다. QR column과 상태를 제거한 migration과 배포 순서는 [인증 DB 계약](../rules/auth-database.md)을 따른다.
 
 자동 검증은 제거된 경로와 action의 거절, 직접 패스키 가입, 재로그인, 관리 재인증과 삭제 경계를 확인한다. `test-support/phone-qr-retirement.mjs`는 이전 schema의 활성 QR 요청 종료, 직접 로그인과 기존 인증 데이터 보존, 최신 schema 대조와 빈 disposable DB rollback을 검사한다. DB와 WebAuthn 통합 검증은 `test:database`로 실행하며 가상 인증기를 실제 iPhone 또는 packaged Windows 성공으로 표시하지 않는다.
 
 패스키 화면의 문구, 구조와 화면 상태, 이벤트는 React 컴포넌트인 `apps/accounts/browser/passkeys.tsx`, 배치 스타일은 같은 폴더의 `passkeys.style.ts`의 StyleX 정의에서 수정한다. Compiler는 [앱 공통 StyleX](app-styling.md) 설정을 사용한다. 버튼과 색은 `@dfragon/ui/tokens.stylex` 토큰으로 `passkeys.style.ts`에서 그리며 공용 `Button`의 primary, secondary 외형 값을 옮겨 쓴다. `passkeys.html`은 React mount 지점과 요청별 data attribute만 담는 실행용 틀이다. 별도 프런트엔드 서버 없이 기존 API가 빌드된 JS, CSS를 제공한다. 서버 `page.ts`는 요청별 값의 HTML escape와 CSP nonce 주입만 담당한다. `browser/build.mjs`가 HTML을 배포 디렉터리로 복사하고 설치된 React, StyleX 패키지의 라이선스 원문을 JS 번들에 포함한다.
 
-이전 구현의 이력: 2026-10-10 결정 전에는 Desktop 메인의 `로그인`이 Node/preload 없는 메모리 session의 앱 안 전용 인증 창(`auth/browser-window.ts`)을 열고, 진행 중 버튼 재클릭을 막고, 인증 창 닫기로 취소했다. 이 인증 창은 [#671](https://github.com/blahaj94/dfragon/pull/671)에서, OS protocol 복귀는 [#673](https://github.com/blahaj94/dfragon/pull/673)에서 제거했다. 기존 계정 모달과 로그인 후 계정 메뉴는 그보다 앞서 제거했다.

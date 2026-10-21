@@ -73,7 +73,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 ### `apps/api`
 
 - Package: `@dfragon/api`, Node 26, NestJS, TypeORM ESM. `src/http.ts`는 캐릭터, 모험단 HTTP와 `/health`를 합성한다.
-- Domain DB: `characters`, `character_api_responses`, `item_catalog`, `skill_catalog`, `set_item_catalog` 및 기존 domain migration 네 개.
+- Domain DB: `characters`, `character_api_responses`, `item_catalog`, `skill_catalog`, `set_item_catalog`와 domain migration.
 - 필수 입력: `PORT`, `DB_*`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정, JWT, 계정 DB를 사용하지 않는다.
 - `test`는 build, 타입, 단위, HTTP 검증, `test:database`는 별도 Docker PostgreSQL의 domain migration, 검색, 캐시를 검증한다.
 - 개발: [API 개발](api-start-development.md). 이미지 실행, 운영 책임: [제품 안내](api-start-development.md#서버-이미지).
@@ -83,7 +83,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 - Package: `@dfragon/accounts`, 인증 NestJS 서비스. `/auth/**`, `/me`, `/me/nickname`, 패스키 browser bundle을 소유한다.
 - `src/auth`: passkey, 동일 계정 RP 이전, JWT, refresh/logout, nickname, cleanup. Desktop/OCR은 이 서비스에 인증한다.
 - 인증 DB는 user/passkey/session/refresh/login request/migration 여섯 table과 별도 PostgreSQL container, volume, 역할을 사용한다.
-- `src/database/schemas`가 Schema First 원본이다. 기존 auth migration 세 개와 RP/handoff migration 한 개를 빈 target에 적용한다.
+- `src/database/schemas`가 Schema First 원본이다. `src/database/migrations`의 auth migration을 빈 target에 적용한다.
 - `database/retire-api-*.sql`은 이전 인증 사본, RP 키의 삭제 전제를 검증하는 제품 SQL이며 기존 DB suite에서 검증한다.
 - 입력: `PORT`, `DB_*`, `AUTH_CONFIG_FILE`, 선택 `AUTH_TRUST_PROXY`. 로컬 TLS는 accounts 3444, API 3443을 사용한다.
 - 명령: `pnpm --filter @dfragon/accounts dev`, `test`, `test:database`, `auth:cleanup`, `db:migrate:generate Name`, `db:migrate:up`, `db:migrate:show`.
@@ -110,7 +110,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 - Process boundary: `main`, `preload`, `renderer`
 - TypeScript: `tsconfig.node.json`, `tsconfig.web.json`에 `composite: false`, `noEmit: true`와 base 설정의 `noImplicitAny: false`를 덮어쓰는 `noImplicitAny: true`를 정의하며 에디터와 `typecheck`는 같은 설정을 사용한다. Root `tsconfig.json`은 빈 `files`와 두 프로젝트 참조로 에디터의 프로젝트 탐색을 연결한다. 타입 검사는 각 설정에 `tsc -p`를 실행하고 제품 산출물은 electron-vite가 생성한다. 인증 fixture도 이 설정을 상속하며 명령에서 `composite`를 덮어쓰지 않는다.
 - Main entry: `src/backend/main.ts` → `out/backend/main.js`
-- Auth core: `src/backend/auth/coordinator.ts`의 단일 main coordinator가 pending, generation, credential writer와 restore, refresh, logout을 소유한다. 제품 main은 완전한 trusted runtime 설정에서 conditional bootstrap과 macOS credential adapter를 구성하며, 실제 native 성공과 지원 OS는 미확정 gate다. 상세 검증 범위는 [`desktop-auth-core.md`](desktop-auth-core.md)를 참고한다.
+- Auth core: `src/backend/auth/coordinator.ts`의 단일 main coordinator가 pending, generation, credential writer와 restore, refresh, logout을 소유한다. 제품 main은 완전한 trusted runtime 설정에서 conditional bootstrap과 플랫폼별 credential adapter(win32는 `createWindowsCredentialStore`, macOS는 `createMacOsCredentialStore`)를 구성한다. 상세 검증 범위는 [`desktop-auth-core.md`](desktop-auth-core.md)를 참고한다.
 - 캐릭터 검색: main 검색 수명, HTTP와 preload/renderer의 위치 및 검증은 [`desktop-character-search.md`](desktop-character-search.md)를 참고한다. 실제 서버 소비 검증은 별도 `apps/desktop/scripts/search-server-integration/README.md`를 따른다.
 - Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 아래 역할로 나눈다. 실행 진입점 `main.tsx`, `App.tsx`와 App 테스트는 root에 두고, 앱 조합 통합 테스트는 `integration`에 둔다.
   - `constants/`: 서버 목록, 카드 면, 장비 배치, 인증 문구, 캡처 설정과 공유 StyleX 변수, 테마.
@@ -124,7 +124,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
   - `types/`: 카드, 인증, 검색, 캡처, 서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
   - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section, page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트, fixture의 조합은 이 제품 의존 규칙과 구분한다.
   - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일, 불필요한 wrapper로 계층을 채우지 않는다. UI와 독립적인 검색 연결, OCR 구현은 `lib`에 두고, React 상태 연결은 `hooks`와 UI가 담당한다.
-- 기본 앱: `pnpm --filter @dfragon/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개, 테마 전환과 인증 설정이 있을 때 설정 대화상자 로그인 버튼의 시스템 브라우저 진입, 진행 중 취소, 실패 후 재시도를 제공한다. 상단 바 게임 연결 상태 칩의 CaptureControls 모달은 창 등록, 대상 변경, 중지를 연결한다. 던파 창 하나 자동 감지도 등록만 하며 Alt+R이나 파티 머리의 캡처 버튼마다 한 프레임으로 네 슬롯을 인식하고 OCR 첫 후보를 카드에 표시한다. 미검출 슬롯은 비워 두고 화면 복귀 후 자동 재개나 주기적인 반복 인식을 하지 않는다. 검색 결과, 이름 수정, 상세 연결은 후속이다. 인증 연결은 `useAuthBridge`와 main/preload IPC를 재사용한다. 구버전 조합 `fixture/legacy/LegacyApp`은 기존 기능 테스트에서만 사용하며 캡처 시작 버튼도 같은 회차 시작을 보낸다. 합성 메인, 상세, 캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML, 데이터, 이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
+- 기본 앱: `pnpm --filter @dfragon/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개, 테마 전환과 인증 설정이 있을 때 설정 대화상자 로그인 버튼의 시스템 브라우저 진입, 진행 중 취소, 실패 후 재시도를 제공한다. 상단 바 게임 연결 상태 칩의 CaptureControls 모달은 창 등록, 대상 변경, 중지를 연결한다. 던파 창 하나 자동 감지도 등록만 하며 Alt+R이나 파티 머리의 캡처 버튼마다 한 프레임으로 네 슬롯을 인식하고 OCR 첫 후보를 카드에 표시한다. 미검출 슬롯은 비워 두고 화면 복귀 후 자동 재개나 주기적인 반복 인식을 하지 않는다. 인증 연결은 `useAuthBridge`와 main/preload IPC를 재사용한다. 구버전 조합 `fixture/legacy/LegacyApp`은 기존 기능 테스트에서만 사용하며 캡처 시작 버튼도 같은 회차 시작을 보낸다. 합성 메인, 상세, 캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML, 데이터, 이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
 - Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 `@dfragon/ui`의 토큰과 Component를 사용한다. 제품, test, fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 - Command:
   - `pnpm --filter @dfragon/desktop dev`
@@ -143,9 +143,9 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 
 ## Shared UI
 
-- Desktop, API 패스키, OCR, Web은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치, 작성, 검증 범위를 정리한다.
+- Desktop, accounts 패스키, OCR, Web은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치, 작성, 검증 범위를 정리한다.
+<DEL>
 
-- 최초 구현의 검증 이력(superseded): `docs/reference/ui-validation.md`.
 - `packages/ui`: `@dfragon/ui`, DFragon 디자인 토큰(`tokens.css`, `tokens.stylex`), Base UI 기반 공용 Component, Typo와 중립 Example. Package/peer/CSS 소유, 고지, 명령은 `packages/ui/README.md`를 따른다.
 - Library: `pnpm --filter @dfragon/ui test`, `typecheck`, `lint`, `build`.
 - 독립 Example: `pnpm --filter @dfragon/ui dev:examples`, `build:examples`, `preview:examples`. 별도 app workspace는 만들지 않는다.

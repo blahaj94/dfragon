@@ -2,13 +2,13 @@
 type: reference
 status: active
 enforcement: autonomous
-scope: apps/api access JWT module
+scope: apps/accounts access JWT module
 last-reviewed: 2026-09-06
 ---
 
 # Access JWT 개발과 연동
 
-`apps/accounts/src/auth/access-jwt/index.ts`는 DB, Nest, HTTP에 의존하지 않는 내부 factory를 제공한다. Behavior와 key lifecycle의 canonical Rule은 [`auth-session.md`](../rules/auth-session.md), 사용 패키지와 버전은 `apps/accounts/package.json`과 `pnpm-lock.yaml`에서 확인한다. 기본 `AppModule`에는 아직 연결하지 않는다.
+`apps/accounts/src/auth/access-jwt/index.ts`는 DB, Nest, HTTP에 의존하지 않는 내부 factory를 제공한다. Behavior와 key lifecycle의 canonical Rule은 [`auth-session.md`](../rules/auth-session.md), 사용 패키지와 버전은 `apps/accounts/package.json`과 `pnpm-lock.yaml`에서 확인한다. Runtime 설정 `apps/accounts/src/runtime/configuration.ts`가 listen 전에 두 factory를 초기화한다.
 
 ## 공개 함수
 
@@ -51,7 +51,7 @@ const principal = await verifyAccessJwt(receivedAccessToken, serverTimeSeconds)
 | 검증 입력 | Compact JWT 원문과 검증 시점의 서버 UTC 정수 epoch seconds. Client clock을 신뢰하지 않는다. |
 | 검증 결과 | `{ userId, sessionId, issuedAt, expiresAt, tokenId }`. `tokenId`는 jti다. 임의 추가 claim을 권한이나 principal 필드로 전파하지 않는다. |
 
-Factory는 설정을 복사하고 모든 key를 import, 검증한 뒤 함수를 반환한다. 호출자가 원래 설정 객체를 변경해도 기존 함수의 issuer/audience/key는 바뀌지 않는다. 초기화는 listen 전에 await하며 실패를 startup 실패로 처리하는 책임은 향후 bootstrap 호출부에 있다. 환경변수 이름이나 파일 읽기, secret 공급 경로는 이 모듈이 정하지 않는다.
+Factory는 설정을 복사하고 모든 key를 import, 검증한 뒤 함수를 반환한다. 호출자가 원래 설정 객체를 변경해도 기존 함수의 issuer/audience/key는 바뀌지 않는다. 초기화는 listen 전에 await하며 실패를 startup 실패로 처리하는 책임은 bootstrap 호출부에 있다. 환경변수 이름이나 파일 읽기, secret 공급 경로는 이 모듈이 정하지 않는다.
 
 ## 검증과 오류
 
@@ -66,7 +66,7 @@ Compact JWS/JSON parsing, 서명은 `jose`에 위임한다. Local key map만 사
 | `ACCESS_JWT_SIGNING_FAILED` | 입력 검증 뒤 signing 실패. transaction에서 전파해 전체 rollback한다. |
 | `INVALID_ACCESS_JWT` | malformed/변조 token, 비허용 header/key, 잘못된 필수 claims 또는 시간 경계 위반 |
 
-호출부는 token, key 설정 전체나 원문 crypto 오류를 log/응답에 붙이지 않는다. HTTP status 변환은 후속 endpoint 책임이다.
+호출부는 token, key 설정 전체나 원문 crypto 오류를 log/응답에 붙이지 않는다. HTTP status 변환은 endpoint 책임이다.
 
 ## Session 통합과 운영 책임
 
@@ -74,7 +74,8 @@ Compact JWS/JSON parsing, 서명은 `jose`에 위임한다. Local key map만 사
 
 발급은 전달받은 T와 idle deadline을 사용한다. 호출부는 `auth-session.md`에 따라 session lock 뒤의 fresh DB 시각과 `last_active_at`으로 값을 준비하고, 이미 만료된 session을 재활성화하지 않는다. 최초 회원/session 생성, refresh/code 소비와 합성할 때는 JWT signing 실패도 전체 transaction에서 전파하며, commit 결과 불명에서는 반환 token을 성공 응답으로 보내지 않는다.
 
-운영 key는 외부 secret에서 공급하고 boot마다 새로 만들지 않는다. 등록 verifier key 배포, active signer 전환, 이전 key 제거와 90일 주기 운영은 canonical Rule 및 후속 운영 작업 책임이다. 현재 factory의 immutable key map을 교체하려면 새 설정으로 새 함수를 초기화해 호출부에서 전환한다. 자동 reload, 배포, 교체는 구현하지 않았다.
+운영 key는 외부 secret에서 공급하고 boot마다 새로 만들지 않는다. 등록 verifier key 배포, active signer 전환, 이전 key 제거와 90일 주기 운영은 canonical Rule 및 운영 작업 책임이다.
+ 현재 factory의 immutable key map을 교체하려면 새 설정으로 새 함수를 초기화해 호출부에서 전환한다. 자동 reload, 배포, 교체는 구현하지 않았다.
 
 ## 검증 범위
 
