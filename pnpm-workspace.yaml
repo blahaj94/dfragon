@@ -32,7 +32,7 @@ catalog:
   '@xstate/react': 6.1.0
   cookie-parser: 1.4.7
   dotenv-cli: 11.0.0
-  electron: 44.7.0
+  electron: 44.7.2
   electron-builder: 26.15.3
   electron-vite: 5.0.0
   esbuild: 0.28.2
