@@ -25,7 +25,7 @@
 
 ## 작업 경계
 
-- main은 ruleset에 따라 PR로만 바꾼다. 작업 브랜치에서 PR을 열고, 최종 PR merge는 저장소 소유자가 한다.
+- main은 ruleset에 따라 PR로만 바꾼다. 작업 브랜치에서 PR을 열고, PR merge는 저장소 소유자가 하거나 소유자가 허락한 PR을 에이전트가 대신 한다. 에이전트는 현재 PR head의 필수 check가 통과했을 때만 merge하며, 관리자 권한으로 ruleset을 건너뛰는 merge(`gh pr merge --admin`)는 하지 않는다.
 - PR merge에는 필수 check 통과만 필요하고 리뷰 승인은 요구하지 않는다. `.github/CODEOWNERS`는 리뷰 요청 대상만 정한다. 저장소 관리자는 PR merge 때 이 조건을 건너뛸 수 있다.
 - `v*` tag 생성과 삭제, Release 게시, Windows Portable workflow 실행, main에서 이미지를 발행하는 Product Images run의 재실행은 저장소 소유자가 한다. 절차는 [포터블 exe와 GitHub Releases](apps/desktop/README.md#포터블-exe와-github-releases)에 있다.
 - Ruleset, Secret, Environment와 저장소 설정도 저장소 소유자가 바꾼다.
