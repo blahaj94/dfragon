@@ -5,7 +5,7 @@ enforcement: approval-required
 scope: Windows native product capture
 last-reviewed: 2026-10-20
 rationale: 제품 캡처는 main이 검증한 Windows 창의 보이는 영역만 네이티브로 읽고, API 종류와 source를 구별할 수 없는 Electron media 권한은 허용하지 않는다.
-evidence: "Windows 네이티브 캡처: PR #594 사용자 merge 8c057727 ; 공대 캡처: 2026-10-19 사용자 요청(공대 화면의 Alt+R, 개발자 작업 공간의 공대원창 크롭 사용) ; 테스트 버전 자동 캡처와 수집: Issue #595, PR #596 사용자 merge 8e12cc35 ; 이전 Windows media 허용: PR #462 ; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 source ; 격리 media fixture와 그 권한 예외(PR #135 승인, merge 489e4aac, Issue #126)는 2026-10-10 사용자 요청으로 fixture와 함께 폐기"
+evidence: "Windows 네이티브 캡처: PR #594 사용자 merge 8c057727 ; 공대 캡처: 2026-10-19 사용자 요청(공대 화면의 Alt+R, 개발자 작업 공간의 공대원창 크롭 사용) ; 테스트 버전 자동 캡처와 수집: Issue #595, PR #596 사용자 merge 8e12cc35 ; 이전 Windows media 허용: PR #462 ; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 source ; Electron 44.7.2 교체 재확인: 2026-10-21 v44.7.0...v44.7.2 비교, 인용한 공식 source 변경 없음 ; 격리 media fixture와 그 권한 예외(PR #135 승인, merge 489e4aac, Issue #126)는 2026-10-10 사용자 요청으로 fixture와 함께 폐기"
 exceptions: 없음. 테스트 빌드의 자동 수집은 아래 별도 절과 배포 설정을 따른다.
 review-after: Electron version, 화면 획득 방식 또는 권한 경계 변경 전
 ---
@@ -43,8 +43,8 @@ Alt+Print Screen은 새 원본과 검출된 파티원 슬롯을 확인창 없이
 
 ## Electron media 권한의 한계
 
-Electron **44.7.0**의 `RequestMediaAccessPermission`은 장치 camera/microphone에만 `mediaTypes`의 `video`/`audio`를 채운다. 정상 display capture와 legacy desktop `getUserMedia`는 모두 `media` 요청과 빈 배열을 사용할 수 있다. 허용 뒤 display 경로는 `ChooseDisplayMediaDevice`로 가지만 legacy 경로는 renderer가 요청한 source를 별도로 처리한다. 따라서 빈 배열은 정상 display API나 선택 source, gesture의 증거가 아니다. [공식 media 처리 source](https://raw.githubusercontent.com/electron/electron/v44.7.0/shell/browser/web_contents_permission_helper.cc)
+Electron **44.7.2**의 `RequestMediaAccessPermission`은 장치 camera/microphone에만 `mediaTypes`의 `video`/`audio`를 채운다. 정상 display capture와 legacy desktop `getUserMedia`는 모두 `media` 요청과 빈 배열을 사용할 수 있다. 허용 뒤 display 경로는 `ChooseDisplayMediaDevice`로 가지만 legacy 경로는 renderer가 요청한 source를 별도로 처리한다. 따라서 빈 배열은 정상 display API나 선택 source, gesture의 증거가 아니다. [공식 media 처리 source](https://raw.githubusercontent.com/electron/electron/v44.7.2/shell/browser/web_contents_permission_helper.cc)
 
-공개 `MediaAccessPermissionRequest`에는 API 종류, source, gesture를 구별할 field가 없다. 그 정보로 legacy 경로를 확실히 차단한다고 주장하지 않는다. [공개 요청 구조](https://raw.githubusercontent.com/electron/electron/v44.7.0/docs/api/structures/media-access-permission-request.md)
+공개 `MediaAccessPermissionRequest`에는 API 종류, source, gesture를 구별할 field가 없다. 그 정보로 legacy 경로를 확실히 차단한다고 주장하지 않는다. [공개 요청 구조](https://raw.githubusercontent.com/electron/electron/v44.7.2/docs/api/structures/media-access-permission-request.md)
 
-Custom request/check handler가 없으면 media 요청과 검사가 기본 허용될 수 있다. 따라서 제품은 handler를 제거하지 않고 명시적으로 거절한다. [공식 permission manager](https://raw.githubusercontent.com/electron/electron/v44.7.0/shell/browser/electron_permission_manager.cc)
+Custom request/check handler가 없으면 media 요청과 검사가 기본 허용될 수 있다. 따라서 제품은 handler를 제거하지 않고 명시적으로 거절한다. [공식 permission manager](https://raw.githubusercontent.com/electron/electron/v44.7.2/shell/browser/electron_permission_manager.cc)
