@@ -183,7 +183,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '26'
+          node-version-file: package.json
       - name: Select images from the complete main push
         run: node scripts/product-image-plan.mjs select "$RUNNER_TEMP/product-image-plan.json"
       # Product Images reads this artifact only after the whole Code Quality run succeeds.

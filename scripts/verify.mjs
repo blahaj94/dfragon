@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { resolve } from 'node:path'
+import { basename, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url))
@@ -82,6 +82,25 @@ function describeFailure(result) {
   return `exit ${result.status}`
 }
 
+// Corepack처럼 pnpm을 JavaScript 진입점으로 설치하면 node로 실행해야 한다.
+const JAVASCRIPT_ENTRY_PATTERN = /\.[cm]?js$/u
+
+// pnpm script로 시작했으면 그 pnpm을 직접 실행한다. Windows에는 shell 없이 시작할 `pnpm` 실행 파일 없이
+// `pnpm.cmd`만 있을 수 있어 git hook에서 `pnpm verify`가 명령을 시작하지 못한다.
+function executableOf(file) {
+  const pnpmPath = process.env.npm_execpath
+
+  if (file !== 'pnpm' || pnpmPath == null || !basename(pnpmPath).startsWith('pnpm')) {
+    return [file]
+  }
+
+  if (JAVASCRIPT_ENTRY_PATTERN.test(pnpmPath)) {
+    return [process.execPath, pnpmPath]
+  }
+
+  return [pnpmPath]
+}
+
 function formatDuration(milliseconds) {
   const seconds = Math.round(milliseconds / 1000)
   const minutes = Math.floor(seconds / 60)
@@ -105,7 +124,8 @@ export function runJobs(jobs, cwd = repositoryRoot) {
       const command = [file, ...args].join(' ')
       console.log(`\n[verify] ${job}: ${command}`)
       commandCount += 1
-      const result = spawnSync(file, args, { cwd, stdio: 'inherit' })
+      const [executable, ...prefix] = executableOf(file)
+      const result = spawnSync(executable, [...prefix, ...args], { cwd, stdio: 'inherit' })
 
       if (result.status !== 0) {
         const reason = describeFailure(result)

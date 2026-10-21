@@ -1,0 +1,9 @@
+# CI는 PR 제목 scope가 (build)일 때만 전체 검사를 실행하므로 push 전에 Code Quality의 검사 job을 로컬에서 실행한다.
+pnpm verify
+
+# DB 통합 검사는 Docker가 있을 때만 실행한다. 없으면 (build) PR의 CI가 대신 확인한다.
+if docker info > /dev/null 2>&1; then
+  pnpm verify:database
+else
+  echo "[pre-push] Docker를 찾지 못해 pnpm verify:database를 건너뜀"
+fi
