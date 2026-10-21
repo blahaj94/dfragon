@@ -174,7 +174,7 @@ async function defaultKeychain() {
   return JSON.parse(result.stdout.trim())
 }
 
-// 고정한 Electron 44.7.0의 macOS safeStorage는 key를 `<app name> Safe Storage` service의 `<app name> Key` account에 둔다.
+// 고정한 Electron 44.7.2의 macOS safeStorage는 key를 `<app name> Safe Storage` service의 `<app name> Key` account에 둔다.
 /** @returns {string} */
 function safeStorageAccount(appName) {
   return `${appName} Key`
