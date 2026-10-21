@@ -66,7 +66,7 @@ catalog:
   zod: 4.6.7
 
 catalogs:
-  # Desktop main, preload는 Electron 44.7.0 내장 Node 24.21.0에서 실행되므로 Node 타입도 24에 맞춘다.
+  # Desktop main, preload는 Electron 44.7.2 내장 Node 24.21.0에서 실행되므로 Node 타입도 24에 맞춘다.
   electron:
     '@types/node': 24.19.2
     '@vitejs/plugin-react': 5.2.0

@@ -50,7 +50,7 @@ async function run(): Promise<void> {
   await app.whenReady()
   stage = 'session-profile'
   assert.equal(app.getPath('sessionData'), profile)
-  assert.equal(process.versions.electron, '44.7.0')
+  assert.equal(process.versions.electron, '44.7.2')
   assert.equal(process.versions.node, '24.21.0')
   assert.equal(process.versions.uv, '1.52.1')
   const observedSafeStorage = {
