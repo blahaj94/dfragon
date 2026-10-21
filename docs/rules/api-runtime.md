@@ -28,7 +28,7 @@ review-after: API 실행 기반의 첫 validation 완료 또는 지원 major 변
 
 ## Runtime과 dependency
 
-API, accounts, OCR 서버 app은 Node `>=26.11.1 <27`을 호환 floor/major 범위로 두며, 실제 선택은 해당 major의 최신 보안 patch로 한다. 하한은 실제로 검증한 patch다. 서버, Web과 공용 package의 `@types/node`는 26.x로 맞춘다. Node 26은 확인 시점 Current이고 2026-10-28에 LTS로 전환될 예정이며 `pnpm@12.11.2`의 지원 Node 범위에 들어간다. Desktop main, preload는 Electron 44.7.0이 내장한 Node 24.21.0에서 실행되므로 이 범위를 따르지 않고 `@types/node`도 Electron의 Node major에 맞춘다. 호스트 Node 26은 Desktop의 테스트, 빌드 실행기로만 쓴다. API 작업에서 다른 app의 Node/types 버전이나 workspace package manager를 변경하지 않는다. [Node release 상태](https://nodejs.org/en/about/previous-releases), [pnpm 호환 표](https://pnpm.io/installation#compatibility)
+API, accounts, OCR 서버 app은 Node `>=26.11.1 <27`을 호환 floor/major 범위로 두며, 실제 선택은 해당 major의 최신 보안 patch로 한다. 하한은 실제로 검증한 patch다. 서버, Web과 공용 package의 `@types/node`는 26.x로 맞춘다. Node 26은 확인 시점 Current이고 2026-10-28에 LTS로 전환될 예정이며 `pnpm@12.11.2`의 지원 Node 범위에 들어간다. Desktop main, preload는 Electron 44.7.2가 내장한 Node 24.21.0에서 실행되므로 이 범위를 따르지 않고 `@types/node`도 Electron의 Node major에 맞춘다. 호스트 Node 26은 Desktop의 테스트, 빌드 실행기로만 쓴다. API 작업에서 다른 app의 Node/types 버전이나 workspace package manager를 변경하지 않는다. [Node release 상태](https://nodejs.org/en/about/previous-releases), [pnpm 호환 표](https://pnpm.io/installation#compatibility)
 
 Nest runtime과 testing package는 동일한 12.x release로 맞추고, TypeScript compiler는 7.0.x(native `tsc`)를 사용하며, `tsc`로 먼저 컴파일한 뒤 Node로 검증하는 방식과 `emitDecoratorMetadata` 사용은 그대로 유지합니다. Node와 Express의 type은 사용하는 runtime과 맞추며, 직접 사용하는 패키지를 전이 의존성 경로에서 가져오지 않습니다.
 

@@ -5,7 +5,7 @@ enforcement: approval-required
 scope: apps/desktop secure storage loopback login and validation
 last-reviewed: 2026-10-11
 rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
-evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 문서와 source; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성; 2026-10-11 사용자 결정: Windows 실기에서 확인한 로그인 복귀 뒤 창 활성화 한계 수용; 2026-10-11 사용자 결정: test 채널을 staging-accounts.dfragon.com 로그인으로 전환"
+evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 문서와 source; Electron 44.7.2 교체 재확인: 2026-10-21 v44.7.0...v44.7.2 비교, 인용한 공식 문서와 source 변경 없음; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성; 2026-10-11 사용자 결정: Windows 실기에서 확인한 로그인 복귀 뒤 창 활성화 한계 수용; 2026-10-11 사용자 결정: test 채널을 staging-accounts.dfragon.com 로그인으로 전환"
 exceptions: 실제 credential/keychain, legacy protocol registry 정리, 패스키 설정과 packaged E2E는 수행하지 않는다.
 review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, loopback 로그인 E2E 시
 ---
@@ -20,13 +20,13 @@ review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, loop
 
 | 분류 | 확인 내용 | 아직 증명하지 않은 것 |
 | --- | --- | --- |
-| Source/config (2026-10-11 갱신) | `pnpm-workspace.yaml` catalog의 Electron은 44.7.0(`apps/desktop/package.json`은 `catalog:` 참조), `pnpm-lock.yaml` 해결 version은 **44.7.0**(Chromium 152.0.7977.130, Node 24.21.0), electron-builder **26.15.3**. 2026-09-06 조사 시점은 `^39.2.6`, **39.8.10** | 설치 runtime 실행, 지원 최신성, 배포 안전성 |
+| Source/config (2026-10-21 갱신) | `pnpm-workspace.yaml` catalog의 Electron은 44.7.2(`apps/desktop/package.json`은 `catalog:` 참조), `pnpm-lock.yaml` 해결 version은 **44.7.2**(Chromium 152.0.7977.149, Node 24.21.0), electron-builder **26.15.3**. 2026-09-06 조사 시점은 `^39.2.6`, **39.8.10** | 설치 runtime 실행, 지원 최신성, 배포 안전성 |
 | Packaging 선언 | `apps/desktop/build/electron-builder-config.ts`: Windows/NSIS, macOS/DMG, Linux AppImage/snap/deb 관련 설정 | DFragon의 실제 지원 OS/arch 약속, package 생성/설치, 인증 성공 |
 | Identity, 보호 기능 (2026-10-11 갱신) | appId와 identity는 `apps/desktop/build/channels.json`의 채널 값(배포 `dfragon`, 개발 `dfragon.dev`, test `dfragon.test`)이고, 로그인 설정이 있는 모든 채널(배포, 개발, test)에는 loopback 수신기, single-instance lock, safeStorage credential store가 구현됨. OS protocol 선언과 복귀 handler는 제거됨. `notarize: false`는 유지 | 서명, 공증과 legacy protocol 키 정리, 설치본 로그인 성공은 설치 검증 대상이며 설정 존재가 그 근거는 아님 |
 | Host 관측 | macOS **26.6.2 / arm64**, `sw_vers -productVersion`, `uname -m` 읽기 | macOS 앱/Keychain 성공, Windows/Linux 실행 성공 |
 | Electron 공식 범위 (2026-10-10 갱신) | Pinned README는 macOS 13(Ventura)+ Intel/Apple Silicon, Windows 10+ x64/arm64, Linux x64/arm64와 Chromium, 배포판 제작사가 함께 지원하는 주요 배포판 version을 명시. 39.8.10 README의 macOS 12, Windows x86, Ubuntu 18.04+/Fedora 32+/Debian 10+ 목록은 빠짐 | Electron 지원 설명은 DFragon 최소 OS나 해당 OS의 현재 보안 지원 기간을 확정하지 않음 |
 
-근거: [Electron 44.7.0 README](https://raw.githubusercontent.com/electron/electron/v44.7.0/README.md), [safeStorage](https://raw.githubusercontent.com/electron/electron/v44.7.0/docs/api/safe-storage.md), [app lifecycle/path](https://raw.githubusercontent.com/electron/electron/v44.7.0/docs/api/app.md), [pinned Deep Links guide](https://raw.githubusercontent.com/electron/electron/v44.7.0/docs/tutorial/launch-app-from-url-in-another-app.md). 2026-09-06 최초 조사는 같은 문서의 v39.8.10 판을 기준으로 했다. 문서 확인을 실제 DFragon E2E 결과로 표시하지 않는다. 출시 전 Electron/OS 지원 상태도 다시 확인하며 version 교체는 별도 변경 범위다.
+근거: [Electron 44.7.2 README](https://raw.githubusercontent.com/electron/electron/v44.7.2/README.md), [safeStorage](https://raw.githubusercontent.com/electron/electron/v44.7.2/docs/api/safe-storage.md), [app lifecycle/path](https://raw.githubusercontent.com/electron/electron/v44.7.2/docs/api/app.md), [pinned Deep Links guide](https://raw.githubusercontent.com/electron/electron/v44.7.2/docs/tutorial/launch-app-from-url-in-another-app.md). 2026-09-06 최초 조사는 같은 문서의 v39.8.10 판을 기준으로 했다. 문서 확인을 실제 DFragon E2E 결과로 표시하지 않는다. 출시 전 Electron/OS 지원 상태도 다시 확인하며 version 교체는 별도 변경 범위다.
 
 ## Clock과 절전 관측
 
@@ -48,7 +48,7 @@ Node `performance.now()`는 process 기준의 monotonic 값이고 서버 시간�
 
 `setUsePlainTextEncryption(true)` 및 평문/renderer storage/access-only fallback은 금지한다. 안전한 backend가 없으면 로그인과 로그인 유지가 불가능하다는 명시적 선택이다. Capture, 브라우저 권한 변경으로 저장 문제를 우회하지 않는다.
 
-Pinned safeStorage는 동기 API이며 OS prompt가 main thread를 막을 수 있다. Electron 44.7.0 문서는 비동기 API를 권장하고 동기 API가 앞으로 deprecated될 수 있다고 적는다. OS 사용자 승인/취소가 필요할 수 있고 JavaScript timer로 prompt를 취소하거나 일정 시간 내 UI 응답을 보장하지 않는다. 앱은 저장소 접근 전 별도 확인/안내 창을 열지 않고 startup에서 저장소 검사를 진행한다. OS prompt와 안전한 저장소 backend 검사는 유지하며, 실패하거나 사용자가 거절하면 기존 fail-closed 상태로 반영한다. JS HTTP deadline은 이 OS prompt의 강제 종료 예산이 아니다.
+Pinned safeStorage는 동기 API이며 OS prompt가 main thread를 막을 수 있다. Electron 44.7.2 문서는 비동기 API를 권장하고 동기 API가 앞으로 deprecated될 수 있다고 적는다. OS 사용자 승인/취소가 필요할 수 있고 JavaScript timer로 prompt를 취소하거나 일정 시간 내 UI 응답을 보장하지 않는다. 앱은 저장소 접근 전 별도 확인/안내 창을 열지 않고 startup에서 저장소 검사를 진행한다. OS prompt와 안전한 저장소 backend 검사는 유지하며, 실패하거나 사용자가 거절하면 기존 fail-closed 상태로 반영한다. JS HTTP deadline은 이 OS prompt의 강제 종료 예산이 아니다.
 
 | 대안 | 비교, 판단 |
 | --- | --- |
