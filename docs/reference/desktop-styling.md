@@ -52,7 +52,7 @@ const styles = stylex.create({
 `@dfragon/ui/tokens.stylex`의 `colors`는 dfragon-design [색 체계](https://github.com/blahaj94/dfragon-design/blob/main/design/colors.md)의 의미 토큰을 camelCase 키로 옮긴 것입니다. 예를 들어 `bg.surface`는 `bgSurface`, `card.fgMuted`는 `cardFgMuted`입니다. 값은 모두 `var(--df-…)` 문자열이고 실제 값과 라이트 값은 `packages/ui/tokens.css`가 정합니다.
 
 - **신호색**: `signal`, `onSignal`은 선택, 주 버튼, 포커스에 씁니다.
-- **카드 면**: `card*`, `bracket*`, `hatchAlert`, `gridLine`, `tierRanker*`, `scoreDealer`, `scoreBuffer`, `bgWell`, `brandLogo`는 라이트 모드에서도 다크 값입니다. 점수 숫자는 카드 값의 역할에 따라 딜러 `scoreDealer`, 버퍼 `scoreBuffer`로 칠하고 상위, 랭커 카드의 파티 카드 점수는 단계 색이 앞섭니다. 라이트에서도 어두운 카드는 카드 토큰을 쓰고, 포커스와 선택은 `cardSignal`을 씁니다. 검색 실패의 노란색은 `bracketFailure`(꺾쇠), `cardFailure`(`!` 글자와 이름 입력 테두리), `cardFailureWeak`(`!` 칸 면)이고 모두 라이트에서도 같은 값입니다. 스냅샷에 없는 모험단의 칩과 덮는 층은 어두운 카드 위의 경고색이라 `bracketDanger`(칩 면은 그 16%)를 씁니다. 상세 창도 창 전체가 `CardFrame`의 `cardBg` 면이고, 장비 줄은 `cardInset` 면에 희귀도 색 왼쪽 선을 둡니다. 상위, 랭커 카드의 단계 색은 `tierTop`, `tierRanker`, 랭커 면은 `tierRanker*`입니다.
+- **카드 면**: `card*`, `bracket*`, `hatchAlert`, `gridLine`, `tierRanker*`, `scoreDealer`, `scoreBuffer`, `bgWell`, `brandLogo`는 라이트 모드에서도 다크 값입니다. 점수 숫자는 카드 값의 역할에 따라 딜러 `scoreDealer`, 버퍼 `scoreBuffer`로 칠하고 상위, 랭커 카드의 파티 카드 점수는 단계 색이 앞섭니다. 라이트에서도 어두운 카드는 카드 토큰을 쓰고, 포커스와 선택은 `cardSignal`을 씁니다. 검색 실패의 노란색은 `bracketFailure`(꺾쇠), `cardFailure`(`!` 글자와 이름 입력 테두리), `cardFailureWeak`(`!` 칸 면)이고 모두 라이트에서도 같은 값입니다. 스냅샷에 없는 모험단의 칩과 덮는 층은 어두운 카드 위의 경고색이라 `bracketDanger`(칩 면은 그 16%)를 씁니다. 상위, 랭커 카드의 단계 색은 `tierTop`, `tierRanker`, 랭커 면은 `tierRanker*`입니다.
 - **대화상자의 면**: 대화상자와 패널은 반지름 0(`radius.panel`)에 테두리 없이 `bgSurface`, `bgInset` 면으로 구분합니다.
 - **상단 바**: 상단 바 면은 `bgBar`이며 창 버튼 띠 색(`preload/common/window-chrome.ts`)과 맞춥니다.
 
