@@ -32,9 +32,11 @@ export const styles = stylex.create({
   slot: {
     display: 'grid',
     gridTemplateRows: 'minmax(0, 1fr)',
-    // 접힌 카드의 후보 타일처럼 줄일 수 없는 내용이 있어도 카드가 그리드 칸보다 넓어지지 않게 한다.
+    // 줄일 수 없는 내용이 있어도 카드가 그리드 칸보다 넓어지지 않게 한다.
     gridTemplateColumns: 'minmax(0, 1fr)',
-    minWidth: 0
+    minWidth: 0,
+    // 후보 창이 카드 자리를 기준으로 겹쳐 뜬다.
+    position: 'relative'
   },
   // 왼쪽 썸네일 열과 오른쪽 내용 열. 카드 안 여백은 위 8, 좌우 10, 아래 8이다.
   body: {
@@ -142,7 +144,23 @@ export const styles = stylex.create({
   placeholder: { color: colors.cardBorderStrong },
   // `다시 시도`는 넷째 줄 높이에 맞춘 작은 주 버튼이다. 공용 버튼의 height와 겹치지 않게 최대 높이로 줄인다.
   retry: { maxHeight: 20, paddingLeft: space.s8, paddingRight: 10 },
-  // 후보 줄은 몸통 아래에 두고, 접힌 카드는 작은 타일 줄만 둔다.
-  candidates: { position: 'relative', height: 108, flexShrink: 0 },
-  candidatesCompact: { height: 'auto', paddingInline: 10, paddingBottom: space.s8 }
+  // 후보 창을 닫은 뒤 머리 줄에 남는 `후보 4` 칩. 누르면 창을 다시 연다.
+  candidateChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    flexShrink: 0,
+    height: 20,
+    paddingInlineStart: 6,
+    paddingInlineEnd: space.s8,
+    borderWidth: 0,
+    backgroundColor: { default: colors.cardControl, ':hover': colors.cardControlHover },
+    boxShadow: `inset 0 0 0 1px ${colors.cardSignal}`,
+    color: colors.cardSignal,
+    cursor: 'pointer',
+    transitionProperty: 'background-color',
+    transitionDuration: motion.durHover,
+    transitionTimingFunction: motion.ease,
+    outline: { default: null, ':focus-visible': `2px solid ${colors.cardSignal}` },
+    outlineOffset: { default: null, ':focus-visible': 2 }
+  }
 })

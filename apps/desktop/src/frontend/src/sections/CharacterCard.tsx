@@ -6,13 +6,14 @@ import {
   isVacantSlot
 } from '../lib/card-presentation'
 import * as stylex from '@stylexjs/stylex'
+import { useId, useState } from 'react'
 import { NameField, type NameFieldTone } from '../components/NameField'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { useLookupDraft } from '../hooks/useLookupDraft'
 import { CardImage } from '../components/CardImage'
-import { CandidateStrip } from '../components/CandidateStrip'
+import { CandidateWindow } from '../components/CandidateWindow'
 import { StatLine } from '../components/StatLine'
 import { styles } from './CharacterCard.style'
 import { serverNames } from '../constants/servers'
@@ -40,7 +41,7 @@ export function CharacterCard({
   collapsed?: boolean
   onRetry?: () => void
   onLookup?: (nickname: string, serverId: string) => void
-  /** 후보 줄의 후보를 서버로 누른다. */
+  /** 후보 창의 후보를 서버로 누른다. */
   onPickCandidate?: (serverId: string) => void
 }): React.JSX.Element {
   const {
@@ -53,8 +54,16 @@ export function CharacterCard({
     loading = false
   } = card
   const characterFound = state === 'success' && character != null
-  // 미리보기 조회가 실패해도 다른 후보를 다시 고를 수 있게 후보 줄은 캐릭터를 찾지 못한 동안에도 남긴다.
+  // 미리보기 조회가 실패해도 다른 후보를 다시 고를 수 있게 후보 창은 캐릭터를 찾지 못한 동안에도 남긴다.
   const picker = card.picker
+  // 후보 창을 닫기 X로 닫았는지. 후보 목록과 미리보기, 확정은 캡처 쪽이 가지고, 열림만 카드가 가진다.
+  // 확정해 후보가 사라지면 다음 후보는 다시 열린 창으로 보이고, 다음 회차는 카드를 새로 그려 처음부터 열린다.
+  const [candidatesClosed, setCandidatesClosed] = useState(false)
+  if (picker === undefined && candidatesClosed) {
+    setCandidatesClosed(false)
+  }
+  const candidatesOpen = picker !== undefined && !candidatesClosed
+  const candidateWindowId = useId()
   const previewing = characterFound && picker?.previewServerId != null
   // 찾은 자리는 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
   const nickname = characterFound ? undefined : card.nickname
@@ -162,6 +171,17 @@ export function CharacterCard({
                   !
                 </span>
               )}
+              {picker !== undefined && (
+                <button
+                  type="button"
+                  aria-expanded={candidatesOpen}
+                  aria-controls={candidatesOpen ? candidateWindowId : undefined}
+                  onClick={() => setCandidatesClosed(candidatesOpen)}
+                  {...stylex.props(styles.candidateChip, shapes.cutTopRight)}
+                >
+                  <Typo.caption as="span">후보 {picker.choices.length}</Typo.caption>
+                </button>
+              )}
               {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="party" />}
             </div>
             <div {...stylex.props(styles.line)}>
@@ -224,21 +244,20 @@ export function CharacterCard({
             )}
           </div>
         </div>
-        {picker !== undefined && (
-          <div {...stylex.props(styles.candidates, collapsed && styles.candidatesCompact)}>
-            <CandidateStrip
-              slot={slot}
-              picker={picker}
-              onPick={onPickCandidate}
-              compact={collapsed}
-            />
-          </div>
-        )}
         {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
         <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
           {hasCharacter ? character?.name : status}
         </span>
       </CardFrame>
+      {candidatesOpen && (
+        <CandidateWindow
+          id={candidateWindowId}
+          slot={slot}
+          picker={picker}
+          onPick={onPickCandidate}
+          onClose={() => setCandidatesClosed(true)}
+        />
+      )}
     </div>
   )
 }
