@@ -6,7 +6,7 @@
 
 ## 루트 도구 회귀 검증
 
-`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비, 날짜, build-info, 이미지 선택, 앱 생성, 아이콘 생성, 공용 Docker helper, lint 플러그인, 포맷 정책, 표기와 문체 검사, 문서 링크와 경로 검사, 토큰 없는 의존성 설치, `verify` 실행기와 CI 연결의 회귀 검사가 포함됩니다. Code Quality의 PR과 main push에서도 이 명령을 실행하며, 어느 테스트든 실패하면 검사가 실패합니다. Root `pnpm test`는 [`pnpm verify`](#verify)를 실행합니다.
+`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비, 날짜, build-info, 이미지 선택, 앱 생성, 아이콘 생성, 공용 Docker helper, lint 플러그인, 포맷 정책, 표기와 문체 검사, 문서 링크와 경로 검사, 토큰 없는 의존성 설치, `verify` 실행기와 workflow 연결의 회귀 검사가 포함됩니다. 어느 테스트든 실패하면 검사가 실패합니다. Root `pnpm test`는 [`pnpm verify`](#verify)를 실행합니다.
 
 앱 생성과 아이콘 생성 검사는 저장소 코드를 격리된 임시 디렉터리에 복사해 실제 CLI의 출력 파일, 입력 거절, 실패 코드, 정리를 확인합니다. 아이콘 변환기는 합성 파일을 만드는 fake이므로 실제 Electron 이미지 변환 품질이나 제품 아이콘은 검증하지 않습니다. Docker helper의 mock 검사와 API/accounts의 실제 `test:database`도 구분합니다.
 
@@ -71,7 +71,7 @@ node scripts/format-date.mjs
 
 ## `check-writing`
 
-제품 이름 표기와 사용자 문구의 문체를 검사합니다. 기준은 [표기와 문체](../docs/rules/writing.md)입니다. 인자가 없으면 Git이 추적하는 파일을 모두 읽고, 경로를 주면 현재 디렉터리 기준으로 그 파일만 검사합니다. NUL 바이트가 있는 이진 파일, submodule 항목과 검사 스크립트 자신, 그 테스트는 건너뜁니다. 위반은 `경로:줄: 규칙: 내용`으로 출력하고 non-zero로 종료합니다. Code Quality의 Static checks가 `pnpm check:writing`을 실행합니다.
+제품 이름 표기와 사용자 문구의 문체를 검사합니다. 기준은 [표기와 문체](../docs/rules/writing.md)입니다. 인자가 없으면 Git이 추적하는 파일을 모두 읽고, 경로를 주면 현재 디렉터리 기준으로 그 파일만 검사합니다. NUL 바이트가 있는 이진 파일, submodule 항목과 검사 스크립트 자신, 그 테스트는 건너뜁니다. 위반은 `경로:줄: 규칙: 내용`으로 출력하고 non-zero로 종료합니다. `pnpm verify`가 `pnpm check:writing`을 실행합니다.
 
 ```bash
 pnpm check:writing
@@ -84,7 +84,7 @@ node scripts/check-writing.mjs apps/desktop/README.md
 
 Git이 추적하는 파일과 ignore 대상이 아닌 새 파일 중 `*.md`의 상대 링크를 검사합니다. 링크한 파일, 디렉터리가 저장소에 있는지와 Markdown 대상의 `#anchor`가 그 문서의 heading과 맞는지 확인합니다. Anchor는 GitHub와 같은 규칙으로 만듭니다. Heading 글자를 소문자로 바꾸고 문자, 숫자, `_`, 공백, `-` 외의 문장부호를 지운 뒤 공백을 `-`로 바꾸며, 같은 heading이 다시 나오면 `-1`, `-2`를 붙입니다. 한국어 heading도 같은 규칙입니다.
 
-`#`로 시작하는 ATX heading만 anchor로 읽습니다. Front matter, code block, code span 안의 링크와 외부 URL, 코드 파일의 `#L10` 같은 줄 anchor는 검사하지 않습니다. 위반은 `경로:줄: 규칙: 링크나 경로`로 출력하고 non-zero로 종료합니다. Code Quality의 Static checks와 `pnpm verify`가 `pnpm check:docs`를 실행합니다.
+`#`로 시작하는 ATX heading만 anchor로 읽습니다. Front matter, code block, code span 안의 링크와 외부 URL, 코드 파일의 `#L10` 같은 줄 anchor는 검사하지 않습니다. 위반은 `경로:줄: 규칙: 링크나 경로`로 출력하고 non-zero로 종료합니다. `pnpm verify`가 `pnpm check:docs`를 실행합니다.
 
 Code span 전체가 `apps/`, `packages/`, `.github/`로 시작하는 저장소 경로이면 그 파일, 디렉터리가 있는지도 확인합니다. 아직 add하지 않은 새 파일도 있는 것으로 봅니다. `*`, `<이름>`, `...`이 든 glob, 자리표시와 `:10`처럼 줄 번호를 붙인 표기, ignore 규칙에 걸리는 build 산출물과 `.env`, submodule 안의 파일은 건너뜁니다. Front matter가 `status: historical`인 문서는 과거 revision의 경로를 기록하므로 경로를 확인하지 않습니다. `scripts/...`, `docs/...`처럼 짧은 경로는 앱 디렉터리나 upstream 저장소 기준인 경우가 많아 확인하지 않습니다.
 
@@ -131,16 +131,6 @@ node --test scripts/test/server-build-info.test.mjs
 GitHub 이미지 빌드, 발행은 내장 정보와 선택한 정확한 commit을 추가로 대조합니다.
 실행 중인 서버 조회는 [제품 이미지 안내](../docs/reference/api-start-development.md#실행-중인-서버의-버전-조회)를 참고합니다.
 
-## `dependency-snapshot`
-
-pnpm 11 이상의 lockfile은 pnpm 실행 파일을 담은 첫 YAML 문서와 workspace 의존성을 담은 마지막 문서로 나뉩니다. 현재 GitHub dependency graph는 이 lockfile에서 첫 문서의 package만 인식해 workspace의 전이 의존성이 Dependabot alerts와 dependency review에서 빠집니다. Dependency Review workflow는 `pnpm sbom --sbom-format cyclonedx --lockfile-only` 결과를 이 도구로 Dependency submission snapshot으로 바꿔 제출합니다.
-
-인자는 `<cyclonedx-sbom-file> <snapshot-file>`이고 `SNAPSHOT_SHA`, `SNAPSHOT_REF`(`refs/heads/<branch>`), `GITHUB_WORKFLOW`, `GITHUB_JOB`, `GITHUB_RUN_ID`를 읽습니다. Workspace가 직접 의존하는 package는 `direct`, 나머지는 `indirect`로 기록합니다. pnpm이 개발 의존성으로만 도달한다고 표시한(`excluded`) package는 `development`, 나머지는 `runtime`입니다. peer 조합처럼 bom-ref만 다르고 purl이 같은 package는 하나로 합치며, 한 변형이라도 `direct`, `runtime`이면 그 값을 쓰고 하위 의존성은 중복 없이 모읍니다. 그래프가 불완전하거나 commit, branch 값이 올바르지 않으면 파일을 쓰지 않고 실패합니다.
-
-main push는 Dependabot alerts의 기준을, 같은 저장소 PR은 dependency review가 비교할 PR head를 제출합니다. Fork PR은 쓰기 권한이 없어 제출하지 않고, review는 정적 dependency graph만 비교합니다.
-
-검증: `node --test scripts/test/dependency-snapshot.test.mjs`, `node --check scripts/dependency-snapshot.mjs`.
-
 ## `import-skill-data`
 
 Desktop 상세 창 스킬 탭의 직업별 배치(`packages/skill-layouts/layouts.json`)와 스킬 아이콘 sprite(`packages/icons/skills.json`, `packages/icons/skills.webp`)를 외부 수집본에서 함께 다시 만듭니다. 두 패키지의 데이터는 이 명령의 생성물이므로 손으로 고치지 않습니다.
@@ -163,11 +153,11 @@ node scripts/import-equipment-icons.mjs --pvf <data_layers 폴더> --samples <�
 
 ## `verify`
 
-`pnpm verify`는 Code Quality workflow의 검사 job 가운데 Docker가 필요 없는 job을 로컬에서 다시 실행합니다. Root `pnpm test`도 같은 명령입니다. 정적 검사(`lint`, `format:check`, `check:writing`, `check:docs`), 루트 도구 테스트, 공용 package, Desktop test와 typecheck, API, accounts, OCR, Web job의 run 명령을 workflow와 같은 순서로 실행합니다. Docker PostgreSQL을 쓰는 API, accounts의 `test:database`와 Desktop 검색 통합은 `pnpm verify:database`로 따로 실행합니다.
+`pnpm verify`는 저장소 검사 가운데 Docker가 필요 없는 job을 로컬에서 실행합니다. GitHub Actions에는 CI 검사가 없으므로 이 명령이 기본 검사입니다. Root `pnpm test`도 같은 명령입니다. 정적 검사(`lint`, `format:check`, `check:writing`, `check:docs`), 루트 도구 테스트, 공용 package, Desktop test와 typecheck, API, accounts, OCR, Web job의 run 명령을 차례로 실행합니다. Docker PostgreSQL을 쓰는 API, accounts의 `test:database`와 Desktop 검색 통합은 `pnpm verify:database`로 따로 실행합니다.
 
-명령 목록은 `scripts/verify.mjs`에 있고, `scripts/test/code-quality-workflow.test.mjs`가 workflow의 job, run 명령과 어긋나면 실패합니다. CI가 runner를 준비하려고 실행하는 Playwright 설치, build scope 판정(`scope`), main push의 이미지 선택(`image-plan`)과 결과 집계(`lint-and-format`) job은 대응에서 제외합니다.
+명령 목록은 `scripts/verify.mjs`에 있습니다.
 
-CI는 PR 제목 scope가 `(build)`일 때만 앱 테스트를 실행하므로, `pnpm install`이 설치하는 husky `pre-push` hook이 push 전에 `pnpm verify`를 실행하고 Docker daemon에 연결되면 `pnpm verify:database`도 실행합니다. 실패하면 push가 중단됩니다. 규칙은 [Repository Map의 CI 설명](../docs/reference/repository-map.md)에 있습니다. 의존성 설치는 먼저 끝냈다고 봅니다.
+`pnpm install`이 설치하는 husky `pre-push` hook이 push 전에 `pnpm verify`를 실행하고 Docker daemon에 연결되면 `pnpm verify:database`도 실행합니다. 실패하면 push가 중단됩니다. 의존성 설치는 먼저 끝냈다고 봅니다.
 
 Job 안에서는 앞 명령이 실패하면 남은 명령을 건너뛰고 다른 job은 계속 실행합니다. 끝에 실패한 job, 명령, 종료 코드와 건너뛴 명령 수를 모아 출력하고 non-zero로 종료합니다. Job끼리 같은 build 산출물을 쓰므로 병렬로 실행하지 않습니다. 의존성과 Electron runtime이 준비된 Apple silicon Mac에서 전체 실행에 약 3분 걸렸습니다.
 
@@ -176,11 +166,11 @@ pnpm verify
 pnpm verify:database
 ```
 
-- `pnpm install --frozen-lockfile`로 의존성을 설치합니다. CI의 Desktop job은 OCR 모델 submodule도 받으므로 같은 입력으로 확인하려면 `git submodule update --init --recursive packages/models/ocr-finetuned`를 실행합니다.
+- `pnpm install --frozen-lockfile`로 의존성을 설치합니다. 배포 빌드는 OCR 모델 submodule도 받으므로 같은 입력으로 확인하려면 `git submodule update --init --recursive packages/models/ocr-finetuned`를 실행합니다.
 - Desktop 테스트는 HOME의 모든 상위 디렉터리가 root나 현재 사용자 소유이고 group, other 쓰기 권한이 없어야 통과합니다. [Desktop 테스트 범위](../apps/desktop/README.md#테스트-범위와-실행)를 참고합니다.
-- `verify:database`에는 같은 host의 Docker daemon(Docker Desktop 포함)과 Buildx, 고정 PostgreSQL 이미지를 받을 네트워크, accounts 패스키 시나리오용 Playwright Chromium이 필요합니다. Chromium은 `pnpm exec playwright install chromium`으로 한 번 설치하고, Linux에서 브라우저 시스템 라이브러리가 없으면 CI처럼 `--with-deps`를 붙입니다.
+- `verify:database`에는 같은 host의 Docker daemon(Docker Desktop 포함)과 Buildx, 고정 PostgreSQL 이미지를 받을 네트워크, accounts 패스키 시나리오용 Playwright Chromium이 필요합니다. Chromium은 `pnpm exec playwright install chromium`으로 한 번 설치하고, Linux에서 브라우저 시스템 라이브러리가 없으면 `--with-deps`를 붙입니다.
 
-로컬 통과는 Linux runner의 Code Quality 결과, Windows의 Desktop workflow, Product Images 실행을 대신하지 않습니다. 실행기는 macOS, Linux에서 확인했고 Windows에서는 확인하지 않았습니다. `pnpm verify`로 실행하면 `npm_execpath`의 pnpm을 직접 시작하므로 `pnpm.cmd`만 있는 Windows 환경에서도 명령을 시작합니다. `node scripts/verify.mjs`로 직접 실행하면 shell 없이 `pnpm`을 찾으므로 이런 환경에서는 시작하지 못할 수 있습니다.
+로컬 통과는 Windows 실기 확인과 Product Images의 이미지 빌드를 대신하지 않습니다. 실행기는 macOS, Linux에서 확인했고 Windows에서는 확인하지 않았습니다. `pnpm verify`로 실행하면 `npm_execpath`의 pnpm을 직접 시작하므로 `pnpm.cmd`만 있는 Windows 환경에서도 명령을 시작합니다. `node scripts/verify.mjs`로 직접 실행하면 shell 없이 `pnpm`을 찾으므로 이런 환경에서는 시작하지 못할 수 있습니다.
 
 ## Native validation
 
@@ -190,7 +180,7 @@ pnpm verify:database
 
 | 변경 범위 | Repository root에서 실행할 command |
 | --- | --- |
-| Code Quality 전체 | `pnpm verify`, Docker가 있으면 `pnpm verify:database` |
+| 저장소 전체 | `pnpm verify`, Docker가 있으면 `pnpm verify:database` |
 | API | `pnpm --filter @dfragon/api run --sequential '/^(lint\|test)$/'` |
 | Accounts/auth database | `pnpm --filter @dfragon/accounts test`와 `pnpm --filter @dfragon/accounts test:database` |
 | API domain database | 위 API command와 `pnpm --filter @dfragon/api test:database` |
@@ -198,7 +188,7 @@ pnpm verify:database
 | Web | `pnpm --filter @dfragon/web run --sequential '/^(test\|lint\|build)$/'` |
 | Task 준비 tooling | 위 `node --test`와 `node --check` command |
 
-Code Quality의 Static checks와 같은 검사를 로컬에서 한 번에 실행할 때는 root에서 `pnpm check:static`을 사용합니다. `lint`, `format:check`, `check:writing`, `check:docs`를 CI와 같은 순서로 실행하며 먼저 실패한 검사에서 멈춥니다.
+정적 검사만 한 번에 실행할 때는 root에서 `pnpm check:static`을 사용합니다. `lint`, `format:check`, `check:writing`, `check:docs`를 `pnpm verify`와 같은 순서로 실행하며 먼저 실패한 검사에서 멈춥니다.
 
 API/accounts 이미지의 실행 계약은 아래 명령으로 검사합니다. Node.js 26, 설치된 workspace 의존성(`pnpm install --frozen-lockfile`), 같은 host의 Docker daemon(Docker Desktop 포함), Buildx와 로컬에서 실행 가능한 Linux 앱 이미지가 필요합니다. PostgreSQL registry의 manifest 조회, pull을 위한 네트워크 접근도 필요합니다. [제품 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)의 빌드 결과를 사용하거나, 마지막 인자를 미리 pull한 검증 대상 이미지 reference로 바꿉니다.
 
@@ -217,7 +207,7 @@ Schema First 작성, 생성, 적용 순서는 [`database-development.md`](../doc
 
 Accounts와 API의 PostgreSQL 컨테이너, 이미지 검증, 정리 원본은 `scripts/test-support/docker-postgres.mjs`입니다. 앱별 runner는 schema와 seed 등 앱 책임만 유지합니다. 공통 회귀 검증은 `node --test scripts/test/docker-postgres.test.mjs`로 실행하며 두 앱의 `test`에도 포함됩니다. Docker를 실행하는 실제 DB, 컨테이너 통합 검증과 이 mock 기반 helper 검증은 구분합니다.
 
-Code Quality는 build scope의 PR과 main push에서 API와 accounts의 `test:database`를 GitHub runner의 Docker에서 별도 job(`API database integration`, `Accounts database integration`)으로 실행하며, 로컬에서는 `pnpm verify:database`가 두 job과 Desktop 검색 통합 job의 명령을 차례로 실행합니다. Runner는 `linux/amd64`이므로 고정 PostgreSQL 이미지의 amd64 digest를 검증합니다. Accounts job은 패스키 시나리오의 가상 인증기를 위해 Playwright Chromium을 먼저 설치합니다. 두 job은 main ruleset의 필수 check인 `lint-and-format` 집계에 포함되어 실패하면 PR merge가 막히고, build scope가 아니어서 건너뛰면 통과로 봅니다. main에서는 Product Images가 Code Quality 전체 실행의 성공을 확인하므로, 두 job이 실패하면 이미지도 빌드, 발행하지 않습니다.
+`pnpm verify:database`는 API와 accounts의 `test:database`, Desktop 검색 통합 job의 명령을 차례로 실행합니다. Accounts job은 패스키 시나리오의 가상 인증기를 위해 Playwright Chromium이 필요합니다.
 
 API의 `test:database`는 Docker daemon이 없거나 고정 image, native platform을 검증할 수 없으면 skip하지 않고 실패합니다. Run마다 생성한 credential, `127.0.0.1` dynamic port, ownership label이 붙은 container와 named volume만 사용하며 정상, 오류, timeout, 처리 가능한 signal 뒤 exact resource 부재를 확인합니다. 자원을 만들기 전에 stdout에 secret이나 연결 정보가 없는 recovery run ID와 exact container, volume 이름을 기록합니다.
 
