@@ -354,14 +354,69 @@ it('이름에 들어가거나 고치는 동안 선택 상태와 수정 중 표�
   expect(statusMark()).toBeNull()
 })
 
+// 오른쪽 열의 줄. 머리 줄, 소속, 명성과 점수, 넷째 줄 순서다.
+function columnLines(): HTMLElement[] {
+  const header = card().querySelector('input')!.closest('div:has(> div > div > input)')
+  const column = header!.parentElement!
+
+  return [...column.children] as HTMLElement[]
+}
+
+it('찾은 카드는 이름 칸, 모험단과 길드, 명성과 점수, 각성 표시를 뺀 직업을 차례로 둔다', async () => {
+  await render({ state: 'success', character: { ...found, job: '眞 웨펀마스터' } })
+  const lines = columnLines()
+  expect(lines).toHaveLength(4)
+  expect(lines[0].querySelector('input')?.value).toBe('찾은이름')
+  expect(lines[1].textContent).toBe('찾은모험단찾은길드')
+  expect(lines[2].querySelectorAll('dt')).toHaveLength(2)
+  expect(lines[3].textContent).toBe('웨펀마스터')
+  expect(card().querySelector('[aria-label="캐릭터 이미지 없음"]')).not.toBeNull()
+})
+
+it('찾은 카드의 안내는 직업 뒤에 두고, 고치는 동안에는 Enter 조회 안내를 둔다', async () => {
+  await render({ state: 'success', character: found, notice: '외형 미확인, 최고 명성 후보입니다.' })
+  const note = columnLines()[3].querySelector('p')!
+  expect(columnLines()[3].textContent).toBe('찾은직업외형 미확인, 최고 명성 후보입니다.')
+  expect(note.title).toBe('외형 미확인, 최고 명성 후보입니다.')
+
+  await render({ state: 'success', character: found })
+  await enterName('고친이름')
+  expect(columnLines()[3].textContent).toBe('찾은직업Enter로 조회')
+})
+
+it('찾지 못한 자리는 소속 줄에 안내를, 안내가 없으면 흐린 모험단을 두고 실패면 넷째 줄에 다시 시도를 둔다', async () => {
+  const retry = vi.fn()
+  await render({
+    state: 'failure',
+    nickname: '없는이름',
+    notice: '캐릭터를 찾지 못했습니다.',
+    retryEnabled: true,
+    onRetry: retry
+  })
+  const lines = columnLines()
+  expect(lines).toHaveLength(4)
+  expect(lines[1].textContent).toBe('캐릭터를 찾지 못했습니다.')
+  expect(lines[1].querySelector('p')?.title).toBe('캐릭터를 찾지 못했습니다.')
+  const button = lines[3].querySelector('button')!
+  expect(button.textContent).toBe('다시 시도')
+  await act(async () => button.click())
+  expect(retry).toHaveBeenCalledOnce()
+
+  await render({ state: 'idle', nickname: '인식이름' })
+  expect(columnLines()).toHaveLength(3)
+  const placeholder = columnLines()[1].firstElementChild!
+  expect(placeholder.textContent).toBe('모험단')
+  expect(placeholder.getAttribute('aria-hidden')).toBe('true')
+})
+
 it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을 구분하며 소속을 보인다', async () => {
   await render({
     state: 'success',
     character: { ...found, fame: 0, card: { ...dealerCard, score: null } }
   })
   const fame = statValue('명성')
-  const score = statValue('장비 점수')
-  expect(fame.querySelector('[aria-hidden="true"]')?.textContent).toBe('0')
+  const score = statValue('장비')
+  expect(fame.firstChild?.textContent).toBe('0')
   expect(score.textContent).toBe('-')
   expect(card().textContent).toContain('찾은모험단')
   expect(card().textContent).toContain('찾은길드')
@@ -369,8 +424,8 @@ it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을
   expect(card().textContent).not.toContain('서버 순위')
 
   await render({ state: 'success', character: found })
-  const scoreValue = statValue('장비 점수')
-  expect(scoreValue.querySelector('[aria-hidden="true"]')?.textContent).toBe('330,556')
+  const scoreValue = statValue('장비')
+  expect(scoreValue.firstChild?.textContent).toBe('330,556')
   expect(scoreValue.textContent).toContain('DFragon 계산값')
 })
 
@@ -379,9 +434,8 @@ it('검색 응답에 없는 길드, 명성, 장비 점수는 0이나 빈칸 대�
     state: 'success',
     character: { ...found, guild: null, fame: null, card: null }
   })
-  const values = [statValue('명성'), statValue('장비 점수')]
+  const values = [statValue('명성'), statValue('장비')]
   expect(values.map((value) => value.textContent)).toEqual(['-', '-'])
-  expect(values.some((value) => value.querySelector('[aria-hidden="true"]') != null)).toBe(false)
   expect(card().textContent).toContain('찾은모험단-')
 })
 
@@ -410,32 +464,32 @@ it('상위, 랭커 단계를 꺾쇠 상태와 단계 색 숫자로 보이고 단
   expect(card().getAttribute('data-state')).toBe('selected')
 })
 
-it('캐릭터 면 하나만 두어 면 탭, 스탯 한 줄, 상세 열기 버튼이 없다', async () => {
+it('캐릭터 면 하나만 두어 면 탭과 상세 열기 버튼이 없고 명성과 짧은 점수 라벨을 한 줄에 둔다', async () => {
   await render({ state: 'success', character: found })
   expect(container.querySelector('[role="tab"]')).toBeNull()
   expect(container.querySelector('[aria-label="1번 캐릭터 상세 열기"]')).toBeNull()
   expect([...card().querySelectorAll('dt')].map((term) => term.textContent)).toEqual([
     '명성',
-    '장비 점수'
+    '장비'
   ])
   expect(card().textContent).toContain('찾은직업')
 
   await render({ state: 'success', character: { ...found, card: bufferCard } })
   expect([...card().querySelectorAll('dt')].map((term) => term.textContent)).toEqual([
     '명성',
-    '버프 점수'
+    '버프'
   ])
-  expect(statValue('버프 점수').querySelector('[aria-hidden="true"]')?.textContent).toBe('55,358')
-  expect(statValue('버프 점수').textContent).toContain('게임 버프 점수')
+  expect(statValue('버프').firstChild?.textContent).toBe('55,358')
+  expect(statValue('버프').textContent).toContain('게임 버프 점수')
 })
 
 it('점수 숫자는 딜러 파랑, 버퍼 초록으로 칠하고 역할을 모르거나 값이 없으면 기본색이다', async () => {
   await render({ state: 'success', character: found })
-  expect(toneClassesOf(statValue('장비 점수'))).toEqual(['dealer'])
+  expect(toneClassesOf(statValue('장비'))).toEqual(['dealer'])
   expect(toneClassesOf(statValue('명성'))).toEqual([])
 
   await render({ state: 'success', character: { ...found, card: bufferCard } })
-  expect(toneClassesOf(statValue('버프 점수'))).toEqual(['buffer'])
+  expect(toneClassesOf(statValue('버프'))).toEqual(['buffer'])
   expect(toneClassesOf(statValue('명성'))).toEqual([])
 
   // 역할을 모르면 라벨은 장비 점수이고 색은 기본색이다.
@@ -443,25 +497,25 @@ it('점수 숫자는 딜러 파랑, 버퍼 초록으로 칠하고 역할을 모�
     state: 'success',
     character: { ...found, card: { ...dealerCard, role: null } }
   })
-  expect(statValue('장비 점수').querySelector('[aria-hidden="true"]')?.textContent).toBe('330,556')
-  expect(toneClassesOf(statValue('장비 점수'))).toEqual([])
+  expect(statValue('장비').firstChild?.textContent).toBe('330,556')
+  expect(toneClassesOf(statValue('장비'))).toEqual([])
 
   // 값이 없어 -로 보이는 점수는 역할과 상관없이 같은 기본 색이다.
   await render({ state: 'success', character: { ...found, card: { ...dealerCard, score: null } } })
-  const dealerMissing = statValue('장비 점수')
+  const dealerMissing = statValue('장비')
   expect(dealerMissing.textContent).toBe('-')
   expect(toneClassesOf(dealerMissing)).toEqual([])
   const missingClass = dealerMissing.className
   await render({ state: 'success', character: { ...found, card: { ...bufferCard, score: null } } })
-  expect(statValue('버프 점수').textContent).toBe('-')
-  expect(statValue('버프 점수').className).toBe(missingClass)
+  expect(statValue('버프').textContent).toBe('-')
+  expect(statValue('버프').className).toBe(missingClass)
 })
 
 it('상위, 랭커 카드의 점수 숫자는 역할 색 대신 단계 색을 유지한다', async () => {
   await render({ state: 'success', character: { ...found, tier: 'top', card: bufferCard } })
-  expect(toneClassesOf(statValue('버프 점수'))).toEqual(['top'])
+  expect(toneClassesOf(statValue('버프'))).toEqual(['top'])
   await render({ state: 'success', character: { ...found, tier: 'ranker' } })
-  expect(toneClassesOf(statValue('장비 점수'))).toEqual(['ranker'])
+  expect(toneClassesOf(statValue('장비'))).toEqual(['ranker'])
 })
 
 it('계산하지 못한 장비 점수는 -에 사유 종류를 보조 기술로 전한다', async () => {
@@ -476,7 +530,7 @@ it('계산하지 못한 장비 점수는 -에 사유 종류를 보조 기술로 
     }
   }
   await render({ state: 'success', character: { ...found, card: skipped } })
-  const score = statValue('장비 점수')
+  const score = statValue('장비')
   expect(score.firstChild?.textContent).toBe('-')
   expect(score.textContent).toBe('-계산하지 못함, 아이템을 판별하지 못함')
   expect(card().textContent).not.toContain('ValueError')
@@ -498,10 +552,10 @@ it('엔진이 근사값을 낸 장비 점수는 ≈를 붙여 역할 색으로 �
     }
   }
   await render({ state: 'success', character: { ...found, card: approximate } })
-  const score = statValue('장비 점수')
+  const score = statValue('장비')
   const description =
     '근사값, 아이템을 판별하지 못함. 입력값 차이를 무시하고 계산한 값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
-  expect(score.querySelector('[aria-hidden="true"]')?.textContent).toBe('≈321,000')
+  expect(score.firstChild?.textContent).toBe('≈321,000')
   expect(score.getAttribute('title')).toBe(description)
   expect(score.textContent).toContain(description)
   expect(toneClassesOf(score)).toEqual(['dealer'])
