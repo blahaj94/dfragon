@@ -21,7 +21,6 @@ function definedNames(source) {
   return [...source.matchAll(VARIABLE_DEFINITION_PATTERN)].map((match) => match[1])
 }
 
-const LIGHT_RULE_START = ":root[data-theme='light'] {"
 const REDUCED_MOTION_RULE_START = '@media (prefers-reduced-motion: reduce) {'
 const darkNames = definedNames(block(':root {'))
 
@@ -29,11 +28,8 @@ test('다크 기본값은 변수마다 한 번만 정의한다', () => {
   assert.equal(new Set(darkNames).size, darkNames.length)
 })
 
-test('라이트 값과 reduced-motion은 다크 기본값에 있는 변수만 바꾼다', () => {
-  const overrides = [
-    ...definedNames(block(LIGHT_RULE_START)),
-    ...definedNames(block(REDUCED_MOTION_RULE_START))
-  ]
+test('reduced-motion은 다크 기본값에 있는 변수만 바꾼다', () => {
+  const overrides = definedNames(block(REDUCED_MOTION_RULE_START))
   const unknown = overrides.filter((name) => {
     const isUnknown = !darkNames.includes(name)
 
@@ -42,9 +38,9 @@ test('라이트 값과 reduced-motion은 다크 기본값에 있는 변수만 �
   assert.deepEqual(unknown, [])
 })
 
-test('color-scheme은 다크 기본값과 라이트 값에서 각 모드로 정한다', () => {
+test('color-scheme은 다크로 정하고 라이트 테마 규칙은 두지 않는다', () => {
   assert.match(block(':root {'), /^\s*color-scheme:\s*dark;$/m)
-  assert.match(block(LIGHT_RULE_START), /^\s*color-scheme:\s*light;$/m)
+  assert.doesNotMatch(css, /data-theme/)
 })
 
 test('reduced-motion에서 전환 시간을 모두 0으로 둔다', () => {
