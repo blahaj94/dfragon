@@ -31,8 +31,12 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-// 상단 내비의 검색 하위 메뉴도 menu trigger이므로 캡처 대화상자 안의 창 선택만 찾는다.
-const CAPTURE_SOURCE_TRIGGER = '[role="dialog"] button[aria-haspopup="menu"]'
+// 캡처 대화상자의 창 타일(radio) 중 지금 고른 창
+const SELECTED_SOURCE = '[role="dialog"] input[type="radio"]:checked'
+
+function selectedSourceName(): string | null | undefined {
+  return document.querySelector(SELECTED_SOURCE)?.getAttribute('aria-label')
+}
 
 async function click(label: string): Promise<void> {
   const button = [...document.querySelectorAll('button')].find(
@@ -50,12 +54,10 @@ async function openCaptureDialog(): Promise<void> {
   await act(async () => chip!.click())
 }
 async function select(id: string): Promise<void> {
-  const trigger = document.querySelector<HTMLButtonElement>(CAPTURE_SOURCE_TRIGGER)!
-  await act(async () => trigger.click())
   const label = id === 'game' ? 'Synthetic game' : 'Next game'
-  const option = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
-    (item) => item.getAttribute('aria-label') === label
-  )
+  const option = [
+    ...document.querySelectorAll<HTMLInputElement>('[role="dialog"] input[type="radio"]')
+  ].find((item) => item.getAttribute('aria-label') === label)
   expect(option).toBeDefined()
   await act(async () => option!.click())
 }
@@ -83,7 +85,7 @@ it('앱 시작 때 던파가 하나면 등록만 하고 Alt+R 전까지 기다�
   expect(media.worker).not.toHaveBeenCalled()
   expect(f.search.controlCharacterSearch).not.toHaveBeenCalledWith({ action: 'begin' })
   await openCaptureDialog()
-  expect(document.querySelector(CAPTURE_SOURCE_TRIGGER)?.textContent).toContain('던전앤파이터')
+  expect(selectedSourceName()).toBe('던전앤파이터')
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
     'Alt+R을 눌러 파티를 인식해 주세요.'
   )
@@ -178,7 +180,7 @@ it('다른 창 선택은 진행 중 OCR을 취소하고 새 창만 등록한다'
   )
   expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
   expect(f.capture.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
-  expect(document.querySelector(CAPTURE_SOURCE_TRIGGER)?.textContent).toContain('Next game')
+  expect(selectedSourceName()).toBe('Next game')
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
     'Alt+R을 눌러 파티를 인식해 주세요.'
   )
@@ -203,7 +205,7 @@ it('연속 창 선택에서 이전 등록의 늦은 응답은 현재 선택을 �
   await act(async () => firstSelection.resolve({ id: 'game', name: 'Synthetic game' }))
   expect(f.readCaptureFrame).not.toHaveBeenCalled()
   expect(media.worker).not.toHaveBeenCalled()
-  expect(document.querySelector(CAPTURE_SOURCE_TRIGGER)?.textContent).toContain('Next game')
+  expect(selectedSourceName()).toBe('Next game')
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
     'Alt+R을 눌러 파티를 인식해 주세요.'
   )
@@ -242,11 +244,7 @@ it('빈 목록과 조회 실패를 표시하고 새로고침으로 복구한다'
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('조회 실패')
   expect(topBarText()).toContain('조회 실패')
   f.capture.listCaptureSources.mockResolvedValue([])
-  await click('게임 창 선택')
-  const refresh = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((item) =>
-    item.textContent?.includes('창 목록 새로고침')
-  )!
-  await act(async () => refresh.click())
+  await click('새로고침')
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('창 미감지')
   expect(topBarText()).toContain('창 미감지')
   expect(f.readCaptureFrame).not.toHaveBeenCalled()
@@ -265,7 +263,7 @@ it('창 등록 대기 중에도 중지할 수 있고 늦은 완료가 중지 상
   await select('game')
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('준비 중')
   expect(topBarText()).toContain('준비 중')
-  expect(document.querySelector(CAPTURE_SOURCE_TRIGGER)?.textContent).toContain('Synthetic game')
+  expect(selectedSourceName()).toBe('Synthetic game')
   await click('캡처 중지')
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처를 중지했습니다.')
   expect(document.body.textContent).not.toContain('준비 중')

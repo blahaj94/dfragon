@@ -79,13 +79,9 @@ async function chooseSource(name: string): Promise<void> {
     'main > header button[aria-label^="화면 캡처, "]'
   )!
   await act(async () => chip.click())
-  const trigger = document.querySelector<HTMLButtonElement>(
-    '[role="dialog"] button[aria-haspopup="menu"]'
-  )!
-  await act(async () => trigger.click())
-  const option = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
-    (item) => item.getAttribute('aria-label') === name
-  )!
+  const option = [
+    ...document.querySelectorAll<HTMLInputElement>('[role="dialog"] input[type="radio"]')
+  ].find((item) => item.getAttribute('aria-label') === name)!
   await act(async () => option.click())
   const close = document.querySelector<HTMLButtonElement>('[role="dialog"] [aria-label="닫기"]')!
   await act(async () => close.click())
