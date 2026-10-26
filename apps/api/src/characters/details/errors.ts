@@ -7,11 +7,6 @@ const failures = {
     code: 'INVALID_CHARACTER_QUERY',
     message: '캐릭터 조회 조건을 확인해 주세요.'
   },
-  limited: {
-    status: 429,
-    code: 'CHARACTER_RATE_LIMITED',
-    message: '캐릭터 조회 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
-  },
   internal: {
     status: 500,
     code: 'INTERNAL_SERVER_ERROR',
@@ -34,17 +29,13 @@ const failures = {
   }
 } as const
 
-type CharacterDetailFailureOptions = FailureOptions & { retryAfter?: number }
-
 export class CharacterDetailFailure extends SanitizedFailure {
   readonly body: { error: { code: string; message: string } }
   readonly status: number
-  readonly retryAfter: number | undefined
 
-  constructor(kind: keyof typeof failures, options: CharacterDetailFailureOptions = {}) {
+  constructor(kind: keyof typeof failures, options: FailureOptions = {}) {
     const definition = failures[kind]
     super(definition.message, options)
-    this.retryAfter = options.retryAfter
     this.name = 'CharacterDetailFailure'
     this.status = definition.status
     this.body = { error: { code: definition.code, message: definition.message } }

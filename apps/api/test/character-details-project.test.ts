@@ -5,9 +5,9 @@ import { projectCharacterDetails } from '../src/characters/details/project.js'
 import { characterDetailSections } from '../src/characters/details/sections.js'
 import type {
   CharacterDetailSection,
-  CharacterPayload
+  CharacterPayload,
+  CharacterSectionResponse
 } from '../src/characters/details/sections.js'
-import type { CharacterApiResponse } from '../src/database/schemas/character-api-responses.js'
 
 const identity = { serverId: 'siroco', characterId: 'fixture-character' }
 const common = { ...identity, characterName: '합성 캐릭터' }
@@ -27,12 +27,11 @@ const storedPayloads = {
 
 function rowsFor(
   payloads: Partial<Record<CharacterDetailSection, CharacterPayload>> = {}
-): CharacterApiResponse[] {
+): CharacterSectionResponse[] {
   return characterDetailSections.map((section) => {
     const payload = structuredClone(payloads[section] ?? storedPayloads[section])
 
     return {
-      characterId: identity.characterId,
       section,
       payload,
       revision: 1,
@@ -43,7 +42,7 @@ function rowsFor(
   })
 }
 
-test('DB 행 순서와 무관하게 공통 헤더를 모으고 섹션의 장착 값과 조회 메타데이터를 보존한다', () => {
+test('섹션 응답 순서와 무관하게 공통 헤더를 모으고 섹션의 장착 값과 조회 메타데이터를 보존한다', () => {
   const status = [
     { name: '힘', value: 0 },
     { name: '공격 속도', value: '48.3%' }

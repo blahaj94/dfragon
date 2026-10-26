@@ -35,13 +35,13 @@ const catalogDetail = object({
     type: 'object',
     additionalProperties: true,
     nullable: true,
-    description: 'DB에 저장된 공용 상세 원본. 캐릭터 장착 상태와 별개입니다.'
+    description: 'Neople 공용 상세 원본. 캐릭터 장착 상태와 별개입니다.'
   },
   fetchedAt: { ...timestamp, nullable: true },
   status: {
     type: 'string',
-    enum: ['fresh', 'stale', 'unavailable'],
-    description: '유효한 캐시 / 갱신 실패, 예산 종료로 이전 캐시 사용 / 전달할 캐시 없음'
+    enum: ['fresh', 'unavailable'],
+    description: '이번 요청에서 조회함 / 조회 실패, 예산 종료'
   }
 })
 const catalogEquipment: SchemaObject = {
@@ -154,7 +154,7 @@ const characterCard = object({
     }),
     nullable: true,
     description:
-      '우리 DB에 수집된 모든 서버 캐릭터의 명성 순위. 통합 서버라 서버를 나누지 않습니다. 명성이 더 큰 캐릭터 수 + 1이며 동점은 같은 순위입니다. 명성이 없거나 순위 조회가 실패하면 null입니다.'
+      '항상 null. 저장한 캐릭터끼리 비교하던 명성 순위이며 기존 Desktop과의 호환을 위해 필드만 남깁니다.'
   },
   set: nullable(
     object({
@@ -298,44 +298,20 @@ export const apiSchemas: Record<string, SchemaObject> = {
           type: 'string',
           nullable: true,
           description:
-            '우리 DB에 저장된 모험단명. 상세 조회로 저장된 적 없거나 조회하지 못하면 null이며 Neople을 호출하지 않습니다.'
+            '항상 null. 저장한 상세에서 찾던 값이며 기존 Desktop과의 호환을 위해 필드만 남깁니다.'
         }
       })
     }
-  }),
-  AdventureCharacters: object({
-    adventureName: text,
-    scope: {
-      type: 'string',
-      enum: ['stored'],
-      description: '우리 DB에서 관측된 캐릭터만 포함하며 전체 보유 목록을 보장하지 않습니다.'
-    },
-    rows: {
-      type: 'array',
-      items: object({
-        characterId: text,
-        serverId: text,
-        serverName: { type: 'string', nullable: true },
-        characterName: { type: 'string', nullable: true },
-        level: { type: 'number', nullable: true },
-        jobName: { type: 'string', nullable: true },
-        jobGrowName: { type: 'string', nullable: true },
-        fame: { type: 'number', nullable: true },
-        lastSuccessfulFetchAt: timestamp
-      })
-    },
-    nextAfter: { type: 'string', nullable: true }
   }),
   CharacterDetails: object({
     freshness: object({
       lastSuccessfulFetchAt: {
         ...timestamp,
-        description:
-          '11개 캐릭터 섹션 중 가장 오래된 성공 조회 시각. 캐시 적중 시 갱신되지 않습니다.'
+        description: '11개 캐릭터 섹션을 조회한 시각.'
       },
       expiresAt: {
         ...timestamp,
-        description: '마지막 성공 조회 시각 + 5분. 공용 상세의 24시간 캐시와 별개입니다.'
+        description: '조회 시각 + 5분. 클라이언트가 다시 조회할 시점의 기준입니다.'
       }
     }),
     character: object({

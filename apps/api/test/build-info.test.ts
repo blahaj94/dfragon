@@ -42,7 +42,6 @@ test('공개 version 응답은 캐시하지 않고 시작 시점 값을 유지�
     { searchCharacters: unusedSearchCharacters },
     undefined,
     undefined,
-    undefined,
     path
   )
   try {
@@ -66,7 +65,6 @@ test('이전 이미지에 메타데이터가 없어도 version 응답은 API 서
   t.after(() => rm(directory, { recursive: true, force: true }))
   const app = await createApiHttpApp(
     { searchCharacters: unusedSearchCharacters },
-    undefined,
     undefined,
     undefined,
     join(directory, 'missing.json')

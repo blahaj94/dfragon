@@ -20,4 +20,13 @@ export const characterDetailSections = Object.keys(
 export type { CharacterIdentity } from '../identity.js'
 
 export type CharacterPayload = Record<string, unknown>
+
+/** Neople에서 한 번에 받은 section 응답이다. 저장하지 않으므로 revision은 항상 1이다. */
+export interface CharacterSectionResponse {
+  section: CharacterDetailSection
+  payload: CharacterPayload
+  revision: number
+  contentUpdatedAt: Date
+  lastSuccessfulFetchAt: Date
+}
 export type CharacterPayloads = Record<CharacterDetailSection, CharacterPayload>

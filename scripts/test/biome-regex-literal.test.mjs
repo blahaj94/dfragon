@@ -91,7 +91,7 @@ test('export const 초기값의 정규식 리터럴을 허용한다', async () =
 
 const excludedFiles = [
   'apps/desktop/src/backend/regex.test.ts',
-  'apps/ocr/browser/regex.spec.tsx',
+  'apps/web/src/regex.spec.tsx',
   'apps/api/test/regex.ts',
   'apps/api/tests/regex.ts',
   'packages/ui/src/__tests__/regex.ts',
@@ -104,8 +104,7 @@ const excludedFiles = [
   'apps/desktop/scripts/credential-store-native/main.ts',
   'apps/desktop/scripts/credential-store-native.mjs',
   'apps/desktop/scripts/search-server-integration/runtime.mjs',
-  'apps/accounts/test-support/account-http-fixtures.mjs',
-  'apps/ocr/test-support/ui-smoke.mjs',
+  'apps/api/test-support/character-search-fixtures.mjs',
   'packages/ui/scripts/test-consumer-resolution.mjs',
   'packages/lib/generated/regex.ts',
   'packages/lib/vendor/regex.ts',

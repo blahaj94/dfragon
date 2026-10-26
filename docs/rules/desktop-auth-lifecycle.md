@@ -14,9 +14,9 @@ review-after: 로그인, refresh, 저장 실패 처리 변경 시
 
 게임 캡처, OCR, 공개 검색은 [로그인 선택 정책](desktop-auth.md#최소-화면과-capture-경계)을 따른다. 이 문서의 인증 이탈, 보호 기능 cleanup은 계정 인증 작업에 적용하며 진행 중 캡처를 중단하지 않는다.
 
-Process/IPC/화면은 [Desktop contract](desktop-auth.md), OS, durable write protocol은 [platform](desktop-auth-platform.md)이 canonical source다. 서버의 [auth API](auth-api.md), [패스키](auth-passkeys.md), [session](auth-session.md), [활동](auth-activity.md) 계약을 그대로 소비한다.
+Process/IPC/화면은 [Desktop contract](desktop-auth.md), OS, durable write protocol은 [platform](desktop-auth-platform.md)이 canonical source다. 서버의 auth API, 패스키, session, 활동 계약을 그대로 소비한다.
 
-이 문서의 pending/credential 수명은 기존 로그인, 기기 session 범위다. 탈퇴 전용 statusToken과 준비/확정 이후 local auth 정리, 재시작 상태 조회는 [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 최소 연결을 따른다. 이 확장으로 아래 main login의 pending memory-only, refresh 단일 실행을 바꾸지 않는다.
+이 문서의 pending/credential 수명은 기존 로그인, 기기 session 범위다. 탈퇴 전용 statusToken과 준비/확정 이후 local auth 정리, 재시작 상태 조회는 승인된 탈퇴 contract의 최소 연결을 따른다. 이 확장으로 아래 main login의 pending memory-only, refresh 단일 실행을 바꾸지 않는다.
 
 ## 상태, credential 수명
 

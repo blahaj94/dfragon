@@ -44,7 +44,7 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 
 각 행에는 `jobName`, `jobGrowName`도 붙인다. 2026-10-20 [#760](https://github.com/blahaj94/dfragon/issues/760) 결정으로, Desktop이 공대원 창의 직업명과 같은 후보만 남길 수 있게 Neople 검색 응답의 두 필드를 그대로 전달한다. 문자열이 아니거나 비어 있으면 null이다. 이를 채우려고 Neople을 더 호출하거나 후보마다 상세를 조회하지 않는다. 기존 `GET /characters`는 위 다섯 필드를 유지하며 직업명을 섞지 않는다.
 
-각 행에는 `adventureName`도 붙인다. 2026-10-20 [#756](https://github.com/blahaj94/dfragon/issues/756) 결정으로 Desktop의 후보 고르기 화면에 모험단명을 보이기 위해 추가하며, 우리 DB의 `characters`에 저장된 모험단명이다. 상세 조회로 저장된 적이 없는 캐릭터는 null이고, 이를 채우려고 Neople을 더 호출하지 않는다. DB 조회가 실패해도 후보 응답은 실패시키지 않고 모든 행의 `adventureName`을 null로 둔다.
+각 행에는 `adventureName`도 붙인다. 2026-10-20 [#756](https://github.com/blahaj94/dfragon/issues/756) 결정으로 Desktop의 후보 고르기 화면에 모험단명을 보이기 위해 추가했다. 저장한 상세에서 찾던 값이라 DB를 지운 뒤로는 항상 null이며([#796](https://github.com/blahaj94/dfragon/issues/796)), 이를 채우려고 Neople을 더 호출하지 않는다. 기존 Desktop이 읽는 필드라 남긴다.
 
 정렬 순서는 아래와 같다.
 
@@ -52,7 +52,7 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 2. 명성이 같으면 Neople 응답 순서를 유지한다.
 3. `fame === null`인 후보를 나머지 후보 뒤에 Neople 응답 순서대로 붙인다. 공급자 응답에서 명성이 누락된 경우에도 기존 정제 규칙에 따라 null이다.
 
-검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, 5초 upstream deadline, 자동 retry 없음 정책을 사용한다. 두 검색 경로에는 클라이언트별, 서버 전체 호출 제한이 없다. 후보 API는 상세 서비스를 호출하지 않으며, DB는 위 모험단명을 읽을 때만 쓴다.
+검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, 5초 upstream deadline, 자동 retry 없음 정책을 사용한다. 두 검색 경로에는 클라이언트별, 서버 전체 호출 제한이 없다. 후보 API는 상세 서비스와 DB를 쓰지 않는다.
 
 ### Desktop의 식별 흐름
 
@@ -156,23 +156,23 @@ Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 �
 
 ## 공개 검색과 호출 제한
 
-2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무, 유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT, session DB 조회, 활동 갱신, refresh는 검색 경로에서 수행하지 않는다. `/me` 등 계정 전용 endpoint의 인증은 유지한다.
+2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무, 유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT, session DB 조회, 활동 갱신, refresh는 검색 경로에서 수행하지 않는다.
 
 검색에는 **클라이언트별 호출 제한이 없다**. 2026-10-20 [#774](https://github.com/blahaj94/dfragon/issues/774)의 사용자 결정으로 이전의 클라이언트별 최근 60초 10회 한도를 없앴다. 공대 12자리 조회 한 번이 이 한도를 넘어 일부 자리가 429로 실패했기 때문이다.
 
-Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778](https://github.com/blahaj94/dfragon/issues/778)의 사용자 결정으로 모든 검색, 캐릭터 섹션, 공용 상세가 함께 쓰던 프로세스 전체 최근 60초 600회, 동시 12회 예산을 없앴다. 공대 12자리가 동시에 조회하면 동시 12회에 닿아 일부 자리가 429로 실패할 수 있었기 때문이다. 이제 API는 검색에서 429를 반환하지 않으며, 많은 요청이 몰려 Neople API key의 공식 할당량을 넘으면 key가 막혀 모든 사용자의 검색, 상세가 공급자 오류로 실패할 수 있다. 캐시 적중은 Neople을 부르지 않으므로 앞단 proxy의 요청 수 제한으로 이 위험을 똑같이 막지는 못한다. 같은 결정으로 [캐릭터 상세](character-details.md#오류-호출-제한)의 동시 섹션 조회, 공용 상세 동시 호출 제한과 [모험단 검색](character-details.md#모험단명-검색)의 IP별 한도도 없앴다.
+Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778](https://github.com/blahaj94/dfragon/issues/778)의 사용자 결정으로 모든 검색, 캐릭터 섹션, 공용 상세가 함께 쓰던 프로세스 전체 최근 60초 600회, 동시 12회 예산을 없앴다. 공대 12자리가 동시에 조회하면 동시 12회에 닿아 일부 자리가 429로 실패할 수 있었기 때문이다. 이제 API는 검색에서 429를 반환하지 않으며, 많은 요청이 몰려 Neople API key의 공식 할당량을 넘으면 key가 막혀 모든 사용자의 검색, 상세가 공급자 오류로 실패할 수 있다. API는 결과를 저장하지 않아 모든 상세 요청이 Neople을 부른다. 같은 결정으로 [캐릭터 상세](character-details.md#오류-호출-제한)의 동시 섹션 조회, 공용 상세 동시 호출 제한도 없앴다.
 
-위 표의 `429 SEARCH_RATE_LIMITED`는 앞단 proxy가 호출 제한을 둘 때 쓸 응답 형식으로 남긴다. Desktop은 429 body의 `error.code`가 이 값일 때만 `Retry-After`를 읽으므로, proxy의 429는 위 표의 body와 양의 정수 초 `Retry-After`를 함께 반환한다. 상세 경로의 429는 [캐릭터 상세](character-details.md#오류-호출-제한)의 `CHARACTER_RATE_LIMITED` 형식을 따른다.
+위 표의 `429 SEARCH_RATE_LIMITED`는 앞단 proxy가 호출 제한을 둘 때 쓸 응답 형식으로 남긴다. Desktop은 429 body의 `error.code`가 이 값일 때만 `Retry-After`를 읽으므로, proxy의 429는 위 표의 body와 양의 정수 초 `Retry-After`를 함께 반환한다. 
 
 단일 호스트 Caddy 배포는 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의 1-hop `trust proxy`와 `request.ip`를 사용한다. Caddy가 `X-Forwarded-For`를 직접 연결한 클라이언트 주소로 덮어쓰고, API의 공개 port는 loopback으로 제한한다. 외부의 유일한 경로가 Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 직접 접근 주체까지 인증하는 설정은 아니다. 다중 proxy, 외부 직접 접근으로 확대하지 않는다. 지금은 API에 IP를 key로 쓰는 한도가 없어 이 설정이 응답에 영향을 주지 않지만, 운영 설정을 바꾸지 않도록 설정 읽기는 남겨 둔다.
 
-- API 키 설정은 DB 연결과 listen 전에 검증한다. 서비스는 준비된 검색 어댑터를 주입받으며 요청 단계에서 키를 다시 읽거나 검사하지 않는다. 누락, 빈 값, 공백뿐인 키는 HTTP 응답이 아닌 시작 실패다. [Runtime의 설정 책임](api-runtime.md#실행과-검증-경계)을 따른다.
+- API 키 설정은 listen 전에 검증한다. 서비스는 준비된 검색 어댑터를 주입받으며 요청 단계에서 키를 다시 읽거나 검사하지 않는다. 누락, 빈 값, 공백뿐인 키는 HTTP 응답이 아닌 시작 실패다. [Runtime의 설정 책임](api-runtime.md#실행과-검증-경계)을 따른다.
 - 요청에서는 raw query를 먼저 검증한다. 입력 실패는 upstream이 없다. 공급자가 반환하는 키 오류 등 기존 정제 500 정책은 유지한다.
 - 같은 peer의 동시 요청도 모두 upstream으로 넘어간다. Queue, 자동 retry는 없다.
 
 ### Authentication activity contract
 
-이전 PR #48의 검색 JWT, 계정 admission, DB 활동 계약은 공개 검색에 적용하지 않는다. 검색 사용은 계정의 로그인 유지 기간을 연장하지 않는다. 계정 기능의 활동은 [auth-activity.md](auth-activity.md)를 계속 따른다.
+이전 PR #48의 검색 JWT, 계정 admission, DB 활동 계약은 공개 검색에 적용하지 않는다. 계정 서비스는 2026-10-26에 지웠다([#796](https://github.com/blahaj94/dfragon/issues/796)).
 
 ## 간결한 경계 예시
 

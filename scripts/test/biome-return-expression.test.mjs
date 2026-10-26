@@ -8,7 +8,7 @@ const sampleFiles = [
   'apps/api/src/return-expression-sample.ts',
   'scripts/test/return-expression-sample.test.mjs',
   'apps/api/test/return-expression-sample.test.ts',
-  'apps/ocr/test-support/return-expression-sample.mjs'
+  'apps/api/test-support/return-expression-sample.mjs'
 ]
 
 // 같은 source를 모든 표본 경로에 두고 Biome를 한 번 실행해 경로별 정책 진단을 고른다.

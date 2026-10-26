@@ -203,15 +203,7 @@
       }
     },
     {
-      "includes": [
-        "**/*.ts",
-        "**/*.mts",
-        "**/*.cts",
-        "**/*.tsx",
-        "apps/api/**",
-        "apps/accounts/**",
-        "apps/desktop/**"
-      ],
+      "includes": ["**/*.ts", "**/*.mts", "**/*.cts", "**/*.tsx", "apps/api/**", "apps/desktop/**"],
       "linter": {
         "rules": {
           "complexity": {
@@ -256,7 +248,6 @@
       "includes": [
         "apps/desktop/**/*.ts",
         "apps/desktop/**/*.tsx",
-        "apps/accounts/browser/**/*.tsx",
         "apps/web/**/*.js",
         "apps/web/**/*.jsx",
         "apps/web/**/*.ts",

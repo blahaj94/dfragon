@@ -4,17 +4,13 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { enrichCharacterDetails } from '../src/characters/catalog/enrich.js'
-import type { CatalogStore } from '../src/characters/catalog/store.js'
-import { createCatalogStore } from '../src/characters/catalog/store.js'
-import type { DataSource, EntityManager } from 'typeorm'
 import { catalogKey } from '../src/characters/catalog/types.js'
-import type { CatalogEntry, CatalogKey } from '../src/characters/catalog/types.js'
+import type { CatalogKey } from '../src/characters/catalog/types.js'
 import type { projectCharacterDetails } from '../src/characters/details/project.js'
 
 const signal = new AbortController().signal
 const item: CatalogKey = { kind: 'item', itemId: 'fixture-item' }
 const skill: CatalogKey = { kind: 'skill', jobId: 'fixture-job', skillId: 'fixture-skill' }
-const catalogTime = Date.parse('2026-09-01T00:00:00.000Z')
 function catalogPayload(key: CatalogKey) {
   if (key.kind === 'item') {
     const itemId = key.itemId
@@ -34,155 +30,11 @@ function catalogPayload(key: CatalogKey) {
 
   return { jobId, name, levelInfo: { rows: [] } }
 }
-const currentEntry = (key: CatalogKey, expired = false): CatalogEntry => {
-  const fetchedAt = new Date(catalogTime - (expired ? 86_400_001 : 1000))
-  const expiresAt = new Date(fetchedAt.getTime() + 86_400_000)
-  const payload = { ...catalogPayload(key), retained: true }
-
-  return { key, payload, fetchedAt, expiresAt }
-}
-
-test('마지막 DB 시각 조회 직후 취소되면 저장 transaction 콜백의 성공 반환을 막는다', async () => {
-  const controller = new AbortController()
-  let committed = false
-  const manager = {
-    async query(sql: string) {
-      if (sql === 'SELECT clock_timestamp() AS now') {
-        controller.abort()
-        const now = new Date(catalogTime)
-
-        return [{ now }]
-      }
-
-      return []
-    },
-    getRepository() {
-      return { findBy: async () => [] }
-    }
-  } as unknown as EntityManager
-  const source = {
-    async transaction(_isolation: string, callback: (manager: EntityManager) => Promise<unknown>) {
-      const result = await callback(manager)
-      committed = true
-
-      return result
-    }
-  } as unknown as DataSource
-  await assert.rejects(
-    createCatalogStore(source).saveAndRead(
-      [{ key: item, payload: catalogPayload(item) }],
-      new Date().toISOString(),
-      controller.signal
-    ),
-    { name: 'AbortError' }
-  )
-  assert.equal(committed, false)
-})
-function memoryStore(entries: CatalogEntry[] = [], time = catalogTime): CatalogStore {
-  const stored = new Map(entries.map((entry) => [catalogKey(entry.key), structuredClone(entry)]))
-
-  return {
-    async read(keys, requestSignal) {
-      requestSignal.throwIfAborted()
-      const entries = keys.flatMap((key) => {
-        const entry = stored.get(catalogKey(key))
-        if (!entry) {
-          return []
-        }
-
-        return [structuredClone(entry)]
-      })
-      const requestedAt = new Date(time).toISOString()
-      const now = new Date(time)
-
-      return { entries, requestedAt, now }
-    },
-    async saveAndRead(values, _requestedAt, requestSignal) {
-      requestSignal.throwIfAborted()
-      const savedEntries = values.map((value) => {
-        const snapshot = structuredClone(value)
-        const fetchedAt = new Date(time)
-        const expiresAt = new Date(time + 86_400_000)
-
-        return { ...snapshot, fetchedAt, expiresAt }
-      })
-      for (const entry of savedEntries) {
-        stored.set(catalogKey(entry.key), entry)
-      }
-      const now = new Date(time)
-
-      return { entries: structuredClone(savedEntries), now }
-    }
-  }
-}
-
-test('유효한 캐시는 upstream 없이 반환하고 갱신 실패는 stale 저장값과 unavailable을 구분한다', async () => {
-  let calls = 0
-  const fresh = createCatalogService(memoryStore([currentEntry(item)]), async () => {
-    calls++
-    throw new Error('unexpected')
-  })
-  assert.equal(
-    (await fresh.load([item, item], signal)).get(catalogKey(item))!.detail.status,
-    'fresh'
-  )
-  assert.equal(calls, 0)
-  const staleEntry = currentEntry(item, true)
-  const fallback = createCatalogService(memoryStore([staleEntry]), async () => {
-    throw new Error('upstream secret')
-  })
-  const result = await fallback.load([item, skill], signal)
-  assert.deepEqual(result.get(catalogKey(item))!.detail, {
-    data: staleEntry.payload,
-    fetchedAt: staleEntry.fetchedAt.toISOString(),
-    status: 'stale'
-  })
-  assert.deepEqual(result.get(catalogKey(skill))!.detail, {
-    data: null,
-    fetchedAt: null,
-    status: 'unavailable'
-  })
-  assert(!JSON.stringify([...result]).includes('secret'))
-})
-
-test('DB가 재조회한 저장값만 제공하고 저장, 읽기 실패의 upstream 원문은 성공값으로 쓰지 않는다', async () => {
-  const store = memoryStore()
-  store.saveAndRead = async () => {
-    const entries = [currentEntry(item)]
-    const now = new Date(catalogTime)
-
-    return { entries, now }
-  }
-  const service = createCatalogService(store, async () => [
-    { key: item, payload: { ...catalogPayload(item), upstream: true } }
-  ])
-  assert.deepEqual((await service.load([item], signal)).get(catalogKey(item))!.detail, {
-    data: currentEntry(item).payload,
-    fetchedAt: '2026-08-31T23:59:59.000Z',
-    status: 'fresh'
-  })
-  store.saveAndRead = async () => {
-    throw new Error('commit failed')
-  }
-  assert.deepEqual((await service.load([item], signal)).get(catalogKey(item))!.detail, {
-    data: null,
-    fetchedAt: null,
-    status: 'unavailable'
-  })
-  store.read = async () => {
-    throw new Error('database unavailable')
-  }
-  assert.equal(
-    (await service.load([item], signal)).get(catalogKey(item))!.detail.status,
-    'unavailable'
-  )
-})
-
 test('중복을 제거한 128개까지만 조회하고 15개 이하 배치 9개를 모두 동시에 시작한다', async () => {
   let active = 0,
     peak = 0,
     count = 0
-  const service = createCatalogService(memoryStore(), async (keys) => {
+  const service = createCatalogService(async (keys) => {
     assert(keys.length <= 15)
     active++
     peak = Math.max(active, peak)
@@ -208,46 +60,32 @@ test('중복을 제거한 128개까지만 조회하고 15개 이하 배치 9개�
   assert.equal(result.size, 140)
   for (const [index, key] of keys.entries()) {
     const expectedData = index < 128 ? catalogPayload(key) : null
-    const expectedFetchedAt = index < 128 ? '2026-09-01T00:00:00.000Z' : null
     const expectedStatus = index < 128 ? 'fresh' : 'unavailable'
-    assert.deepEqual(result.get(catalogKey(key))!.detail, {
-      data: expectedData,
-      fetchedAt: expectedFetchedAt,
-      status: expectedStatus
-    })
+    const detail = result.get(catalogKey(key))!.detail
+    assert.deepEqual(detail.data, expectedData)
+    assert.equal(detail.status, expectedStatus)
+    assert.equal(detail.fetchedAt === null, index >= 128)
   }
 })
 
-test('처리 기한이 끝나면 진행 중인 스킬 조회를 저장하지 않고 취소된 요청은 전송하지 않는다', async () => {
-  let writes = 0,
-    calls = 0
-  const store = memoryStore()
-  store.saveAndRead = async () => {
-    writes++
-    const now = new Date(catalogTime)
-
-    return { entries: [], now }
-  }
+test('처리 기한이 끝나면 진행 중인 스킬 조회를 쓰지 않고 취소된 요청은 전송하지 않는다', async () => {
+  let calls = 0
   const controller = new AbortController()
   const keys: CatalogKey[] = Array.from({ length: 10 }, (_, i) => {
     const skillId = `skill-${i}`
 
     return { kind: 'skill', jobId: 'job', skillId }
   })
-  const service = createCatalogService(
-    store,
-    async (group, requestSignal) => {
-      calls++
-      await delay(30, undefined, { signal: requestSignal })
+  const service = createCatalogService(async (group, requestSignal) => {
+    calls++
+    await delay(30, undefined, { signal: requestSignal })
 
-      return group.map((key) => {
-        const payload = catalogPayload(key)
+    return group.map((key) => {
+      const payload = catalogPayload(key)
 
-        return { key, payload }
-      })
-    },
-    5
-  )
+      return { key, payload }
+    })
+  }, 5)
   const result = await service.load(keys, signal)
   // 스킬 10개는 기한 전에 모두 동시에 시작한다.
   assert.equal(calls, 10)
@@ -255,7 +93,6 @@ test('처리 기한이 끝나면 진행 중인 스킬 조회를 저장하지 않
   for (const entry of result.values()) {
     assert.deepEqual(entry.detail, { data: null, fetchedAt: null, status: 'unavailable' })
   }
-  assert.equal(writes, 0)
   controller.abort()
   await assert.rejects(service.load(keys, controller.signal))
   assert.equal(calls, started)
@@ -296,6 +133,12 @@ test('공급자 응답을 요청 itemId, jobId로 대응하고 옵션을 보존�
     throw new Error('secret upstream message')
   })
   await assert.rejects(failure([item], signal), { message: 'Catalog lookup failed' })
+  const service = createCatalogService(async () => {
+    throw new Error('secret upstream message')
+  })
+  const result = await service.load([item], signal)
+  assert.equal(result.get(catalogKey(item))!.detail.status, 'unavailable')
+  assert.equal(JSON.stringify([...result]).includes('secret'), false)
 })
 
 test('14개 장비 슬롯, 마법부여 스킬 옵션, 체인 null과 캐릭터 원본을 보존한다', async () => {
@@ -334,7 +177,7 @@ test('14개 장비 슬롯, 마법부여 스킬 옵션, 체인 null과 캐릭터 
   }
   const original = structuredClone(details)
   let requested = 0
-  const service = createCatalogService(memoryStore(), async (keys) => {
+  const service = createCatalogService(async (keys) => {
     requested += keys.length
 
     return keys.map((key) => {
@@ -362,7 +205,7 @@ test('14개 장비 슬롯, 마법부여 스킬 옵션, 체인 null과 캐릭터 
   )
 })
 
-test('연결 종료 뒤 늦은 성공은 저장하지 않고 연결된 요청의 성공만 저장한다', async () => {
+test('연결 종료 뒤 늦은 성공은 반환하지 않고 연결된 요청의 성공만 반환한다', async () => {
   for (const disconnected of [false, true]) {
     const controller = new AbortController()
     let markStarted!: () => void
@@ -373,15 +216,7 @@ test('연결 종료 뒤 늦은 성공은 저장하지 않고 연결된 요청의
     const release = new Promise<void>((resolve) => {
       finishFetch = resolve
     })
-    const store = memoryStore()
-    const save = store.saveAndRead
-    let writes = 0
-    store.saveAndRead = async (...args) => {
-      writes++
-
-      return save(...args)
-    }
-    const service = createCatalogService(store, async (keys, requestSignal) => {
+    const service = createCatalogService(async (keys, requestSignal) => {
       markStarted()
       await release
       assert.equal(requestSignal.aborted, disconnected)
@@ -400,10 +235,8 @@ test('연결 종료 뒤 늦은 성공은 저장하지 않고 연결된 요청의
     finishFetch()
     if (disconnected) {
       await assert.rejects(pending, { name: 'AbortError' })
-      assert.equal(writes, 0)
     } else {
       const result = await pending
-      assert.equal(writes, 1)
       assert.deepEqual(result.get(catalogKey(item))!.detail.data, {
         itemId: 'fixture-item',
         itemName: '합성 아이템 fixture-item',
@@ -424,46 +257,6 @@ test('이미 취소된 공용 상세 요청은 전송하지 않는다', async ()
   controller.abort()
   await assert.rejects(adapter([item], controller.signal), { message: 'Catalog lookup failed' })
   assert.equal(calls, 0)
-})
-
-test('공용 상세는 DB 시각으로 정확히 24시간에 만료되고 성공 갱신 후 새 조회 시각을 반환한다', async (t) => {
-  for (const [name, elapsed, refreshes] of [
-    ['24시간 만료 1ms 전', 86_399_999, 0],
-    ['정확히 24시간 만료', 86_400_000, 1],
-    ['24시간 만료 1ms 후', 86_400_001, 1]
-  ] as const) {
-    await t.test(name, async () => {
-      const entry: CatalogEntry = {
-        key: item,
-        payload: { itemId: 'fixture-item', itemName: '이전 아이템', itemExplain: '기존 옵션' },
-        fetchedAt: new Date('2026-09-01T00:00:00.000Z'),
-        expiresAt: new Date('2026-09-02T00:00:00.000Z')
-      }
-      const incoming = { itemId: 'fixture-item', itemName: '최신 아이템', itemExplain: '갱신 옵션' }
-      const before = structuredClone(entry)
-      const now = catalogTime + elapsed
-      let calls = 0
-      const service = createCatalogService(memoryStore([entry], now), async (keys) => {
-        calls++
-        assert.deepEqual(keys, [item])
-
-        return [{ key: item, payload: incoming }]
-      })
-
-      const result = await service.load([item], signal)
-
-      assert.equal(calls, refreshes)
-      const expectedData = refreshes === 0 ? entry.payload : incoming
-      const expectedFetchedAt =
-        refreshes === 0 ? '2026-09-01T00:00:00.000Z' : new Date(now).toISOString()
-      assert.deepEqual(result.get(catalogKey(item))!.detail, {
-        data: expectedData,
-        fetchedAt: expectedFetchedAt,
-        status: 'fresh'
-      })
-      assert.deepEqual(entry, before)
-    })
-  }
 })
 
 test('아이템 다중 응답의 누락, 중복, 잘못된 이름은 저장 대상에서 제외하고 올바른 이웃만 유지한다', async () => {

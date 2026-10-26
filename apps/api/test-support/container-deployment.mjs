@@ -1,19 +1,10 @@
 import assert from 'node:assert/strict'
-import { randomBytes } from 'node:crypto'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { randomBytes, randomUUID } from 'node:crypto'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { setTimeout as delay } from 'node:timers/promises'
-import pg from 'pg'
-import {
-  verifyApprovedImage,
-  newRunId,
-  createPostgres,
-  teardownPostgres,
-  assertResourcesAbsent,
-  docker
-} from '../../../scripts/test-support/docker-postgres.mjs'
 
 // The image must already be present locally; this check never builds or deploys it.
 const imageArguments = process.argv.slice(2)
@@ -24,14 +15,19 @@ if (imageArguments.length !== 1 || imageReference.trim() === '' || imageReferenc
 }
 const runtimeCheckPath = fileURLToPath(new URL('./container-runtime-check.mjs', import.meta.url))
 
-const runId = newRunId('apiimage')
+const runId = `apiimage${randomUUID().replaceAll('-', '')}`
 const runtimeName = `dfragon-image-${runId}`
 const maintenanceName = `${runtimeName}-command`
-const networkName = `${runtimeName}-network`
 const labelKey = 'com.dfragon.image-test.run'
 const label = `${labelKey}=${runId}`
+// Docker CLI가 쓰는 변수만 넘기고 상위 프로세스의 credential은 넘기지 않는다.
+const dockerEnvironment = Object.fromEntries(
+  ['PATH', 'HOME', 'DOCKER_CONFIG', 'DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS_VERIFY']
+    .filter((name) => process.env[name] !== undefined)
+    .map((name) => [name, process.env[name]])
+)
 let stage = 'image verification'
-let resources, admin, directory
+let directory
 let signalCode
 process.once('SIGINT', () => {
   signalCode = 130
@@ -44,103 +40,71 @@ function checkSignal() {
     throw new Error('Image test interrupted')
   }
 }
-async function run(args, options) {
-  checkSignal()
-  const result = await docker(args, options)
+function docker(args, { allowFailure = false } = {}) {
   checkSignal()
 
-  return result
+  return new Promise((resolve, reject) => {
+    execFile(
+      'docker',
+      args,
+      { env: dockerEnvironment, timeout: 60_000, killSignal: 'SIGKILL' },
+      (error, stdout, stderr) => {
+        const code = error == null ? 0 : (error.code ?? 1)
+        const signal = error?.signal ?? null
+        const failed = code !== 0 || signal !== null
+        if (failed && (!allowFailure || typeof code !== 'number' || signal !== null)) {
+          reject(new Error(`Docker command failed: ${args[0]}`))
+
+          return
+        }
+        resolve({ code, signal, stdout, stderr })
+      }
+    )
+  })
 }
-async function removeOwned(kind, name) {
-  const list = kind === 'container' ? ['container', 'ls', '--all'] : ['network', 'ls']
-  const filter = kind === 'container' ? `name=^/${name}$` : `name=^${name}$`
-  const format = kind === 'container' ? '{{.Names}}' : '{{.Name}}'
-  const names = await docker([...list, '--filter', filter, '--format', format])
+async function removeOwned(name) {
+  const filter = `name=^/${name}$`
+  const names = await docker([
+    'container',
+    'ls',
+    '--all',
+    '--filter',
+    filter,
+    '--format',
+    '{{.Names}}'
+  ])
   if (names.stdout.trim() === '') {
     return
   }
   assert.equal(names.stdout.trim(), name)
-  const labelPath = kind === 'container' ? '.Config.Labels' : '.Labels'
   const owner = await docker([
-    kind,
+    'container',
     'inspect',
     name,
     '--format',
-    `{{ index ${labelPath} "${labelKey}" }}`
+    `{{ index .Config.Labels "${labelKey}" }}`
   ])
   assert.equal(owner.stdout.trim(), runId)
-  await docker(kind === 'container' ? ['rm', '--force', name] : ['network', 'rm', name])
-  assert.equal((await docker([...list, '--filter', filter, '--format', format])).stdout.trim(), '')
+  await docker(['rm', '--force', name])
 }
 
 try {
-  const [metadata] = JSON.parse((await run(['image', 'inspect', imageReference])).stdout)
+  const [metadata] = JSON.parse((await docker(['image', 'inspect', imageReference])).stdout)
   assert.equal(metadata.Config.User, 'node')
   assert.equal(metadata.Os, 'linux')
   const imageId = metadata.Id
-  const postgres = await verifyApprovedImage()
-  checkSignal()
   process.stdout.write(`Disposable api image recovery: ${runId}\n`)
-  resources = await createPostgres(runId, postgres, {
-    afterVolumeCreated: checkSignal,
-    afterContainerCreated: checkSignal
-  })
-  stage = 'authenticated database readiness'
-  for (let attempt = 0; attempt < 100; attempt++) {
-    checkSignal()
-    admin = new pg.Client({
-      ...resources.configuration,
-      user: resources.configuration.username,
-      connectionTimeoutMillis: 1000,
-      query_timeout: 2000
-    })
-    try {
-      await admin.connect()
-      await admin.query('SELECT 1')
-      break
-    } catch {
-      await admin.end().catch(() => {})
-      admin = undefined
-      await delay(150)
-    }
-  }
-  assert(admin, 'database readiness timed out')
   stage = 'isolated runtime credentials'
   directory = await mkdtemp(join(tmpdir(), 'dfragon-image-'))
-  const migratorPassword = randomBytes(32).toString('base64url')
-  const runtimePassword = randomBytes(32).toString('base64url')
-  await writeFile(join(directory, 'migrator_password'), migratorPassword, { mode: 0o444 })
-  await writeFile(join(directory, 'runtime_password'), runtimePassword, { mode: 0o444 })
   const neopleKey = randomBytes(32).toString('base64url')
-  await writeFile(join(directory, 'neople_api_key'), neopleKey, {
-    mode: 0o444
-  })
-  // Only this disposable database receives fixture roles; production grants live in infrastructure.
-  assert.equal(resources.configuration.database, 'dfragon_auth_test')
-  await admin.query(`
-    CREATE ROLE dfragon_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD '${migratorPassword}';
-    CREATE ROLE dfragon_api LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD '${runtimePassword}';
-    REVOKE ALL ON DATABASE dfragon_auth_test FROM PUBLIC;
-    GRANT CONNECT ON DATABASE dfragon_auth_test TO dfragon_migrator, dfragon_api;
-    REVOKE ALL ON SCHEMA public FROM PUBLIC;
-    ALTER SCHEMA public OWNER TO dfragon_migrator;
-    GRANT USAGE ON SCHEMA public TO dfragon_api;
-  `)
-  assert.equal(
-    (
-      await run(['network', 'ls', '--filter', `name=^${networkName}$`, '--format', '{{.Name}}'])
-    ).stdout.trim(),
-    ''
-  )
-  await run(['network', 'create', '--label', label, networkName])
-  await run(['network', 'connect', '--alias', 'database', networkName, resources.containerName])
+  await writeFile(join(directory, 'neople_api_key'), neopleKey, { mode: 0o444 })
   const runtimeOptions = [
     '--platform',
     `${metadata.Os}/${metadata.Architecture}${metadata.Variant ? `/${metadata.Variant}` : ''}`,
     '--label',
     label,
     '--network',
-    networkName,
+    'none',
     '--read-only',
     '--cap-drop',
     'ALL',
@@ -148,69 +112,11 @@ try {
     'no-new-privileges',
     '--tmpfs',
     '/tmp:size=16m,mode=1777',
-    '--init',
-    '--env',
-    'DB_HOST=database',
-    '--env',
-    'DB_PORT=5432',
-    '--env',
-    `DB_NAME=${resources.configuration.database}`
+    '--init'
   ]
   // Exercise the image entrypoint's legacy fallback and both explicit input modes.
-  const modes = ['legacy', 'file', 'environment']
-  const databaseInput = (mode, kind) => {
-    const password = kind === 'migrator' ? migratorPassword : runtimePassword
-    if (mode === 'environment') {
-      return ['--env', `DB_PASSWORD=${password}`]
-    }
-    const target = mode === 'legacy' ? '/run/secrets/db_password' : '/run/fixture/db_password'
-
-    return [
-      ...(mode === 'file' ? ['--env', `DB_PASSWORD_FILE=${target}`] : []),
-      '--mount',
-      `type=bind,source=${join(directory, `${kind}_password`)},target=${target},readonly`
-    ]
-  }
-  const migrate = (mode) => [
-    'run',
-    '--rm',
-    '--name',
-    maintenanceName,
-    ...runtimeOptions,
-    '--env',
-    'DB_USERNAME=dfragon_migrator',
-    ...databaseInput(mode, 'migrator'),
-    imageId,
-    'node',
-    '--import',
-    'reflect-metadata',
-    'dist/database/cli.js',
-    'up'
-  ]
-  stage = 'public migration and repeat'
-  await run(migrate('legacy'))
-  const migrations = (await admin.query('SELECT * FROM typeorm_migrations ORDER BY id')).rows
-  assert(migrations.length > 0)
-  const grantSql = (await readFile(new URL('./grant-api.sql', import.meta.url), 'utf8'))
-    .split('\n')
-    .filter((line) => !line.startsWith('\\'))
-    .join('\n')
-  await admin.query(grantSql)
-  await admin.query('RESET ROLE')
-  for (const mode of modes) {
-    await run(migrate(mode))
-    assert.deepEqual(
-      (await admin.query('SELECT * FROM typeorm_migrations ORDER BY id')).rows,
-      migrations
-    )
-  }
-  for (const mode of modes) {
+  for (const mode of ['legacy', 'file', 'environment']) {
     const expectedMounts = ['/app/container-runtime-check.mjs']
-    if (mode !== 'environment') {
-      expectedMounts.push(
-        mode === 'legacy' ? '/run/secrets/db_password' : '/run/fixture/db_password'
-      )
-    }
     const serviceInput = []
     if (mode === 'environment') {
       serviceInput.push('--env', `NEOPLE_API_KEY=${neopleKey}`)
@@ -227,125 +133,73 @@ try {
       }
     }
     stage = 'compiled product startup'
-    await run([
+    await docker([
       'run',
       '--detach',
       '--name',
       runtimeName,
       ...runtimeOptions,
-      '--publish',
-      '127.0.0.1::3000',
       '--env',
       'PORT=3000',
       '--env',
-      'DB_USERNAME=dfragon_api',
-      '--env',
       'SEARCH_TRUST_PROXY=single-hop',
-      ...databaseInput(mode, 'runtime'),
       ...serviceInput,
       '--mount',
       `type=bind,source=${runtimeCheckPath},target=/app/container-runtime-check.mjs,readonly`,
       imageId
     ])
-    const [runtime] = JSON.parse((await run(['container', 'inspect', runtimeName])).stdout)
+    const [runtime] = JSON.parse((await docker(['container', 'inspect', runtimeName])).stdout)
     assert.equal(runtime.Config.User, 'node')
     assert(runtime.HostConfig.ReadonlyRootfs)
     assert(runtime.HostConfig.CapDrop.includes('ALL'))
     assert(runtime.HostConfig.SecurityOpt.some((value) => value.startsWith('no-new-privileges')))
-    assert.equal(runtime.HostConfig.PortBindings['3000/tcp'][0].HostIp, '127.0.0.1')
     const runtimeMounts = runtime.Mounts.filter((mount) => mount.Type === 'bind')
     assert.deepEqual(runtimeMounts.map((mount) => mount.Destination).sort(), expectedMounts.sort())
     assert(runtimeMounts.every((mount) => mount.RW === false))
-    stage = 'UID, read-only filesystem, secrets, database privileges and HTTP'
-    await run(['exec', runtimeName, 'node', '/app/container-runtime-check.mjs'])
+    stage = 'UID, read-only filesystem, secrets and HTTP'
+    await docker(['exec', runtimeName, 'node', '/app/container-runtime-check.mjs'])
 
     stage = 'graceful stop'
-    await run(['stop', '--time', '15', runtimeName])
+    await docker(['stop', '--time', '15', runtimeName])
     assert.equal(
-      (await run(['inspect', '--format', '{{.State.ExitCode}}', runtimeName])).stdout.trim(),
+      (await docker(['inspect', '--format', '{{.State.ExitCode}}', runtimeName])).stdout.trim(),
       '0'
     )
-    await removeOwned('container', runtimeName)
+    await removeOwned(runtimeName)
   }
   stage = 'invalid secret inputs fail closed'
   for (const invalid of [
-    ['--env', 'DB_PASSWORD=', '--env', 'DB_PASSWORD_FILE=/run/missing-secret'],
-    ['--env', 'DB_PASSWORD='],
-    ['--env', 'DB_PASSWORD_FILE=/run/missing-secret']
+    ['--env', 'NEOPLE_API_KEY=', '--env', 'NEOPLE_API_KEY_FILE=/run/missing-secret'],
+    ['--env', 'NEOPLE_API_KEY='],
+    ['--env', 'NEOPLE_API_KEY_FILE=/run/missing-secret'],
+    ['--env', 'NEOPLE_API_KEY=synthetic', '--env', 'NEOPLE_API_KEY_FILE=/run/missing-secret']
   ]) {
-    for (const [command, message] of [
-      [[], 'API failed to start\n'],
+    const result = await docker(
       [
-        ['node', '--import', 'reflect-metadata', 'dist/database/cli.js', 'up'],
-        'Database migration failed\n'
-      ]
-    ]) {
-      const result = await run(
-        [
-          'run',
-          '--rm',
-          '--name',
-          maintenanceName,
-          ...runtimeOptions,
-          '--env',
-          'PORT=3000',
-          '--env',
-          'DB_USERNAME=fixture',
-          ...invalid,
-          imageId,
-          ...command
-        ],
-        { allowFailure: true }
-      )
-      assert.equal(result.code, 1)
-      assert.equal(result.signal, null)
-      assert.equal(result.stdout, '')
-      assert.equal(result.stderr, message)
-    }
+        'run',
+        '--rm',
+        '--name',
+        maintenanceName,
+        ...runtimeOptions,
+        '--env',
+        'PORT=3000',
+        ...invalid,
+        imageId
+      ],
+      { allowFailure: true }
+    )
+    assert.equal(result.code, 1)
+    assert.equal(result.signal, null)
+    assert.equal(result.stdout, '')
+    assert.equal(result.stderr, 'API failed to start\n')
   }
-  const invalidServiceInput = await run(
-    [
-      'run',
-      '--rm',
-      '--name',
-      maintenanceName,
-      ...runtimeOptions,
-      '--env',
-      'PORT=3000',
-      '--env',
-      'DB_USERNAME=fixture',
-      ...databaseInput('environment', 'runtime'),
-      '--env',
-      'NEOPLE_API_KEY=synthetic',
-      '--env',
-      'NEOPLE_API_KEY_FILE=/run/missing-secret',
-      imageId
-    ],
-    { allowFailure: true }
-  )
-  assert.equal(invalidServiceInput.code, 1)
-  assert.equal(invalidServiceInput.signal, null)
-  assert.equal(invalidServiceInput.stdout, '')
-  assert.equal(invalidServiceInput.stderr, 'API failed to start\n')
 } catch {
   process.stderr.write(`api image verification failed at ${stage}\n`)
   process.exitCode = signalCode ?? 1
 } finally {
   const cleanup = [
-    () => removeOwned('container', runtimeName),
-    () => removeOwned('container', maintenanceName),
-    async () => {
-      if (admin) {
-        await admin.end()
-      }
-    },
-    async () => {
-      if (resources) {
-        await teardownPostgres(resources)
-      }
-    },
-    () => assertResourcesAbsent(runId),
-    () => removeOwned('network', networkName),
+    () => removeOwned(runtimeName),
+    () => removeOwned(maintenanceName),
     async () => {
       if (directory) {
         await rm(directory, { recursive: true, force: true })
@@ -365,7 +219,5 @@ try {
   }
 }
 if (process.exitCode === undefined) {
-  process.stdout.write(
-    'PASS: api image migration/repeat, ENV/FILE/legacy runtime contract and graceful stop\n'
-  )
+  process.stdout.write('PASS: api image ENV/FILE/legacy runtime contract and graceful stop\n')
 }

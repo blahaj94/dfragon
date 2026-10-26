@@ -79,11 +79,11 @@ last-reviewed: 2026-10-19
 
 ## DFragon 디자인 규칙
 
-Desktop 화면은 아래 규칙으로 그린다. OCR, Accounts, Web은 공용 토큰과 Component가 주는 외형을 받되 화면 배치는 다시 그리지 않는다. 상세 값과 예시는 dfragon-design 문서를 따른다.
+Desktop 화면은 아래 규칙으로 그린다. Web은 공용 토큰과 Component가 주는 외형을 받되 화면 배치는 다시 그리지 않는다. 상세 값과 예시는 dfragon-design 문서를 따른다.
 
 - 색: 무채색 바탕 위에 신호색 하나를 쓴다. 신호색 `signal`(`#F8E8C8`)은 선택, 주 버튼, 포커스와 진행 중인 캡처 회차에 쓴다. 희귀도 색은 유지하고, 로고 빨강 `brandLogo`(`#E83830`)는 로고 마크에만 쓴다.
 - 주의 상태: 확인 필요, 창 미감지처럼 사용자가 살펴야 하는 상태는 주의 색 `fgWarning`(`#FFB400`) 글자와 사각 점, 옅은 면 `bgWarningWeak`으로 표현한다. 카드의 인식 대기는 계속 중립색 점선과 각진 모래시계다.
-- 글자: 라벨은 12px로 작게, 값은 Barlow Condensed `tabular-nums`로 크게 쓴다. 한글은 Desktop이 마루미냐 한글, OCR browser가 Pretendard를 쓴다.
+- 글자: 라벨은 12px로 작게, 값은 Barlow Condensed `tabular-nums`로 크게 쓴다. 한글은 Desktop이 마루미냐 한글을 쓴다.
 - 형태: 패널과 카드는 반지름 0이며 테두리 없이 면으로 구분한다. 입력, 칩, 보조 버튼은 반지름 2px이다. 누를 수 있는 주 행동에만 오른쪽 위 모서리를 8px 자른다.
 - 카드 상태: 테두리 전체를 칠하지 않고 네 모서리 꺾쇠로 표시한다. 기본, 선택, 실패(노란 꺾쇠), 대기(dashed)를 구분한다. 스냅샷에 없는 모험단만 카드를 덮는 빨간 빗금(`alertHatch`)을 쓴다.
 - 모션: hover 120ms, 상태 전환 180ms, 숫자 증가 400ms와 감속 곡선 하나만 쓴다. 튕김, 흔들림, 빛 번짐은 쓰지 않으며 `prefers-reduced-motion: reduce`에서 모두 끈다.
@@ -96,14 +96,14 @@ Desktop 화면은 아래 규칙으로 그린다. OCR, Accounts, Web은 공용 �
 
 ## 글꼴과 한국어 타이포그래피
 
-Desktop renderer와 Desktop 로그인 완료 페이지는 앱에 번들한 마루미냐 한글(MaruMinya Hangul, x12y12pxMaruMinyaHangul) 비트맵 글꼴을, OCR browser UI는 Pretendard 1.3.9 가변 글꼴을 사용하며 CDN에서 받지 않는다. 글꼴 이름과 대체 순서는 각 앱 전역 글꼴 CSS의 `body` 한 곳에서 정하고 화면 스타일에 반복하지 않는다. 화면은 상속을 사용하며, 기본 글꼴이 따로 정해진 `pre` 같은 요소만 `inherit`로 연결한다. 굵기는 400, 500, 600, 700만 쓴다. 마루미냐 한글은 굵기가 하나라 Desktop의 500 이상은 브라우저가 합성한다. Typo의 크기, 행간, 굵기, 자간은 `typographyVariants`가 소유한다.
+Desktop renderer와 Desktop 로그인 완료 페이지는 앱에 번들한 마루미냐 한글(MaruMinya Hangul, x12y12pxMaruMinyaHangul) 비트맵 글꼴을 사용하며 CDN에서 받지 않는다. 글꼴 이름과 대체 순서는 각 앱 전역 글꼴 CSS의 `body` 한 곳에서 정하고 화면 스타일에 반복하지 않는다. 화면은 상속을 사용하며, 기본 글꼴이 따로 정해진 `pre` 같은 요소만 `inherit`로 연결한다. 굵기는 400, 500, 600, 700만 쓴다. 마루미냐 한글은 굵기가 하나라 Desktop의 500 이상은 브라우저가 합성한다. Typo의 크기, 행간, 굵기, 자간은 `typographyVariants`가 소유한다.
 
 Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들하고 CDN에서 받지 않는다. 600, 700 굵기를 숫자와 기본 라틴 문자로 줄여 담고, `@font-face`는 Desktop 전역 글꼴 CSS에, 글꼴 이름은 `font` 토큰에 둔다. 숫자 값은 `NumericText`나 같은 토큰으로 이 글꼴을 쓴다. OCR은 Barlow Condensed를 번들하지 않는다.
 
-- 같은 전역 CSS에 `word-break: keep-all`, `overflow-wrap: anywhere`를 두어 한국어를 어절 단위로 줄바꿈하고 긴 문자열은 영역 안에서 나눈다. `packages/ui/foundation.css`는 이 글꼴 적용 범위가 아닌 Accounts, Web도 공유하므로 이 기준을 두지 않는다.
+- 같은 전역 CSS에 `word-break: keep-all`, `overflow-wrap: anywhere`를 두어 한국어를 어절 단위로 줄바꿈하고 긴 문자열은 영역 안에서 나눈다. `packages/ui/foundation.css`는 이 글꼴 적용 범위가 아닌 Web도 공유하므로 이 기준을 두지 않는다.
 - 기울임, `text-transform: uppercase`, 양수 자간을 새로 쓰지 않는다.
 - 수치, 표, 타이머는 `font-variant-numeric: tabular-nums`를 쓴다. 기존 사용처는 유지하며 기존 코드의 일괄 정리는 이 기준의 선행 조건이 아니다.
-- Accounts 패스키 browser는 기존 글꼴 상속을 유지하고, Web은 이 글꼴 적용 범위가 아니다.
+- Web은 이 글꼴 적용 범위가 아니다.
 
 값과 규칙의 디자인 기준은 디자인 인계 저장소의 [Typography](https://github.com/blahaj94/dfragon-design/blob/main/design/typography.md)다. Pretendard 기준은 사용자가 승인한 Pretendard 전환 요청으로 채택했고, Desktop의 마루미냐 한글은 2026-10-26 요청(#795)으로 바꿨으며, Barlow Condensed 기준은 2026-10-18 결정으로 채택했다.
 
@@ -113,7 +113,7 @@ Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들
 
 ## React UI 책임
 
-이 기준은 저장소의 Desktop renderer, Accounts 패스키, OCR, Web React 화면에 공통으로 적용한다. Desktop의 폴더 구조와 process 경계는 [Desktop 구조](../architecture/desktop-code-organization.md)를, 다른 앱은 해당 제품 계약을 따른다. 기존 전체 화면을 한 번에 재구성하지 않고 현재 변경에 적용한다.
+이 기준은 저장소의 Desktop renderer, Web React 화면에 공통으로 적용한다. Desktop의 폴더 구조와 process 경계는 [Desktop 구조](../architecture/desktop-code-organization.md)를, 다른 앱은 해당 제품 계약을 따른다. 기존 전체 화면을 한 번에 재구성하지 않고 현재 변경에 적용한다.
 
 - 수정 전에 실제 앱 진입점과 호출 경로를 확인해 제품 화면, 구버전, 미리보기를 구분한다. 테스트에서 쓰이는 파일이라는 이유만으로 제품 진입점으로 판단하지 않는다.
 - 컴포넌트는 표시, DOM 이벤트, 확인 문구와 대화상자를 소유한다. 입력 draft, 포커스 같은 자체 UI 상태는 컴포넌트에 남겨도 된다. 사용자 확인을 취소하면 실행하지 않고, 승인한 요청을 hook이나 실행 경계에 전달한다. 요청 hook이 사용하는 화면의 확인 창까지 직접 띄우지 않는다.
@@ -124,7 +124,7 @@ Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들
 
 ## 화면별 스타일 조정
 
-Desktop, Accounts 패스키, OCR, Web의 화면별 간격, 정렬, 너비, 영역 padding, 반응형 배치는 StyleX로 작성한다. 모든 앱은 공통 compiler 설정과 workspace catalog의 버전을 사용한다. 공용 토큰 CSS, vendor 스타일, font-face, reset, 공용 foundation 같은 전역 기반 CSS는 유지한다. 연결 위치와 구현 예시는 [앱 공통 StyleX](../reference/app-styling.md)를 따른다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style, className, CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
+Desktop, Web의 화면별 간격, 정렬, 너비, 영역 padding, 반응형 배치는 StyleX로 작성한다. 모든 앱은 공통 compiler 설정과 workspace catalog의 버전을 사용한다. 공용 토큰 CSS, vendor 스타일, font-face, reset, 공용 foundation 같은 전역 기반 CSS는 유지한다. 연결 위치와 구현 예시는 [앱 공통 StyleX](../reference/app-styling.md)를 따른다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style, className, CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
 
 컴포넌트 전용 StyleX는 옆의 `{name}.style.ts`에 module scope의 `stylex.create`와 named export로 둔다. JSX는 `stylex.props(base, condition && variant)`로 필요한 스타일을 합성한다. 다른 `className`과 함께 쓰면 한쪽을 덮어쓰지 않도록 합친다. 전용 스타일이 없는 컴포넌트에 빈 파일을 만들지 않는다.
 

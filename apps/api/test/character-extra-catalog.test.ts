@@ -4,13 +4,7 @@ import { enrichCharacterDetails } from '../src/characters/catalog/enrich.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
 import { catalogKey } from '../src/characters/catalog/types.js'
-import type {
-  CatalogDetail,
-  CatalogEntry,
-  CatalogKey,
-  CatalogValue
-} from '../src/characters/catalog/types.js'
-import type { CatalogStore } from '../src/characters/catalog/store.js'
+import type { CatalogDetail, CatalogKey, CatalogValue } from '../src/characters/catalog/types.js'
 import type { projectCharacterDetails } from '../src/characters/details/project.js'
 
 const signal = new AbortController().signal
@@ -34,43 +28,6 @@ function catalogPayload(key: CatalogKey) {
   const name = '합성 스킬 ' + key.skillId
 
   return { jobId, name, levelInfo: { rows: [] } }
-}
-
-function memoryStore() {
-  const rows = new Map<string, CatalogEntry>()
-  const store: CatalogStore = {
-    async read(keys) {
-      const entries = keys.flatMap((key) => {
-        const entry = rows.get(catalogKey(key))
-        if (entry != null) {
-          return entry
-        }
-
-        return []
-      })
-      const now = new Date()
-      const requestedAt = new Date().toISOString()
-
-      return { entries, now, requestedAt }
-    },
-    async saveAndRead(values) {
-      const entries = values.map((value) => {
-        const snapshot = { ...value }
-        const fetchedAt = new Date()
-        const expiresAt = new Date(Date.now() + 86_400_000)
-
-        return { ...snapshot, fetchedAt, expiresAt }
-      })
-      for (const entry of entries) {
-        rows.set(catalogKey(entry.key), entry)
-      }
-      const now = new Date()
-
-      return { entries, now }
-    }
-  }
-
-  return { store, rows }
 }
 
 test('세트 응답 순서와 무관하게 ID를 대응하고 누락, 중복 응답과 혼합 요청을 거절한다', async () => {
@@ -104,10 +61,9 @@ test('세트 응답 순서와 무관하게 ID를 대응하고 누락, 중복 응
   )
 })
 
-test('저장된 아이템에서만 세트를 발견하고 캐시를 재사용하며 세트 구성품을 재귀 조회하지 않는다', async () => {
-  const { store, rows } = memoryStore()
+test('조회한 아이템에서만 세트를 발견하고 요청마다 다시 조회하며 세트 구성품을 재귀 조회하지 않는다', async () => {
   const calls: CatalogKey[][] = []
-  const service = createCatalogService(store, async (keys) => {
+  const service = createCatalogService(async (keys) => {
     calls.push(keys)
 
     return keys.map((key) => {
@@ -123,43 +79,25 @@ test('저장된 아이템에서만 세트를 발견하고 캐시를 재사용하
   assert.equal(loaded.get(catalogKey(set))!.detail.status, 'fresh')
   assert.deepEqual(loaded.get(catalogKey(set))!.key, set)
   assert.deepEqual(calls, [[item], [set]])
-  assert.equal(rows.size, 2)
   await service.load([item], signal)
-  assert.equal(calls.length, 2)
-  rows.get(catalogKey(set))!.expiresAt = new Date(0)
-  const failed = createCatalogService(store, async () => {
+  assert.deepEqual(calls, [[item], [set], [item], [set]])
+
+  const failed = createCatalogService(async () => {
     throw new Error('failed')
   })
-  const stale = await failed.load([item], signal)
-  assert.equal(stale.get(catalogKey(set))!.detail.status, 'stale')
-  assert.deepEqual(
-    stale.get(catalogKey(set))!.detail.data,
-    loaded.get(catalogKey(set))!.detail.data
-  )
-
-  const broken = memoryStore().store
-  broken.saveAndRead = async () => {
-    throw new Error('commit failed')
-  }
-  let attempts = 0
-  const uncommitted = createCatalogService(broken, async (keys) => {
-    attempts++
-
-    return keys.map((key) => {
-      const payload = { ...catalogPayload(key), setItemId: 'uncommitted-set' }
-
-      return { key, payload }
-    })
+  const unavailable = await failed.load([item], signal)
+  assert.deepEqual(unavailable.get(catalogKey(item))!.detail, {
+    data: null,
+    fetchedAt: null,
+    status: 'unavailable'
   })
-  assert.equal((await uncommitted.load([item], signal)).has('set:uncommitted-set'), false)
-  assert.equal(attempts, 1)
+  assert.equal(unavailable.has(catalogKey(set)), false)
 })
 
 test('후속 세트도 초기 참조와 함께 128개 한도와 하나의 취소 신호를 공유한다', async () => {
-  const { store } = memoryStore()
   const requested: CatalogKey[] = []
   const signals: AbortSignal[] = []
-  const service = createCatalogService(store, async (keys, deadline) => {
+  const service = createCatalogService(async (keys, deadline) => {
     requested.push(...keys)
     signals.push(deadline)
 
@@ -194,7 +132,7 @@ test('후속 세트도 초기 참조와 함께 128개 한도와 하나의 취소
   assert(signals.every((value) => value === signals[0]))
 
   const controller = new AbortController()
-  const stopping = createCatalogService(memoryStore().store, async (keys) => {
+  const stopping = createCatalogService(async (keys) => {
     if (keys[0]?.kind === 'set') {
       controller.abort()
     }
@@ -254,7 +192,7 @@ test('장착 부속에 공용 상세를 연결하고 원본, 빈 슬롯, 서약 
   const details = fixture(),
     original = structuredClone(details),
     calls: CatalogKey[] = []
-  const service = createCatalogService(memoryStore().store, async (keys) => {
+  const service = createCatalogService(async (keys) => {
     calls.push(...keys)
 
     return keys.map((key): CatalogValue => {
@@ -308,7 +246,7 @@ test('공용 상세 실패에도 미장착 null과 빈 배열을 그대로 유�
     details.oath = null
     details.buff.avatar = { avatar: value }
     details.buff.creature = { creature: value }
-    const service = createCatalogService(memoryStore().store, async () => {
+    const service = createCatalogService(async () => {
       throw new Error('failure')
     })
     const result = await enrichCharacterDetails(details, service, signal)
@@ -355,7 +293,7 @@ test('잘못된 참조는 조회하지 않고 반복 아이템, 스킬은 한 �
   }
   const original = structuredClone(details)
   const requested: CatalogKey[] = []
-  const catalog = createCatalogService(memoryStore().store, async (keys) => {
+  const catalog = createCatalogService(async (keys) => {
     requested.push(...keys)
 
     return keys.map((key) => {
@@ -423,7 +361,7 @@ test('예약어 ID도 JSON 사전에 안전하게 연결하고 유효한 jobId�
         }
       }
       const requested: CatalogKey[] = []
-      const catalog = createCatalogService(memoryStore().store, async (keys) => {
+      const catalog = createCatalogService(async (keys) => {
         requested.push(...keys)
 
         return keys.flatMap((key) => {
@@ -493,7 +431,7 @@ test('예약된 itemDetail, skillDetails는 공용 저장값으로 교체하고 
     skillDetails: { obsolete: { injected: true } }
   }
   const original = structuredClone(details)
-  const catalog = createCatalogService(memoryStore().store, async (keys) => {
+  const catalog = createCatalogService(async (keys) => {
     return keys.map((key) => {
       const payload = { ...catalogPayload(key), tune: { level: 0 } }
 

@@ -36,22 +36,10 @@ export const checkJobs = [
   },
   { job: 'desktop-typecheck', commands: [workspace('@dfragon/desktop', 'typecheck')] },
   { job: 'api', commands: [workspace('@dfragon/api', 'test')] },
-  { job: 'accounts', commands: [workspace('@dfragon/accounts', 'test')] },
-  {
-    job: 'ocr',
-    commands: [workspace('@dfragon/ocr', 'test'), workspace('@dfragon/ocr', 'test:browser')]
-  },
   {
     job: 'web',
     commands: [workspace('@dfragon/web', 'test'), workspace('@dfragon/web', 'build')]
-  }
-]
-
-// Docker PostgreSQL 컨테이너를 만드는 job이다. Desktop 검색 통합도 실제 API에 붙일 DB를 Docker로 띄운다.
-// Docker가 없는 환경에서도 verify를 쓸 수 있게 따로 실행한다.
-export const databaseJobs = [
-  { job: 'api-database', commands: [workspace('@dfragon/api', 'test:database')] },
-  { job: 'accounts-database', commands: [workspace('@dfragon/accounts', 'test:database')] },
+  },
   {
     job: 'desktop-search',
     commands: [
@@ -162,17 +150,11 @@ export function runJobs(jobs, cwd = repositoryRoot) {
 }
 
 function main(args) {
-  const [mode] = args
-
   if (args.length === 0) {
     return runJobs(checkJobs)
   }
 
-  if (args.length === 1 && mode === '--database') {
-    return runJobs(databaseJobs)
-  }
-
-  console.error('Usage: node scripts/verify.mjs [--database]')
+  console.error('Usage: node scripts/verify.mjs')
 
   return 2
 }

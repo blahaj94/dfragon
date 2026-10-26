@@ -23,22 +23,22 @@ Dependabot은 catalog 값의 갱신을 제안한다. 기본 catalog와 named cat
 
 ## 공통 정적 검사와 정렬
 
-Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-spacing.mjs`와 직접 devDependency를 모든 프로젝트가 공유한다. 외부 의존성 버전은 `pnpm-workspace.yaml`의 catalog에서만 정한다. 모든 app과 package의 `tsc`는 기본 catalog의 TypeScript 7.0.2(Go로 다시 쓴 native compiler)이다. TypeScript 7 패키지는 compiler API를 제공하지 않으므로 root TypeScript 6.0.2는 `catalog:parser`로 참조하며 문장 간격 도구의 parser 전용이다. Lib, UI, accounts의 테스트와 검증 스크립트는 기본 catalog의 `typescript-compiler-api` 별칭(`npm:typescript@6.0.2`)으로 compiler API를 사용한다.
+Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-spacing.mjs`와 직접 devDependency를 모든 프로젝트가 공유한다. 외부 의존성 버전은 `pnpm-workspace.yaml`의 catalog에서만 정한다. 모든 app과 package의 `tsc`는 기본 catalog의 TypeScript 7.0.2(Go로 다시 쓴 native compiler)이다. TypeScript 7 패키지는 compiler API를 제공하지 않으므로 root TypeScript 6.0.2는 `catalog:parser`로 참조하며 문장 간격 도구의 parser 전용이다. Lib, UI의 테스트와 검증 스크립트는 기본 catalog의 `typescript-compiler-api` 별칭(`npm:typescript@6.0.2`)으로 compiler API를 사용한다.
 
 - `pnpm lint`, `pnpm lint:fix`: root 설정, scripts, API, Desktop, Web, UI 등 저장소 전체의 Biome lint 비수정 검사와 안전한 자동수정.
 - `pnpm format`, `pnpm format:check`: 같은 범위의 JS/TS, JSON/JSONC, CSS, HTML을 Biome로 정렬하고 JS/TS에 문장 간격 정책을 적용하거나 비수정 검사한다. YAML, Markdown과 SVG 자산은 자동 정렬 대상에 포함하지 않는다.
 - `pnpm test:format-policy`: Biome 포맷 뒤 문장 간격 도구의 블록 첫 `return` 처리, 이후 `return` 빈 줄, 연속된 블록 `if` 사이 빈 줄, `else if` 연결, ASI, 확장자별 결과와 CLI 범위, 수렴을 검사한다.
 - 각 workspace에서도 `pnpm --filter @dfragon/api lint`처럼 같은 네 명령을 사용한다. Workspace에 등록하지 않은 scripts는 `pnpm --dir scripts lint`와 `format:check` 등으로 직접 실행한다.
 
-각 leaf의 명령은 root `biome.json`을 자동으로 찾아 실행 위치 아래 파일만 처리한다. 생성물, OCR, lockfile, license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사, 정렬 대상이다. 세부 범위는 실행되는 config와 Git ignore를 따른다.
+각 leaf의 명령은 root `biome.json`을 자동으로 찾아 실행 위치 아래 파일만 처리한다. 생성물, lockfile, license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사, 정렬 대상이다. 세부 범위는 실행되는 config와 Git ignore를 따른다.
 
-GitHub Actions에는 CI 검사 workflow가 없고 배포 workflow만 둔다. Lint, format, 표기, 문서 검사와 앱 테스트는 로컬에서 `pnpm verify`, Docker가 있으면 `pnpm verify:database`로 실행한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
+GitHub Actions에는 CI 검사 workflow가 없고 배포 workflow만 둔다. Lint, format, 표기, 문서 검사와 앱 테스트는 로컬에서 `pnpm verify`로 실행한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
 
-Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify`를 실행하고, Docker daemon에 연결되면 `pnpm verify:database`도 실행한다. 실패하면 push를 막는다. Node.js 버전은 root `package.json`의 `devEngines.runtime`으로 고정하며, pnpm이 이 버전을 내려받아 script를 실행하고 workflow의 `actions/setup-node`도 같은 값을 읽는다.
+Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify`를 실행한다. 실패하면 push를 막는다. Node.js 버전은 root `package.json`의 `devEngines.runtime`으로 고정하며, pnpm이 이 버전을 내려받아 script를 실행하고 workflow의 `actions/setup-node`도 같은 값을 읽는다.
 
 배포 workflow는 다음과 같다. 저장소 Actions 설정은 외부 action을 40자리 commit SHA로 고정하도록 요구하므로 tag로 참조한 action은 실행되지 않는다. Action, npm catalog, Docker base image 갱신은 `.github/dependabot.yml`이 기본 7일 cooldown(npm major는 14일)을 둔 월간 PR로 제안하며, 관련 패키지와 이미지는 group으로 묶는다.
 
-- `.github/workflows/product-images.yml`: main push에서 API, OCR, accounts 이미지를 빌드해 GHCR에 발행한다. [서버 이미지](api-start-development.md#서버-이미지)를 참고한다.
+- `.github/workflows/product-images.yml`: main push에서 API 이미지를 빌드해 GHCR에 발행한다. [서버 이미지](api-start-development.md#서버-이미지)를 참고한다.
 - `.github/workflows/desktop-test-build.yml`: Desktop 관련 PR에서 test channel 포터블 exe를 artifact로 만든다.
 - `.github/workflows/desktop-release.yml`: Release 게시나 수동 실행에서 배포 포터블 exe를 Release에 첨부한다. [포터블 exe와 GitHub Releases](../../apps/desktop/README.md#포터블-exe와-github-releases)를 참고한다.
 
@@ -75,23 +75,11 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 
 ### `apps/api`
 
-- Package: `@dfragon/api`, Node 26, NestJS, TypeORM ESM. `src/http.ts`는 캐릭터, 모험단 HTTP와 `/health`를 합성한다.
-- Domain DB: `characters`, `character_api_responses`, `item_catalog`, `skill_catalog`, `set_item_catalog`와 domain migration.
-- 필수 입력: `PORT`, `DB_*`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정, JWT, 계정 DB를 사용하지 않는다.
-- `test`는 build, 타입, 단위, HTTP 검증, `test:database`는 별도 Docker PostgreSQL의 domain migration, 검색, 캐시를 검증한다.
+- Package: `@dfragon/api`, Node 26, NestJS ESM. `src/http.ts`는 캐릭터 HTTP와 `/health`를 합성한다.
+- DB를 쓰지 않는다. 상세와 공용 아이템, 스킬, 세트 상세를 요청마다 Neople에서 조회하며 저장, 캐시하지 않는다.
+- 필수 입력: `PORT`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정, JWT를 사용하지 않는다.
+- `test`는 build, 타입, 단위, HTTP 검증이다.
 - 개발: [API 개발](api-start-development.md). 이미지 실행, 운영 책임: [제품 안내](api-start-development.md#서버-이미지).
-
-### `apps/accounts`
-
-- Package: `@dfragon/accounts`, 인증 NestJS 서비스. `/auth/**`, `/me`, `/me/nickname`, 패스키 browser bundle을 소유한다.
-- `src/auth`: passkey, 동일 계정 RP 이전, JWT, refresh/logout, nickname, cleanup. Desktop/OCR은 이 서비스에 인증한다.
-- 인증 DB는 user/passkey/session/refresh/login request/migration 여섯 table과 별도 PostgreSQL container, volume, 역할을 사용한다.
-- `src/database/schemas`가 Schema First 원본이다. `src/database/migrations`의 auth migration을 빈 target에 적용한다.
-- `database/retire-api-*.sql`은 이전 인증 사본, RP 키의 삭제 전제를 검증하는 제품 SQL이며 기존 DB suite에서 검증한다.
-- 입력: `PORT`, `DB_*`, `AUTH_CONFIG_FILE`, 선택 `AUTH_TRUST_PROXY`. 로컬 TLS는 accounts 3444, API 3443을 사용한다.
-- 명령: `pnpm --filter @dfragon/accounts dev`, `test`, `test:database`, `auth:cleanup`, `db:migrate:generate Name`, `db:migrate:up`, `db:migrate:show`.
-- 이미지 실행, 운영 책임은 [제품 안내](api-start-development.md#서버-이미지), 개발 설정은 [패스키 안내](passkey-authentication.md).
-- 양쪽 runtime은 시작할 때 schema migration을 자동 실행하지 않는다. `/docs`와 `/docs/openapi.json`도 각각 자기 서비스의 HTTP 계약만 제공한다.
 
 ### `apps/web`
 
@@ -136,17 +124,9 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
   - `pnpm --filter @dfragon/desktop lint`
   - `pnpm --filter @dfragon/desktop build`
 
-### `apps/ocr`
-
-- Package: `@dfragon/ocr`, Node 26, NestJS, React/TanStack Query/StyleX, esbuild, SQLite.
-- `src`: 서버, 기존 패스키 API 연결, 원본/정답 저장, PNG 크롭, TAR 다운로드. `browser`: 관리 SPA.
-- 원본은 캡처 ID당 한 번 저장하고 크롭 좌표를 보관한다. 기존 API의 선택 설정 `ocrReturnUrl`과 `ocr` client로 로그인한다.
-- 검증: `pnpm --filter @dfragon/ocr test`, `lint`, `test:ui`. UI 검증은 설치된 Playwright Chromium과 합성 인증 fixture를 사용한다.
-- 실행/API: [OCR 안내](../../apps/ocr/README.md), 이미지 실행, 운영 책임: [제품 안내](api-start-development.md#서버-이미지).
-
 ## Shared UI
 
-- Desktop, accounts 패스키, OCR, Web은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치, 작성, 검증 범위를 정리한다.
+- Desktop, Web은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치, 작성, 검증 범위를 정리한다.
 <DEL>
 
 - `packages/ui`: `@dfragon/ui`, DFragon 디자인 토큰(`tokens.css`, `tokens.stylex`), Base UI 기반 공용 Component, Typo와 중립 Example. Package/peer/CSS 소유, 고지, 명령은 `packages/ui/README.md`를 따른다.
@@ -169,8 +149,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 - `pnpm check:static`: `lint`, `format:check`, `check:writing`, `check:docs`를 차례로 실행하고 먼저 실패한 검사에서 멈춘다. 사용법은 [`scripts/README.md`](../../scripts/README.md#native-validation)
 - 작업 준비와 workspace별 native validation 예제: [`scripts/README.md`](../../scripts/README.md)
 - `pnpm test:tooling`: `scripts/test/*.test.mjs`의 루트 도구, 공용 helper, 포맷, workflow 연결 검사를 실행한다.
-- `pnpm verify`: Docker 없는 저장소 검사 job을 `scripts/verify.mjs` 목록대로 차례로 실행한다. Root `test` script도 같은 명령이다. Desktop 테스트의 HOME 조건과 준비 절차는 [`scripts/README.md`](../../scripts/README.md#verify)
-- `pnpm verify:database`: API, accounts의 `test:database`와 Desktop 검색 통합을 실행한다. Docker daemon, Buildx와 Playwright Chromium이 필요하다.
+- `pnpm verify`: 저장소 검사 job을 `scripts/verify.mjs` 목록대로 차례로 실행한다. Root `test` script도 같은 명령이다. Desktop 테스트의 HOME 조건과 준비 절차는 [`scripts/README.md`](../../scripts/README.md#verify)
 
 ## Generated and dependency output
 

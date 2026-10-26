@@ -21,12 +21,11 @@ last-reviewed: 2026-10-10
 | Desktop MVP 카드, 상세 창, 입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md), [디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | Desktop 개발자 모드, 크롭, 라벨, 모델 평가 | [Desktop 개발자 모드](rules/desktop-developer-mode.md) |
 | Desktop 새 버전 알림, 자동 업데이트 제안 | [Desktop 새 버전 알림과 업데이트 제안](rules/desktop-update-proposal.md) |
-| OCR 이미지 업로드, 정답, train/val/test, 패스키 관리 SPA | [OCR 자료실](rules/ocr-workspace.md), [앱 안내](../apps/ocr/README.md) |
 | 앱 공용 UI, 디자인 토큰, Base UI, StyleX, 시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [앱 공통 StyleX](reference/app-styling.md) |
-| React 화면, hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [Desktop 구조](architecture/desktop-code-organization.md), [OCR 안내](../apps/ocr/README.md), [Repository Map](reference/repository-map.md) |
+| React 화면, hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [Desktop 구조](architecture/desktop-code-organization.md), [Repository Map](reference/repository-map.md) |
 | Penpot 확정 화면, Desktop MVP 구현 이관 | [Desktop MVP 디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | 제품 이름 표기, 사용자 문구 문체, 표기 검사 | [표기와 문체](rules/writing.md) |
-| 인증, session, DB, 삭제, Desktop 플랫폼 | 아래 주제별 제품 계약 |
+| Desktop 인증, 플랫폼 | 아래 주제별 제품 계약 |
 
 ## Document class
 
@@ -38,33 +37,15 @@ Reference의 오류는 실제 파일, 설정에 맞춰 고친다. Rule과 구현
 
 ## 제품 계약
 
-### Authentication contract routing
-
-패스키 전환의 현재 계약은 [패스키 인증](rules/auth-passkeys.md), 실행 설정은 [패스키 개발 안내](reference/passkey-authentication.md)를 따른다. 가입, 기기 인증, 예비 키 관리의 기준을 이 두 문서에서 확인한다.
-
-| 필요한 topic | Canonical Rule |
-| --- | --- |
-| Endpoint, parser, 오류, nickname, log sink | [`rules/auth-api.md`](rules/auth-api.md) |
-| 패스키 가입, WebAuthn, 예비 키, 앱 교환, TTL | [`rules/auth-passkeys.md`](rules/auth-passkeys.md) |
-| JWT/key, 30일, refresh/logout 최종 경합 | [`rules/auth-session.md`](rules/auth-session.md) |
-| 핵심 5개 테이블, constraint, 잠금, 정리/물리 보관, 삭제 경계 | [`rules/auth-database.md`](rules/auth-database.md) |
-| 공개 검색 분리, 활동 commit, residual JWT, DB 장애, 계정 기능 경합 | [`rules/auth-activity.md`](rules/auth-activity.md) |
-| 인증 runtime 호환성, Migration, 운영/플랫폼 미결정 gate | [`rules/auth-runtime.md`](rules/auth-runtime.md) |
-| 삭제 확정, 보관, 복원과 패스키 탈퇴 후속 설계 | [`rules/auth-withdrawal-proposal.md`](rules/auth-withdrawal-proposal.md) |
-
-탈퇴는 삭제 확정, 보관, 복원 정책만 있으며 패스키 탈퇴의 재인증, 재가입 경합 설계와 API 구현은 아직 없다.
-
-삭제, 보관과 공개 복원의 제품 안전조건은 [탈퇴, 삭제, 복원 계약](rules/auth-withdrawal-proposal.md)을 따른다.
-배치, 서버 권한, backup, 복구 실행 절차는 [인프라 책임](reference/api-start-development.md#서버-이미지)이며 제품 개발의 필수 읽기로 요구하지 않는다.
-
 ### Desktop authentication contract routing
+
+accounts 서비스는 지웠다. 아래 Desktop 인증 계약은 Desktop 로그인 코드를 지우는 변경에서 함께 정리한다.
 
 | 필요한 topic | Canonical Rule |
 | --- | --- |
 | Process 책임, 기존 capture 연결, 최소 IPC, 화면 | [`rules/desktop-auth.md`](rules/desktop-auth.md) |
 | Pending/PKCE, 브라우저→exchange, refresh, 취소/실패, 재시작 | [`rules/desktop-auth-lifecycle.md`](rules/desktop-auth-lifecycle.md) |
 | 실제 환경 근거, safeStorage/파일, loopback 복귀, 배포 후 검증, 채널 설정 | [`rules/desktop-auth-platform.md`](rules/desktop-auth-platform.md) |
-| 탈퇴 전용 main receipt, 상태 조회, local auth 정리, 재시작 연결 | [`rules/auth-withdrawal-proposal.md`](rules/auth-withdrawal-proposal.md) |
 
 ### Reference
 

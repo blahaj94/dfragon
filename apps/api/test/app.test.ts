@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import type { Server } from 'node:http'
-import { createServer } from 'node:net'
 import { after, before, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
@@ -99,43 +98,16 @@ test('종료 실패는 예외 원문을 출력하지 않고 고정 문구와 실
   }
 })
 
-test('compiled main은 잘못된 필수 설정을 DB 연결 전에 거절하고 정제된 문구로 종료한다', async (t) => {
-  let connections = 0
-  const database = createServer((socket) => {
-    connections++
-    socket.destroy()
-  })
-  t.after(
-    () =>
-      new Promise<void>((resolve, reject) => {
-        database.close((error) => {
-          if (error) {
-            reject(error)
-
-            return
-          }
-          resolve()
-        })
-      })
-  )
-  await new Promise<void>((resolve) => database.listen(0, '127.0.0.1', resolve))
-  const address = database.address()
-  assert(address != null && typeof address !== 'string')
-  // 실제 환경, credential은 상속하지 않고 테스트가 만든 DB 접속 감시 주소만 전달한다.
+test('compiled main은 잘못된 필수 설정을 거절하고 정제된 문구로 종료한다', async (t) => {
+  // 실제 환경, credential은 상속하지 않고 합성 입력만 전달한다.
   const environment: NodeJS.ProcessEnv = {
     PORT: '3000',
-    DB_HOST: '127.0.0.1',
-    DB_PORT: String(address.port),
-    DB_USERNAME: 'synthetic',
-    DB_PASSWORD: 'synthetic-private-database-password',
-    DB_NAME: 'synthetic',
     NEOPLE_API_KEY: 'synthetic-private-api-key'
   }
   const cases = [
     { name: 'PORT 누락', change: { PORT: undefined } },
     { name: 'PORT 빈 값', change: { PORT: '' } },
     { name: 'PORT 비십진 입력', change: { PORT: '30.00' } },
-    { name: 'DB 사용자 누락', change: { DB_USERNAME: undefined } },
     { name: 'Neople key 누락', change: { NEOPLE_API_KEY: undefined } },
     { name: 'Neople key 빈 값', change: { NEOPLE_API_KEY: '' } },
     { name: 'Neople key 공백', change: { NEOPLE_API_KEY: ' \n' } },
@@ -166,7 +138,6 @@ test('compiled main은 잘못된 필수 설정을 DB 연결 전에 거절하고 
           stderr: 'API failed to start\n'
         }
       )
-      assert.equal(connections, 0)
     })
   }
 })

@@ -3,32 +3,22 @@ import test from 'node:test'
 import { parseServerBuildInfo } from '@dfragon/lib'
 
 const commit = '1234567890abcdef1234567890abcdef12345678'
-const services = ['api', 'accounts', 'ocr']
 
-test('각 서비스의 전체 커밋과 명시적인 미확정 커밋 null을 받는다', () => {
-  for (const service of services) {
-    assert.deepEqual(parseServerBuildInfo({ service, commit }, service), { service, commit })
-    assert.deepEqual(parseServerBuildInfo({ service, commit: null }, service), {
-      service,
-      commit: null
-    })
-  }
+test('API의 전체 커밋과 명시적인 미확정 커밋 null을 받는다', () => {
+  assert.deepEqual(parseServerBuildInfo({ service: 'api', commit }, 'api'), {
+    service: 'api',
+    commit
+  })
+  assert.deepEqual(parseServerBuildInfo({ service: 'api', commit: null }, 'api'), {
+    service: 'api',
+    commit: null
+  })
 })
 
-test('요청한 서비스와 다른 버전 응답은 커밋 확정 여부와 관계없이 거절한다', () => {
-  for (const expectedService of services) {
-    for (const service of services) {
-      if (service === expectedService) {
-        continue
-      }
-      for (const revision of [commit, null]) {
-        const value = { service, commit: revision }
-        assert.equal(
-          parseServerBuildInfo(value, expectedService),
-          null,
-          `${expectedService} 요청에 ${service} 응답이 섞임: ${revision}`
-        )
-      }
+test('지운 서비스의 버전 응답은 커밋 확정 여부와 관계없이 거절한다', () => {
+  for (const service of ['accounts', 'ocr']) {
+    for (const revision of [commit, null]) {
+      assert.equal(parseServerBuildInfo({ service, commit: revision }, 'api'), null, service)
     }
   }
 })

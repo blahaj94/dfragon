@@ -3,7 +3,6 @@ import { createServer } from 'node:http'
 import test from 'node:test'
 import type { TestContext } from 'node:test'
 import { createNeopleCharacterSearchForTest } from '../src/characters/neople-character-search.js'
-import type { CharacterSearchDependencies } from '../src/characters/types.js'
 import { createApiHttpApp } from '../src/http.js'
 import type { NeopleCharacterSearchTestDependencies } from '../src/types/neople-character-search.js'
 
@@ -25,17 +24,13 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 async function startApp(
   t: TestContext,
-  dependencies: NeopleCharacterSearchTestDependencies,
-  findAdventureNames?: CharacterSearchDependencies['findAdventureNames']
+  dependencies: NeopleCharacterSearchTestDependencies
 ): Promise<string> {
   const searchCharacters = createNeopleCharacterSearchForTest(
     'synthetic-candidates-key',
     dependencies
   )
-  const app = await createApiHttpApp({
-    searchCharacters,
-    findAdventureNames
-  })
+  const app = await createApiHttpApp({ searchCharacters })
   t.after(() => app.close())
   await app.listen(0, '127.0.0.1')
 
@@ -433,25 +428,16 @@ test('공급자 실패는 빈 후보로 숨기지 않으며 같은 IP의 공대 
   assert.equal(calls, 13)
 })
 
-test('후보마다 저장된 모험단명을 붙이고 저장되지 않은 후보는 null로 둔다', async (t) => {
-  const requested: string[][] = []
-  const origin = await startApp(
-    t,
-    {
-      fetch: async () =>
-        jsonResponse({
-          rows: [
-            { characterId: 'stored', characterName, serverId: 'cain', fame: 200 },
-            { characterId: 'unknown', characterName, serverId: 'siroco', fame: 100 }
-          ]
-        })
-    },
-    async (characterIds) => {
-      requested.push([...characterIds])
-
-      return new Map([['stored', '합성모험단']])
-    }
-  )
+test('후보의 모험단명은 저장하지 않으므로 항상 null이다', async (t) => {
+  const origin = await startApp(t, {
+    fetch: async () =>
+      jsonResponse({
+        rows: [
+          { characterId: 'first', characterName, serverId: 'cain', fame: 200 },
+          { characterId: 'second', characterName, serverId: 'siroco', fame: 100 }
+        ]
+      })
+  })
 
   const response = await fetch(`${origin}${candidatePath}`)
 
@@ -459,31 +445,6 @@ test('후보마다 저장된 모험단명을 붙이고 저장되지 않은 후�
   const body = (await response.json()) as { rows: Array<{ adventureName: string | null }> }
   assert.deepEqual(
     body.rows.map((row) => row.adventureName),
-    ['합성모험단', null]
-  )
-  assert.deepEqual(requested, [['stored', 'unknown']])
-})
-
-test('모험단명 조회가 실패해도 후보 응답은 성공하고 모험단명만 null이다', async (t) => {
-  const origin = await startApp(
-    t,
-    {
-      fetch: async () =>
-        jsonResponse({
-          rows: [{ characterId: 'stored', characterName, serverId: 'cain', fame: 200 }]
-        })
-    },
-    async () => {
-      throw new Error('synthetic database failure')
-    }
-  )
-
-  const response = await fetch(`${origin}${candidatePath}`)
-
-  assert.equal(response.status, 200)
-  const body = (await response.json()) as { rows: Array<{ adventureName: string | null }> }
-  assert.deepEqual(
-    body.rows.map((row) => row.adventureName),
-    [null]
+    [null, null]
   )
 })

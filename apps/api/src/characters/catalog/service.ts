@@ -1,7 +1,6 @@
 import { chunk, filter, map } from 'remeda'
 import { CATALOG_LIMITS, catalogKey, isCatalogId, unavailableDetail } from './types.js'
 import type { CatalogDetail, CatalogKey, CatalogResult } from './types.js'
-import type { CatalogStore } from './store.js'
 import type { FetchCatalog } from './neople.js'
 
 function createCatalogRequestGroups(keys: CatalogKey[]): CatalogKey[][] {
@@ -21,11 +20,7 @@ function createCatalogRequestGroups(keys: CatalogKey[]): CatalogKey[][] {
   return [...itemBatches, ...setBatches, ...skillRequests]
 }
 
-export function createCatalogService(
-  store: CatalogStore,
-  fetchCatalog: FetchCatalog,
-  timeoutMs = 10_000
-) {
+export function createCatalogService(fetchCatalog: FetchCatalog, timeoutMs = 10_000) {
   return {
     async load(
       keys: CatalogKey[],
@@ -48,51 +43,28 @@ export function createCatalogService(
         if (bounded.length === 0 || signal.aborted) {
           return
         }
-        try {
-          const snapshot = await store.read(bounded, signal)
-          for (const entry of snapshot.entries) {
-            const detail: CatalogDetail = {
-              data: entry.payload,
-              fetchedAt: entry.fetchedAt.toISOString(),
-              status: entry.expiresAt > snapshot.now ? 'fresh' : 'stale'
+        const groups = createCatalogRequestGroups(bounded)
+        await Promise.all(
+          groups.map(async (group) => {
+            if (signal.aborted) {
+              return
             }
-            results.set(catalogKey(entry.key), { key: entry.key, detail })
-          }
-          const pending = bounded.filter(
-            (key) => results.get(catalogKey(key))!.detail.status !== 'fresh'
-          )
-          const groups = createCatalogRequestGroups(pending)
-          await Promise.all(
-            groups.map(async (group) => {
-              if (signal.aborted) {
-                return
+            try {
+              const values = await fetchCatalog(group, signal)
+              signal.throwIfAborted()
+              const fetchedAt = new Date().toISOString()
+              for (const value of values) {
+                const detail: CatalogDetail = { data: value.payload, fetchedAt, status: 'fresh' }
+                results.set(catalogKey(value.key), { key: value.key, detail })
               }
-              try {
-                const values = await fetchCatalog(group, signal)
-                signal.throwIfAborted()
-                if (values.length === 0) {
-                  return
-                }
-                const stored = await store.saveAndRead(values, snapshot.requestedAt, signal)
-                for (const entry of stored.entries) {
-                  const detail: CatalogDetail = {
-                    data: entry.payload,
-                    fetchedAt: entry.fetchedAt.toISOString(),
-                    status: entry.expiresAt > stored.now ? 'fresh' : 'stale'
-                  }
-                  results.set(catalogKey(entry.key), { key: entry.key, detail })
-                }
-              } catch {
-                // Only committed catalog data may be returned. An unsuccessful refresh retains its prior value.
-              }
-            })
-          )
-        } catch {
-          // Catalog storage is optional enrichment; character persistence has already succeeded.
-        }
+            } catch {
+              // A failed lookup leaves the reference unavailable; the character response still succeeds.
+            }
+          })
+        )
       }
       await loadReferences(unique)
-      // Follow only the set IDs of committed item details, never set members or oath.setInfo.setId.
+      // Follow only the set IDs of fetched item details, never set members or oath.setInfo.setId.
       const sets: CatalogKey[] = []
       for (const key of unique) {
         if (key.kind !== 'item') {

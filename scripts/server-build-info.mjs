@@ -6,8 +6,8 @@ const SOURCE_COMMIT_PATTERN = /^[0-9a-f]{40}$/
 
 /** Record the source revision supplied by the image builder, never runtime environment values. */
 export function createServerBuildInfo(service, commit) {
-  if (!['api', 'accounts', 'ocr'].includes(service)) {
-    throw new Error('Expected an API, accounts, or OCR service.')
+  if (service !== 'api') {
+    throw new Error('Expected the API service.')
   }
 
   if (

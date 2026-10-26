@@ -8,18 +8,12 @@
   },
   "scripts": {
     "dev": "pnpm run build && dotenv --no-expand -- pnpm run start",
-    "db:migrate:local": "pnpm run build && node --env-file=.env --import reflect-metadata dist/database/cli.js up",
     "build": "pnpm --filter @dfragon/lib build && node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json",
-    "test": "pnpm run build && node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-dist', { recursive: true, force: true })\" && tsc -p tsconfig.test.json && node --import reflect-metadata --test \".test-dist/test/**/*.test.js\" test-support/*.test.mjs ../../scripts/test/docker-postgres.test.mjs",
-    "test:database": "pnpm run build && node --import reflect-metadata test-support/database-integration.mjs",
+    "test": "pnpm run build && node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-dist', { recursive: true, force: true })\" && tsc -p tsconfig.test.json && node --import reflect-metadata --test \".test-dist/test/**/*.test.js\" test-support/*.test.mjs",
     "verify:skills": "pnpm run build && node --import reflect-metadata test-support/verify-skill-calculation.mjs",
     "typecheck": "pnpm --filter @dfragon/lib build && tsc --noEmit -p tsconfig.test.json",
     "start": "node --import reflect-metadata dist/main.js",
     "lint": "biome lint",
-    "db:migrate:up": "pnpm run build && node --import reflect-metadata dist/database/cli.js up",
-    "db:migrate:down": "pnpm run build && node --import reflect-metadata dist/database/cli.js down",
-    "db:migrate:show": "pnpm run build && node --import reflect-metadata dist/database/cli.js show",
-    "db:migrate:generate": "pnpm run build && node --import reflect-metadata dist/database/generate-cli.js",
     "lint:fix": "biome lint --write",
     "format": "biome format --write && node ../../scripts/statement-spacing.mjs --write",
     "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check"
@@ -30,18 +24,14 @@
     "@nestjs/core": "catalog:",
     "@nestjs/platform-express": "catalog:",
     "@nestjs/swagger": "catalog:",
-    "@nestjs/typeorm": "catalog:",
-    "pg": "catalog:",
     "reflect-metadata": "catalog:",
     "remeda": "catalog:",
-    "rxjs": "catalog:",
-    "typeorm": "catalog:"
+    "rxjs": "catalog:"
   },
   "devDependencies": {
     "@nestjs/testing": "catalog:",
     "@types/express": "catalog:",
     "@types/node": "catalog:",
-    "@types/pg": "catalog:",
     "dotenv-cli": "catalog:",
     "typescript": "catalog:"
   }
