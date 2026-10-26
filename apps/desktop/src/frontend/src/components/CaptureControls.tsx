@@ -174,6 +174,7 @@ export function CaptureControls({
             )}
             <Button
               size="sm"
+              disabled={capture.sourcesLoading}
               onClick={() => capture.refreshSources()}
               {...stylex.props(shapes.cutTopRight, styles.secondaryAction)}
             >
@@ -198,7 +199,6 @@ export function CaptureControls({
               ready={capture.search.ready}
               retryStartedAt={retry.startedAt}
               onSelect={capture.selectSource}
-              onRefresh={capture.refreshSources}
             />
           </div>
         </Dialog.Popup>
