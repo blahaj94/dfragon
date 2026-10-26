@@ -2,7 +2,9 @@ import { execFileSync } from 'node:child_process'
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
-const services = ['api', 'ocr', 'accounts']
+const services = ['api']
+// 지운 서비스다. 지우기 전에 main에서 발행한 계획이 다음 run의 baseline으로 남을 수 있어 baseline에서만 무시한다.
+const retiredServices = ['ocr', 'accounts']
 const commonFiles = new Set([
   'package.json',
   'pnpm-lock.yaml',
@@ -30,10 +32,6 @@ export function selectServices(changedPaths) {
       if (path.startsWith(`apps/${service}/`)) {
         selected.add(service)
       }
-    }
-    if (path.startsWith('packages/ui/')) {
-      selected.add('ocr')
-      selected.add('accounts')
     }
   }
 
@@ -110,7 +108,7 @@ export function validatePlan(plan, sourceCommit) {
     plan.services.some((service) => !services.includes(service)) ||
     new Set(plan.services).size !== plan.services.length
   ) {
-    throw new Error('Expected a plan with unique api, ocr, or accounts services')
+    throw new Error('Expected a plan with unique api services')
   }
 
   const selectedServices = services.filter((service) => plan.services.includes(service))
@@ -129,7 +127,13 @@ export function catchUpPlan({ plan, baselinePlan, sourceCommit, cwd = process.cw
     return result
   }
 
-  const baseline = validatePlan(baselinePlan, baselinePlan?.sourceCommit)
+  const baselineServices = Array.isArray(baselinePlan?.services)
+    ? baselinePlan.services.filter((service) => !retiredServices.includes(service))
+    : baselinePlan?.services
+  const baseline = validatePlan(
+    { ...baselinePlan, services: baselineServices },
+    baselinePlan?.sourceCommit
+  )
   let diff
   try {
     git(['merge-base', '--is-ancestor', baseline.sourceCommit, current.sourceCommit], cwd)

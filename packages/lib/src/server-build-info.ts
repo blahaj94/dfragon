@@ -1,4 +1,4 @@
-export type ServerService = 'api' | 'accounts' | 'ocr'
+export type ServerService = 'api'
 
 export interface ServerBuildInfo {
   service: ServerService
