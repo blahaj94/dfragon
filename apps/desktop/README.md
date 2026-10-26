@@ -62,7 +62,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 production 환경 변수 대신 사용할 공개 API 주소이며 비우면 환경 변수를 사용합니다. 이 실행도 main branch나 `v*` tag에서 시작한 경우에만 production 환경을 쓸 수 있습니다. Release 게시와 같은 main 포함 확인을 적용합니다. 같은 이름의 exe나 checksum 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 `v<버전>` 형식이 아닌 태그도 빌드를 중단합니다. 로컬 `build:win:portable` 명령은 `package.json`의 기본 버전을 사용합니다.
 
-PR 제목 scope가 `(build)`인 관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 DFragon Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 검색, 캡처, OCR을 확인하는 용도입니다. API는 **Settings → Environments → test**의 변수 `DFRAGON_TEST_API_ORIGIN`이 있으면 그 값, 비우면 `https://api.dfragon.com`입니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 DFragon과 profile이 겹치지 않습니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
+PR 제목 scope가 `(build)`인 관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 DFragon Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 검색, 캡처, OCR을 확인하는 용도입니다. API는 항상 운영 API `https://api.dfragon.com`이며 빌드 변수로 바꾸지 않습니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 DFragon과 profile이 겹치지 않습니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
 
 ```powershell
 gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test -D "$HOME\Downloads\dfragon-test-<실행 ID>"
@@ -88,7 +88,7 @@ NSIS는 protocol을 등록하지 않으며 다른 앱의 scheme 소유를 이유
 
 ### 배포 API와 설치본 확인
 
-배포 앱은 다른 PC가 접근할 수 있는 HTTPS API를 사용합니다. 운영 API는 `https://api.dfragon.com`이며 test 채널도 변수가 없으면 이 주소를 씁니다(`build/channels.json`). 서버 설정은 [API 설정](../../docs/reference/api-start-development.md)을 따릅니다. localhost 개발 API나 예시 주소를 배포 서버로 취급하지 않습니다.
+배포 앱은 다른 PC가 접근할 수 있는 HTTPS API를 사용합니다. 운영 API는 `https://api.dfragon.com`이며 test 채널도 항상 이 주소를 씁니다(`build/channels.json`). 서버 설정은 [API 설정](../../docs/reference/api-start-development.md)을 따릅니다. localhost 개발 API나 예시 주소를 배포 서버로 취급하지 않습니다.
 
 실제 배포 origin으로 빌드한 설치 앱에서 **직접 검색 → 지정한 게임 창 캡처 → OCR → 결과**를 확인합니다. 닉네임 수정 유지, OCR 복귀, 중지 후 정리도 같은 흐름에서 확인합니다. 빌드, unit test, 합성 데이터 UI 확인은 이 실제 확인을 대신하지 않습니다.
 
