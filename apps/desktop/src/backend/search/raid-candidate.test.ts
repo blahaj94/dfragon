@@ -94,19 +94,8 @@ describe('직업명 그룹과 비교 계획', () => {
     ).toEqual({ kind: 'fame', group: [high, low], value: { min: 1000, max: 1000 } })
   })
 
-  it('장비 점수 열이면 그룹의 명성 상위 3명만 점수 비교 대상이다', () => {
-    const group = [10, 50, 40, 30, 20].map((fame) => candidate(`fame-${fame}`, fame * 1000))
-    const plan = planRaidComparison({ observed: scoreRow(100_000), candidates: group })
-
-    expect(plan).toMatchObject({ kind: 'equipment-score' })
-    expect(plan?.kind === 'equipment-score' && plan.targets.map((row) => row.characterId)).toEqual([
-      'fame-50',
-      'fame-40',
-      'fame-30'
-    ])
-  })
-
   it.each([
+    ['장비 점수 열일 때', scoreRow(100_000)],
     ['수치 열 종류를 모를 때', observed({ valueColumn: 'unknown', value: { min: 1, max: 1 } })],
     ['수치를 읽지 못했을 때', observed({ valueColumn: 'fame', value: null })]
   ])('%s 그룹 안 최고 명성 후보를 고르고 그룹 후보를 함께 돌려준다', (_case, row) => {
@@ -205,66 +194,5 @@ describe('명성 비교', () => {
     const plan = planRaidComparison({ observed: fameRow(50_000), candidates: [only] })
 
     expect(selectRaidCandidate(plan!)).toEqual({ candidate: only, selectionMethod: 'fame' })
-  })
-})
-
-describe('장비 점수 비교', () => {
-  const first = candidate('first', 90_000)
-  const second = candidate('second', 80_000)
-  const third = candidate('third', 70_000)
-
-  function selectByScore(screen: { min: number; max: number }, scores: readonly (number | null)[]) {
-    const plan = planRaidComparison({
-      observed: scoreRow(screen.min, screen.max),
-      candidates: [first, second, third]
-    })
-    const equipmentScores = scores.map((score, index) => ({
-      candidate: [first, second, third][index],
-      score
-    }))
-
-    return selectRaidCandidate(plan!, equipmentScores)
-  }
-
-  it.each([
-    // 엔진 값 50,000 근처의 0.5%는 250 남짓이라 허용 오차는 하한 500이다.
-    ['하한 500 오차와 간격 1,000이면 확정한다', [50_500, 51_500, 200_000], false],
-    ['오차가 하한 500을 넘으면 추정한다', [50_501, 52_000, 200_000], true],
-    ['간격이 오차의 2배에 못 미치면 추정한다', [50_000, 50_999, 200_000], true]
-  ])('%s', (_case, scores, ambiguous) => {
-    const selection = selectByScore({ min: 50_000, max: 50_000 }, scores)
-
-    expect(selection.candidate).toBe(first)
-    expect(selection.selectionMethod).toBe('equipment-score')
-    expect(selection.choices !== undefined).toBe(ambiguous)
-  })
-
-  it('엔진 값이 크면 허용 오차는 값의 0.5%다', () => {
-    // 엔진 값 1,000,000의 허용 오차는 5,000, 간격 기준은 10,000이다.
-    const screen = { min: 995_000, max: 995_000 }
-
-    expect(selectByScore(screen, [1_000_000, 1_010_000, 1]).choices).toBeUndefined()
-    expect(selectByScore(screen, [1_000_000, 1_009_999, 1]).choices).toEqual([first, second, third])
-    expect(
-      selectByScore({ min: 994_999, max: 994_999 }, [1_000_000, 2_000_000, 1]).choices
-    ).toEqual([first, second, third])
-  })
-
-  it('점수를 얻지 못한 후보가 있으면 가장 가까운 후보를 추정으로 고른다', () => {
-    const selection = selectByScore({ min: 100_000, max: 100_000 }, [null, 100_000, 300_000])
-
-    expect(selection).toEqual({
-      candidate: second,
-      selectionMethod: 'equipment-score',
-      choices: [first, second, third]
-    })
-  })
-
-  it('점수를 하나도 얻지 못하면 그룹 안 최고 명성 후보를 고른다', () => {
-    expect(selectByScore({ min: 100_000, max: 100_000 }, [null, null, null])).toEqual({
-      candidate: first,
-      selectionMethod: 'highest-fame',
-      choices: [first, second, third]
-    })
   })
 })

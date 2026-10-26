@@ -23,7 +23,6 @@ function candidate(overrides: Partial<ManifestCandidate>): ManifestCandidate {
     fame: null,
     jobName: '프리스트(남)',
     jobGrowName: '眞 크루세이더',
-    engineScore: null,
     ...overrides
   }
 }
@@ -59,18 +58,18 @@ function caseOf(rows: readonly RowObservation[], overrides: Partial<CaseObservat
 }
 
 describe('평가 요약', () => {
-  it('후보 값이 없으면 명성 차이와 점수 엔진 오차를 not_run으로 남긴다', () => {
+  it('후보 값이 없으면 명성 차이를 not_run으로 남긴다', () => {
     const summary = summarize([caseOf([observation(manifestRow())])], 'OCR 모델이 없습니다')
 
     expect(summary.candidates).toEqual({
       status: 'not_run',
-      reason: '후보 명성, 직업명, 점수 엔진 값을 담은 행이 없습니다'
+      reason: '후보 명성, 직업명을 담은 행이 없습니다'
     })
     expect(summary.jobOcr).toEqual({ status: 'not_run', reason: 'OCR 모델이 없습니다' })
   })
 
-  it('정답 후보와의 명성 차이, 유일한 이름의 점수 오차, 같은 직업 동명 후보 간격을 계산한다', () => {
-    const fameRow = manifestRow({
+  it('정답 후보와의 명성 차이와 같은 직업 후보 간격을 계산한다', () => {
+    const row = manifestRow({
       valueText: '120,000',
       candidates: [
         candidate({ correct: true, fame: 119_990 }),
@@ -78,71 +77,23 @@ describe('평가 요약', () => {
         candidate({ fame: 119_995, jobGrowName: '眞 인파이터' })
       ]
     })
-    const uniqueScoreRow = manifestRow({
+    const jobNameRow = manifestRow({
       row: 2,
-      valueText: '1000.4K',
-      uniqueName: true,
-      // 후보의 jobGrowName이 없고 jobName이 화면 직업명과 같으면 jobName으로 센다.
-      candidates: [
-        candidate({
-          correct: true,
-          engineScore: 1_000_000,
-          jobName: '眞 크루세이더',
-          jobGrowName: null
-        })
-      ]
-    })
-    const homonymScoreRow = manifestRow({
-      row: 3,
       valueText: '50,000',
-      uniqueName: false,
-      candidates: [
-        candidate({ correct: true, engineScore: 50_000 }),
-        candidate({ engineScore: 48_000 }),
-        candidate({ engineScore: 49_500 })
-      ]
+      // 후보의 jobGrowName이 없고 jobName이 화면 직업명과 같으면 jobName으로 센다.
+      candidates: [candidate({ correct: true, jobName: '眞 크루세이더', jobGrowName: null })]
     })
     const summary = summarize(
-      [
-        caseOf([observation(fameRow, { columnKind: 'fame' })], {
-          caseId: 'case-01',
-          expectedKind: 'fame',
-          observedKind: 'fame'
-        }),
-        caseOf([observation(uniqueScoreRow), observation(homonymScoreRow)], { caseId: 'case-02' }),
-        // 1000.4K는 1,000,400~1,000,499다. 범위 위로 벗어나면 max와의 거리, 범위 안이면 0이다.
-        caseOf(
-          [
-            observation(
-              manifestRow({
-                valueText: '1000.4K',
-                uniqueName: true,
-                candidates: [candidate({ correct: true, engineScore: 1_000_600 })]
-              })
-            ),
-            observation(
-              manifestRow({
-                row: 2,
-                valueText: '1000.4K',
-                uniqueName: true,
-                candidates: [candidate({ correct: true, engineScore: 1_000_450 })]
-              })
-            )
-          ],
-          { caseId: 'case-03' }
-        )
-      ],
+      [caseOf([observation(row, { columnKind: 'fame' }), observation(jobNameRow)])],
       null
     )
 
     expect(summary.candidates).toEqual({
       status: 'run',
-      screenJobField: { jobGrowName: 4, jobName: 1, neither: 0 },
+      screenJobField: { jobGrowName: 1, jobName: 1, neither: 0 },
       fameDifferences: [10],
-      engineErrors: [400, 101, 0],
       // 다른 직업 후보(명성 119,995)는 간격에서 빠진다.
-      fameGaps: [990],
-      engineGaps: [500]
+      fameGaps: [990]
     })
   })
 
