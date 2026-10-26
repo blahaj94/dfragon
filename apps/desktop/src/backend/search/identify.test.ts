@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 import type { MockedFunction } from 'vitest'
 import type {
   CharacterCandidate,
-  CharacterDetails,
   CharacterImage,
   CharacterPortrait
 } from '../../preload/common/types/character'
@@ -36,25 +35,6 @@ function candidate(id: string, name: string, fame: number | null): CharacterCand
   }
 }
 
-function details(characterId: string): CharacterDetails {
-  return {
-    character: { characterId, serverId: 'cain', serverName: '카인', characterName: '선택이름' },
-    status: { status: null, buff: null },
-    equipment: { equipment: [], setItemInfo: [] },
-    avatar: null,
-    creature: null,
-    oath: null,
-    mistAssimilation: null,
-    skillStyle: null,
-    buff: { equipment: null, avatar: null, creature: null },
-    sections: {},
-    freshness: {
-      lastSuccessfulFetchAt: '2026-10-07T00:00:00.000Z',
-      expiresAt: '2026-10-07T00:05:00.000Z'
-    }
-  }
-}
-
 /** 후보마다 다른 얼굴 창이라 선택지의 창이 어느 후보의 점수에서 왔는지 구분할 수 있다. */
 function faceOf(characterId: string): { x: number; y: number; width: number; height: number } {
   return { x: characterId.length, y: 2, width: 26, height: 26 }
@@ -66,7 +46,6 @@ function fixture(distances: Record<string, number> = { high: 20, low: 10, null: 
   findCandidates: MockedFunction<IdentificationServices['findCandidates']>
   loadPortrait: MockedFunction<IdentificationServices['loadPortrait']>
   scorePortrait: MockedFunction<IdentificationServices['scorePortrait']>
-  getDetails: MockedFunction<IdentificationServices['getDetails']>
   services: IdentificationServices
   identify: ReturnType<typeof createCharacterIdentifier>
   input: CharacterIdentificationInput
@@ -99,12 +78,7 @@ function fixture(distances: Record<string, number> = { high: 20, low: 10, null: 
 
     return { distance, alignment: faceOf(characterId) }
   })
-  const getDetails = vi.fn<IdentificationServices['getDetails']>(async ({ characterId }) => {
-    calls.push(`details:${characterId}`)
-
-    return details(characterId)
-  })
-  const services = { findCandidates, loadPortrait, scorePortrait, getDetails }
+  const services = { findCandidates, loadPortrait, scorePortrait }
   const identify = createCharacterIdentifier(services, SELECTION)
   const input: CharacterIdentificationInput = { nicknames: ['첫이름', '둘째이름'], portrait }
 
@@ -113,7 +87,6 @@ function fixture(distances: Record<string, number> = { high: 20, low: 10, null: 
     findCandidates,
     loadPortrait,
     scorePortrait,
-    getDetails,
     services,
     identify,
     input
@@ -144,7 +117,7 @@ describe('캐릭터 식별 규칙', () => {
       expect.objectContaining({ characterId: 'low', face: null }),
       expect.objectContaining({ characterId: 'null', face: null })
     ])
-    expect(f.calls).toEqual(['candidates:첫이름', 'details:high'])
+    expect(f.calls).toEqual(['candidates:첫이름'])
   })
 
   it('명성 순으로 후보 전원의 점수를 구한 뒤 가장 가까운 후보를 얼굴로 선택한다', async () => {
@@ -153,7 +126,6 @@ describe('캐릭터 식별 규칙', () => {
     expect(await f.identify(f.input)).toEqual({
       kind: 'matched',
       candidate: candidate('null', '첫이름', null),
-      details: details('null'),
       nickname: '첫이름',
       selectionMethod: 'portrait'
     })
@@ -164,8 +136,7 @@ describe('캐릭터 식별 규칙', () => {
       'image:low',
       'score:low',
       'image:null',
-      'score:null',
-      'details:null'
+      'score:null'
     ])
     expect(f.findCandidates).toHaveBeenCalledExactlyOnceWith('첫이름')
   })
@@ -213,7 +184,6 @@ describe('캐릭터 식별 규칙', () => {
       ])
     }
     expect(f.scorePortrait).toHaveBeenCalledTimes(3)
-    expect(f.getDetails).toHaveBeenCalledOnce()
   })
 
   it('후보 직업으로 아는 얼굴 위치를 비교 기준으로 넘기고 모르는 직업은 null로 넘긴다', async () => {
@@ -313,8 +283,7 @@ describe('캐릭터 식별 규칙', () => {
       'image:high',
       'score:high',
       'image:null',
-      'score:null',
-      'details:null'
+      'score:null'
     ])
   })
 
@@ -422,7 +391,7 @@ describe('캐릭터 식별 규칙', () => {
       candidate: { characterId: 'only' }
     })
     expect(identified).not.toHaveProperty('choices')
-    expect(f.calls).toEqual(['details:only'])
+    expect(f.calls).toEqual([])
   })
 
   it('이미지 조회 오류는 대체 선택으로 바꾸지 않고 그대로 전달한다', async () => {
@@ -431,16 +400,14 @@ describe('캐릭터 식별 규칙', () => {
     f.loadPortrait.mockRejectedValueOnce(error)
 
     await expect(f.identify(f.input)).rejects.toBe(error)
-    expect(f.getDetails).not.toHaveBeenCalled()
   })
 
-  it('이름 검색이 비어 있으면 둘째 이름이나 상세를 조회하지 않는다', async () => {
+  it('이름 검색이 비어 있으면 둘째 이름을 조회하지 않는다', async () => {
     const f = fixture()
     f.findCandidates.mockResolvedValueOnce([])
 
     expect(await f.identify(f.input)).toEqual({ kind: 'unmatched' })
     expect(f.findCandidates).toHaveBeenCalledExactlyOnceWith('첫이름')
-    expect(f.getDetails).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -496,37 +463,26 @@ describe('캐릭터 식별 규칙', () => {
     )
   })
 
-  it('수동 조회는 선택한 서버와 원문 이름으로만 상세를 선택한다', async () => {
+  it('수동 조회는 선택한 서버와 원문 이름으로만 캐릭터를 선택한다', async () => {
     const f = fixture()
     f.findCandidates.mockResolvedValueOnce([
       candidate('other-server', '첫이름', 100),
       { ...candidate('wrong-name', '다른이름', 90), serverId: 'siroco' },
       { ...candidate('chosen', '첫이름', 50), serverId: 'siroco' }
     ])
-    const lookup = createManualCharacterLookup({
-      findCandidates: f.findCandidates,
-      getDetails: f.getDetails
-    })
+    const lookup = createManualCharacterLookup({ findCandidates: f.findCandidates })
 
     expect(await lookup({ nickname: '첫이름', serverId: 'siroco' })).toMatchObject({
-      candidate: { characterId: 'chosen' },
+      candidate: { characterId: 'chosen', serverId: 'siroco' },
       selectionMethod: 'manual'
-    })
-    expect(f.getDetails).toHaveBeenCalledExactlyOnceWith({
-      serverId: 'siroco',
-      characterId: 'chosen'
     })
     expect(f.loadPortrait).not.toHaveBeenCalled()
   })
 
   it('지정한 서버에 없으면 다른 서버 캐릭터로 대체하지 않는다', async () => {
     const f = fixture()
-    const lookup = createManualCharacterLookup({
-      findCandidates: f.findCandidates,
-      getDetails: f.getDetails
-    })
+    const lookup = createManualCharacterLookup({ findCandidates: f.findCandidates })
 
     expect(await lookup({ nickname: '첫이름', serverId: 'siroco' })).toEqual({ kind: 'unmatched' })
-    expect(f.getDetails).not.toHaveBeenCalled()
   })
 })

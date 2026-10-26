@@ -51,6 +51,27 @@ describe('toSlotCards', () => {
     expect(idle.character).toBeUndefined()
   })
 
+  it('상세를 채우는 중인 슬롯은 점수 대기로, 받지 못한 슬롯은 직접 조회 안내로 보인다', () => {
+    const [pending, failed, filled] = toSlotCards(
+      input(
+        [
+          slot('success', { selected: summary, details: 'pending' }),
+          slot('success', { selected: summary, details: 'failed' }),
+          slot('success', { selected: summary })
+        ],
+        { screen: 'raid' }
+      )
+    )
+
+    expect(pending).toMatchObject({ scorePending: true, character: { name: '합성' } })
+    expect(pending.notice).toBeUndefined()
+    expect(failed).toMatchObject({
+      scorePending: false,
+      notice: '상세 정보를 불러오지 못했습니다. 서버와 이름을 직접 조회하면 다시 불러옵니다.'
+    })
+    expect(filled.scorePending).toBe(false)
+  })
+
   it('인식한 이름이 없는 슬롯은 nickname을 비운다', () => {
     const [named, unnamed] = toSlotCards(
       input([slot('idle'), slot('idle')], { nicknames: ['OCR첫후보', null] })
