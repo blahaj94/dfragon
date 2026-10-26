@@ -7,6 +7,7 @@ import { CAPTURE_ID, searchSnapshot } from '../../preload/api/search-test-fixtur
 import type { SearchApi } from '../../preload/common/types/search'
 import { emptySearchSlots } from './lib/slots'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
+import type { UpdateNoticeApi } from '../../preload/common/types/update-notice'
 import type { WindowChromeApi } from '../../preload/common/types/window-chrome'
 
 let root: Root
@@ -103,6 +104,59 @@ it('시스템 설정이 라이트여도 새 기본 화면은 다크 테마로 �
   )
   expect(document.documentElement.dataset.theme).toBe('dark')
   expect(container.querySelector('header [aria-label$="테마"]')).toBeNull()
+})
+
+it('새 버전 알림은 카드 위가 아닌 상단 바 칩으로 보이고 메뉴의 닫기로 사라지며 창 높이는 그대로다', async () => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe(): void {
+        return
+      }
+      unobserve(): void {
+        return
+      }
+      disconnect(): void {
+        return
+      }
+    }
+  )
+  const dismissUpdateNotice = vi.fn<UpdateNoticeApi['dismissUpdateNotice']>(async () => ({
+    revision: 2,
+    notice: null
+  }))
+  vi.stubGlobal('updateNotice', {
+    getUpdateNotice: vi.fn(async () => ({ revision: 1, notice: { tag: 'v1.2.0' } })),
+    dismissUpdateNotice,
+    openUpdateRelease: vi.fn(async () => {}),
+    onUpdateNoticeChanged: vi.fn(() => () => {})
+  } satisfies UpdateNoticeApi)
+  const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {})
+  vi.stubGlobal('windowChrome', { setContentHeight })
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
+  const header = container.querySelector('header')!
+  const chip = [...header.querySelectorAll('button')].find(
+    (button) => button.textContent === '새 버전 v1.2.0'
+  )!
+  const captureChip = header.querySelector('button[aria-label^="화면 캡처"]')!
+  expect(chip.compareDocumentPosition(captureChip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(container.querySelector('[aria-label="새 버전 알림"]')).toBeNull()
+  expect(container.textContent?.match(/새 버전/g)).toHaveLength(1)
+
+  await act(async () => chip.click())
+  const dismiss = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+    (item) => item.textContent === '닫기'
+  )!
+  await act(async () => dismiss.click())
+  expect(dismissUpdateNotice).toHaveBeenCalledExactlyOnceWith('v1.2.0')
+  expect(header.textContent).not.toContain('새 버전')
+  expect(setContentHeight).not.toHaveBeenCalled()
 })
 
 it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 자리별 조회는 파티 검색과 따로 보낸다', async () => {
