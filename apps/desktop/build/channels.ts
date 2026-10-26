@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import type { DesktopChannel } from '../src/backend/auth/desktop-channel'
-import { validateApiOrigin } from '../src/backend/auth/protocol'
+import type { DesktopChannel } from '../src/backend/lib/app-channel'
+import { validateApiOrigin } from '../src/backend/lib/api-origin'
 import channelsFile from './channels.json'
 
 const publicTextSchema = z.string().min(1)
@@ -17,16 +17,8 @@ const channelSchema = z.strictObject({
     installerInclude: publicTextSchema.optional(),
     artifactPrefix: publicTextSchema.optional()
   }),
-  identity: z.strictObject({
-    appIdentity: publicTextSchema,
-    auth: z
-      .strictObject({
-        environment: publicTextSchema,
-        providers: z.array(publicTextSchema).min(1)
-      })
-      .optional()
-  }),
-  origins: z.strictObject({ api: originSourceSchema, accounts: originSourceSchema.optional() })
+  identity: z.strictObject({ appIdentity: publicTextSchema }),
+  origins: z.strictObject({ api: originSourceSchema })
 })
 const channelsSchema = z.strictObject({
   development: channelSchema,
@@ -91,13 +83,6 @@ function describeOriginRequirement(allowsLoopback: boolean): string {
 }
 
 function assertPublicChannelValues(name: string, channel: Channel): void {
-  const { auth } = channel.identity
-  if (auth != null) {
-    if (channel.origins.accounts == null) {
-      throw new Error(`Set an accounts origin for the ${name} channel, which enables login.`)
-    }
-  }
-
   const allowsLoopback = name === LOOPBACK_ORIGIN_CHANNEL
   for (const [kind, source] of Object.entries(channel.origins)) {
     const origin = typeof source === 'string' ? source : source.default
@@ -136,9 +121,6 @@ export function readChannelOrigin(
   environment: BuildEnvironment = process.env
 ): string {
   const source = channels[name].origins[kind]
-  if (source == null) {
-    throw new Error(`The ${name} channel has no ${kind} origin.`)
-  }
   const isLiteralOrigin = typeof source === 'string'
   if (isLiteralOrigin) {
     return source
@@ -195,12 +177,8 @@ export function readDesktopChannel(
   name: ChannelName,
   environment: BuildEnvironment = process.env
 ): DesktopChannel {
-  const { identity, origins } = channels[name]
+  const { identity } = channels[name]
   const api = readChannelOrigin(name, 'api', environment)
-  if (origins.accounts == null) {
-    return { name, identity, origins: { api } }
-  }
-  const accounts = readChannelOrigin(name, 'accounts', environment)
 
-  return { name, identity, origins: { api, accounts } }
+  return { name, identity, origins: { api } }
 }

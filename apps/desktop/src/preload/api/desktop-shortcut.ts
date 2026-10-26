@@ -7,7 +7,7 @@ import {
 
 export const onDesktopShortcut: DesktopShortcutApi['onDesktopShortcut'] = (listener) => {
   const wrapper = (_event: Electron.IpcRendererEvent, value: unknown): void => {
-    if (value === DESKTOP_SHORTCUTS.restartSearch || value === DESKTOP_SHORTCUTS.uploadCapture) {
+    if (value === DESKTOP_SHORTCUTS.restartSearch) {
       listener(value)
     }
   }

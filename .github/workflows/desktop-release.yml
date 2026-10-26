@@ -33,8 +33,7 @@ jobs:
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
       DFRAGON_CHANNEL: distribution
-      # Empty means the channels.json default. The API origin has no default and must be configured.
-      DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: ${{ vars.DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN }}
+      # The API origin has no channels.json default and must be configured.
       DFRAGON_DISTRIBUTION_API_ORIGIN: ${{ inputs.api_origin || vars.DFRAGON_DISTRIBUTION_API_ORIGIN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

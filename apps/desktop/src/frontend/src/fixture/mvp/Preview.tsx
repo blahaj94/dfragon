@@ -5,10 +5,7 @@ import { MainNav, type SearchMode } from '../../components/MainNav'
 import { BoardHeader } from '../../components/BoardHeader'
 import { TopBar } from '../../components/TopBar'
 import { usePartyCollapse } from '../../hooks/usePartyCollapse'
-import { LoginSection } from '../../sections/LoginSection'
-import { SettingsSection } from '../../sections/SettingsSection'
 import { PartyPage } from '../../pages/party/PartyPage'
-import { CharacterDetailPage } from '../../pages/character-detail/CharacterDetailPage'
 import { RaidPage } from '../../pages/raid/RaidPage'
 import { scenarios } from './scenarios'
 import {
@@ -17,11 +14,9 @@ import {
   getCapturePreviewPhase
 } from './capture-preview'
 import { getCharacterPreview } from './character-preview'
-import { createPreviewAuthApi } from './settings-preview'
 import { styles } from './Preview.style'
 import {
   candidatePreviewChoices,
-  facePreviewCharacters,
   previewCharacter,
   rolePreviewCharacters,
   snapshotPreviewPartyRounds,
@@ -35,7 +30,6 @@ import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
 import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
 
 export function Preview(): React.JSX.Element {
-  const query = new URLSearchParams(window.location.search)
   const [scenario, setScenario] = useState('states')
   const [captureState, setCaptureState] = useState('idle')
   const [source, setSource] = useState('')
@@ -52,9 +46,6 @@ export function Preview(): React.JSX.Element {
   const [raidRound, setRaidRound] = useState(0)
   const partyCardsId = useId()
   const raidCardsId = useId()
-  // 설정 대화상자의 합성 로그인과 개발자 모드. 개발 도구 열기는 미리보기에서 아무 일도 하지 않는다.
-  const [authApi] = useState(createPreviewAuthApi)
-  const [developerEnabled, setDeveloperEnabled] = useState(false)
   // 후보 줄 미리보기에서 슬롯마다 미리보기 중이거나 확정한 후보의 서버
   const [candidatePicks, setCandidatePicks] = useState<
     readonly ({ serverId: string; confirmed: boolean } | null)[]
@@ -69,14 +60,13 @@ export function Preview(): React.JSX.Element {
     phase === 'recognizing' ||
     phase === 'complete' ||
     phase === 'unavailable'
-  const detail = query.get('detail') === 'sample'
   const character = getCharacterPreview(scenario, previewCharacter)
   const identification = scenario === 'identification'
   const identifiedCharacter = {
     ...character,
     characterId: 'preview-selected',
     fame: null,
-    // main이 카드 값을 넘기지 않은 제품 카드처럼 세 면을 `-`로 보인다.
+    // main이 카드 값을 넘기지 않은 제품 카드처럼 점수를 `-`로 보인다.
     card: null
   }
   let characters: readonly (CardCharacter | null)[] | undefined
@@ -86,8 +76,6 @@ export function Preview(): React.JSX.Element {
     characters = tierPreviewCharacters
   } else if (scenario === 'roles') {
     characters = rolePreviewCharacters
-  } else if (scenario === 'faces') {
-    characters = facePreviewCharacters
   } else if (scenario === 'snapshot') {
     characters = snapshotPreviewPartyRounds[partyRound % snapshotPreviewPartyRounds.length]
   }
@@ -166,35 +154,11 @@ export function Preview(): React.JSX.Element {
 
     return { state, character: selected, snapshotMark: raidSnapshotMarks[slot] }
   })
-  const openDetail = (): void => {
-    const url = new URL(window.location.href)
-    // 상세 창은 테마와 관계없이 다크 카드 패널이다.
-    url.search = new URLSearchParams({ detail: 'sample', theme: 'dark' }).toString()
-    window.open(url.href, 'dfragon-mvp-detail')
-  }
-
-  if (detail) {
-    return <CharacterDetailPage character={character} />
-  }
 
   return (
     <main {...stylex.props(styles.app)}>
       <TopBar
         nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
-        showCapture
-        settings={
-          <SettingsSection
-            account={<LoginSection api={authApi} />}
-            developerMode={{
-              status: 'ready',
-              enabled: developerEnabled,
-              updating: false,
-              retry: () => {},
-              setEnabled: setDeveloperEnabled
-            }}
-            onOpenDeveloperWorkbench={() => {}}
-          />
-        }
         capture={
           <CaptureControls
             capture={{
@@ -242,10 +206,8 @@ export function Preview(): React.JSX.Element {
             collapsed={party.collapsed}
             slots={partyCards}
             resetKey={scenario}
-            compareFaces={scenario === 'faces' || scenario === 'missing'}
             inputEnabled
             actions={{
-              openDetails: openDetail,
               retrySlot: identification ? () => setScenario('pending') : undefined,
               pickCandidate: candidates ? pickCandidate : undefined
             }}
@@ -289,7 +251,6 @@ export function Preview(): React.JSX.Element {
                 }
               }}
               collapsed={party.collapsed}
-              actions={{ openDetails: openDetail }}
             />
           </div>
         )}
@@ -331,7 +292,6 @@ export function Preview(): React.JSX.Element {
             {...stylex.props(styles.select)}
           >
             <option value="states">기본, 상태 비교</option>
-            <option value="faces">세 면 비교</option>
             <option value="pending">검색 중, 결과 없음</option>
             <option value="missing">누락, 이미지 실패</option>
             <option value="identification">자동 식별 상태</option>
@@ -342,10 +302,10 @@ export function Preview(): React.JSX.Element {
           </select>
         </footer>
         <p {...stylex.props(styles.notice)}>
-          합성 데이터 미리보기, 카드 아래 면 탭으로 넘기고, 우측 상단에서 상세를 여세요.
+          합성 데이터 미리보기입니다.
           <br />
           캡처 모달은 합성 창으로 동작하며 실제 화면을 캡처하지 않습니다. 이름 입력, 서버 선택은
-          조작 확인용이며 검색되지 않습니다. 마법부여 등급은 디자인 예시입니다.
+          조작 확인용이며 검색되지 않습니다.
         </p>
       </div>
     </main>

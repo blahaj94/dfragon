@@ -3,19 +3,16 @@ import {
   CardFrame,
   NumericText,
   ProgressCircle,
-  Tabs,
   Typo,
   shapes,
   typographyVariants
 } from '@dfragon/ui'
-import { ExternalLinkIcon } from '../components/ExternalLinkIcon'
 import { HourglassIcon } from '../components/HourglassIcon'
 import {
   getCharacterCardFrameState,
   getCharacterCardStatus,
   isVacantSlot
 } from '../lib/card-presentation'
-import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
@@ -24,28 +21,18 @@ import { useLookupDraft } from '../hooks/useLookupDraft'
 import { CardImage } from '../components/CardImage'
 import { CandidateStrip } from '../components/CandidateStrip'
 import { styles as stripStyles } from '../components/CandidateStrip.style'
-import { EquipmentSummary } from '../components/EquipmentSummary'
-import { InvestmentTable } from '../components/InvestmentTable'
 import { styles } from './CharacterCard.style'
 import { serverNames } from '../constants/servers'
-import { MISSING_VALUE, cardFaces, tierLabels } from '../constants/cards'
+import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import type { SlotCard } from '../lib/slot-cards'
-import {
-  type ScoreView,
-  formatApproximateScore,
-  toCharacterFace,
-  toEquipmentFace,
-  toInvestmentRows
-} from '../lib/card-faces'
-import type { CardCharacter, CharacterTier } from '../types/cards'
+import { type ScoreView, formatApproximateScore, toScoreView } from '../lib/card-score'
+import type { CharacterTier } from '../types/cards'
 
 export function CharacterCard({
   card,
   slot,
-  initialFace = 0,
   inputEnabled = false,
   collapsed = false,
-  onDetail,
   onRetry,
   onLookup,
   onPickCandidate
@@ -53,11 +40,9 @@ export function CharacterCard({
   /** 이 슬롯이 그릴 검색 상태, 찾은 캐릭터, 인식한 이름, 안내, 진행과 스냅샷 표시 */
   card: SlotCard
   slot: number
-  initialFace?: number
   inputEnabled?: boolean
-  /** 파티 머리의 접기. 그림 칸, 직업, 면 탭을 접고 머리, 소속, 이름, 명성, 점수만 남긴다. */
+  /** 파티 머리의 접기. 그림 칸과 직업을 접고 머리, 소속, 이름, 명성, 점수만 남긴다. */
   collapsed?: boolean
-  onDetail?: () => void
   onRetry?: () => void
   onLookup?: (nickname: string, serverId: string) => void
   /** 후보 줄의 후보를 서버로 누른다. */
@@ -80,15 +65,12 @@ export function CharacterCard({
   const compactPicker = collapsed && picker !== undefined
   // 찾은 자리는 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
   const nickname = characterFound ? undefined : card.nickname
-  const [face, setFace] = useState(initialFace)
   const draft = useLookupDraft({ character, nickname, onLookup })
   const { name, serverId, inputNotice, editing } = draft
   // 고치는 동안에는 입력 칸의 글자를 그대로 보이고, 그 밖에는 칸보다 긴 이름을 흐르게 한다.
   const nameMarquee = compactPicker && !draft.active && name !== ''
   const hasCharacter = state === 'success' && character != null && !editing
-  // 접힌 카드는 캐릭터 면만 보이고, 펼치면 고른 면으로 돌아온다.
-  const shownFace = collapsed || !hasCharacter ? 0 : face
-  const characterFace = toCharacterFace(characterFound ? character.card : null, 'long')
+  const score = toScoreView(characterFound ? character.card : null)
   const vacant = isVacantSlot(state)
   const busy = loading || state === 'pending'
   const cardStatus = getCharacterCardStatus(state)
@@ -150,19 +132,6 @@ export function CharacterCard({
           )}
           {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="party" />}
           <span {...stylex.props(styles.spacer)} />
-          {characterFound && (
-            <span
-              {...stylex.props(
-                styles.rank,
-                tier === 'top' && styles.rankTop,
-                tier === 'ranker' && styles.rankRanker,
-                tier === 'ranker' && shapes.cutTopRight
-              )}
-            >
-              <span aria-hidden="true">{characterFace.serverRank.text}</span>
-              <span {...stylex.props(shapes.srOnly)}>{characterFace.serverRank.label}</span>
-            </span>
-          )}
           {frameState === 'selected' && (
             <span
               role="img"
@@ -192,28 +161,9 @@ export function CharacterCard({
               <HourglassIcon width="14" height="14" />
             </span>
           )}
-          {!vacant && (
-            <button
-              type="button"
-              disabled={!hasCharacter || onDetail == null}
-              aria-label={`${slot}번 캐릭터 상세 열기`}
-              onClick={onDetail}
-              {...stylex.props(styles.detail)}
-            >
-              <ExternalLinkIcon width="16" height="16" />
-            </button>
-          )}
         </div>
-        <Tabs.Root
-          value={shownFace}
-          onValueChange={(value: unknown) => {
-            if (typeof value === 'number') {
-              setFace(value)
-            }
-          }}
-          {...stylex.props(styles.body)}
-        >
-          <Tabs.Panel value={0} {...stylex.props(styles.characterFace)}>
+        <div {...stylex.props(styles.body)}>
+          <div {...stylex.props(styles.characterFace)}>
             <div
               {...stylex.props(
                 shapes.gridWell,
@@ -335,55 +285,13 @@ export function CharacterCard({
                   <CandidateStrip slot={slot} picker={picker} onPick={onPickCandidate} compact />
                 )}
               </div>
-              {((editing && state === 'success') || characterFound) && (
+              {editing && state === 'success' && (
                 <div {...stylex.props(styles.collapsible, collapsed && styles.collapsibleHidden)}>
-                  {editing && state === 'success' && (
-                    <Typo.caption {...stylex.props(styles.hint)}>Enter로 조회</Typo.caption>
-                  )}
-                  {characterFound && (
-                    <dl {...stylex.props(styles.statLine)}>
-                      {characterFace.stats.map((stat) => (
-                        <div key={stat.label} {...stylex.props(styles.statItem)}>
-                          <Typo.caption as="dt" {...stylex.props(styles.statItemLabel)}>
-                            {stat.label}
-                          </Typo.caption>
-                          <dd {...stylex.props(styles.statItemValue)}>
-                            <span
-                              {...stylex.props(
-                                styles.statItemNumber,
-                                stat.value === MISSING_VALUE && styles.statItemMissing
-                              )}
-                            >
-                              {stat.value}
-                            </span>
-                            {stat.unit !== '' && (
-                              <Typo.caption {...stylex.props(styles.statItemUnit)}>
-                                {stat.unit}
-                              </Typo.caption>
-                            )}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
+                  <Typo.caption {...stylex.props(styles.hint)}>Enter로 조회</Typo.caption>
                 </div>
               )}
             </div>
-          </Tabs.Panel>
-          {hasCharacter && (
-            <>
-              <Tabs.Panel value={1} {...stylex.props(styles.face)}>
-                <FaceTitle name={character.name} job={character.job} />
-                <EquipmentFace character={character} />
-              </Tabs.Panel>
-              <Tabs.Panel value={2} {...stylex.props(styles.face)}>
-                <FaceTitle name={character.name} job={character.job} />
-                <div {...stylex.props(styles.investment)}>
-                  <InvestmentTable rows={toInvestmentRows(character.card, character.itemImages)} />
-                </div>
-              </Tabs.Panel>
-            </>
-          )}
+          </div>
           <dl
             {...stylex.props(
               styles.stats,
@@ -409,61 +317,24 @@ export function CharacterCard({
               )}
             >
               <Typo.caption as="dt" {...stylex.props(styles.statLabel)}>
-                {characterFace.score.label}
+                {score.label}
               </Typo.caption>
               <StatValue
-                value={characterFace.score.value}
+                value={score.value}
                 vacant={vacant}
                 tier={tier}
-                role={characterFace.score.tone}
-                approximate={characterFace.score.approximate}
-                description={characterFace.score.description}
+                role={score.tone}
+                approximate={score.approximate}
+                description={score.description}
               />
             </div>
           </dl>
-          <div {...stylex.props(styles.faces, collapsed && styles.collapsibleHidden)}>
-            {vacant ? (
-              <div aria-hidden="true" {...stylex.props(styles.facesVacant)} />
-            ) : (
-              <Tabs.List surface="card" aria-label={`${slot}번 카드 면`}>
-                {cardFaces.map((label, index) => (
-                  <Tabs.Tab key={label} value={index} disabled={index > 0 && !hasCharacter}>
-                    {label}
-                  </Tabs.Tab>
-                ))}
-              </Tabs.List>
-            )}
-          </div>
-        </Tabs.Root>
+        </div>
         {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
         <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
           {hasCharacter ? character?.name : status}
         </span>
       </CardFrame>
-    </div>
-  )
-}
-
-// 장비와 기타 면 맨 위의 이름과 직업 한 줄. 이름 입력과 서버 선택은 캐릭터 면과 머리에만 둔다.
-function FaceTitle({ name, job }: { name: string; job: string }): React.JSX.Element {
-  return (
-    <div {...stylex.props(styles.faceTitle)}>
-      <span {...stylex.props(styles.faceName)}>{name}</span>
-      <span {...stylex.props(styles.spacer)} />
-      <Typo.caption {...stylex.props(styles.faceJob)}>{job}</Typo.caption>
-    </div>
-  )
-}
-
-// 장비 면의 세트와 서약 섹션.
-function EquipmentFace({ character }: { character: CardCharacter }): React.JSX.Element {
-  const { set, oath } = toEquipmentFace(character.card, character.itemImages)
-
-  return (
-    <div {...stylex.props(styles.equipment)}>
-      <EquipmentSummary label="세트" summary={set} />
-      <div aria-hidden="true" {...stylex.props(styles.equipmentDivider)} />
-      <EquipmentSummary label="서약" summary={oath} upgrades={oath.upgrades} />
     </div>
   )
 }

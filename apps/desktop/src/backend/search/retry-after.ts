@@ -1,6 +1,6 @@
-import type { AuthClock } from '../auth/types'
+import type { MonotonicClock } from '../lib/monotonic-clock'
 
-export type RetryAfter = { clock: AuthClock; receivedAt: number; seconds: number }
+export type RetryAfter = { clock: MonotonicClock; receivedAt: number; seconds: number }
 
 export function remainingRetryAfter({ clock, receivedAt, seconds }: RetryAfter): number {
   const elapsed = clock.read().monotonicMs - receivedAt

@@ -1,25 +1,13 @@
-import { app, BrowserWindow, nativeTheme, powerMonitor, session } from 'electron'
+import { app, BrowserWindow, nativeTheme, session } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'node:url'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { validateDevRendererUrl } from './renderer-document'
-import {
-  collectCurrentCapture,
-  registerCaptureIpc,
-  registerCaptureWindow
-} from './capture/ipc-handler'
+import { registerCaptureIpc, registerCaptureWindow } from './capture/ipc-handler'
 import { registerCapturePermissions } from './capture/permission-policy'
-import { registerAuthIpc } from './auth/ipc-handler'
-import { bootstrapAuthRuntime, type AuthRuntime } from './auth/bootstrap'
-import { createAuthAppLifecycle } from './auth/app-lifecycle'
-import { createAuthRuntimeEffects } from './auth/runtime-effects'
-import {
-  applyAuthRuntimeProfile,
-  AuthRuntimeProfileApplicationFailure
-} from './auth/runtime-config'
-import { readAppApiOrigin, readAppAuthConfig, readAppChannelName } from './auth/app-config'
-import { registerDeveloperWindow } from './developer/ipc-handler'
+import { readAppApiOrigin, readAppChannelName, readAppIdentity } from './lib/app-channel'
+import { createMonotonicClock } from './lib/monotonic-clock'
 import { fetchApi } from './api-fetch'
 import { readReleaseFeed } from './update-notice/http'
 import { createUpdateNotices } from './update-notice/notices'
@@ -27,83 +15,54 @@ import { registerUpdateNoticeWindow } from './update-notice/ipc-handler'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './search/portrait-policy'
 import { createLazyScoreEngine, loadScoreEngine, resolveScoreLibraryPath } from './score/engine'
 import { registerDesktopShortcuts } from './shortcuts/register'
-import { DESKTOP_SHORTCUTS } from '../preload/common/types/desktop-shortcut'
-import { AUTH_AVAILABLE_ARGUMENT } from '../preload/common/types/auth'
-import { createOcrCollection } from './ocr-collection/collection'
-import { isOcrCollectionEnabled } from './ocr-collection/policy'
 import { registerDiagnosticsWindow } from './diagnostics/ipc-handler'
 import { registerWindowChromeWindow } from './window-chrome/ipc-handler'
 import { MAIN_WINDOW_SIZE, WINDOW_CHROME_COLORS } from '../preload/common/window-chrome'
 import { getTitleBarOverlay } from './window-chrome/title-bar-overlay'
 import { registerMainDiagnosticErrors, reportDiagnostic } from './diagnostics/log'
-import {
-  registerCharacterDetailWindows,
-  openSelectedCharacterDetail
-} from './character-detail/windows'
 
-const parsedRuntimeConfig = readAppAuthConfig(app)
-type RuntimeProfileState =
-  | Readonly<{ status: 'inactive-config' }>
-  | Readonly<{ status: 'preparation-failed' }>
-  | Readonly<{ status: 'application-failed' }>
-  | Readonly<{ status: 'applied'; config: NonNullable<typeof parsedRuntimeConfig> }>
-const runtimeProfileState: RuntimeProfileState = (() => {
-  if (parsedRuntimeConfig == null) {
-    return { status: 'inactive-config' }
-  }
+// 채널 빌드는 채널마다 profile 폴더와 Windows 작업 표시줄 묶음을 나누고, 같은 채널은 한 인스턴스만 띄운다.
+// 두 인스턴스가 함께 뜨면 Alt+R 전역 단축키를 서로 가져간다.
+const appIdentity = readAppIdentity()
+let ownsInstance = true
+if (appIdentity != null) {
   try {
-    const appliedConfig = applyAuthRuntimeProfile(app, parsedRuntimeConfig)
-
-    return { status: 'applied', config: appliedConfig }
-  } catch (error) {
-    const isApplicationFailure = error instanceof AuthRuntimeProfileApplicationFailure
-    const status = isApplicationFailure ? 'application-failed' : 'preparation-failed'
-
-    return { status }
+    app.setPath('userData', join(app.getPath('appData'), appIdentity))
+    app.setName(appIdentity)
+    app.setAppUserModelId(appIdentity)
+  } catch {
+    app.exit(1)
   }
-})()
-const runtimeConfig = runtimeProfileState.status === 'applied' ? runtimeProfileState.config : null
-// Credential file은 적용된 profile의 단일 인스턴스만 쓴다.
-const ownsAuthProfile = runtimeConfig != null && app.requestSingleInstanceLock()
-if (runtimeConfig != null && !ownsAuthProfile) {
-  app.quit()
+  ownsInstance = app.requestSingleInstanceLock()
+  if (!ownsInstance) {
+    app.quit()
+  }
 }
-const authAppLifecycle = createAuthAppLifecycle({
-  app,
-  ownsAuthProfile: () => ownsAuthProfile
-})
 
-if (runtimeProfileState.status === 'application-failed') {
-  app.exit(1)
-}
 // 알림 상태는 창을 다시 만들어도 앱 실행 동안 유지한다. 확인은 배포 채널에서만 시작한다.
 const updateNotices = createUpdateNotices({
   currentVersion: app.getVersion(),
   readFeed: (signal) => readReleaseFeed(fetchApi, signal),
   onFailure: reportDiagnostic
 })
+let mainWindow: BrowserWindow | null = null
 
-function createWindow(authRuntime: AuthRuntime | null): void {
+function createWindow(): void {
   const devUrl = process.env['ELECTRON_RENDERER_URL']
-  const isDevelopment = is.dev
-  const hasDevUrl = devUrl != null
-  const shouldLoadDevUrl = isDevelopment && hasDevUrl
+  const shouldLoadDevUrl = is.dev && devUrl != null
   const entry = join(__dirname, '../frontend/index.html')
   const rendererDocumentUrl = shouldLoadDevUrl
     ? validateDevRendererUrl(devUrl)
     : pathToFileURL(entry).href
-  const previousWindow = authAppLifecycle.getWindow()
-  const hasReusableWindow = previousWindow != null && !previousWindow.isDestroyed()
-  if (hasReusableWindow) {
+  if (mainWindow != null && !mainWindow.isDestroyed()) {
     throw new Error('Main window already exists.')
   }
-  authAppLifecycle.prepareWindow()
   const theme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
   const window = new BrowserWindow({
     width: MAIN_WINDOW_SIZE.width,
     height: MAIN_WINDOW_SIZE.height,
     // dfragon-design layout.md의 최소 창이다. 이 폭에서 상단 바는 제품 이름만 숨기면 Windows 창 버튼(138)과
-    // 내비, 상태 칩, 로그인 버튼이 있는 도구 묶음이 겹치지 않고, 파티 카드 네 장이 한 줄에 들어간다.
+    // 내비, 상태 칩, 도구 묶음이 겹치지 않고, 파티 카드 네 장이 한 줄에 들어간다.
     // 접은 창은 renderer 요청으로 최소 높이를 낮춘다.
     minWidth: MAIN_WINDOW_SIZE.minWidth,
     minHeight: MAIN_WINDOW_SIZE.minHeight,
@@ -116,17 +75,12 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     webPreferences: {
       backgroundThrottling: false,
       preload: join(__dirname, '../preload/index.js'),
-      // 아래에서 인증 IPC를 등록하는 창에만 preload가 인증 API를 노출하게 한다.
-      additionalArguments: authRuntime == null ? [] : [AUTH_AVAILABLE_ARGUMENT],
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false
     }
   })
-  let nextDisposeAuthIpc: (() => void) | undefined
-  let disposeDeveloper: (() => void) | undefined
   let disposeUpdateNotice: (() => void) | undefined
-  let disposeCharacterDetails: (() => void) | undefined
   let disposeShortcuts: (() => void) | undefined
   let disposeDiagnostics: (() => void) | undefined
   let disposeWindowChrome: (() => void) | undefined
@@ -137,28 +91,8 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     disposeShortcuts = registerDesktopShortcuts({
       window,
       rendererDocumentUrl,
-      onShortcut: (action) => {
-        if (action === DESKTOP_SHORTCUTS.uploadCapture) {
-          void collectCurrentCapture().catch(() => reportDiagnostic('UPLOAD_FAILED'))
-        }
-      },
       onUnavailable: () => reportDiagnostic('SHORTCUT_FAILED')
     })
-    disposeCharacterDetails = registerCharacterDetailWindows({
-      owner: window,
-      entry: join(__dirname, '../frontend/character-detail.html'),
-      preload: join(__dirname, '../preload/character-detail.js'),
-      devUrl: shouldLoadDevUrl ? rendererDocumentUrl : undefined
-    }).dispose
-    // 개발자 OCR 업로드와 자료실은 운영 OCR로 가고, 운영 OCR은 운영 accounts의 token만 받는다.
-    // 다른 인증 환경의 token을 보내면 401 뒤 재인증 요구로 로그아웃되므로 개발자 기능에는 운영 인증만 넘긴다.
-    const isProductionAuth = runtimeConfig?.environment === 'production'
-    disposeDeveloper = registerDeveloperWindow(
-      window,
-      rendererDocumentUrl,
-      app.getPath('userData'),
-      isProductionAuth ? authRuntime?.coordinator : undefined
-    )
     try {
       disposeUpdateNotice = registerUpdateNoticeWindow({
         window,
@@ -167,7 +101,7 @@ function createWindow(authRuntime: AuthRuntime | null): void {
         onFailure: reportDiagnostic
       })
     } catch {
-      // 새 버전 알림은 캡처와 로그인 시작을 막지 않는다.
+      // 새 버전 알림은 캡처 시작을 막지 않는다.
     }
     try {
       disposeWindowChrome = registerWindowChromeWindow({
@@ -175,55 +109,37 @@ function createWindow(authRuntime: AuthRuntime | null): void {
         documentUrl: rendererDocumentUrl
       })
     } catch {
-      // 창 색상 동기화는 캡처와 로그인 시작을 막지 않는다.
-    }
-    if (authRuntime != null) {
-      nextDisposeAuthIpc = registerAuthIpc({
-        coordinator: authRuntime.coordinator,
-        getWindow: () => {
-          if (authAppLifecycle.getWindow() === window) {
-            return window
-          }
-
-          return null
-        },
-        documentUrl: rendererDocumentUrl
-      })
+      // 창 색상 동기화는 캡처 시작을 막지 않는다.
     }
 
-    const observeLoad = authAppLifecycle.registerWindow(window)
     window.on('ready-to-show', () => {
       window.show()
     })
-
+    window.on('closed', () => {
+      if (mainWindow === window) {
+        mainWindow = null
+      }
+    })
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     window.webContents.on('will-navigate', (event) => event.preventDefault())
     const load = shouldLoadDevUrl ? window.loadURL(rendererDocumentUrl) : window.loadFile(entry)
-    observeLoad(load)
+    void load.catch(() => reportDiagnostic('MAIN_PROCESS_FAILED'))
   } catch (error) {
     disposeShortcuts?.()
     disposeDiagnostics?.()
     disposeWindowChrome?.()
-    disposeCharacterDetails?.()
     disposeUpdateNotice?.()
-    disposeDeveloper?.()
-    try {
-      nextDisposeAuthIpc?.()
-    } catch {
-      // Continue rolling back the unpublished window.
-    }
-    authAppLifecycle.destroyWindow(window)
+    window.destroy()
     throw error
   }
 
-  authAppLifecycle.publishWindow(window, nextDisposeAuthIpc)
+  mainWindow = window
 }
 
-function showOrCreateMainWindow(authRuntime: AuthRuntime | null): void {
-  const window = authAppLifecycle.getWindow()
-  const hasWindow = window != null && !window.isDestroyed()
-  if (!hasWindow) {
-    createWindow(authRuntime)
+function showOrCreateMainWindow(): void {
+  const window = mainWindow
+  if (window == null || window.isDestroyed()) {
+    createWindow()
 
     return
   }
@@ -235,26 +151,9 @@ function showOrCreateMainWindow(authRuntime: AuthRuntime | null): void {
   window.focus()
 }
 
-function activateWindowSafely(authRuntime: AuthRuntime | null): void {
-  if (authAppLifecycle.isQuitting()) {
-    return
-  }
-
-  try {
-    showOrCreateMainWindow(authRuntime)
-  } catch {
-    return
-  }
-}
-
 // This method will be called when Electron has finished initialization and is ready to create windows.
-app.whenReady().then(async () => {
-  if (runtimeProfileState.status === 'application-failed') {
-    return
-  }
-
-  const hasOwnedInstance = runtimeConfig == null || ownsAuthProfile
-  if (!hasOwnedInstance) {
+app.whenReady().then(() => {
+  if (!ownsInstance) {
     return
   }
 
@@ -262,134 +161,70 @@ app.whenReady().then(async () => {
     app.dock?.setIcon(icon)
   }
 
-  authAppLifecycle.registerAppHandlers()
   const disposeMainDiagnostics = registerMainDiagnosticErrors()
   app.on('quit', disposeMainDiagnostics)
 
-  try {
-    // Default open or close DevTools by F12 in development
-    // and ignore CommandOrControl + R in production.
-    // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
-    app.on('browser-window-created', (_, window) => {
-      optimizer.watchWindowShortcuts(window)
-    })
+  // Default open or close DevTools by F12 in development
+  // and ignore CommandOrControl + R in production.
+  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+  app.on('browser-window-created', (_, window) => {
+    optimizer.watchWindowShortcuts(window)
+  })
 
-    function composeAfterAuthBootstrap(authRuntime: AuthRuntime | null): void {
-      const hasAuthRuntime = authRuntime != null
-      if (!hasAuthRuntime) {
-        authAppLifecycle.disposeExternalResources()
-      }
-      const apiOrigin = readAppApiOrigin()
-      const searchConfiguration =
-        apiOrigin == null
-          ? undefined
-          : {
-              apiOrigin,
-              clock: createAuthRuntimeEffects().createSearchClock(),
-              portraitColorPolicy: INITIAL_PORTRAIT_COLOR_POLICY,
-              score: createLazyScoreEngine(() =>
-                loadScoreEngine({
-                  path: resolveScoreLibraryPath({
-                    isPackaged: app.isPackaged,
-                    platform: process.platform,
-                    resourcesPath: process.resourcesPath,
-                    appPath: app.getAppPath(),
-                    env: process.env
-                  })
-                })
-              )
-            }
-      const collection = createOcrCollection({
-        enabled: isOcrCollectionEnabled({ isPackaged: app.isPackaged, version: app.getVersion() }),
-        onFailure: reportDiagnostic
-      })
-      const disposeCapture = registerCaptureIpc(
-        searchConfiguration,
-        { openSelected: openSelectedCharacterDetail },
-        collection
-      )
-      app.on('quit', () => {
-        disposeCapture()
-      })
-      if (readAppChannelName() === 'distribution') {
-        updateNotices.start()
-      }
-      app.on('quit', updateNotices.dispose)
-
-      createWindow(authRuntime)
-
-      app.on('activate', function () {
-        if (authAppLifecycle.isQuitting()) {
-          return
+  const apiOrigin = readAppApiOrigin()
+  const searchConfiguration =
+    apiOrigin == null
+      ? undefined
+      : {
+          apiOrigin,
+          clock: createMonotonicClock(),
+          portraitColorPolicy: INITIAL_PORTRAIT_COLOR_POLICY,
+          score: createLazyScoreEngine(() =>
+            loadScoreEngine({
+              path: resolveScoreLibraryPath({
+                isPackaged: app.isPackaged,
+                platform: process.platform,
+                resourcesPath: process.resourcesPath,
+                appPath: app.getAppPath(),
+                env: process.env
+              })
+            })
+          )
         }
-
-        try {
-          // On macOS it's common to re-create a window in the app when the
-          // dock icon is clicked and there are no other windows open.
-          const hasNoOpenWindows = BrowserWindow.getAllWindows().length === 0
-          if (hasNoOpenWindows) {
-            createWindow(authRuntime)
-          }
-        } catch (error) {
-          if (ownsAuthProfile) {
-            authAppLifecycle.exitAfterOwnedAuthFailure()
-
-            return
-          }
-          throw error
-        }
-      })
-      app.on('window-all-closed', () => {
-        const shouldQuit = process.platform !== 'darwin'
-        if (shouldQuit) {
-          app.quit()
-        }
-      })
-
-      const activateMainWindow = (): void => activateWindowSafely(authRuntime)
-      if (authRuntime == null) {
-        authAppLifecycle.enableWindowActivation(activateMainWindow)
-      } else {
-        void authRuntime
-          .start()
-          .then(() => authAppLifecycle.enableWindowActivation(activateMainWindow))
-          .catch(authAppLifecycle.exitAfterOwnedAuthFailure)
-      }
-    }
-
-    let authRuntime: AuthRuntime | null = null
-    if (runtimeConfig != null) {
-      const effects = createAuthRuntimeEffects({
-        activateMainWindow: () => activateWindowSafely(authRuntime)
-      })
-      authAppLifecycle.setPowerMonitorDisposer(effects.bindPowerMonitor(powerMonitor))
-      authRuntime = await authAppLifecycle.runBootstrap((isActive) =>
-        bootstrapAuthRuntime({
-          config: runtimeConfig,
-          effects,
-          isActive
-        })
-      )
-      await authAppLifecycle.runAfterQuitOutcome(() => composeAfterAuthBootstrap(authRuntime))
-
-      return
-    }
-
-    composeAfterAuthBootstrap(authRuntime)
-  } catch (error) {
-    if (authAppLifecycle.isShutdownCommitted()) {
-      return
-    }
-
-    if (ownsAuthProfile) {
-      authAppLifecycle.exitAfterOwnedAuthFailure()
-
-      return
-    }
-
-    if (authAppLifecycle.isQuitting()) {
-      return
-    }
-    throw error
+  const disposeCapture = registerCaptureIpc(searchConfiguration)
+  app.on('quit', () => {
+    disposeCapture()
+  })
+  if (readAppChannelName() === 'distribution') {
+    updateNotices.start()
   }
+  app.on('quit', updateNotices.dispose)
+
+  createWindow()
+
+  // 같은 채널을 다시 실행하면 새 인스턴스 대신 열린 창을 앞으로 가져온다.
+  app.on('second-instance', () => {
+    try {
+      showOrCreateMainWindow()
+    } catch {
+      reportDiagnostic('MAIN_PROCESS_FAILED')
+    }
+  })
+  app.on('activate', () => {
+    // On macOS it's common to re-create a window in the app when the
+    // dock icon is clicked and there are no other windows open.
+    if (BrowserWindow.getAllWindows().length > 0) {
+      return
+    }
+    try {
+      createWindow()
+    } catch {
+      reportDiagnostic('MAIN_PROCESS_FAILED')
+    }
+  })
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit()
+    }
+  })
 })

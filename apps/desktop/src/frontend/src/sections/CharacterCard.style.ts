@@ -23,9 +23,6 @@ const collapseTransition = {
   transitionTimingFunction: `${motion.ease}, linear, linear`
 } as const
 
-// 최소 창의 232 카드에서는 서버 칩 글자를 지키려고 서버 순위를 숨긴다.
-const NARROW_HEADER = '@container (max-width: 240px)'
-
 // 숫자 단계(dfragon-design typography.md). 행간은 1이고 자릿수 폭을 고정한다.
 const numeric = {
   fontFamily: font.num,
@@ -77,39 +74,6 @@ export const styles = stylex.create({
   numberRanker: { backgroundColor: colors.tierRanker, color: colors.cardOnSignal },
   server: { display: 'flex', flexShrink: 0, minWidth: 0, maxWidth: '50%' },
   spacer: { flex: 1, minWidth: 0 },
-  // 서버 순위(numeric.rank 18 600).
-  rank: {
-    ...numeric,
-    display: { default: 'inline', [NARROW_HEADER]: 'none' },
-    flexShrink: 0,
-    fontSize: 18,
-    fontWeight: 600,
-    color: colors.cardFgMuted,
-    whiteSpace: 'nowrap'
-  },
-  // 상위 순위는 단계 색 테두리, 랭커 순위는 오른쪽 위를 자른 단계 색 면이다.
-  rankTop: {
-    display: { default: 'inline-flex', [NARROW_HEADER]: 'none' },
-    alignItems: 'center',
-    boxSizing: 'border-box',
-    height: 24,
-    paddingInline: space.s8,
-    borderWidth: 1.5,
-    borderStyle: 'solid',
-    borderColor: colors.tierTop,
-    fontWeight: 700,
-    color: colors.tierTop
-  },
-  rankRanker: {
-    display: { default: 'inline-flex', [NARROW_HEADER]: 'none' },
-    alignItems: 'center',
-    height: 24,
-    paddingInlineStart: space.s8,
-    paddingInlineEnd: space.s12,
-    fontWeight: 700,
-    backgroundColor: colors.tierRanker,
-    color: colors.cardOnSignal
-  },
   dots: { display: 'flex', flexShrink: 0, gap: space.s4, paddingInlineEnd: space.s4 },
   dot: {
     width: 5,
@@ -134,70 +98,8 @@ export const styles = stylex.create({
     color: colors.cardFailure
   },
   waitingMark: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
-  detail: {
-    display: 'grid',
-    placeItems: 'center',
-    flexShrink: 0,
-    width: 32,
-    height: 32,
-    marginInlineEnd: -4,
-    padding: 0,
-    borderWidth: 0,
-    backgroundColor: 'transparent',
-    color: {
-      default: colors.cardFgSubtle,
-      ':hover:not(:disabled)': colors.cardFg,
-      ':disabled': colors.cardBorderStrong
-    },
-    cursor: { default: 'pointer', ':disabled': 'default' },
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.cardSignal,
-    outlineOffset: -2,
-    transitionProperty: 'color',
-    transitionDuration: motion.durHover,
-    transitionTimingFunction: motion.ease
-  },
   body: { display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 },
   characterFace: { display: 'flex', flexDirection: 'column', flex: '0 1 auto', minHeight: 0 },
-  // 장비와 기타 면은 캐릭터 면의 그림 칸과 소속 자리를 채우고, 창이 낮아 넘치면 면 안에서 스크롤한다.
-  face: {
-    display: 'flex',
-    flexDirection: 'column',
-    flex: '1 1 auto',
-    minHeight: 0,
-    overflowY: 'auto'
-  },
-  // 면 맨 위의 이름(18 700)과 직업(12) 한 줄. 높이 44다.
-  faceTitle: {
-    boxSizing: 'border-box',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    flexShrink: 0,
-    height: 44,
-    minWidth: 0,
-    paddingInline: space.s16
-  },
-  faceName: {
-    minWidth: 0,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    fontSize: 18,
-    fontWeight: 700,
-    lineHeight: '26px',
-    color: colors.cardFg
-  },
-  faceJob: { flexShrink: 0, whiteSpace: 'nowrap', color: colors.cardFgSubtle },
-  equipment: { display: 'flex', flexDirection: 'column', paddingInline: space.s12 },
-  equipmentDivider: {
-    flexShrink: 0,
-    height: 1,
-    marginInline: space.s4,
-    backgroundColor: colors.cardDivider
-  },
-  investment: { paddingInline: space.s16 },
   // 그림 칸. 펼친 창에서는 280이고 창이 낮으면 먼저 줄어든다.
   well: {
     position: 'relative',
@@ -375,32 +277,6 @@ export const styles = stylex.create({
   },
   collapsibleHidden: { maxHeight: 0, paddingTop: 0, opacity: 0, visibility: 'hidden' },
   hint: { color: colors.cardFgSubtle },
-  // 캐릭터 면의 스탯 한 줄(캔버스 카드 면 보드). 같은 폭 세 칸과 40 폭 스위칭 칸이고, 라벨은 최소 글자
-  // 크기 12, 값은 Barlow 18 700이다.
-  statLine: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, minmax(0, 1fr)) 40px',
-    gap: 6,
-    margin: 0,
-    marginTop: 2,
-    paddingTop: space.s8,
-    borderTopWidth: 1,
-    borderTopStyle: 'solid',
-    borderTopColor: colors.cardDivider
-  },
-  // 최소 창의 좁은 카드에서는 라벨을 줄이지 않고 어절 단위로 감싸며, 값은 칸 아래에 맞춘다.
-  statItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'flex-end',
-    gap: 2,
-    minWidth: 0
-  },
-  statItemLabel: { margin: 0, color: colors.cardFgSubtle },
-  statItemValue: { margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', lineHeight: '22px' },
-  statItemNumber: { ...numeric, fontSize: 18, fontWeight: 700, color: colors.cardFg },
-  statItemMissing: { color: colors.cardBorderStrong },
-  statItemUnit: { marginInlineStart: 1, fontWeight: 500, color: colors.cardFgSubtle },
   // 명성과 점수. 라벨은 왼쪽 12px, 값은 오른쪽에 같은 크기로 두 층 쌓는다. 남는 높이는 이 위에 둔다.
   stats: {
     display: 'flex',
@@ -447,13 +323,5 @@ export const styles = stylex.create({
   statBuffer: { color: colors.scoreBuffer },
   statTop: { color: colors.tierTop },
   statRanker: { color: colors.tierRanker },
-  statVacant: { color: colors.cardBorder },
-  faces: { ...collapseTransition, flexShrink: 0, maxHeight: 41, overflow: 'hidden' },
-  facesVacant: {
-    boxSizing: 'border-box',
-    height: 41,
-    borderTopWidth: 1,
-    borderTopStyle: 'dashed',
-    borderTopColor: colors.cardBorder
-  }
+  statVacant: { color: colors.cardBorder }
 })

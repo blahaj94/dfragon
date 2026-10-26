@@ -8,7 +8,6 @@ import {
 } from '../../preload/common/types/search'
 import { z } from 'zod'
 import { CHARACTER_SERVER_NAMES } from '../../preload/common/search/character-summary'
-import type { CharacterSelectionReference } from '../../preload/common/types/character-detail'
 import type {
   OcrSearchObservation,
   SearchControl,
@@ -65,17 +64,6 @@ const observationSchema = z.strictObject({
   observationRevision,
   nickname: text
 })
-// 상세 창 참조는 파티와 공대 검색 수명을 모두 가리킬 수 있다. 각 수명이 자기 슬롯 수를 다시 검사한다.
-const selectionSchema = z.strictObject({
-  captureId: uuid,
-  slot: slotIndex(SEARCH_SLOT_COUNTS.raid),
-  requestId: uuid
-})
-
-export function parseCharacterSelection(args: unknown[]): CharacterSelectionReference | null {
-  return parseCommand({ args, schema: selectionSchema })
-}
-
 const MAX_OCR_NAMES = 2
 const MAX_OCR_NAME_CODE_POINTS = 12
 const MAX_PORTRAIT_DIMENSION = 512

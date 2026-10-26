@@ -15,7 +15,7 @@ const numeric = {
   letterSpacing: 0
 } as const
 
-// 값은 DFragon 디자인 캔버스 공대 보드의 축약 카드다. 파티 카드보다 작은 머리 36, 그림 칸 72, 스탯 한 줄과
+// 값은 DFragon 디자인 캔버스 공대 보드의 축약 카드다. 파티 카드보다 작은 머리 36, 그림 칸 72, 안내 줄과
 // 명성, 점수 바닥으로 1280×800에 12장이 스크롤 없이 들어간다.
 export const styles = stylex.create({
   // 자리. 카드 한 장을 담아 끌고 포커스를 받는다. 카드 면이 자리를 채운다.
@@ -77,35 +77,6 @@ export const styles = stylex.create({
   numberRanker: { backgroundColor: colors.tierRanker, color: colors.cardOnSignal },
   server: { display: 'flex', flexShrink: 1, minWidth: 0, maxWidth: '50%' },
   spacer: { flex: 1, minWidth: 0 },
-  // 서버 순위(16 600). 상위는 단계 색 테두리, 랭커는 오른쪽 위를 자른 단계 색 면이다.
-  rank: {
-    ...numeric,
-    display: 'inline-flex',
-    alignItems: 'center',
-    flexShrink: 0,
-    fontSize: 16,
-    fontWeight: 600,
-    color: colors.cardFgMuted,
-    whiteSpace: 'nowrap'
-  },
-  rankTop: {
-    boxSizing: 'border-box',
-    height: 20,
-    paddingInline: 6,
-    borderWidth: 1.5,
-    borderStyle: 'solid',
-    borderColor: colors.tierTop,
-    fontWeight: 700,
-    color: colors.tierTop
-  },
-  rankRanker: {
-    height: 20,
-    paddingInlineStart: 6,
-    paddingInlineEnd: 10,
-    fontWeight: 700,
-    backgroundColor: colors.tierRanker,
-    color: colors.cardOnSignal
-  },
   dots: { display: 'flex', flexShrink: 0, gap: space.s4, paddingInlineEnd: 2 },
   dot: {
     width: 5,
@@ -129,30 +100,6 @@ export const styles = stylex.create({
     color: colors.cardFailure
   },
   waitingMark: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
-  detail: {
-    display: 'grid',
-    placeItems: 'center',
-    flexShrink: 0,
-    width: 24,
-    height: 24,
-    marginInlineEnd: -4,
-    padding: 0,
-    borderWidth: 0,
-    backgroundColor: 'transparent',
-    color: {
-      default: colors.cardFgSubtle,
-      ':hover:not(:disabled)': colors.cardFg,
-      ':disabled': colors.cardBorderStrong
-    },
-    cursor: { default: 'pointer', ':disabled': 'default' },
-    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
-    outlineWidth: 2,
-    outlineColor: colors.cardSignal,
-    outlineOffset: -2,
-    transitionProperty: 'color',
-    transitionDuration: motion.durHover,
-    transitionTimingFunction: motion.ease
-  },
   // 그림 칸 72와 소속, 이름, 직업. 접으면 그림 칸이 빠지고 한 칸이 된다.
   body: {
     display: 'grid',
@@ -261,31 +208,7 @@ export const styles = stylex.create({
     lineHeight: '16px',
     color: colors.cardFgMuted
   },
-  // 스탯 한 줄. 세 칸과 좁은 스위칭 칸이다.
-  stats: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, minmax(0, 1fr)) 34px',
-    gap: 6,
-    margin: 0,
-    marginTop: 'auto',
-    paddingTop: space.s4,
-    paddingInline: space.s12,
-    paddingBottom: space.s8
-  },
-  stat: { display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 },
-  statLabel: {
-    margin: 0,
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    fontSize: 10,
-    lineHeight: '12px',
-    color: colors.cardFgSubtle
-  },
-  statValue: { margin: 0, whiteSpace: 'nowrap', lineHeight: '18px' },
-  statNumber: { ...numeric, fontSize: 16, fontWeight: 700, color: colors.cardFg },
-  statMissing: { color: colors.cardBorderStrong },
-  statUnit: { marginInlineStart: 1, fontSize: 10, fontWeight: 500, color: colors.cardFgSubtle },
-  // 실패, 결과 0건, 입력 안내. 스탯 한 줄 자리에 세 줄까지 두고 넘치면 줄임표로 끝낸다.
+  // 실패, 결과 0건, 입력 안내. 이름 아래 안내 줄에 세 줄까지 두고 넘치면 줄임표로 끝낸다.
   notice: {
     display: '-webkit-box',
     WebkitBoxOrient: 'vertical',
@@ -316,7 +239,7 @@ export const styles = stylex.create({
     borderTopStyle: 'solid',
     borderTopColor: colors.cardBorder
   },
-  // 스탯 한 줄이나 안내가 바닥 바로 위에 붙도록, 그 위의 남는 높이는 그쪽이 차지한다.
+  // 안내 줄이 바닥 바로 위에 붙도록, 그 위의 남는 높이는 그쪽이 차지한다.
   footerAfterRow: { marginTop: 0 },
   footerVacant: { borderTopStyle: 'dashed' },
   footerRanker: { borderTopColor: colors.tierRankerOutline },

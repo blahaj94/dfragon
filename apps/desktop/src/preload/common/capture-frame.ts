@@ -12,7 +12,6 @@ const RGBA_CHANNELS = 4
 // 공대 닉네임, 직업명 크롭은 UI 0%에서 86×17, 67×17이다. 큰 화면 배율을 받되 프레임 원본 크기의 값은 거절한다.
 const MAX_RAID_CROP_WIDTH = 1024
 const MAX_RAID_CROP_HEIGHT = 256
-const FRAME_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 /** 프레임 없이 끝난 캡처 응답(미지원, 가림과 읽기 대기)만 그대로 돌려주고 나머지는 null이다. */
 function parseFramelessResult(value: object): Exclude<WindowFrameResult, { kind: 'frame' }> | null {
@@ -46,16 +45,7 @@ export function parseWindowFrame(value: unknown): WindowFrameResult {
     return frameless
   }
 
-  const hasFrameId = 'frameId' in value
-  const validFrameId =
-    hasFrameId && typeof value.frameId === 'string' && FRAME_ID_PATTERN.test(value.frameId)
-  const frameKeyCount = hasFrameId ? 3 : 2
-  if (
-    value.kind === 'frame' &&
-    Reflect.ownKeys(value).length === frameKeyCount &&
-    (!hasFrameId || validFrameId) &&
-    'image' in value
-  ) {
+  if (value.kind === 'frame' && Reflect.ownKeys(value).length === 2 && 'image' in value) {
     const image = value.image
     if (
       image !== null &&
@@ -71,12 +61,8 @@ export function parseWindowFrame(value: unknown): WindowFrameResult {
       image.rgba.byteLength === image.width * image.height * RGBA_CHANNELS
     ) {
       const { width, height, rgba } = image
-      const frame = { width, height, rgba }
-      if (validFrameId && typeof value.frameId === 'string') {
-        return { kind: 'frame', image: frame, frameId: value.frameId }
-      }
 
-      return { kind: 'frame', image: frame }
+      return { kind: 'frame', image: { width, height, rgba } }
     }
   }
 

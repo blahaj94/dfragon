@@ -8,15 +8,10 @@
       "installerInclude": "build/development-installer.nsh"
     },
     "identity": {
-      "appIdentity": "dfragon.dev",
-      "auth": {
-        "environment": "development",
-        "providers": ["passkey"]
-      }
+      "appIdentity": "dfragon.dev"
     },
     "origins": {
-      "api": "https://localhost:3443",
-      "accounts": "https://localhost:3444"
+      "api": "https://localhost:3443"
     }
   },
   "test": {
@@ -28,15 +23,13 @@
       "artifactPrefix": "DFragon-Test"
     },
     "identity": {
-      "appIdentity": "dfragon.test",
-      "auth": {
-        "environment": "staging",
-        "providers": ["passkey"]
-      }
+      "appIdentity": "dfragon.test"
     },
     "origins": {
-      "api": { "variable": "DFRAGON_TEST_API_ORIGIN", "default": "https://api.dfragon.com" },
-      "accounts": "https://staging-accounts.dfragon.com"
+      "api": {
+        "variable": "DFRAGON_TEST_API_ORIGIN",
+        "default": "https://api.dfragon.com"
+      }
     }
   },
   "distribution": {
@@ -48,17 +41,11 @@
       "installerInclude": "build/distribution-installer.nsh"
     },
     "identity": {
-      "appIdentity": "dfragon",
-      "auth": {
-        "environment": "production",
-        "providers": ["passkey"]
-      }
+      "appIdentity": "dfragon"
     },
     "origins": {
-      "api": { "variable": "DFRAGON_DISTRIBUTION_API_ORIGIN" },
-      "accounts": {
-        "variable": "DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN",
-        "default": "https://accounts.dfragon.com"
+      "api": {
+        "variable": "DFRAGON_DISTRIBUTION_API_ORIGIN"
       }
     }
   }

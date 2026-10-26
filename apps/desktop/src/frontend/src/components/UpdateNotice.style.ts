@@ -18,6 +18,5 @@ export const styles = stylex.create({
     color: colors.fgDefault
   },
   message: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 },
-  detail: { color: colors.fgMuted },
   actions: { display: 'flex', alignItems: 'center', gap: 8 }
 })

@@ -59,50 +59,16 @@ export const characterSummarySchema = z
   .strictObject(characterSummaryShape)
   .refine(hasFixedServerAndImage)
 
-const count = z.int().nonnegative()
-const point = z.strictObject({ current: z.number(), min: z.number(), max: z.number() })
-const rarityCount = z.strictObject({ rarity: nonblank, count })
-const dealerStats = z.strictObject({
-  role: z.literal('dealer'),
-  attackIncrease: z.number().nullable(),
-  amplification: z.number().nullable(),
-  critical: z.number().nullable(),
-  switchingLevel: z.number().nullable()
-})
-const bufferStats = z.strictObject({
-  role: z.literal('buffer'),
-  townStatName: z.enum(['지능', '정신력', '체력']),
-  townStat: z.number().nullable(),
-  buff30: z.number().nullable(),
-  buff50: z.number().nullable(),
-  switchingLevel: z.number().nullable()
-})
-const investment = z.strictObject({
-  slotId: nonblank,
-  slotName: nonblank,
-  itemId: nonblank.nullable(),
-  itemName: nonblank.nullable(),
-  rarity: nonblank.nullable(),
-  exclusive: z.boolean(),
-  reinforce: z
-    .strictObject({
-      kind: z.enum(['reinforce', 'amplify']),
-      value: count,
-      amplificationName: nonblank.nullable()
-    })
-    .nullable(),
-  enchant: z
-    .strictObject({
-      status: z.array(z.strictObject({ name: nonblank, value: z.union([z.number(), nonblank]) })),
-      grade: z.enum(['종결', '준종결', '기타']).nullable()
-    })
-    .nullable()
-})
+const characterRole = z.enum(['dealer', 'buffer']).nullable()
 
-/** API의 `card` 투영과 main이 채운 점수를 renderer에 넘기기 전에 검사한다. 숫자는 유한값만 받는다. */
+/**
+ * API 상세 응답의 `card`에서 역할만 읽는다. 이전 API가 함께 보내던 스탯, 세트, 서약, 강화 값은 무시한다.
+ */
+export const apiCharacterCardSchema = z.object({ role: characterRole })
+
+/** main이 점수를 채운 카드를 renderer에 넘기기 전에 검사한다. 숫자는 유한값만 받는다. */
 export const characterCardSchema = z.strictObject({
-  role: z.enum(['dealer', 'buffer']).nullable(),
-  stats: z.discriminatedUnion('role', [dealerStats, bufferStats]).nullable(),
+  role: characterRole,
   score: z
     .strictObject({
       calculator: z.enum(['equipment', 'buff']),
@@ -117,54 +83,7 @@ export const characterCardSchema = z.strictObject({
     .refine(
       (score) => score.approximate === null || (score.value === null && score.skipped !== null)
     )
-    .nullable(),
-  serverRank: z
-    .strictObject({
-      rank: z.int().positive(),
-      total: z.int().positive(),
-      basis: z.literal('fame'),
-      scope: z.literal('stored'),
-      observedAt: z.iso.datetime({ offset: true })
-    })
-    .nullable(),
-  set: z
-    .strictObject({
-      setItemId: nonblank,
-      name: nonblank,
-      rarityName: nonblank.nullable(),
-      point: point.nullable(),
-      imageItemId: nonblank.nullable(),
-      slots: z.array(
-        z.strictObject({ slotId: nonblank, rarity: nonblank.nullable(), exclusive: z.boolean() })
-      ),
-      rarityCounts: z.array(rarityCount)
-    })
-    .nullable(),
-  oath: z
-    .strictObject({
-      itemId: nonblank,
-      name: nonblank,
-      rarity: nonblank.nullable(),
-      point: z.number().nullable(),
-      setName: nonblank.nullable(),
-      optionName: nonblank.nullable(),
-      setPoint: point.nullable(),
-      upgrades: z.array(
-        z.strictObject({ step: z.int().positive(), stepName: nonblank, optionName: nonblank })
-      ),
-      crystals: z.array(
-        z.strictObject({
-          slotNo: count,
-          itemId: nonblank,
-          name: nonblank,
-          rarity: nonblank.nullable(),
-          setPoint: z.number().nullable()
-        })
-      ),
-      rarityCounts: z.array(rarityCount)
-    })
-    .nullable(),
-  investment: z.array(investment)
+    .nullable()
 })
 
 export const selectedCharacterSummarySchema = z
@@ -172,7 +91,6 @@ export const selectedCharacterSummarySchema = z
     ...characterSummaryShape,
     guildName: z.string().nullable(),
     equipmentScore: z.number().nullable(),
-    serverRank: z.int().positive().nullable(),
     card: characterCardSchema.nullable()
   })
   .refine(hasFixedServerAndImage)

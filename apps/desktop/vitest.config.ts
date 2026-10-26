@@ -1,7 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { rendererTransforms } from './build/renderer-transforms'
 import { defineConfig, type Plugin } from 'vitest/config'
-import { desktopLicenseCatalog } from '@dfragon/licenses/vite'
 
 const OCR_CONTRACT_IMPORT_PATTERN = /^@dfragon\/lib\/ocr-contract$/
 const PAGINATION_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/pagination$/
@@ -38,15 +37,7 @@ function sourceAssetPaths(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [
-    sourceAssetPaths(),
-    ...rendererTransforms({ test: true }),
-    desktopLicenseCatalog({
-      runtimeRoot: fileURLToPath(new URL('.', import.meta.url)),
-      uiRoot: fileURLToPath(new URL('../../packages/ui', import.meta.url)),
-      ocrRoot: fileURLToPath(new URL('assets/ocr', import.meta.url))
-    })
-  ],
+  plugins: [sourceAssetPaths(), ...rendererTransforms({ test: true })],
   resolve: {
     alias: [
       {

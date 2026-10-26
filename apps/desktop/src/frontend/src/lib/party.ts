@@ -29,7 +29,7 @@ export type PartyRecognitionInput = {
   portrait: CharacterPortrait | null
 }
 
-export type PartyFrameSource = (CharacterImage & { captureId?: string; frameId?: string }) | null
+export type PartyFrameSource = (CharacterImage & { captureId?: string }) | null
 
 /** 같은 프레임의 닉네임과 교체 가능한 얼굴 크롭 결과를 슬롯 번호와 함께 묶는다. */
 export function capturePartyRecognitionInputs(

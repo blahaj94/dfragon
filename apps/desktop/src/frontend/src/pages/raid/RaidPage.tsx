@@ -22,7 +22,7 @@ const seatKeys: Readonly<Record<string, SeatDirection>> = {
 /**
  * 공대 12인 화면(DFragon 디자인 캔버스 공대 보드). 화면이 조립한 머리 아래에 파티 라벨 열과 축약 카드 네 열,
  * 세 줄을 놓고, 카드를 끌거나 Alt와 방향키로 자리를 맞바꾼다. 자리 배치는 화면 밖이 소유하며, 이 화면은
- * `seatOrder`로 자리마다 놓인 공대 검색 슬롯을 그리고 조회, 상세 열기는 그 슬롯 번호로 알린다. 카드는
+ * `seatOrder`로 자리마다 놓인 공대 검색 슬롯을 그리고 조회는 그 슬롯 번호로 알린다. 카드는
  * 1280×800 보드의 크기로 고정이라 창이 작으면 보드 영역이 가로와 세로로 스크롤한다.
  */
 export function RaidPage({
@@ -55,11 +55,11 @@ export function RaidPage({
     swapSeats: (from: number, to: number) => boolean
   }
   collapsed: boolean
-  /** 검색 슬롯 번호로 부르는 조회와 상세 열기 */
-  actions?: Pick<SlotCardActions, 'lookupSlot' | 'openDetails'>
+  /** 검색 슬롯 번호로 부르는 조회 */
+  actions?: Pick<SlotCardActions, 'lookupSlot'>
 }): React.JSX.Element {
   const { seatOrder, canMoveSeats, swapSeats } = seats
-  const { lookupSlot, openDetails } = actions
+  const { lookupSlot } = actions
   const [dragging, setDragging] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
   // 끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend가 오지 않으므로, 그때와 맞바꿀 수 없게 될 때 끌기를
@@ -126,7 +126,6 @@ export function RaidPage({
         card={card}
         slot={seat + 1}
         collapsed={collapsed}
-        onDetail={openDetails === undefined ? undefined : () => openDetails(slot)}
         onLookup={
           lookupSlot === undefined
             ? undefined

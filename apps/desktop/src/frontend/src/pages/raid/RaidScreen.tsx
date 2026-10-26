@@ -22,10 +22,7 @@ export type RaidScreenCapture = Pick<
   | 'canMoveSeats'
   | 'swapSeats'
 > & {
-  search: Pick<
-    RaidCapture['search'],
-    'slots' | 'manualSlots' | 'connectionFailed' | 'detailNotice' | 'lookupSlot' | 'openDetails'
-  >
+  search: Pick<RaidCapture['search'], 'slots' | 'manualSlots' | 'connectionFailed' | 'lookupSlot'>
 }
 
 /**
@@ -61,12 +58,9 @@ export function RaidScreen({
   })
   // 공대 머리도 파티 머리처럼 캡처 진행 문구를 두지 않는다. 공대 회차 문구는 상단 바의 화면 밖 캡처
   // 안내와 캡처 대화상자가 알린다.
-  let notice = ''
-  if (search.connectionFailed) {
-    notice = '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
-  } else if (search.detailNotice) {
-    notice = search.detailNotice
-  }
+  const notice = search.connectionFailed
+    ? '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
+    : ''
 
   return (
     <RaidPage

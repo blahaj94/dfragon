@@ -62,17 +62,15 @@ export function parseUpdateNoticeSnapshot(value: unknown): UpdateNoticeSnapshot 
     notice == null ||
     typeof notice !== 'object' ||
     Array.isArray(notice) ||
-    Reflect.ownKeys(notice).length !== 2 ||
+    Reflect.ownKeys(notice).length !== 1 ||
     !('tag' in notice) ||
-    !isReleaseTag(notice.tag) ||
-    !('endsOcrCollection' in notice) ||
-    typeof notice.endsOcrCollection !== 'boolean'
+    !isReleaseTag(notice.tag)
   ) {
     return null
   }
 
   return {
     revision: value.revision,
-    notice: { tag: notice.tag, endsOcrCollection: notice.endsOcrCollection }
+    notice: { tag: notice.tag }
   }
 }
