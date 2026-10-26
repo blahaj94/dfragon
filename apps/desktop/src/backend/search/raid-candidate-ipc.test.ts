@@ -43,7 +43,7 @@ function ocr(captureId: string, slot: number) {
 }
 
 async function beginRaid() {
-  const fixture = await createSearchFixture(false, 'raid', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
   // 공대 캡처 회차처럼 게임 창을 등록한 뒤 공대 수명을 시작한다.
   await fixture.invoke('selectCaptureSource', 'window:search-fixture')
   const begun = (await fixture.invoke('controlRaidSearch', { action: 'begin' })) as {
@@ -163,7 +163,7 @@ it.each([
 })
 
 it('파티 캡처의 OCR 이름은 공대 비교를 쓰지 않고 공대 행 값도 받지 않는다', async () => {
-  const fixture = await createSearchFixture(false, 'capture', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('capture', INITIAL_PORTRAIT_COLOR_POLICY)
   expect(
     await fixture.invoke('notifyOcrCandidatesDetected', { ...ocr(fixture.captureId, 1), raidRow })
   ).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })

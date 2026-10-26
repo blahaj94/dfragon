@@ -17,7 +17,6 @@ vi.mock('../lib/win32-window-capture', () => ({
 
 const DOCUMENT_URL = 'file:///dfragon/index.html'
 const VK_R = 0x52
-const VK_SNAPSHOT = 0x2c
 
 type TestFrame = { url: string; detached: boolean; isDestroyed: () => boolean; send: Mock }
 type TestContents = EventEmitter & { mainFrame: TestFrame; isDestroyed: () => boolean }
@@ -26,7 +25,6 @@ function setup(): {
   contents: TestContents
   window: EventEmitter & { webContents: TestContents; isDestroyed: () => boolean }
   unregister: Mock
-  onShortcut: Mock
   dispose: () => void
   dispatch: (action: DesktopShortcut) => void
   allowed: () => boolean
@@ -52,11 +50,9 @@ function setup(): {
       unregister
     }
   })
-  const onShortcut = vi.fn()
   const dispose = registerDesktopShortcuts({
     window: window as unknown as BrowserWindow,
-    rendererDocumentUrl: DOCUMENT_URL,
-    onShortcut
+    rendererDocumentUrl: DOCUMENT_URL
   })
 
   return {
@@ -64,7 +60,6 @@ function setup(): {
     contents,
     window,
     unregister,
-    onShortcut,
     dispose,
     dispatch: (action: DesktopShortcut) => listener!(action),
     allowed: () => foreground!()
@@ -77,13 +72,10 @@ beforeEach(() => {
   fixtures.appForeground.mockReturnValue(false)
 })
 
-it('제품의 재검색과 업로드 모두 Alt 조합으로 등록한다', () => {
+it('제품의 재검색만 Alt+R로 등록한다', () => {
   const fixture = setup()
   expect(fixtures.create).toHaveBeenCalledWith({
-    bindings: [
-      { key: VK_R, alt: true, action: 'restart-search' },
-      { key: VK_SNAPSHOT, alt: true, action: 'upload-capture', releaseOnly: true }
-    ],
+    bindings: [{ key: VK_R, alt: true, action: 'restart-search' }],
     isForeground: expect.any(Function)
   })
   fixture.dispose()
@@ -99,8 +91,7 @@ it('허용 앱과 현재 main document가 모두 맞아야 키를 처리한다',
   expect(fixture.allowed()).toBe(true)
   fixture.frame.url = 'https://untrusted.example/'
   expect(fixture.allowed()).toBe(false)
-  fixture.dispatch('upload-capture')
-  expect(fixture.onShortcut).not.toHaveBeenCalled()
+  fixture.dispatch('restart-search')
   expect(fixture.frame.send).not.toHaveBeenCalled()
   fixture.dispose()
 })
@@ -110,10 +101,9 @@ it('페이지 이동, renderer 종료와 창 닫기는 늦은 단축키 전달�
   fixtures.appForeground.mockReturnValue(true)
   fixture.dispatch('restart-search')
   expect(fixture.frame.send).toHaveBeenCalledExactlyOnceWith('desktopShortcut', 'restart-search')
-  expect(fixture.onShortcut).toHaveBeenCalledExactlyOnceWith('restart-search')
   fixture.contents.emit('did-start-navigation', {}, 'file:///next.html', false, true)
   expect(fixture.allowed()).toBe(false)
-  fixture.dispatch('upload-capture')
+  fixture.dispatch('restart-search')
   expect(fixture.frame.send).toHaveBeenCalledTimes(1)
   fixture.contents.emit('did-navigate')
   expect(fixture.allowed()).toBe(true)
@@ -123,6 +113,6 @@ it('페이지 이동, renderer 종료와 창 닫기는 늦은 단축키 전달�
   fixture.dispose()
   expect(fixture.unregister).toHaveBeenCalledTimes(1)
   expect(fixture.contents.listenerCount('did-start-navigation')).toBe(0)
-  fixture.dispatch('upload-capture')
+  fixture.dispatch('restart-search')
   expect(fixture.frame.send).toHaveBeenCalledTimes(1)
 })

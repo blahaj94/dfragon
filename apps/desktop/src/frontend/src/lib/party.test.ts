@@ -294,8 +294,7 @@ it('회차 한 장의 네 슬롯 닉네임 픽셀과 얼굴 원문을 함께 인
     expect(result).toMatchObject({
       kind: 'recognized',
       slot,
-      nickname: `슬롯${slot}`,
-      prediction: `슬롯${slot}`
+      nickname: `슬롯${slot}`
     })
     if (result.kind === 'missing') {
       throw new Error('Expected a detected party slot')

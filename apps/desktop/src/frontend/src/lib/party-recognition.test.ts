@@ -34,7 +34,7 @@ it('검출하지 못한 슬롯은 OCR 없이 미검출 결과로 돌려준다', 
 })
 
 it.each([' 검사* ', '가 나', '😀'.repeat(12)])(
-  '첫 후보 %j를 한 번 읽고 얼굴, 모델 원문을 보존한다',
+  '첫 후보 %j를 한 번 읽고 얼굴을 보존한다',
   async (first) => {
     recognize.mockResolvedValue({
       data: {
@@ -55,7 +55,6 @@ it.each([' 검사* ', '가 나', '😀'.repeat(12)])(
         slot: 0,
         nickname: first.trim(),
         portrait,
-        prediction: first,
         legacyNickname: '테스트ABC123'
       },
       { kind: 'missing', slot: 1 },
@@ -87,13 +86,12 @@ it.each([
     slot: 0,
     rejection,
     text,
-    prediction: text,
     portrait,
     legacyNickname: ''
   })
 })
 
-it('OCR 예외는 얼굴과 null 예측을 포함한 실패 결과로 남기고 뒤 슬롯도 처리한다', async () => {
+it('OCR 예외는 얼굴을 포함한 실패 결과로 남기고 뒤 슬롯도 처리한다', async () => {
   const nextNickname = document.createElement('canvas')
   vi.mocked(capturePartyRecognitionInputs).mockReturnValue([
     { slot: 0, nickname, portrait },
@@ -104,9 +102,9 @@ it('OCR 예외는 얼굴과 null 예측을 포함한 실패 결과로 남기고 
   recognize.mockRejectedValue(new Error('OCR unavailable'))
 
   expect(await recognizePartyFrame(frame, recognize)).toEqual([
-    { kind: 'failed', slot: 0, portrait, prediction: null },
+    { kind: 'failed', slot: 0, portrait },
     { kind: 'missing', slot: 1 },
-    { kind: 'failed', slot: 2, portrait: null, prediction: null },
+    { kind: 'failed', slot: 2, portrait: null },
     { kind: 'missing', slot: 3 }
   ])
   expect(recognize).toHaveBeenCalledTimes(2)

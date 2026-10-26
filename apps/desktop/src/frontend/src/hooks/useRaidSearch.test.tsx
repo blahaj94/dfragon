@@ -6,7 +6,6 @@ import { useRaidSearch } from './useRaidSearch'
 import type { CaptureSearch, createCaptureSearch } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
-import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
 import type { AsyncIPCFunctions } from '../../../preload/common/types/ipc'
 import type { SearchApi, SearchSlot } from '../../../preload/common/types/search'
 import {
@@ -26,12 +25,9 @@ const raidApi: SearchApi & {
   onCharacterSearchChanged: vi.fn<SearchApi['onCharacterSearchChanged']>(),
   notifyOcrCandidatesDetected: vi.fn<AsyncIPCFunctions['notifyRaidOcrCandidatesDetected']>()
 }
-const open = vi.fn<AsyncIPCFunctions['openCharacterDetails']>()
-const NOTICE = '캐릭터 정보 창을 열지 못했습니다. 다시 시도해 주세요.'
 let value: ReturnType<typeof useRaidSearch>
 let bridge: CaptureSearch
 let begin: ReturnType<typeof Promise.withResolvers<string | null>>
-let reference: CharacterSelectionReference | null
 let root: Root
 
 function Harness(): null {
@@ -59,7 +55,6 @@ async function publish(slots: SearchSlot[]): Promise<void> {
 beforeEach(async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   begin = Promise.withResolvers<string | null>()
-  reference = null
   bridge = {
     connect: vi.fn(),
     begin: vi.fn(() => begin.promise),
@@ -67,13 +62,10 @@ beforeEach(async () => {
     observe: vi.fn(),
     lookup: vi.fn(),
     retry: vi.fn(),
-    selectedReference: (slot) => (reference?.slot === slot ? reference : null),
     dispose: vi.fn()
   }
   moduleMocks.create.mockReset().mockReturnValue(bridge)
-  open.mockReset()
   vi.stubGlobal('raidSearch', raidApi)
-  vi.stubGlobal('api', { openCharacterDetails: open })
   root = createRoot(document.createElement('div'))
   await act(async () => root.render(<Harness />))
 })
@@ -123,36 +115,6 @@ it('main이 보낸 자리별 검색 상태를 그 자리 번호대로 전한다'
     'idle',
     'empty'
   ])
-})
-
-it('상세 창 열기 실패는 그 자리의 선택이 그대로일 때만 알린다', async () => {
-  open.mockResolvedValue({ ok: false })
-  const slots = emptySearchSlots(12)
-  slots[7] = found(7)
-  await publish(slots)
-  reference = { captureId: CAPTURE_ID, slot: 7, requestId: REQUEST_ID }
-
-  await act(async () => value.openDetails(7))
-  expect(open).toHaveBeenCalledExactlyOnceWith(reference)
-  expect(value.detailNotice).toBe(NOTICE)
-
-  // 같은 자리를 다시 조회해 새 요청 결과가 오면 이전 캐릭터의 실패 안내를 지운다.
-  slots[7] = found(7, '00000000-0000-4000-8000-000000000088')
-  await publish(slots)
-  expect(value.detailNotice).toBe('')
-})
-
-it('창을 여는 동안 그 자리를 다시 조회했다면 늦은 실패를 보이지 않는다', async () => {
-  const pending = Promise.withResolvers<{ ok: boolean }>()
-  open.mockReturnValueOnce(pending.promise)
-  const slots = emptySearchSlots(12)
-  slots[2] = found(2)
-  await publish(slots)
-  reference = { captureId: CAPTURE_ID, slot: 2, requestId: REQUEST_ID }
-  await act(async () => value.openDetails(2))
-  reference = { ...reference, requestId: '00000000-0000-4000-8000-000000000088' }
-  await act(async () => pending.resolve({ ok: false }))
-  expect(value.detailNotice).toBe('')
 })
 
 function ocr(slot: number, nickname = '공대원') {

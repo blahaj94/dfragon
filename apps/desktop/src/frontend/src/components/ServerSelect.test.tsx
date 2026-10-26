@@ -23,8 +23,7 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-it('서버 변경은 해당 카드만 조회하고 카드 전환, 상세 열기를 실행하지 않는다', async () => {
-  const onDetail = vi.fn()
+it('서버 변경은 해당 카드만 조회한다', async () => {
   const onLookup = vi.fn()
   await act(async () =>
     root.render(
@@ -33,14 +32,12 @@ it('서버 변경은 해당 카드만 조회하고 카드 전환, 상세 열기�
           card={{ state: 'success', character: previewCharacter }}
           slot={1}
           inputEnabled
-          onDetail={onDetail}
           onLookup={onLookup}
         />
         <CharacterCard
           card={{ state: 'success', character: previewCharacter }}
           slot={2}
           inputEnabled
-          onDetail={onDetail}
         />
       </>
     )
@@ -61,7 +58,6 @@ it('서버 변경은 해당 카드만 조회하고 카드 전환, 상세 열기�
   expect(cards[1].textContent).not.toContain('Enter로 조회')
   expect(cards[1].querySelector('[aria-label="2번 서버"]')!.textContent).toContain('시로코')
   expect(cards[0].querySelector('[aria-label="1번 캐릭터 이름"]')).not.toBeNull()
-  expect(onDetail).not.toHaveBeenCalled()
 })
 
 it('전달된 서버만 제공하고 Escape로 선택 변경 없이 닫는다', async () => {

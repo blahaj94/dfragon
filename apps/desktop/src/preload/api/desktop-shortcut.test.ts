@@ -17,9 +17,11 @@ it('허용된 단축키만 전달하고 구독 해제 시 자기 listener만 제
   onDesktopShortcut(second)
   events.emit('desktopShortcut', {}, 'restart-search')
   unsubscribe()
+  events.emit('desktopShortcut', {}, 'restart-search')
+  // 지운 Alt+Print Screen 수집 단축키는 더 전달하지 않는다.
   events.emit('desktopShortcut', {}, 'upload-capture')
   events.emit('desktopShortcut', {}, { action: 'restart-search' })
   events.emit('desktopShortcut', {}, 'unknown')
   expect(first.mock.calls).toEqual([['restart-search']])
-  expect(second.mock.calls).toEqual([['restart-search'], ['upload-capture']])
+  expect(second.mock.calls).toEqual([['restart-search'], ['restart-search']])
 })

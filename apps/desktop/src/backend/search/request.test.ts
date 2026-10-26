@@ -6,7 +6,8 @@ import type {
   CharacterImage,
   CharacterPortrait
 } from '../../preload/common/types/character'
-import { FakeClock, deferred } from '../auth/auth-test-fixtures'
+import { deferred } from '../lib/async-test-fixture'
+import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { runSearchRequest, type IdentificationAdapters } from './request'
 import type { CharacterIdentificationInput } from './identify'
 import type { SearchOperationContext } from './operation'
@@ -96,7 +97,7 @@ function requestWith(adapters: IdentificationAdapters) {
 
 /** 후보 high(명성 100), low(50), null(null)의 이미지를 얼굴과의 거리가 shifts인 이미지로 돌려준다. */
 function fixture(shifts: Record<string, number> = { high: 20, low: 10, null: 30 }): {
-  clock: FakeClock
+  clock: FakeMonotonicClock
   controller: AbortController
   calls: string[]
   candidates: MockedFunction<CharacterCandidatesHttp>
@@ -106,7 +107,7 @@ function fixture(shifts: Record<string, number> = { high: 20, low: 10, null: 30 
   identify: ReturnType<typeof requestWith>
   input: CharacterIdentificationInput & SearchOperationContext
 } {
-  const clock = new FakeClock()
+  const clock = new FakeMonotonicClock()
   const controller = new AbortController()
   const calls: string[] = []
   const candidates = vi.fn<CharacterCandidatesHttp>(async ({ nickname }) => {
@@ -167,7 +168,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(await f.identify(f.input)).toMatchObject({
       kind: 'success',
       rows: [expect.objectContaining({ characterId: 'low', characterName: '첫이름' })],
-      selected: { selectionMethod: 'portrait', details: details('low') }
+      selected: { selectionMethod: 'portrait', summary: { characterId: 'low' } }
     })
     expect(f.calls).toEqual([
       'candidates:첫이름',
@@ -197,7 +198,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(outcome).toMatchObject({
       kind: 'success',
       rows: [expect.objectContaining({ characterId: 'low' })],
-      selected: { selectionMethod: 'portrait', details: details('low') }
+      selected: { selectionMethod: 'portrait', summary: { characterId: 'low' } }
     })
     expect(
       outcome?.kind === 'success' && outcome.selected?.choices?.map((choice) => choice.characterId)
@@ -210,7 +211,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
 
     expect(await f.identify({ ...f.input, portrait: null })).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'highest-fame', details: details('high') }
+      selected: { selectionMethod: 'highest-fame', summary: { characterId: 'high' } }
     })
     expect(f.calls).toEqual(['candidates:첫이름', 'details:high'])
     expect(f.scorePortrait).not.toHaveBeenCalled()
@@ -232,7 +233,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     const loaded = await loading.identify(loading.input)
     expect(loaded).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'portrait', details: details('low') }
+      selected: { selectionMethod: 'portrait', summary: { characterId: 'low' } }
     })
     expect(
       loaded?.kind === 'success' &&
@@ -246,7 +247,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     const compared = await comparing.identify(comparing.input)
     expect(compared).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'portrait', details: details('low') }
+      selected: { selectionMethod: 'portrait', summary: { characterId: 'low' } }
     })
     expect(
       compared?.kind === 'success' &&
@@ -412,7 +413,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
   )
 
   it('공유 직렬 큐에서 대기하던 슬롯의 캡처가 끝나면 그 슬롯의 이미지 요청을 시작하지 않는다', async () => {
-    const clock = new FakeClock()
+    const clock = new FakeMonotonicClock()
     const started: { characterId: string; resolve: (image: CharacterImage) => void }[] = []
     const http = vi.fn<CharacterImageHttp>(
       ({ characterId }) =>
@@ -464,7 +465,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
 
     expect(await first.outcome).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'portrait', details: details('a-low') }
+      selected: { selectionMethod: 'portrait', summary: { characterId: 'a-low' } }
     })
     expect(http.mock.calls.map(([input]) => input.characterId)).toEqual(['a-high', 'a-low'])
   })
@@ -514,7 +515,7 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
       })
   }
 
-  it('검증한 카드에 엔진 점수를 채우고 요약의 장비 점수와 서버 순위로 옮긴다', async () => {
+  it('카드 역할에 엔진 점수를 채우고 요약의 장비 점수로 옮긴다', async () => {
     const f = fixture()
     const score = vi.fn<ScoreEngine>(() => engineResult)
 
@@ -525,10 +526,8 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
       selected: {
         summary: {
           equipmentScore: 1741,
-          serverRank: 12,
           card: {
-            // 스위칭 Lv은 엔진 값이 아니라 상세 응답의 스위칭 장비에서 읽고, 이 합성 응답에는 스위칭 장비가 없다.
-            stats: { switchingLevel: null },
+            role: 'dealer',
             score: { calculator: 'equipment', value: 1741, skipped: null }
           }
         }
@@ -537,16 +536,16 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
     expect(score).toHaveBeenCalledOnce()
   })
 
-  it('카드 검증에 실패하면 엔진을 부르지 않고 카드만 null로 두어 나머지 요약은 전달한다', async () => {
+  it('카드 역할을 읽지 못하면 엔진을 부르지 않고 카드만 null로 두어 나머지 요약은 전달한다', async () => {
     const f = fixture()
     const score = vi.fn<ScoreEngine>(() => engineResult)
 
-    const outcome = await cardRequest(f, score, { ...dealerCard, extra: true })()
+    const outcome = await cardRequest(f, score, { ...dealerCard, role: 'tank' })()
 
     expect(outcome).toMatchObject({
       kind: 'success',
       selected: {
-        summary: { characterId: 'high', equipmentScore: null, serverRank: null, card: null }
+        summary: { characterId: 'high', equipmentScore: null, card: null }
       }
     })
     expect(score).not.toHaveBeenCalled()

@@ -22,7 +22,6 @@ const summary: SelectedCharacterSummary = {
   imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/fixture-character?zoom=1',
   guildName: null,
   equipmentScore: null,
-  serverRank: null,
   card: null
 }
 
@@ -44,13 +43,12 @@ it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은
     level: null,
     job: '-'
   })
-  // 카드 값은 main이 검증한 그대로 옮기고, 이전 요약의 점수와 순위 자리는 쓰지 않는다.
+  // 카드 값은 main이 검증한 그대로 옮기고, 요약의 점수 자리는 쓰지 않는다.
   expect(
     toCharacterCard({
       ...summary,
       guildName: '길드',
       equipmentScore: 414806,
-      serverRank: 37,
       card: dealerCard
     })
   ).toMatchObject({ guild: '길드', card: dealerCard })

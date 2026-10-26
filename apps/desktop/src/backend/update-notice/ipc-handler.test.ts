@@ -133,7 +133,7 @@ it('닫으면 결과 상태를 돌려주고 같은 상태를 신뢰한 화면에
 
   expect(await f.invoke('getUpdateNotice', f.event)).toEqual({
     revision: 1,
-    notice: { tag: 'v0.0.3', endsOcrCollection: false }
+    notice: { tag: 'v0.0.3' }
   })
   const dismissed = await f.invoke('dismissUpdateNotice', f.event, 'v0.0.3')
 

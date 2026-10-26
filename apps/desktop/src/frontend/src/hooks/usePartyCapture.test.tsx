@@ -46,8 +46,7 @@ const api = {
   notifyOcrCandidatesDetected: vi.fn(),
   selectCaptureSource: vi.fn(),
   readCaptureFrame: (...args: unknown[]) => readCaptureFrame(...args),
-  onDesktopShortcut: vi.fn(),
-  collectOcrSample: vi.fn().mockResolvedValue({ status: 'queued' })
+  onDesktopShortcut: vi.fn()
 }
 
 const search = { controlCharacterSearch: vi.fn(), onCharacterSearchChanged: vi.fn() }
@@ -116,7 +115,6 @@ function captureResources(): {
 } {
   const frame: WindowFrameResult = {
     kind: 'frame',
-    frameId: 'frame-one',
     image: { width: 2, height: 1, rgba: new Uint8Array([1, 2, 3, 255, 4, 5, 6, 255]) }
   }
   const worker = {
@@ -137,10 +135,6 @@ beforeEach(() => {
   Object.defineProperty(window, 'desktopShortcut', {
     configurable: true,
     value: { onDesktopShortcut: api.onDesktopShortcut }
-  })
-  Object.defineProperty(window, 'ocrCollection', {
-    configurable: true,
-    value: { collectOcrSample: api.collectOcrSample }
   })
   Object.defineProperty(window, 'search', { configurable: true, value: search })
   currentSearch = searchSnapshot({ captureId: null, revision: 0 })
@@ -174,7 +168,6 @@ beforeEach(() => {
   }))
   api.selectCaptureSource.mockResolvedValue(null)
   moduleMocks.capturePartyRecognitionInputs.mockReturnValue([null, null, null, null])
-  api.collectOcrSample.mockResolvedValue({ status: 'queued' })
   const resources = captureResources()
   readCaptureFrame.mockResolvedValue(resources.frame)
   moduleMocks.createPartyOcrWorker.mockResolvedValue(resources.worker)
@@ -443,8 +436,7 @@ it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 재�
   expect(readCaptureFrame).toHaveBeenCalledExactlyOnceWith(CAPTURE_ID)
   expect(moduleMocks.capturePartyRecognitionInputs).toHaveBeenCalledExactlyOnceWith({
     ...(frame.kind === 'frame' ? frame.image : {}),
-    captureId: CAPTURE_ID,
-    frameId: 'frame-one'
+    captureId: CAPTURE_ID
   })
   expect(worker.recognize.mock.calls.map(([crop]) => crop)).toEqual(
     inputs.map((input) => input!.nickname)
@@ -457,14 +449,6 @@ it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 재�
       nickname: `이름${slot}`,
       candidateNicknames: [`이름${slot}`],
       portrait: input!.portrait
-    }))
-  )
-  expect(api.collectOcrSample.mock.calls.map(([input]) => input)).toEqual(
-    [1, 2, 3, 4].map((slot) => ({
-      captureId: CAPTURE_ID,
-      frameId: 'frame-one',
-      slot,
-      prediction: ` 이름${slot - 1} `
     }))
   )
   expect(hook.getCurrent().nicknames).toEqual(['이름0', '이름1', '이름2', '이름3'])
@@ -495,14 +479,12 @@ it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 재�
   await act(async () => vi.advanceTimersByTimeAsync(60_000))
   expect(readCaptureFrame).toHaveBeenCalledOnce()
   expect(worker.recognize).toHaveBeenCalledTimes(4)
-  expect(api.collectOcrSample).toHaveBeenCalledTimes(4)
   expect(search.controlCharacterSearch).not.toHaveBeenCalledWith({
     action: 'end',
     captureId: CAPTURE_ID
   })
   await shortcut()
   expect(readCaptureFrame).toHaveBeenCalledTimes(2)
-  expect(api.collectOcrSample).toHaveBeenCalledTimes(8)
   expect(search.controlCharacterSearch).toHaveBeenCalledWith({
     action: 'end',
     captureId: CAPTURE_ID
@@ -529,7 +511,6 @@ it.each([
   expect(hook.getCurrent().status).toBe(status)
   expect(hook.getCurrent().search.captureActive).toBe(true)
   expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
-  expect(api.collectOcrSample).not.toHaveBeenCalled()
   expect(moduleMocks.createPartyOcrWorker).toHaveBeenCalledTimes(reason === 'missing' ? 1 : 0)
   await act(async () => vi.advanceTimersByTimeAsync(60_000))
   expect(readCaptureFrame).toHaveBeenCalledOnce()
@@ -548,7 +529,6 @@ it('일부 슬롯 미검출은 그 슬롯만 비우고 나머지는 한 번 통�
   await shortcut()
   expect(hook.getCurrent().nicknames).toEqual(['Alice', null, 'Alice', 'Alice'])
   expect(api.notifyOcrCandidatesDetected.mock.calls.map(([input]) => input.slot)).toEqual([0, 2, 3])
-  expect(api.collectOcrSample.mock.calls.map(([input]) => input.slot)).toEqual([1, 3, 4])
   await hook.unmount()
 })
 
@@ -558,46 +538,20 @@ it.each([
   [['  ', '정상'], '이유: 빈 문자열, 원문: "  "'],
   [['a'.repeat(13), '정상'], '이유: 최대 길이 초과, 원문: "aaaaaaaaaaaaa"'],
   [['\uD800', '정상'], '이유: 잘못된 Unicode, 원문: "\\ud800"']
-])(
-  '잘못된 첫 후보 %j는 실패 통지와 Console 표시를 유지하고 원문을 수집한다',
-  async (names, message) => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const { worker } = captureResources()
-    worker.recognize.mockResolvedValue(ocrResult(...names))
-    moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
-    setSlots(0)
-    const hook = await renderPartyCaptureHook(false, true)
-    await act(async () => hook.getCurrent().selectSource('game'))
-    await shortcut()
-    expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ nickname: '', candidateNicknames: [''] })
-    )
-    expect(warn).toHaveBeenCalledExactlyOnceWith(expect.stringContaining(message))
-    expect(hook.getCurrent().nicknames).toEqual([null, null, null, null])
-    expect(api.collectOcrSample).toHaveBeenCalledExactlyOnceWith({
-      captureId: CAPTURE_ID,
-      frameId: 'frame-one',
-      slot: 1,
-      prediction: names[0] ?? null
-    })
-    await hook.unmount()
-  }
-)
-
-it.each(['failed', 'reject'] as const)('수집 %s는 검색과 완료를 막지 않는다', async (mode) => {
-  const report = vi.spyOn(diagnostics, 'reportRendererDiagnostic')
-  if (mode === 'failed') {
-    api.collectOcrSample.mockResolvedValue({ status: 'failed' })
-  } else {
-    api.collectOcrSample.mockRejectedValue(new Error('upload failed'))
-  }
+])('잘못된 첫 후보 %j는 실패 통지와 Console 표시를 유지한다', async (names, message) => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const { worker } = captureResources()
+  worker.recognize.mockResolvedValue(ocrResult(...names))
+  moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
   setSlots(0)
   const hook = await renderPartyCaptureHook(false, true)
   await act(async () => hook.getCurrent().selectSource('game'))
   await shortcut()
-  expect(report).toHaveBeenCalledExactlyOnceWith('UPLOAD_FAILED')
-  expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledOnce()
-  expect(hook.getCurrent().phase).toBe('complete')
+  expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ nickname: '', candidateNicknames: [''] })
+  )
+  expect(warn).toHaveBeenCalledExactlyOnceWith(expect.stringContaining(message))
+  expect(hook.getCurrent().nicknames).toEqual([null, null, null, null])
   await hook.unmount()
 })
 
@@ -697,8 +651,6 @@ it.each([
     expect(hook.getCurrent().canStartCapture).toBe(true)
     if (stage === 'ocr') {
       expect(worker.terminate).toHaveBeenCalledOnce()
-    } else {
-      expect(api.collectOcrSample).not.toHaveBeenCalled()
     }
     await shortcut()
     expect(hook.getCurrent().phase).toBe('complete')
@@ -708,7 +660,7 @@ it.each([
 )
 
 it.each(['restart', 'stop', 'source', 'unmount'] as const)(
-  '%s 뒤 이전 OCR의 늦은 결과는 검색, 수집, 화면을 바꾸지 않는다',
+  '%s 뒤 이전 OCR의 늦은 결과는 검색과 화면을 바꾸지 않는다',
   async (action) => {
     const previous = captureResources().worker
     const next = captureResources().worker
@@ -724,7 +676,6 @@ it.each(['restart', 'stop', 'source', 'unmount'] as const)(
     await shortcut()
     expect(hook.getCurrent().phase).toBe('recognizing')
     expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
-    expect(api.collectOcrSample).not.toHaveBeenCalled()
     const signal = moduleMocks.createPartyOcrWorker.mock.calls[0][0] as AbortSignal
     if (action === 'restart') {
       await shortcut()
@@ -744,10 +695,8 @@ it.each(['restart', 'stop', 'source', 'unmount'] as const)(
     expect(signal.aborted).toBe(true)
     const state = hook.getCurrent()
     const notifications = api.notifyOcrCandidatesDetected.mock.calls.slice()
-    const uploads = api.collectOcrSample.mock.calls.slice()
     await act(async () => pending.resolve(ocrResult('늦은이름')))
     expect(api.notifyOcrCandidatesDetected.mock.calls).toEqual(notifications)
-    expect(api.collectOcrSample.mock.calls).toEqual(uploads)
     expect(hook.getCurrent().nicknames).toEqual(state.nicknames)
     expect(hook.getCurrent().status).toBe(state.status)
     expect(previous.terminate).toHaveBeenCalledOnce()
@@ -793,7 +742,6 @@ it.each(['frame', 'worker'] as const)(
     })
     expect(hook.getCurrent().phase).toBe('complete')
     expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledOnce()
-    expect(api.collectOcrSample).toHaveBeenCalledOnce()
     expect(old.worker.recognize).not.toHaveBeenCalled()
     expect(old.worker.terminate).toHaveBeenCalledTimes(stage === 'worker' ? 1 : 0)
     expect(next.worker.terminate).toHaveBeenCalledOnce()
@@ -887,7 +835,6 @@ it.each(['resolve', 'reject'] as const)(
     expect(worker.terminate).toHaveBeenCalledTimes(outcome === 'resolve' ? 1 : 0)
     expect(worker.recognize).not.toHaveBeenCalled()
     expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
-    expect(api.collectOcrSample).not.toHaveBeenCalled()
     expect(report).not.toHaveBeenCalled()
   }
 )
@@ -923,7 +870,7 @@ it('회차가 끝난 뒤 창 목록 조회 실패는 결과와 검색 수명을 
 })
 
 it.each(['failed', 'rejected'] as const)(
-  '두 번째 슬롯 OCR 실패 시 뒤 슬롯이 %s여도 모든 검출 슬롯을 END 전에 수집한다',
+  '두 번째 슬롯 OCR 실패 시 뒤 슬롯이 %s여도 검색을 통지하지 않고 실패로 끝낸다',
   async (laterResult) => {
     const report = vi.spyOn(diagnostics, 'reportRendererDiagnostic')
     const { worker } = captureResources()
@@ -941,21 +888,6 @@ it.each(['failed', 'rejected'] as const)(
     await shortcut()
 
     expect(worker.recognize).toHaveBeenCalledTimes(4)
-    const thirdPrediction = laterResult === 'rejected' ? '  ' : null
-    expect(api.collectOcrSample.mock.calls.map(([sample]) => sample)).toEqual([
-      { captureId: CAPTURE_ID, frameId: 'frame-one', slot: 1, prediction: ' 원문 ' },
-      { captureId: CAPTURE_ID, frameId: 'frame-one', slot: 2, prediction: null },
-      { captureId: CAPTURE_ID, frameId: 'frame-one', slot: 3, prediction: thirdPrediction },
-      { captureId: CAPTURE_ID, frameId: 'frame-one', slot: 4, prediction: null }
-    ])
-    const endIndex = search.controlCharacterSearch.mock.calls.findIndex(
-      ([command]) => command.action === 'end' && command.captureId === CAPTURE_ID
-    )
-    expect(endIndex).toBeGreaterThanOrEqual(0)
-    const endOrder = search.controlCharacterSearch.mock.invocationCallOrder[endIndex]
-    for (const order of api.collectOcrSample.mock.invocationCallOrder) {
-      expect(order).toBeLessThan(endOrder)
-    }
     expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
     expect(api.notifyStableNicknameDetected).not.toHaveBeenCalled()
     expect(report).toHaveBeenCalledExactlyOnceWith('OCR_FAILED')

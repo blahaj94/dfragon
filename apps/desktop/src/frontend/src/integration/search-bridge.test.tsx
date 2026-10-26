@@ -176,11 +176,10 @@ it('초기 read 실패는 검색 연결 안내를 표시하고 command를 자동
   expect(fixture.readCaptureFrame).not.toHaveBeenCalled()
 })
 
-it('검색 run 변경은 구독, 표시를 버리고 검색만 다시 조회한다', async () => {
+it('검색 run 변경은 구독, 표시를 버리고 검색을 다시 조회한다', async () => {
   const fixture = await recognizedFixture()
   await fixture.emit(state(fixture, searchSlot({ state: 'success', rows: [searchRow] }), 10))
   const callback = fixture.search.onCharacterSearchChanged.mock.calls[0]?.[0]
-  const authReads = fixture.auth.getAuthState.mock.calls.length
   const previousSubscriptions = fixture.search.onCharacterSearchChanged.mock.calls.length
   const nextRun = searchSnapshot({
     runId: '00000000-0000-4000-8000-000000000099',
@@ -189,7 +188,6 @@ it('검색 run 변경은 구독, 표시를 버리고 검색만 다시 조회한�
   })
   await fixture.emit(nextRun)
   expect(fixture.container.textContent).not.toContain(searchRow.characterId)
-  expect(fixture.auth.getAuthState.mock.calls.length).toBe(authReads)
   expect(fixture.search.onCharacterSearchChanged.mock.calls.length).toBeGreaterThan(
     previousSubscriptions
   )

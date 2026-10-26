@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { deferred } from '../auth/auth-test-fixtures'
+import { deferred } from '../lib/async-test-fixture'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 
 async function flushSearch(): Promise<void> {
@@ -52,7 +52,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
     await vi.waitFor(() => expect(body.pull).toHaveBeenCalled())
 
     try {
-      fixture.harness.clock.advance(15_000)
+      fixture.clock.advance(15_000)
       await flushSearch()
 
       expect((await fixture.read()).slots[0]).toMatchObject({
@@ -77,7 +77,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
       await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
       await vi.waitFor(() => expect(body.pull).toHaveBeenCalled())
 
-      fixture.harness.clock.elapseWithoutTimers(elapsed)
+      fixture.clock.elapseWithoutTimers(elapsed)
       body.finish(JSON.stringify({ rows: [] }))
       await flushSearch()
 
@@ -99,7 +99,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
       await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
       await vi.waitFor(() => expect(body.pull).toHaveBeenCalled())
 
-      fixture.harness.clock.elapseWithoutTimers(15_000)
+      fixture.clock.elapseWithoutTimers(15_000)
       body.finish(text)
       await flushSearch()
 
@@ -120,9 +120,9 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
     const before = await fixture.read()
 
     try {
-      fixture.harness.clock.advance(10_000)
+      fixture.clock.advance(10_000)
       await fixture.observe({ slot: 0, observationRevision: 2, nickname: '가나' })
-      fixture.harness.clock.advance(5_000)
+      fixture.clock.advance(5_000)
       await flushSearch()
 
       expect((await fixture.read()).slots[0]).toMatchObject({
@@ -148,7 +148,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
     const before = await fixture.read()
     const response = deferred<Response>()
     fixture.fetchSearch.mockReturnValueOnce(response.promise)
-    fixture.harness.clock.advance(14_000)
+    fixture.clock.advance(14_000)
 
     try {
       const retry = await fixture.invoke('controlCharacterSearch', {
@@ -161,10 +161,10 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
       await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(2))
       const current = await fixture.read()
       expect(current.slots[0].requestId).not.toBe(before.slots[0].requestId)
-      fixture.harness.clock.advance(14_999)
+      fixture.clock.advance(14_999)
       await flushSearch()
       expect((await fixture.read()).slots[0].state).toBe('pending')
-      fixture.harness.clock.advance(1)
+      fixture.clock.advance(1)
       await flushSearch()
       expect((await fixture.read()).slots[0]).toMatchObject({
         state: 'failure',

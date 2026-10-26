@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { SearchSlot } from '../../preload/common/types/search'
 import { createSearchFixture, jsonResponse } from './search-test-fixture'
 import { createCaptureSearchLifetime } from './capture-lifetime'
-import { deferred, FakeClock } from '../auth/auth-test-fixtures'
+import { deferred } from '../lib/async-test-fixture'
+import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { SearchHttpFailure } from './http'
 
 type Fixture = Awaited<ReturnType<typeof createSearchFixture>>
@@ -44,7 +45,7 @@ async function flushSearch(): Promise<void> {
 
 describe('main의 429 Retry-After와 사용자 재시도', () => {
   it('body 완료 전에 429 대기가 만료되면 timer나 자동 GET 없이 같은 실패를 활성화한다', async () => {
-    const clock = new FakeClock()
+    const clock = new FakeMonotonicClock()
     const response = deferred<[]>()
     const http = vi.fn(() => response.promise)
     const lifetime = createCaptureSearchLifetime({
@@ -110,17 +111,17 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
 
     try {
       await vi.waitFor(() => expect(pull).toHaveBeenCalled())
-      fixture.harness.clock.advance(1_000)
+      fixture.clock.advance(1_000)
       finish()
       await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('failure'))
       const failed = (await fixture.read()).slots[0]
       expect(failed.error).toEqual({ code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 2 })
-      fixture.harness.clock.advance(999)
+      fixture.clock.advance(999)
       expect(await retry(fixture, failed)).toMatchObject({
         ok: false,
         error: { code: 'SEARCH_RETRY_NOT_READY' }
       })
-      fixture.harness.clock.advance(1)
+      fixture.clock.advance(1)
       await flushSearch()
 
       expect((await fixture.read()).slots[0]).toEqual({
@@ -144,14 +145,14 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
         error: { code: 'SEARCH_RETRY_NOT_READY' }
       })
 
-      fixture.harness.clock.advance(1_999)
+      fixture.clock.advance(1_999)
       await flushSearch()
       expect(await retry(fixture, failed)).toMatchObject({
         ok: false,
         error: { code: 'SEARCH_RETRY_NOT_READY' }
       })
       const waiting = await fixture.read()
-      fixture.harness.clock.advance(1)
+      fixture.clock.advance(1)
       await flushSearch()
       const expired = await fixture.read()
 
@@ -196,9 +197,9 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
 
   it('큰 safe integer 초는 Node timer 상한 때문에 즉시 만료되지 않는다', async () => {
     const fixture = await createSearchFixture()
-    const schedule = fixture.harness.clock.schedule.bind(fixture.harness.clock)
+    const schedule = fixture.clock.schedule.bind(fixture.clock)
     // Node의 2^31-1ms 초과 delay가 1ms로 바뀌는 경계를 clock effect에서 모사한다.
-    vi.spyOn(fixture.harness.clock, 'schedule').mockImplementation((delay, callback) => {
+    vi.spyOn(fixture.clock, 'schedule').mockImplementation((delay, callback) => {
       const exceedsTimerRange = delay > 2_147_483_647
       const nativeDelay = exceedsTimerRange ? 1 : delay
 
@@ -206,7 +207,7 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
     })
     const failed = await limited(fixture, String(Number.MAX_SAFE_INTEGER))
 
-    fixture.harness.clock.advance(1)
+    fixture.clock.advance(1)
     await flushSearch()
 
     expect((await fixture.read()).slots[0]).toEqual({
@@ -235,15 +236,15 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
       }
       const before = await fixture.read()
       const publishedBefore = fixture.published.mock.calls.length
-      const hasPendingTimer = fixture.harness.clock.scheduled.some((task) => {
-        const isFuture = task.at > fixture.harness.clock.monotonicMs
+      const hasPendingTimer = fixture.clock.scheduled.some((task) => {
+        const isFuture = task.at > fixture.clock.monotonicMs
         const isActive = !task.cancelled && isFuture
 
         return isActive
       })
       expect(hasPendingTimer).toBe(false)
 
-      fixture.harness.clock.advance(2_000)
+      fixture.clock.advance(2_000)
       await flushSearch()
 
       expect(await fixture.read()).toEqual(before)

@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { MockedFunction } from 'vitest'
 import type { CharacterCandidate, CharacterDetails } from '../../preload/common/types/character'
 import type { RaidRowObservation } from '../../preload/common/types/search'
-import { FakeClock, deferred } from '../auth/auth-test-fixtures'
+import { deferred } from '../lib/async-test-fixture'
+import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { runSearchRequest } from './request'
 import type { CharacterCandidatesHttp, CharacterDetailsHttp } from './character-http'
 import { SearchHttpFailure } from './http'
@@ -74,7 +75,7 @@ const SCORE_ROW: RaidRowObservation = {
 
 /** 같은 직업 동명 후보 넷(명성 순 first, second, third, fourth)과 다른 직업 후보 하나 */
 function fixture(engineScores: Record<string, number | null> | null) {
-  const clock = new FakeClock()
+  const clock = new FakeMonotonicClock()
   const controller = new AbortController()
   const calls: string[] = []
   const candidates: MockedFunction<CharacterCandidatesHttp> = vi.fn(async () => [
@@ -143,7 +144,7 @@ describe('공대 장비 점수 비교의 상세 조회', () => {
     expect(await pending).toMatchObject({
       kind: 'success',
       rows: [expect.objectContaining({ characterId: 'second' })],
-      selected: { selectionMethod: 'equipment-score', details: details('second') }
+      selected: { selectionMethod: 'equipment-score', summary: { characterId: 'second' } }
     })
     expect(f.calls).toEqual(['details:first', 'details:second', 'details:third'])
   })
@@ -163,7 +164,7 @@ describe('공대 장비 점수 비교의 상세 조회', () => {
 
     expect(outcome).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'equipment-score', details: details('second') }
+      selected: { selectionMethod: 'equipment-score', summary: { characterId: 'second' } }
     })
     expect(
       outcome?.kind === 'success' && outcome.selected?.choices?.map((choice) => choice.characterId)
@@ -180,7 +181,7 @@ describe('공대 장비 점수 비교의 상세 조회', () => {
 
     expect(await f.request()).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'highest-fame', details: details('first') }
+      selected: { selectionMethod: 'highest-fame', summary: { characterId: 'first' } }
     })
     expect(f.calls).toEqual(['details:first', 'details:second', 'details:third'])
   })
@@ -196,7 +197,7 @@ describe('공대 장비 점수 비교의 상세 조회', () => {
 
     expect(await f.request()).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'highest-fame', details: details('first') }
+      selected: { selectionMethod: 'highest-fame', summary: { characterId: 'first' } }
     })
     expect(f.calls).toEqual(['details:second', 'details:third', 'details:first'])
   })
@@ -229,7 +230,7 @@ describe('공대 식별의 비교 종류', () => {
       await f.request({ jobText: '眞데몬슬레이', valueColumn: 'equipment-score', valueText: '1' })
     ).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'job', details: details('other-job') }
+      selected: { selectionMethod: 'job', summary: { characterId: 'other-job' } }
     })
     expect(f.calls).toEqual(['details:other-job'])
   })
@@ -245,7 +246,7 @@ describe('공대 식별의 비교 종류', () => {
 
     expect(outcome).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'fame', details: details('second') }
+      selected: { selectionMethod: 'fame', summary: { characterId: 'second' } }
     })
     expect(outcome?.kind === 'success' && outcome.selected?.choices).toBeUndefined()
     expect(f.calls).toEqual(['details:second'])
@@ -262,7 +263,7 @@ describe('공대 식별의 비교 종류', () => {
       await f.request({ jobText: '眞크루세이더', valueColumn: 'fame', valueText: '50,000' })
     ).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'fame', details: details('legacy-low') }
+      selected: { selectionMethod: 'fame', summary: { characterId: 'legacy-low' } }
     })
   })
 })

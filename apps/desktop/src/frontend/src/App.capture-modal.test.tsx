@@ -4,7 +4,6 @@ import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import {
   createRendererFixture,
   captureResources,
-  authSnapshot,
   media
 } from './testing/fixtures/search-renderer-test-fixture'
 import App from './App'
@@ -91,7 +90,7 @@ it('앱 시작 때 던파가 하나면 등록만 하고 Alt+R 전까지 기다�
   expect(topBarText()).toContain('창 감지됨')
 })
 
-it('창 선택 뒤 Alt+R로 한 번 인식하고 모달, 로그인 변경 뒤에도 이름과 검색 수명을 유지한다', async () => {
+it('창 선택 뒤 Alt+R로 한 번 인식하고 모달을 닫아도 이름과 검색 수명을 유지한다', async () => {
   const f = createRendererFixture()
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
   const pending = Promise.withResolvers<Awaited<ReturnType<typeof f.resources.worker.recognize>>>()
@@ -128,11 +127,6 @@ it('창 선택 뒤 Alt+R로 한 번 인식하고 모달, 로그인 변경 뒤에
   const captureId = f.current().captureId
   expect(captureId).not.toBeNull()
   await click('닫기')
-  const cards = [...f.container.querySelectorAll('article')]
-  await f.emitAuth(authSnapshot({ revision: 2, signedIn: false }))
-  expect(
-    [...f.container.querySelectorAll('article')].every((card, index) => card === cards[index])
-  ).toBe(true)
   expect(f.container.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
     'ALICE'
   )

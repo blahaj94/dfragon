@@ -18,7 +18,6 @@ const summary: SelectedCharacterSummary = {
   imageUrl: '',
   guildName: null,
   equipmentScore: null,
-  serverRank: null,
   card: null
 }
 

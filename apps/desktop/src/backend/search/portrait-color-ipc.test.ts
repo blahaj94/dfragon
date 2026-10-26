@@ -9,7 +9,8 @@ import type {
   CharacterImage,
   CharacterPortrait
 } from '../../preload/common/types/character'
-import { API_ORIGIN, deferred, type Deferred } from '../auth/auth-test-fixtures'
+import { deferred, type Deferred } from '../lib/async-test-fixture'
+import { API_ORIGIN } from './search-test-fixture'
 
 const IMAGE_ORIGIN = 'https://img-api.neople.co.kr'
 const FACE_SIZE = 16
@@ -111,7 +112,7 @@ const slots = [
 ]
 
 it('얼굴 색 비교 식별은 API origin과 img-api만 credential 없이 부르고 쇼룸 주소는 부르지 않는다', async () => {
-  const fixture = await createSearchFixture(false, 'capture', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('capture', INITIAL_PORTRAIT_COLOR_POLICY)
   const calls: string[] = []
   const { nickname, rows } = slots[0]
   fixture.fetchSearch.mockImplementation(async (input, init) => {
@@ -158,7 +159,7 @@ it('얼굴 색 비교 식별은 API origin과 img-api만 credential 없이 부�
 
 // 두 후보의 이미지가 같아 거리가 같으므로 margin 0으로 확정하지 못하고 명성이 앞선 후보가 1위다.
 it('외형이 같은 후보로 확정하지 못하면 1위와 함께 모험단과 얼굴 창을 담은 후보를 renderer에 보낸다', async () => {
-  const fixture = await createSearchFixture(false, 'capture', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('capture', INITIAL_PORTRAIT_COLOR_POLICY)
   const { nickname } = slots[0]
   const rows = [
     { ...row('slot0-other', nickname, 90000), adventureName: '합성모험단' },
@@ -202,7 +203,7 @@ it('외형이 같은 후보로 확정하지 못하면 1위와 함께 모험단�
 })
 
 it('두 슬롯의 후보 이미지는 앞 요청이 끝난 뒤에야 다음 요청을 시작한다', async () => {
-  const fixture = await createSearchFixture(false, 'capture', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('capture', INITIAL_PORTRAIT_COLOR_POLICY)
   const pendingImages: Array<{ characterId: string; response: Deferred<Response> }> = []
   let active = 0
   let maxActive = 0
@@ -281,6 +282,6 @@ it.each([
   ['선택 minMargin', { minMargin: -1 }]
 ] as const)('잘못된 %s 정책은 요청 전에 등록에서 거절한다', async (_name, change) => {
   await expect(
-    createSearchFixture(false, 'capture', { ...INITIAL_PORTRAIT_COLOR_POLICY, ...change })
+    createSearchFixture('capture', { ...INITIAL_PORTRAIT_COLOR_POLICY, ...change })
   ).rejects.toThrow(TypeError)
 })

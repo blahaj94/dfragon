@@ -11,7 +11,7 @@ vi.mock('electron', () => ({
   ipcRenderer: { invoke: mocks.invoke, on: mocks.on, removeListener: mocks.remove }
 }))
 
-const snapshot = { revision: 3, notice: { tag: 'v0.0.4-beta.1', endsOcrCollection: true } }
+const snapshot = { revision: 3, notice: { tag: 'v0.0.4-beta.1' } }
 
 beforeEach(() => vi.clearAllMocks())
 

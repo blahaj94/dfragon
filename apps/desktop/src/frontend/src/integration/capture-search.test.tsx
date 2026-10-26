@@ -5,15 +5,13 @@ import { expect, it } from 'vitest'
 import type { SearchCommandResult } from '../../../preload/common/types/search'
 import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
 import {
-  authSnapshot,
   captureResources,
   createRendererFixture,
   media
 } from '../testing/fixtures/search-renderer-test-fixture'
 
-it('비로그인 Start는 검색 세션을 begin한 뒤 반환 captureId의 media와 OCR를 시작한다', async () => {
+it('Start는 검색 세션을 begin한 뒤 반환 captureId의 media와 OCR를 시작한다', async () => {
   const fixture = createRendererFixture()
-  await fixture.emitAuth(authSnapshot({ signedIn: false }))
   await fixture.mount()
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
   await fixture.start()
@@ -218,29 +216,6 @@ it('새 회차는 이전 capture를 종료하고 첫 관측 revision부터 시�
   })
   expect(fixture.capture.notifyStableNicknameDetected).toHaveBeenCalledTimes(2)
   expect(fixture.readCaptureFrame).toHaveBeenCalledTimes(2)
-})
-
-it('로그인과 로그아웃은 진행 중 캡처와 표시된 검색 결과를 유지한다', async () => {
-  const fixture = createRendererFixture()
-  await fixture.emitAuth(authSnapshot({ signedIn: false }))
-  await fixture.mount()
-  media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
-  await fixture.start()
-  expect(fixture.container.textContent).toContain('ALICE')
-
-  await fixture.emitAuth(authSnapshot({ revision: 2, signedIn: true }))
-  await fixture.emitAuth(authSnapshot({ revision: 3, signedIn: false }))
-  expect(fixture.search.controlCharacterSearch).not.toHaveBeenCalledWith({
-    action: 'end',
-    captureId: CAPTURE_ID
-  })
-  expect(fixture.container.querySelector('select')?.value).toBe('game')
-  expect(fixture.container.textContent).toContain('ALICE')
-  expect(
-    fixture.search.controlCharacterSearch.mock.calls.filter(([input]) => input.action === 'begin')
-  ).toHaveLength(1)
-
-  expect(fixture.resources.worker.terminate).toHaveBeenCalledOnce()
 })
 
 it('빈 OCR 회차는 이전 capture를 종료하고 빈 이름을 통지하지 않는다', async () => {

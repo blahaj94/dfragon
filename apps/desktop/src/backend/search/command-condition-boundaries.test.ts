@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseSearchControl, parseSearchObservation } from './commands'
-import { deferred } from '../auth/auth-test-fixtures'
+import { deferred } from '../lib/async-test-fixture'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 
 const captureId = '00000000-0000-4000-8000-000000000011'
@@ -93,7 +93,7 @@ describe('검색 IPC 명령 입력 경계', () => {
   ] as const)(
     '%s의 잘못된 명령은 현재 요청을 취소하거나 상태를 발행하지 않는다',
     async (_name, kind, controlChannel, observationChannel) => {
-      const fixture = await createSearchFixture(false, kind)
+      const fixture = await createSearchFixture(kind)
       const response = deferred<Response>()
       fixture.fetchSearch.mockReturnValueOnce(response.promise)
       await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })

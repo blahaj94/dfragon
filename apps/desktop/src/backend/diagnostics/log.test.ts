@@ -15,14 +15,14 @@ it('연속해서 같은 오류가 발생하면 한 번만 기록하고 이후 �
   ])
   expect(receive).toHaveBeenCalledTimes(2)
   unsubscribe()
-  log.report('UPLOAD_FAILED')
+  log.report('SEARCH_FAILED')
   expect(receive).toHaveBeenCalledTimes(2)
 })
 
 it('현재 실행의 최근 기록만 유지하며 반환 배열을 변경해도 내부 기록은 보존한다', () => {
   const log = createDiagnosticLog()
   for (let index = 0; index < DIAGNOSTIC_HISTORY_LIMIT + 2; index += 1) {
-    log.report(index % 2 === 0 ? 'OCR_FAILED' : 'UPLOAD_FAILED')
+    log.report(index % 2 === 0 ? 'OCR_FAILED' : 'SEARCH_FAILED')
   }
   const history = log.history()
   expect(history).toHaveLength(DIAGNOSTIC_HISTORY_LIMIT)
