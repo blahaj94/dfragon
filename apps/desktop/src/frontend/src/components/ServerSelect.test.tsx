@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { CharacterCard } from '../sections/CharacterCard'
+import { RaidCard } from '../sections/RaidCard'
 import { previewCharacter } from '../fixture/mvp/fixture'
 import { ServerSelect } from './ServerSelect'
 
@@ -240,4 +241,137 @@ it('이름 칸 안 칩은 서버 8개를 4열 목록으로 열고, 카드 머리
   await act(async () => chip.click())
   const chipList = document.querySelector('[role="listbox"][aria-label="머리 서버"]')!
   expect(chipList.getAttribute('style') ?? '').not.toContain('repeat(')
+})
+
+function keydown(target: Element, key: string, init: KeyboardEventInit = {}): KeyboardEvent {
+  const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init })
+  target.dispatchEvent(event)
+
+  return event
+}
+
+async function renderCard(onLookup: (nickname: string, serverId: string) => void): Promise<void> {
+  await act(async () =>
+    root.render(
+      <CharacterCard
+        card={{ state: 'success', character: previewCharacter }}
+        slot={1}
+        inputEnabled
+        onLookup={onLookup}
+      />
+    )
+  )
+}
+
+it('이름 칸에서 Tab을 누르면 서버 목록을 열고, 방향키로 고른 서버를 Enter로 바로 조회한다', async () => {
+  const onLookup = vi.fn()
+  await renderCard(onLookup)
+  const name = document.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!
+  const trigger = document.querySelector<HTMLButtonElement>('[aria-label="1번 서버"]')!
+  name.focus()
+
+  let tab: KeyboardEvent | undefined
+  await act(async () => {
+    tab = keydown(name, 'Tab')
+  })
+
+  expect(tab?.defaultPrevented).toBe(true)
+  expect(trigger.getAttribute('aria-expanded')).toBe('true')
+  const listbox = document.querySelector('[role="listbox"]')!
+  const current = [...listbox.querySelectorAll<HTMLElement>('[role="option"]')].find(
+    (option) => option.textContent === '시로코'
+  )!
+  await vi.waitFor(() => expect(document.activeElement).toBe(current))
+  await act(async () => {
+    keydown(current, 'ArrowUp')
+  })
+  const previous = [...listbox.querySelectorAll<HTMLElement>('[role="option"]')].find(
+    (option) => option.textContent === '프레이'
+  )!
+  await vi.waitFor(() => expect(document.activeElement).toBe(previous))
+  await act(async () => {
+    keydown(previous, 'Enter')
+  })
+
+  expect(onLookup).toHaveBeenCalledExactlyOnceWith(previewCharacter.name, 'prey')
+  expect(trigger.getAttribute('aria-expanded')).toBe('false')
+})
+
+it('지금 서버를 그대로 Enter로 골라도 바로 조회하고, Escape로 닫으면 조회하지 않는다', async () => {
+  const onLookup = vi.fn()
+  await renderCard(onLookup)
+  const name = document.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!
+  const trigger = document.querySelector<HTMLButtonElement>('[aria-label="1번 서버"]')!
+  name.focus()
+
+  await act(async () => {
+    keydown(name, 'Tab')
+  })
+  const current = document.querySelector<HTMLElement>('[role="option"][aria-selected="true"]')!
+  await vi.waitFor(() => expect(document.activeElement).toBe(current))
+  await act(async () => {
+    keydown(current, 'Escape')
+  })
+  expect(trigger.getAttribute('aria-expanded')).toBe('false')
+  expect(onLookup).not.toHaveBeenCalled()
+
+  name.focus()
+  await act(async () => {
+    keydown(name, 'Tab')
+  })
+  const again = document.querySelector<HTMLElement>('[role="option"][aria-selected="true"]')!
+  await vi.waitFor(() => expect(document.activeElement).toBe(again))
+  await act(async () => {
+    keydown(again, 'Enter')
+  })
+
+  expect(onLookup).toHaveBeenCalledExactlyOnceWith(previewCharacter.name, previewCharacter.serverId)
+})
+
+it('Shift+Tab과 한글 조합 중의 Tab은 서버 목록을 열지 않는다', async () => {
+  await renderCard(vi.fn())
+  const name = document.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!
+  const trigger = document.querySelector<HTMLButtonElement>('[aria-label="1번 서버"]')!
+  name.focus()
+
+  let shiftTab: KeyboardEvent | undefined
+  let composingTab: KeyboardEvent | undefined
+  await act(async () => {
+    shiftTab = keydown(name, 'Tab', { shiftKey: true })
+    composingTab = keydown(name, 'Tab', { isComposing: true })
+  })
+
+  expect(shiftTab?.defaultPrevented).toBe(false)
+  expect(composingTab?.defaultPrevented).toBe(false)
+  expect(trigger.getAttribute('aria-expanded')).toBe('false')
+})
+
+it('공대 카드의 이름 칸도 Tab으로 서버 목록을 열고 Enter로 고른 서버를 바로 조회한다', async () => {
+  const onLookup = vi.fn()
+  await act(async () =>
+    root.render(
+      <RaidCard
+        card={{ state: 'success', character: previewCharacter }}
+        slot={9}
+        onLookup={onLookup}
+        move={{ movable: false }}
+      />
+    )
+  )
+  const name = document.querySelector<HTMLInputElement>('[aria-label="9번 캐릭터 이름"]')!
+  const trigger = document.querySelector<HTMLButtonElement>('[aria-label="9번 서버"]')!
+  name.focus()
+
+  await act(async () => {
+    keydown(name, 'Tab')
+  })
+
+  expect(trigger.getAttribute('aria-expanded')).toBe('true')
+  const current = document.querySelector<HTMLElement>('[role="option"][aria-selected="true"]')!
+  await vi.waitFor(() => expect(document.activeElement).toBe(current))
+  await act(async () => {
+    keydown(current, 'Enter')
+  })
+
+  expect(onLookup).toHaveBeenCalledExactlyOnceWith(previewCharacter.name, previewCharacter.serverId)
 })
