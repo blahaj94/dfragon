@@ -96,7 +96,7 @@ Desktop 화면은 아래 규칙으로 그린다. Web은 공용 토큰과 Compone
 
 ## 글꼴과 한국어 타이포그래피
 
-Desktop renderer와 Desktop 로그인 완료 페이지는 앱에 번들한 마루미냐 한글(MaruMinya Hangul, x12y12pxMaruMinyaHangul) 비트맵 글꼴을 사용하며 CDN에서 받지 않는다. 글꼴 이름과 대체 순서는 각 앱 전역 글꼴 CSS의 `body` 한 곳에서 정하고 화면 스타일에 반복하지 않는다. 화면은 상속을 사용하며, 기본 글꼴이 따로 정해진 `pre` 같은 요소만 `inherit`로 연결한다. 굵기는 400, 500, 600, 700만 쓴다. 마루미냐 한글은 굵기가 하나라 Desktop의 500 이상은 브라우저가 합성한다. Typo의 크기, 행간, 굵기, 자간은 `typographyVariants`가 소유한다.
+Desktop renderer는 앱에 번들한 마루미냐 한글(MaruMinya Hangul, x12y12pxMaruMinyaHangul) 비트맵 글꼴을 사용하며 CDN에서 받지 않는다. 글꼴 이름과 대체 순서는 각 앱 전역 글꼴 CSS의 `body` 한 곳에서 정하고 화면 스타일에 반복하지 않는다. 화면은 상속을 사용하며, 기본 글꼴이 따로 정해진 `pre` 같은 요소만 `inherit`로 연결한다. 굵기는 400, 500, 600, 700만 쓴다. 마루미냐 한글은 굵기가 하나라 Desktop의 500 이상은 브라우저가 합성한다. Typo의 크기, 행간, 굵기, 자간은 `typographyVariants`가 소유한다.
 
 Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들하고 CDN에서 받지 않는다. 600, 700 굵기를 숫자와 기본 라틴 문자로 줄여 담고, `@font-face`는 Desktop 전역 글꼴 CSS에, 글꼴 이름은 `font` 토큰에 둔다. 숫자 값은 `NumericText`나 같은 토큰으로 이 글꼴을 쓴다. OCR은 Barlow Condensed를 번들하지 않는다.
 

@@ -18,14 +18,12 @@ last-reviewed: 2026-10-10
 | 명령과 현재 파일 구조 | [scripts 안내](../scripts/README.md), [Repository Map](reference/repository-map.md) |
 | app, package 경계 | [Architecture Overview](architecture/overview.md) |
 | API runtime, 검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md) |
-| Desktop MVP 카드, 상세 창, 입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md), [디자인 이관](reference/desktop-mvp-design-handoff.md) |
-| Desktop 개발자 모드, 크롭, 라벨, 모델 평가 | [Desktop 개발자 모드](rules/desktop-developer-mode.md) |
+| Desktop MVP 카드, 입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md), [디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | Desktop 새 버전 알림, 자동 업데이트 제안 | [Desktop 새 버전 알림과 업데이트 제안](rules/desktop-update-proposal.md) |
 | 앱 공용 UI, 디자인 토큰, Base UI, StyleX, 시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [앱 공통 StyleX](reference/app-styling.md) |
 | React 화면, hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [Desktop 구조](architecture/desktop-code-organization.md), [Repository Map](reference/repository-map.md) |
 | Penpot 확정 화면, Desktop MVP 구현 이관 | [Desktop MVP 디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | 제품 이름 표기, 사용자 문구 문체, 표기 검사 | [표기와 문체](rules/writing.md) |
-| Desktop 인증, 플랫폼 | 아래 주제별 제품 계약 |
 
 ## Document class
 
@@ -37,20 +35,8 @@ Reference의 오류는 실제 파일, 설정에 맞춰 고친다. Rule과 구현
 
 ## 제품 계약
 
-### Desktop authentication contract routing
-
-accounts 서비스는 지웠다. 아래 Desktop 인증 계약은 Desktop 로그인 코드를 지우는 변경에서 함께 정리한다.
-
-| 필요한 topic | Canonical Rule |
-| --- | --- |
-| Process 책임, 기존 capture 연결, 최소 IPC, 화면 | [`rules/desktop-auth.md`](rules/desktop-auth.md) |
-| Pending/PKCE, 브라우저→exchange, refresh, 취소/실패, 재시작 | [`rules/desktop-auth-lifecycle.md`](rules/desktop-auth-lifecycle.md) |
-| 실제 환경 근거, safeStorage/파일, loopback 복귀, 배포 후 검증, 채널 설정 | [`rules/desktop-auth-platform.md`](rules/desktop-auth-platform.md) |
-
 ### Reference
 
 - [`reference/repository-map.md`](reference/repository-map.md): workspace, app, command 현황
 - [`reference/desktop-party-geometry.md`](reference/desktop-party-geometry.md): Desktop party frame의 관측값, 후보 geometry 함수와 남은 검증
-- [`reference/desktop-party-participants.md`](reference/desktop-party-participants.md): 이동 가능한 파티참가인원 팝업의 검출, 빈 행 판정, 닉네임 크롭과 검증 범위
 - [`reference/desktop-raid-participants.md`](reference/desktop-raid-participants.md): 12행 공대원창의 위치, 배율 검출, 닉네임 수집과 순수 메타데이터 판독 범위
-- [`reference/enchant-grades.md`](reference/enchant-grades.md): 카드 기타 면 마법부여 등급표의 출처, 판정 기준, 항목별 근거와 정할 것
