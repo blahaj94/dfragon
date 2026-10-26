@@ -111,7 +111,7 @@ function formatDuration(milliseconds) {
   return `${minutes}분 ${seconds % 60}초`
 }
 
-// CI처럼 job 안의 명령은 앞 명령이 실패하면 멈추고, 다른 job은 계속 실행해 실패한 job을 모두 보고한다.
+// job 안의 명령은 앞 명령이 실패하면 멈추고, 다른 job은 계속 실행해 실패한 job을 모두 보고한다.
 // job끼리 같은 build 산출물을 쓰므로 병렬로 실행하지 않는다.
 export function runJobs(jobs, cwd = repositoryRoot) {
   const startedAt = Date.now()
