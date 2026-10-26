@@ -1,2 +1,5 @@
 # CI는 PR 제목 scope가 (build)일 때만 전체 검사를 실행하므로 push 전에 Code Quality의 검사 job을 로컬에서 실행한다.
+# Git이 hook에 넘긴 GIT_DIR 등을 지운다. 남기면 임시 저장소를 만드는 도구 테스트의 git 명령이 이 저장소를 가리켜
+# worktree에서 push할 때 이 저장소의 core.bare를 true로 바꾼다.
+unset $(git rev-parse --local-env-vars)
 pnpm verify
