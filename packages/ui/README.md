@@ -9,7 +9,7 @@
 | `Button` | native `button` | `variant` `primary`, `secondary`(기본), `ghost`, `danger`와 `size` `sm`, `md`(기본), `lg`(32, 40, 48px). `primary`는 신호색 면에 오른쪽 위 8px를 자른다. `loading`은 진행 원을 겹치고 클릭을 막지 않는다. |
 | `IconButton` | native `button` | 회색 면 없이 hover 때 아이콘이 밝아진다. `aria-label`, `icon` 필수, `size` `sm` 32, `md` 40, `bar` 36(상단 바 도구 버튼, 아이콘 20), `lg` 48(화면 머리 도구 버튼, 아이콘 24. `bg.inset` 면에 오른쪽 위를 자르고 포커스 선을 면 안쪽에 그린다). `pressed`를 주면 켜고 끄는 토글로 `aria-pressed`를 전하고 켜진 동안 아이콘과 안쪽 2px 선이 신호색이다. |
 | `TextField`, `TextFieldInput` | `Field`, `Input` | label, 설명, 오류(`invalid`일 때)를 입력에 연결한다. `value`, `onValueChange({ value })`, `size` `sm`, `md`, `lg`. 입력 요소 합성은 `render`. |
-| `Select` | `Select` | `Root`, `Trigger`(칩, `size` `xs`, `sm`, `md`), `Value`, `Popup`(Portal, Positioner, Popup, List), `Item`, `ItemText`, `Group`, `GroupLabel`, `Separator`. 캐릭터 카드 위에서는 `Trigger`와 `Popup`에 `surface="card"`를 넘겨 라이트 모드에서도 `card*` 토큰으로 그린다. |
+| `Select` | `Select` | `Root`, `Trigger`(칩, `size` `2xs`, `xs`, `sm`, `md`. `2xs`는 높이 16에 오른쪽 위를 자른다), `Value`, `Popup`(Portal, Positioner, Popup, List), `Item`, `ItemText`, `Group`, `GroupLabel`, `Separator`. 캐릭터 카드 위에서는 `Trigger`와 `Popup`에 `surface="card"`를 넘겨 라이트 모드에서도 `card*` 토큰으로 그린다. `Popup`의 `columns`는 항목을 그 수의 열로 읽는 순서대로 늘어놓는 격자 목록이고, 없으면 한 줄 목록이다. |
 | `Menu` | `Menu` | `Root`, `Trigger`(외형 없음, `render`로 연결), `Popup`, `Item`, `RadioGroup`, `RadioItem`, `Group`, `GroupLabel`, `Separator`. |
 | `Tabs` | `Tabs` | `Root`, `List`(현재 탭 2px 선 포함), `Tab`, `Panel`. `List`의 `surface="card"`는 카드 면 탭이다. 탭이 폭을 나눠 채우고(높이 40, 글자 13) 현재 탭 선이 위쪽에 있으며 `card*` 토큰으로 그린다. |
 | `Switch`, `Checkbox`, `Chip` | `Switch`, `Checkbox`, `Toggle` | 한 요소로 쓰는 켜고 끄는 컨트롤. 이름은 감싼 label이나 `aria-label`로 준다. |
