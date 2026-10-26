@@ -92,22 +92,17 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(container.querySelector('header [aria-label="설정"]')).toBeNull()
 })
 
-it('새 기본 화면은 시작 테마를 창 버튼 색에도 맞춘다', async () => {
-  const setTheme = vi.fn<WindowChromeApi['setTheme']>(async () => {})
-  Object.defineProperty(window, 'windowChrome', { configurable: true, value: { setTheme } })
-  try {
-    await act(async () =>
-      root.render(
-        <ColorThemeProvider>
-          <App />
-        </ColorThemeProvider>
-      )
+it('시스템 설정이 라이트여도 새 기본 화면은 다크 테마로 시작한다', async () => {
+  vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as MediaQueryList)
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
     )
-    expect(document.documentElement.dataset.theme).toBe('dark')
-    expect(setTheme.mock.calls).toEqual([['dark']])
-  } finally {
-    Reflect.deleteProperty(window, 'windowChrome')
-  }
+  )
+  expect(document.documentElement.dataset.theme).toBe('dark')
+  expect(container.querySelector('header [aria-label$="테마"]')).toBeNull()
 })
 
 it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 자리별 조회는 파티 검색과 따로 보낸다', async () => {
@@ -214,7 +209,7 @@ it('파티 머리의 접기 버튼은 카드 영역을 가리키고 접은 뒤 �
   const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {})
   Object.defineProperty(window, 'windowChrome', {
     configurable: true,
-    value: { setTheme: vi.fn(async () => {}), setContentHeight }
+    value: { setContentHeight }
   })
   try {
     await act(async () =>

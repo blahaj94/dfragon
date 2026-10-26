@@ -15,7 +15,7 @@ beforeEach(async () => {
   root = createRoot(container)
   await act(async () =>
     root.render(
-      <ColorThemeProvider initialTheme="dark">
+      <ColorThemeProvider>
         <Preview />
       </ColorThemeProvider>
     )
