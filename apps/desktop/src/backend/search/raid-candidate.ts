@@ -11,14 +11,6 @@ import { matchJobName } from './raid-job-name'
 const FAME_MAX_DISTANCE = 2_000
 /** 명성 1위를 확정하는 2위 거리와 1위 거리의 차이 하한(포함) */
 const FAME_MIN_MARGIN = 2_000
-/** 장비 점수 허용 오차의 하한과 엔진 값 대비 비율 */
-const EQUIPMENT_SCORE_MIN_TOLERANCE = 500
-const EQUIPMENT_SCORE_TOLERANCE_RATIO = 0.005
-/** 장비 점수 1위를 확정하는 2위와의 간격. 1위 허용 오차의 배수다. */
-const EQUIPMENT_SCORE_MARGIN_MULTIPLIER = 2
-/** 장비 점수를 계산할 직업명 그룹의 명성 상위 후보 수. 후보마다 상세를 한 번 조회한다. */
-export const RAID_EQUIPMENT_SCORE_CANDIDATES = 3
-
 /** 공대 상세 창의 그 행에서 이름 밖에 읽은 값. 식별 규칙이 쓰는 형태로 바꾼 값이다. */
 export type RaidObservedValues = Readonly<{
   /** 직업명 칸 OCR 문자열. 읽지 못했으면 null이다. */
@@ -47,25 +39,13 @@ export function toRaidObservedValues(row: RaidRowObservation | undefined): RaidO
 
 /**
  * 공대 자리 하나에서 할 비교. `group`은 직업명이 맞는 후보, 맞는 후보가 없거나 직업명을 비교할 수 없으면
- * 동명 후보 전체이며 명성 순이다. `equipment-score`의 `targets`는 상세를 조회해 점수를 계산할 후보다.
+ * 동명 후보 전체이며 명성 순이다.
  */
 export type RaidComparisonPlan = Readonly<
   | { kind: 'job'; candidate: CharacterCandidate }
   | { kind: 'fame'; group: readonly CharacterCandidate[]; value: DNFRaidValueNotation }
-  | {
-      kind: 'equipment-score'
-      group: readonly CharacterCandidate[]
-      value: DNFRaidValueNotation
-      targets: readonly CharacterCandidate[]
-    }
   | { kind: 'highest-fame'; group: readonly CharacterCandidate[] }
 >
-
-/** 장비 점수 비교 대상 한 명의 엔진 값. 상세나 점수를 얻지 못했으면 null이다. */
-export type RaidEquipmentScore = Readonly<{
-  candidate: CharacterCandidate
-  score: number | null
-}>
 
 export type RaidCandidateSelection = Readonly<{
   candidate: CharacterCandidate
@@ -111,16 +91,11 @@ export function planRaidComparison({
   }
   const group = matched.length === 0 ? ordered : matched
   const { valueColumn, value } = observed
-  if (value === null || valueColumn === 'unknown') {
-    return { kind: 'highest-fame', group }
-  }
-
-  if (valueColumn === 'fame') {
+  if (valueColumn === 'fame' && value !== null) {
     return { kind: 'fame', group, value }
   }
-  const targets = group.slice(0, RAID_EQUIPMENT_SCORE_CANDIDATES)
 
-  return { kind: 'equipment-score', group, value, targets }
+  return { kind: 'highest-fame', group }
 }
 
 type Measured = Readonly<{
@@ -195,17 +170,8 @@ function highestFame(group: readonly CharacterCandidate[]): RaidCandidateSelecti
   return { candidate: group[0], selectionMethod: 'highest-fame', choices: group }
 }
 
-/**
- * 비교 계획과 장비 점수로 최선 후보와 확정 여부를 정한다. 명성은 화면 표기 범위와의 거리가 2,000 이하이고
- * 2위 거리가 1위보다 2,000 이상 크면 확정한다. 장비 점수는 허용 오차 `max(500, 1위 엔진 값의 0.5%)` 이내이고
- * 2위 거리가 1위보다 허용 오차의 2배 이상 크면 확정한다. 확정하지 못해도 가장 가까운 후보를 고르고 그룹
- * 후보를 `choices`로 함께 돌려준다. 그룹이 한 명이면 고를 후보가 없어 `choices`를 두지 않는다. 비교할 값을
- * 하나도 얻지 못하면 그룹 안 최고 명성 후보다.
- */
-export function selectRaidCandidate(
-  plan: RaidComparisonPlan,
-  equipmentScores: readonly RaidEquipmentScore[] = []
-): RaidCandidateSelection {
+/** 명성 비교로 최선 후보와 확정 여부를 정한다. 확정하지 못하면 그룹 후보를 함께 돌려준다. */
+export function selectRaidCandidate(plan: RaidComparisonPlan): RaidCandidateSelection {
   if (plan.kind === 'job') {
     return { candidate: plan.candidate, selectionMethod: 'job' }
   }
@@ -213,28 +179,17 @@ export function selectRaidCandidate(
   if (plan.kind === 'highest-fame') {
     return highestFame(plan.group)
   }
-  const measured =
-    plan.kind === 'fame'
-      ? measure(
-          plan.value,
-          plan.group.map((candidate) => ({ candidate, value: candidate.fame }))
-        )
-      : measure(
-          plan.value,
-          equipmentScores.map(({ candidate, score }) => ({ candidate, value: score }))
-        )
+  const measured = measure(
+    plan.value,
+    plan.group.map((candidate) => ({ candidate, value: candidate.fame }))
+  )
   const best = closest(measured)
   if (best === null) {
     return highestFame(plan.group)
   }
-  const tolerance =
-    plan.kind === 'fame'
-      ? FAME_MAX_DISTANCE
-      : Math.max(EQUIPMENT_SCORE_MIN_TOLERANCE, best.value * EQUIPMENT_SCORE_TOLERANCE_RATIO)
-  const margin =
-    plan.kind === 'fame' ? FAME_MIN_MARGIN : tolerance * EQUIPMENT_SCORE_MARGIN_MULTIPLIER
+
   // 그룹이 한 명이면 서버가 하나뿐이라 고를 후보가 없으므로 기준과 무관하게 추정으로 두지 않는다.
-  if (plan.group.length === 1 || isConfident(measured, best, tolerance, margin)) {
+  if (plan.group.length === 1 || isConfident(measured, best, FAME_MAX_DISTANCE, FAME_MIN_MARGIN)) {
     return { candidate: best.candidate, selectionMethod: plan.kind }
   }
 

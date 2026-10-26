@@ -65,12 +65,8 @@ export type CandidateSummary =
       screenJobField: Readonly<{ jobGrowName: number; jobName: number; neither: number }>
       /** 명성 열 행에서 정답 후보 명성이 화면 표기 범위에서 벗어난 거리 */
       fameDifferences: readonly number[]
-      /** 이름이 유일한 장비 점수 열 행에서 정답 후보 점수 엔진 값이 화면 표기 범위에서 벗어난 거리 */
-      engineErrors: readonly number[]
       /** 직업명이 같은 동명 후보 사이에서 정답과 가장 가까운 다른 후보의 명성 차이 */
       fameGaps: readonly number[]
-      /** 직업명이 같은 동명 후보 사이에서 정답과 가장 가까운 다른 후보의 점수 엔진 값 차이 */
-      engineGaps: readonly number[]
     }>
 
 export type EvaluationSummary = Readonly<{
@@ -180,7 +176,7 @@ function jobOcrSummary(
 function nearestGap(
   correct: ManifestCandidate,
   others: readonly ManifestCandidate[],
-  field: 'fame' | 'engineScore'
+  field: 'fame'
 ): number | null {
   const value = correct[field]
   const gaps: number[] = []
@@ -201,13 +197,11 @@ function nearestGap(
 function candidateSummary(rows: readonly RowObservation[]): CandidateSummary {
   const withCandidates = rows.filter((row) => row.expected.candidates.length > 0)
   if (withCandidates.length === 0) {
-    return { status: 'not_run', reason: '후보 명성, 직업명, 점수 엔진 값을 담은 행이 없습니다' }
+    return { status: 'not_run', reason: '후보 명성, 직업명을 담은 행이 없습니다' }
   }
   const screenJobField = { jobGrowName: 0, jobName: 0, neither: 0 }
   const fameDifferences: number[] = []
-  const engineErrors: number[] = []
   const fameGaps: number[] = []
-  const engineGaps: number[] = []
   for (const row of withCandidates) {
     const correct = row.expected.candidates.find((candidate) => candidate.correct)
     if (correct === undefined) {
@@ -226,14 +220,6 @@ function candidateSummary(rows: readonly RowObservation[]): CandidateSummary {
       fameDifferences.push(distanceToNotation(screenNotation, correct.fame))
     }
 
-    if (
-      row.columnKind === 'equipment-score' &&
-      row.expected.uniqueName === true &&
-      screenNotation !== null &&
-      correct.engineScore !== null
-    ) {
-      engineErrors.push(distanceToNotation(screenNotation, correct.engineScore))
-    }
     const sameJob = row.expected.candidates.filter(
       (candidate) =>
         !candidate.correct &&
@@ -242,17 +228,12 @@ function candidateSummary(rows: readonly RowObservation[]): CandidateSummary {
         normalizeJobName(candidate.jobGrowName) === normalizeJobName(correct.jobGrowName)
     )
     const fameGap = nearestGap(correct, sameJob, 'fame')
-    const engineGap = nearestGap(correct, sameJob, 'engineScore')
     if (fameGap !== null) {
       fameGaps.push(fameGap)
     }
-
-    if (engineGap !== null) {
-      engineGaps.push(engineGap)
-    }
   }
 
-  return { status: 'run', screenJobField, fameDifferences, engineErrors, fameGaps, engineGaps }
+  return { status: 'run', screenJobField, fameDifferences, fameGaps }
 }
 
 export function summarize(
