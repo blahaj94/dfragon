@@ -583,13 +583,28 @@ const choices = [
   }
 ]
 
+function candidateWindow(): Element | null {
+  return container.querySelector('[role="group"][aria-label="1번 후보 고르기"]')
+}
+
 function candidateTile(server: string): HTMLButtonElement {
-  return [...card().querySelectorAll<HTMLButtonElement>('[role="group"] button')].find((button) =>
+  return [...candidateWindow()!.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
     button.getAttribute('aria-label')?.startsWith(server)
   )!
 }
 
-it('후보 줄은 후보마다 얼굴 창, 모험단, 서버를 보이고 지금 보이는 후보를 눌린 상태로 둔다', async () => {
+function candidateChip(): HTMLButtonElement | null {
+  const chip = [...card().querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+    button.textContent?.startsWith('후보')
+  )
+  if (chip === undefined) {
+    return null
+  }
+
+  return chip
+}
+
+it('후보가 있으면 후보 창을 띄워 초상화로 고르고 지금 보이는 후보를 눌린 상태로 둔다', async () => {
   const pick = vi.fn()
   await render({
     state: 'success',
@@ -598,15 +613,9 @@ it('후보 줄은 후보마다 얼굴 창, 모험단, 서버를 보이고 지금
     onPickCandidate: pick
   })
 
-  expect(card().querySelector('[role="group"]')?.getAttribute('aria-label')).toBe('1번 후보 고르기')
   expect(candidateTile('카인').getAttribute('aria-label')).toBe('카인, 찾은모험단')
   expect(candidateTile('카인').getAttribute('aria-pressed')).toBe('true')
-  expect(candidateTile('시로코').getAttribute('aria-label')).toBe('시로코, 모험단 정보 없음')
   expect(candidateTile('시로코').getAttribute('aria-pressed')).toBe('false')
-  expect(candidateTile('카인').querySelector('img')?.getAttribute('src')).toBe(
-    'https://img-api.neople.co.kr/df/servers/cain/characters/cain-character?zoom=1'
-  )
-  expect(candidateTile('시로코').querySelector('img')).toBeNull()
   expect(card().getAttribute('data-state')).toBe('default')
 
   await act(async () => candidateTile('시로코').click())
@@ -628,32 +637,87 @@ it('미리보기 중이면 카드를 선택 상태로 보이고 그 후보에 �
   )
 })
 
-it('접힌 카드는 작은 후보 타일로 고르고, 모험단을 모르는 후보는 서버를 대신 보인다', async () => {
-  const pick = vi.fn()
+it('닫기 X로 닫으면 스냅샷 칩 앞에 후보 수 칩이 남고, 칩을 누르면 창을 다시 연다', async () => {
   const picker = { choices, shownServerId: 'cain', previewServerId: null }
   await render({
     state: 'success',
     character: found,
     picker,
+    snapshotMark: { kind: 'moved', seat: 3 },
+    onPickCandidate: vi.fn()
+  })
+  const chip = candidateChip()!
+  expect(chip.textContent).toBe('후보 2')
+  expect(chip.getAttribute('aria-expanded')).toBe('true')
+  expect(chip.getAttribute('aria-controls')).toBe(candidateWindow()!.id)
+  const snapshot = card().querySelector('[aria-label="스냅샷 순번 3"]')!
+  expect(chip.compareDocumentPosition(snapshot) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="1번 후보 창 닫기"]')!.click()
+  )
+  expect(candidateWindow()).toBeNull()
+  expect(candidateChip()?.getAttribute('aria-expanded')).toBe('false')
+
+  // 닫혀 있는 동안 캡처 쪽 후보 값이 바뀌어도 닫힌 채로 둔다.
+  await render({
+    state: 'success',
+    character: found,
+    picker: { ...picker, previewServerId: 'siroco', shownServerId: 'siroco' }
+  })
+  expect(candidateWindow()).toBeNull()
+
+  await act(async () => candidateChip()!.click())
+  expect(candidateWindow()).not.toBeNull()
+  expect(candidateChip()?.getAttribute('aria-expanded')).toBe('true')
+})
+
+it('확정해 후보가 사라지면 후보 창과 칩이 함께 사라지고, 다음 후보는 열린 창으로 보인다', async () => {
+  const picker = { choices, shownServerId: 'cain', previewServerId: null }
+  await render({ state: 'success', character: found, picker })
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="1번 후보 창 닫기"]')!.click()
+  )
+  await render({ state: 'success', character: found })
+  expect(candidateWindow()).toBeNull()
+  expect(candidateChip()).toBeNull()
+
+  await render({ state: 'success', character: found, picker })
+  expect(candidateWindow()).not.toBeNull()
+})
+
+it('다음 회차에 새로 그린 카드는 닫았던 후보 창을 다시 연 채로 시작한다', async () => {
+  const picker = { choices, shownServerId: 'cain', previewServerId: null }
+  const card = { state: 'success' as const, character: found, picker }
+  await act(async () => root.render(<CharacterCard key="round-1" card={card} slot={1} />))
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="1번 후보 창 닫기"]')!.click()
+  )
+  expect(candidateWindow()).toBeNull()
+
+  await act(async () => root.render(<CharacterCard key="round-2" card={card} slot={1} />))
+  expect(candidateWindow()).not.toBeNull()
+})
+
+it('접힌 카드도 같은 후보 창으로 고른다', async () => {
+  const pick = vi.fn()
+  await render({
+    state: 'success',
+    character: found,
+    picker: { choices, shownServerId: 'cain', previewServerId: null },
     collapsed: true,
     onPickCandidate: pick
   })
 
-  const groups = card().querySelectorAll('[role="group"]')
-  expect(groups).toHaveLength(1)
-  expect(groups[0].getAttribute('aria-label')).toBe('1번 후보 고르기')
-  expect(card().querySelector('[aria-label^="외형으로 확정하지 못함"]')).toBeNull()
-  expect(candidateTile('카인').getAttribute('aria-pressed')).toBe('true')
-  expect(candidateTile('카인').textContent).toBe('찾은모험단')
-  expect(candidateTile('시로코').textContent).toBe('—시로코')
+  expect(container.querySelectorAll('[role="group"]')).toHaveLength(1)
   await act(async () => candidateTile('시로코').click())
   expect(pick).toHaveBeenCalledExactlyOnceWith('siroco')
 })
 
-it('미리보기 조회가 실패해도 후보 줄은 남는다', async () => {
+it('미리보기 조회가 실패해도 후보 창은 남는다', async () => {
   const picker = { choices, shownServerId: 'cain', previewServerId: null }
   await render({ state: 'failure', character: undefined, picker, onPickCandidate: vi.fn() })
 
-  expect(card().querySelector('[role="group"]')).not.toBeNull()
+  expect(candidateWindow()).not.toBeNull()
   expect(card().getAttribute('data-state')).toBe('failure')
 })
