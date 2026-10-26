@@ -11,33 +11,12 @@ export function createNeopleCatalog(apiKey: string, fetchImpl = globalThis.fetch
     if (
       !first ||
       keys.length > CATALOG_LIMITS.maximumBatchKeys ||
-      keys.some((key) => {
-        if (key.kind === 'item') {
-          return !isCatalogId(key.itemId)
-        }
-
-        if (key.kind === 'set') {
-          return !isCatalogId(key.setItemId)
-        }
-
-        return !isCatalogId(key.jobId) || !isCatalogId(key.skillId)
-      })
+      keys.some((key) => !isCatalogId(key.itemId))
     ) {
       throw new Error('Invalid catalog request')
     }
-    let path: string
-    if (first.kind === 'item' && keys.every((key) => key.kind === 'item')) {
-      const params = new URLSearchParams({ itemIds: keys.map((key) => key.itemId).join(',') })
-      path = `/df/multi/items?${params}`
-    } else if (first.kind === 'set' && keys.every((key) => key.kind === 'set')) {
-      const params = new URLSearchParams({ setItemIds: keys.map((key) => key.setItemId).join(',') })
-      path = `/df/multi/setitems?${params}`
-    } else if (first.kind === 'skill' && keys.length === 1) {
-      // The skill response has no skillId. A single request retains an unambiguous identity.
-      path = `/df/skills/${encodeURIComponent(first.jobId)}/${encodeURIComponent(first.skillId)}`
-    } else {
-      throw new Error('Invalid catalog batch')
-    }
+    const params = new URLSearchParams({ itemIds: keys.map((key) => key.itemId).join(',') })
+    const path = `/df/multi/items?${params}`
 
     // An already canceled catalog request never starts transport.
     if (requestSignal.aborted) {
@@ -62,40 +41,21 @@ export function createNeopleCatalog(apiKey: string, fetchImpl = globalThis.fetch
         throw new Error('Invalid catalog body')
       }
 
-      if (first.kind === 'skill') {
-        if (
-          body.jobId !== first.jobId ||
-          typeof body.name !== 'string' ||
-          !body.name.trim() ||
-          (Object.hasOwn(body, 'skillId') && body.skillId !== first.skillId)
-        ) {
-          throw new Error('Invalid skill identity')
-        }
-
-        return [{ key: first, payload: body }]
-      }
-
       if (!Array.isArray(body.rows)) {
         throw new Error('Invalid catalog list')
       }
       const rows = body.rows
 
       return keys.flatMap((key) => {
-        if (key.kind === 'skill') {
-          return []
-        }
-        const idField = key.kind === 'item' ? 'itemId' : 'setItemId'
-        const nameField = key.kind === 'item' ? 'itemName' : 'setItemName'
-        const id = key.kind === 'item' ? key.itemId : key.setItemId
-        const matches = rows.filter((row) => isObject(row) && row[idField] === id)
+        const matches = rows.filter((row) => isObject(row) && row.itemId === key.itemId)
         const row: unknown = matches[0]
         // Missing/duplicate rows do not poison correctly identified neighbors in this batch.
 
         if (
           matches.length === 1 &&
           isObject(row) &&
-          typeof row[nameField] === 'string' &&
-          row[nameField].trim()
+          typeof row.itemName === 'string' &&
+          row.itemName.trim()
         ) {
           return [{ key, payload: row }]
         }

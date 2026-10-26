@@ -1,10 +1,9 @@
-import { map, unique } from 'remeda'
 import { isObject } from '../details/neople.js'
 import type { projectCharacterDetails } from '../details/project.js'
 import { mapCharacterItems } from './items.js'
 import type { CatalogService } from './service.js'
 import { catalogKey, isCatalogId, unavailableDetail } from './types.js'
-import type { CatalogDetail, CatalogKey, CatalogResult } from './types.js'
+import type { CatalogKey } from './types.js'
 
 type CharacterDetails = ReturnType<typeof projectCharacterDetails>
 
@@ -13,117 +12,31 @@ export async function enrichCharacterDetails(
   catalog: CatalogService,
   signal: AbortSignal
 ) {
-  const { references, jobId, skillIds } = collectCharacterCatalogReferences(details)
-  const loaded = await catalog.load(references, signal)
-  const enriched = mapCharacterItems(details, (item) => {
-    if (isCatalogId(item.itemId)) {
-      const properties = { ...item }
-      const itemDetail =
-        loaded.get(catalogKey({ kind: 'item', itemId: item.itemId }))?.detail ?? unavailableDetail
-
-      return { ...properties, itemDetail }
-    }
-
-    return item
-  })
-  const { setDetails, skillDetails } = projectCharacterCatalogDetails(loaded, skillIds, jobId)
-  const skillStyle = isObject(details.skillStyle)
-    ? { ...details.skillStyle, skillDetails }
-    : details.skillStyle
-
-  return { ...enriched, setDetails, skillStyle }
-}
-
-// Keep the item traversal and optional payload guards before normalizing repeated skill IDs.
-function collectCharacterCatalogReferences(details: CharacterDetails) {
-  let references: CatalogKey[] = []
-  const jobId = details.character.jobId
+  const references: CatalogKey[] = []
   mapCharacterItems(details, (item) => {
     if (isCatalogId(item.itemId)) {
       references.push({ kind: 'item', itemId: item.itemId })
     }
 
-    if (isCatalogId(item.setItemId)) {
-      references.push({ kind: 'set', setItemId: item.setItemId })
+    return item
+  })
+  const loaded = await catalog.load(references, signal)
+  const enriched = mapCharacterItems(details, (item) => {
+    if (isCatalogId(item.itemId)) {
+      const itemDetail =
+        loaded.get(catalogKey({ kind: 'item', itemId: item.itemId }))?.detail ?? unavailableDetail
+
+      return { ...item, itemDetail }
     }
 
     return item
   })
-  if (Array.isArray(details.equipment.setItemInfo)) {
-    for (const set of details.equipment.setItemInfo) {
-      if (isObject(set) && isCatalogId(set.setItemId)) {
-        references.push({ kind: 'set', setItemId: set.setItemId })
-      }
-    }
-  }
-  const skills: string[] = []
-  const style =
-    isObject(details.skillStyle) && isObject(details.skillStyle.style)
-      ? details.skillStyle.style
-      : null
-  if (style) {
-    for (const key of ['active', 'passive', 'evolution', 'enhancement']) {
-      const list = style[key]
-      if (!Array.isArray(list)) {
-        continue
-      }
-      for (const skill of list) {
-        if (isObject(skill) && isCatalogId(skill.skillId)) {
-          skills.push(skill.skillId)
-        }
-      }
-    }
-    if (isObject(style.chain) && Array.isArray(style.chain.skills)) {
-      for (const id of style.chain.skills) {
-        if (isCatalogId(id)) {
-          skills.push(id)
-        }
-      }
-    }
-  }
-  for (const buff of Object.values(details.buff)) {
-    if (isObject(buff) && isObject(buff.skillInfo) && isCatalogId(buff.skillInfo.skillId)) {
-      skills.push(buff.skillInfo.skillId)
-    }
-  }
-  const skillIds = unique(skills)
-  if (isCatalogId(jobId)) {
-    const skillReferences = map(
-      skillIds,
-      (skillId): CatalogKey => ({
-        kind: 'skill',
-        jobId,
-        skillId
-      })
-    )
-    references = [...references, ...skillReferences]
+  if (isObject(enriched.skillStyle) && Object.hasOwn(enriched.skillStyle, 'skillDetails')) {
+    const skillStyle = { ...enriched.skillStyle }
+    delete skillStyle.skillDetails
+
+    return { ...enriched, skillStyle }
   }
 
-  return { references, jobId, skillIds }
-}
-
-// Index shared details once, since evolution/enhancement/chain entries select the same skills.
-function projectCharacterCatalogDetails(
-  loaded: ReadonlyMap<string, CatalogResult>,
-  skillIds: readonly string[],
-  jobId: unknown
-) {
-  const sets: [string, CatalogDetail][] = []
-  for (const { key, detail } of loaded.values()) {
-    if (key.kind === 'set') {
-      sets.push([key.setItemId, detail])
-    }
-  }
-  const setDetails = Object.fromEntries(sets)
-  const skillDetails = Object.fromEntries(
-    map(skillIds, (skillId) => {
-      const detail = isCatalogId(jobId)
-        ? (loaded.get(catalogKey({ kind: 'skill', jobId, skillId }))?.detail ?? unavailableDetail)
-        : unavailableDetail
-
-      return [skillId, detail] as const
-    })
-  )
-
-  return { setDetails, skillDetails }
+  return enriched
 }
