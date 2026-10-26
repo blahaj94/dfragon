@@ -132,6 +132,16 @@ function raidSection(): HTMLElement {
   return document.querySelector<HTMLElement>('section[aria-label="공대"]')!
 }
 
+// 공대 머리는 공대를 보는 동안 상단 바의 화면 머리 자리에 그린다.
+function raidHeader(): HTMLElement {
+  const heading = [...document.querySelectorAll('main > header h1')].find(
+    (h1) => h1.textContent === '공대'
+  )
+  expect(heading).toBeDefined()
+
+  return heading!.parentElement!.parentElement!
+}
+
 function seats(): HTMLElement[] {
   return [...raidSection().querySelectorAll<HTMLElement>('[aria-label*="번 자리"]')]
 }
@@ -217,7 +227,7 @@ it('맞바꾸면 진행 중 조회의 늦은 응답은 옮겨 간 카드에 들�
   expect(seats()[1].textContent).toContain('합성모험단')
   expect(seats()[0].querySelector('article')!.getAttribute('data-state')).toBe('waiting')
   expect(seats()[0].textContent).not.toContain('합성모험단')
-  expect(raidSection().textContent).toContain('1/12')
+  expect(raidHeader().textContent).toContain('1/12')
 
   // 1번 자리에는 슬롯 1이 놓여 새 조회는 슬롯 1로 가고 슬롯 0의 결과를 건드리지 않는다.
   await lookup(seats()[0], '둘째')

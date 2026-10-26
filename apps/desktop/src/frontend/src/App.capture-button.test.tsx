@@ -103,13 +103,15 @@ async function mount(f: Fixture): Promise<void> {
   )
 }
 
-it('캡처 버튼은 상단 바가 아니라 파티 머리에만 있고 대화상자를 열지 않는다', async () => {
+it('캡처 버튼은 상단 바에 그린 파티 머리에만 있고 대화상자를 열지 않는다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
   await mount(f)
   const button = captureButton()
   expect(document.querySelectorAll('button[aria-label="파티 캡처, 단축키 Alt R"]')).toHaveLength(1)
-  expect(button.closest('header')).toBeNull()
+  expect(button.closest('main > header')).not.toBeNull()
+  // 상단 바에는 보이는 파티 화면의 머리만 그리고 숨긴 공대 머리는 그리지 않는다.
+  expect(document.querySelector('button[aria-label="공대 캡처, 단축키 Alt R"]')).toBeNull()
   expect(button.closest('section[aria-label="공대"]')).toBeNull()
   expect(button.getAttribute('aria-haspopup')).toBeNull()
   expect(button.getAttribute('aria-keyshortcuts')).toBe('Alt+R')

@@ -73,17 +73,21 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(container.querySelector('footer')).toBeNull()
   expect(container.querySelector('main')?.firstElementChild?.tagName).toBe('HEADER')
   expect(container.querySelector('header')?.textContent).toContain('창 미감지')
-  // 상단 바의 live region은 화면 밖 캡처 안내 하나뿐이고 칩 자체는 알리지 않는다.
-  expect(
-    [...container.querySelectorAll('header [role="status"]')].map((region) =>
-      region.hasAttribute('data-capture-announcer')
-    )
-  ).toEqual([true])
   expect(container.querySelector('[aria-label="미리보기 상태"]')).toBeNull()
   expect(container.textContent).not.toContain('닉네임 수정')
+  // 파티 머리는 상단 바 안 한 줄에 제목, 인원수와 접기 버튼 없는 컨트롤을 둔다.
   const partyHeading = container.querySelector('h1')!
   expect(partyHeading.textContent).toBe('파티')
-  expect(partyHeading.parentElement?.querySelector('[role="status"]')?.textContent).toBe('')
+  expect(partyHeading.closest('main > header')).not.toBeNull()
+  expect(partyHeading.nextElementSibling?.textContent).toBe('0/4')
+  expect(container.querySelector('[aria-label="카드 접기"]')).toBeNull()
+  const partyNotice = partyHeading.parentElement!.querySelector('[role="status"]')!
+  expect(partyNotice.textContent).toBe('')
+  // 상단 바의 live region은 화면 밖 캡처 안내와 파티 머리의 안내 영역뿐이고 칩 자체는 알리지 않는다.
+  expect([...container.querySelectorAll('header [role="status"]')]).toEqual([
+    partyNotice,
+    container.querySelector('header [data-capture-announcer]')
+  ])
   const chip = container.querySelector<HTMLButtonElement>('header button[aria-label^="화면 캡처"]')!
   expect(chip.getAttribute('aria-label')).toBe('화면 캡처, 창 미감지')
   expect(chip.disabled).toBe(false)
@@ -194,6 +198,10 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
   expect(trigger.getAttribute('aria-current')).toBe('page')
   expect(trigger.textContent).toBe('검색파티')
+  // 파티 스냅샷을 켜 두면 공대를 보고 돌아와도 파티 화면이 스냅샷을 가지고 있다.
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="파티 모험단 순번 스냅샷"]')!.click()
+  )
 
   await act(async () => trigger.click())
   const raid = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
@@ -202,6 +210,9 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   await act(async () => raid.click())
   expect(trigger.textContent).toBe('검색공대')
   expect(raidSection.hidden).toBe(false)
+  // 상단 바에는 보이는 공대 머리만 그린다.
+  expect([...container.querySelectorAll('header h1')].map((h1) => h1.textContent)).toEqual(['공대'])
+  expect(container.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')).toBeNull()
   const raidCards = [...raidSection.querySelectorAll('article')]
   expect(raidCards).toHaveLength(12)
   expect(raidCards.every((card) => card.getAttribute('data-state') === 'waiting')).toBe(true)
@@ -255,35 +266,10 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   expect(raidSection.hidden).toBe(true)
   expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).toBeNull()
   expect([...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]).toEqual(cards)
+  expect([...container.querySelectorAll('header h1')].map((h1) => h1.textContent)).toEqual(['파티'])
+  expect(
+    container.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')!.getAttribute('aria-pressed')
+  ).toBe('true')
   // 숨긴 공대 카드도 자리별 입력을 유지한다.
   expect(input.value).toBe('열번째')
-})
-
-it('파티 머리의 접기 버튼은 카드 영역을 가리키고 접은 뒤 창 높이를 400으로 요청한다', async () => {
-  const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {})
-  Object.defineProperty(window, 'windowChrome', {
-    configurable: true,
-    value: { setContentHeight }
-  })
-  try {
-    await act(async () =>
-      root.render(
-        <ColorThemeProvider>
-          <App />
-        </ColorThemeProvider>
-      )
-    )
-    const fold = container.querySelector<HTMLButtonElement>('[aria-label="카드 접기"]')!
-    const cards = container.querySelector('[aria-label="파티 캐릭터"]')!
-    expect(fold.getAttribute('aria-expanded')).toBe('true')
-    expect(fold.getAttribute('aria-controls')).toBe(cards.id)
-
-    await act(async () => fold.click())
-    expect(fold.getAttribute('aria-label')).toBe('카드 펼치기')
-    expect(fold.getAttribute('aria-expanded')).toBe('false')
-    await vi.waitFor(() => expect(setContentHeight).toHaveBeenCalledExactlyOnceWith(400))
-    expect(container.querySelectorAll('[aria-label="파티 캐릭터"] article')).toHaveLength(4)
-  } finally {
-    Reflect.deleteProperty(window, 'windowChrome')
-  }
 })
