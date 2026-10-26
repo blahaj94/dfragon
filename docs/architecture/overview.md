@@ -15,7 +15,6 @@ DFragon은 pnpm workspace monorepo다.
 ```text
 apps/
   api/
-  web/
   desktop/
 packages/
   ui/
@@ -26,7 +25,6 @@ scripts/
 ```
 
 - `apps/api`: 캐릭터 공개 NestJS API workspace. DB 없이 요청마다 Neople API를 조회한다. 승인된 ESM runtime, dependency, build/test 계약은 [`../rules/api-runtime.md`](../rules/api-runtime.md)를 따른다. 구현 현황은 Reference에서 확인한다.
-- `apps/web`: React, TypeScript, Vite 기반 web application.
 - `apps/desktop`: Electron, React, TypeScript, electron-vite 기반 desktop application.
 - `packages/ui`: 현재 tracked shared UI package `@dfragon/ui`. 실제 구현, 명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
 - `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@dfragon/lib`. 아래 Shared library boundary를 따른다.
@@ -57,7 +55,7 @@ Desktop은 파티, 공대 캡처와 검색, 카드의 캐릭터 면만 둔다. �
 | 비공개 엔진 저장소 | 엔진의 소스, 계산 데이터, 빌드, Release를 소유한다. |
 | 이 저장소 | 엔진을 불러 쓰는 로더와 바이너리 입수 script만 둔다. 엔진의 소스, 데이터, 바이너리를 commit하지 않는다. |
 | `apps/desktop` main | 엔진을 `koffi`로 로드하고 호출하는 유일한 실행 위치다. |
-| renderer, preload, `apps/api`, `apps/web` | 엔진을 로드하거나 import하지 않는다. renderer는 main이 계산해 전달한 결과만 받는다. |
+| renderer, preload, `apps/api` | 엔진을 로드하거나 import하지 않는다. renderer는 main이 계산해 전달한 결과만 받는다. |
 
 - **빌드 조건**: 엔진 바이너리는 CI secret으로 입수한다. 엔진 없는 빌드를 허용한다.
 - **코드 노출 한계**: 컴파일된 코드도 역공학으로 해석할 수 있다. 이 경계는 소스와 데이터를 공개 저장소 밖에 두는 소유 분리이며, Desktop에 실린 바이너리의 로직이 끝까지 숨겨진다고 보장하지 않는다.
@@ -69,7 +67,7 @@ Desktop은 파티, 공대 캡처와 검색, 카드의 캐릭터 면만 둔다. �
 | 대상 | 책임과 dependency direction |
 | --- | --- |
 | `packages/ui`의 `@dfragon/ui` | Browser React shared package 하나로 자체 토큰(`tokens.css`, `tokens.stylex`), Base UI 기반 공용 Component, 공용 형태와 실제로 공유하는 Layout, composition, 디자인 컴포넌트, Typo를 제공한다. `@dfragon/ui` → Base UI/React, StyleX runtime 방향으로 연결하며 app source, 앱 테마, API client, backend, Electron main/preload, IPC, 인증, domain을 import하지 않는다. |
-| `apps/web`, `apps/desktop` renderer | `@dfragon/ui`를 소비하고 제품 data, event, behavior와 app별 platform 연결을 맡는다. 서로의 source를 import하지 않는다. Desktop main/preload는 UI package를 소비하지 않는다. |
+| `apps/desktop` renderer | `@dfragon/ui`를 소비하고 제품 data, event, behavior와 app별 platform 연결을 맡는다. Desktop main/preload는 UI package를 소비하지 않는다. |
 | 독립 Vite Example entry | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@dfragon/ui` public API와 합성 content로 확인한다. 새 화면마다 Component, Pattern, Template 예제를 갖출 의무는 없다. |
 
 공용 Component는 Base UI 부품의 semantic API와 접근성 동작을 유지하고 외형만 StyleX로 그린다. 같은 역할의 Component를 이름만 바꿔 다시 감싸지 않는다. 화면별 스타일 허용 범위와 필요한 Example, 토큰, version, 영향 검증은 [`design-system.md`](../rules/design-system.md)가 canonical Rule이다.
@@ -83,7 +81,7 @@ Desktop은 파티, 공대 캡처와 검색, 카드의 캐릭터 면만 둔다. �
 - Base UI는 별도 bundler plugin 없이 소비한다. Desktop의 electron-vite renderer와 실제 Electron(CSP 포함) 호환성은 [Desktop 이행 PR](https://github.com/blahaj94/dfragon/pull/704)에서 확인했다. 하나의 alias만을 위해 `vite-tsconfig-paths`를 추가하지 않고 기존 Vite의 `resolve.alias`를 사용한다.
 - 아이콘은 `@dfragon/ui`와 앱이 소유한 SVG 컴포넌트로 그린다. Dependency, 역할 변경은 [제품 계약 적용 기준](../README.md#document-class)과 해당 runtime, 배포 계약을 따른다.
 
-Package의 published peer 범위는 조합 선정 evidence이며 실제 Web, Electron 호환성, CSS 중복 없음, accessibility, 시각 일치 성공을 보증하지 않는다. 변경한 library 산출물과 영향받는 소비 환경을 검증하며 기존 Example, 사용 안내가 틀려진 부분은 같은 PR에서 고친다. 모든 소비 환경과 예제를 매번 재검증하지 않는다.
+Package의 published peer 범위는 조합 선정 evidence이며 실제 Electron 호환성, CSS 중복 없음, accessibility, 시각 일치 성공을 보증하지 않는다. 변경한 library 산출물과 영향받는 소비 환경을 검증하며 기존 Example, 사용 안내가 틀려진 부분은 같은 PR에서 고친다. 모든 소비 환경과 예제를 매번 재검증하지 않는다.
 
 ## Shared library boundary
 
@@ -91,7 +89,7 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web, Ele
 
 ## License tooling boundary
 
-`@dfragon/licenses`는 UI, Web, Desktop, 공용 library의 **빌드 도구 의존성**으로 고지 원문, 수집, 산출물 생성을 담당한다. 제품 runtime 의존성으로 연결하지 않는다. 소유 app/package는 source provenance와 사용 자산을 전달하고, 중앙 도구는 소유 앱의 제품 코드를 import하지 않는다. 기존 LICENSE/NOTICE와 source 수정 표시는 보존한다. 확인되지 않은 원문과 법률상 추가 조건을 수집 성공으로 대체하지 않는다. [사용법과 한계](../../packages/licenses/README.md)를 따른다.
+`@dfragon/licenses`는 UI, Desktop, 공용 library의 **빌드 도구 의존성**으로 고지 원문, 수집, 산출물 생성을 담당한다. 제품 runtime 의존성으로 연결하지 않는다. 소유 app/package는 source provenance와 사용 자산을 전달하고, 중앙 도구는 소유 앱의 제품 코드를 import하지 않는다. 기존 LICENSE/NOTICE와 source 수정 표시는 보존한다. 확인되지 않은 원문과 법률상 추가 조건을 수집 성공으로 대체하지 않는다. [사용법과 한계](../../packages/licenses/README.md)를 따른다.
 
 ## Model package boundary
 
