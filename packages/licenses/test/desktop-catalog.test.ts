@@ -44,13 +44,16 @@ function expectedStaticEntries(): NoticeEntry[] {
       ]
     },
     {
-      name: 'Pretendard',
+      name: 'DenkiChip Hangul',
       version: '',
       license: 'OFL-1.1',
       documents: [
         {
-          name: 'FONT-LICENSE',
-          text: readFileSync(new URL('../notices/desktop/FONT-LICENSE', import.meta.url), 'utf8')
+          name: 'DENKICHIP-LICENSE',
+          text: readFileSync(
+            new URL('../notices/desktop/DENKICHIP-LICENSE', import.meta.url),
+            'utf8'
+          )
         }
       ]
     },
