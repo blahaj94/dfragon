@@ -124,8 +124,18 @@ function raidSection(): HTMLElement {
   return document.querySelector<HTMLElement>('section[aria-label="공대"]')!
 }
 
+// 공대 머리는 공대를 보는 동안 상단 바의 화면 머리 자리에 그린다.
+function raidHeader(): HTMLElement {
+  const heading = [...document.querySelectorAll('main > header h1')].find(
+    (h1) => h1.textContent === '공대'
+  )
+  expect(heading).toBeDefined()
+
+  return heading!.parentElement!.parentElement!
+}
+
 function raidCaptureButton(): HTMLButtonElement {
-  const button = raidSection().querySelector<HTMLButtonElement>(
+  const button = raidHeader().querySelector<HTMLButtonElement>(
     'button[aria-label="공대 캡처, 단축키 Alt R"]'
   )
   expect(button).not.toBeNull()
@@ -139,7 +149,7 @@ function announcement(): string | null {
 }
 
 function raidNotice(): string | null {
-  return raidSection().querySelector('[role="status"]')!.textContent
+  return raidHeader().querySelector('[role="status"]')!.textContent
 }
 
 // 보조 기술이 읽는 live region 중 같은 캡처 문구를 알리는 곳은 하나뿐이고 공대 머리에도 보이지 않는다.
@@ -152,6 +162,7 @@ function expectSingleAnnouncement(text: string): void {
   )
   expect(regions).toHaveLength(1)
   expect(raidSection().textContent).not.toContain(text)
+  expect(raidHeader().textContent).not.toContain(text)
   expect(raidNotice()).toBe('')
 }
 
@@ -199,7 +210,7 @@ it('공대 머리에 파티와 같은 모양의 캡처 버튼과 마지막 캡�
   expect(button.querySelector('kbd')).toBeNull()
   expect(button.querySelector('svg')).not.toBeNull()
   expect(button.textContent).toBe('Alt R')
-  expect(raidSection().textContent).toContain('마지막 캡처')
+  expect(raidHeader().textContent).toContain('마지막 캡처')
   expectSingleAnnouncement('Alt+R을 눌러 공대를 인식해 주세요.')
   await act(async () => button.click())
   expect(document.querySelector('[role="dialog"]')).toBeNull()
@@ -297,6 +308,7 @@ it.each(triggers)('창을 등록하기 전 공대 화면의 %s은 회차를 시�
   expect(announcement()).toBe('')
   expect(raidNotice()).toBe('')
   expect(raidSection().textContent).not.toContain('캡처 대기')
+  expect(raidHeader().textContent).not.toContain('캡처 대기')
 
   await press(f, trigger)
 
