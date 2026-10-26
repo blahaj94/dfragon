@@ -30,7 +30,7 @@ function windowFixture() {
     mainFrame: frame,
     isDestroyed: vi.fn(() => false)
   })
-  let contentSize = [1280, 800]
+  let contentSize = [1280, 163]
   const window = Object.assign(new EventEmitter(), {
     webContents: contents,
     isDestroyed: vi.fn(() => false),
@@ -40,8 +40,7 @@ function windowFixture() {
     getContentSize: vi.fn(() => [...contentSize]),
     setContentSize: vi.fn((width: number, height: number) => {
       contentSize = [width, height]
-    }),
-    setMinimumSize: vi.fn()
+    })
   })
   const event = { sender: contents, senderFrame: frame }
 
@@ -109,18 +108,17 @@ it.each([
   if (kind === 'destroyedContents') {
     f.contents.isDestroyed.mockReturnValue(true)
   }
-  await expect(f.setContentHeight(event, 400)).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
+  await expect(f.setContentHeight(event, 300)).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
   expect(f.window.setContentSize).not.toHaveBeenCalled()
-  expect(f.window.setMinimumSize).not.toHaveBeenCalled()
 })
 
 it('호출할 때마다 현재 문서 URL을 다시 확인한다', async () => {
   const f = fixture()
-  await f.setContentHeight(f.event, 400)
+  await f.setContentHeight(f.event, 300)
   f.frame.url = 'https://synthetic.invalid/'
 
-  await expect(f.setContentHeight(f.event, 800)).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
-  expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1280, 400)
+  await expect(f.setContentHeight(f.event, 163)).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
+  expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1280, 300)
 })
 
 it.each(['closed', 'destroyed', 'dispose'] as const)(
@@ -147,7 +145,7 @@ it.each(['closed', 'destroyed', 'dispose'] as const)(
     dispose?.()
     dispose?.()
     expect(mocks.remove).toHaveBeenCalledTimes(channels.length)
-    await expect(f.setContentHeight(f.event, 400)).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
+    await expect(f.setContentHeight(f.event, 300)).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
     expect(f.window.setContentSize).not.toHaveBeenCalled()
   }
 )
@@ -183,93 +181,66 @@ it('handler 등록 실패 시 기존 handler를 제거하지 않는다', () => {
 })
 
 describe('창 내용 높이', () => {
-  it('접을 때는 최소 높이를 먼저 접은 높이로 낮춘 뒤 내용 높이를 400으로 줄인다', async () => {
+  it('공대 화면 높이 300으로 늘리고 파티 화면 높이 163으로 줄이며 폭은 그대로 둔다', async () => {
     const f = fixture()
-    await f.setContentHeight(f.event, 400)
+    await f.setContentHeight(f.event, 300)
+    expect(f.window.setContentSize).toHaveBeenLastCalledWith(1280, 300)
 
-    expect(f.window.setMinimumSize).toHaveBeenCalledExactlyOnceWith(1024, 400)
-    expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1280, 400)
-    expect(f.window.setMinimumSize.mock.invocationCallOrder[0]).toBeLessThan(
-      f.window.setContentSize.mock.invocationCallOrder[0]
-    )
+    await f.setContentHeight(f.event, 163)
+    expect(f.window.setContentSize).toHaveBeenLastCalledWith(1280, 163)
   })
 
-  it('펼칠 때는 내용 높이를 800으로 늘린 뒤 최소 높이를 640으로 되돌린다', async () => {
+  it('사용자가 바꾼 폭은 유지하고, 키운 높이는 요청한 화면 높이로 맞춘다', async () => {
     const f = fixture()
-    await f.setContentHeight(f.event, 400)
+    f.window.setContentSize(1600, 520)
     vi.clearAllMocks()
-    await f.setContentHeight(f.event, 800)
+    await f.setContentHeight(f.event, 300)
 
-    expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1280, 800)
-    expect(f.window.setMinimumSize).toHaveBeenCalledExactlyOnceWith(1024, 640)
-    expect(f.window.setContentSize.mock.invocationCallOrder[0]).toBeLessThan(
-      f.window.setMinimumSize.mock.invocationCallOrder[0]
-    )
-  })
-
-  it('공대를 접은 높이 560도 받고, 파티의 접은 높이 400에서 늘릴 때는 높이를 바꾼 뒤 최소 높이를 맞춘다', async () => {
-    const f = fixture()
-    await f.setContentHeight(f.event, 560)
-
-    expect(f.window.setMinimumSize).toHaveBeenCalledExactlyOnceWith(1024, 560)
-    expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1280, 560)
-
-    await f.setContentHeight(f.event, 400)
-    vi.clearAllMocks()
-    await f.setContentHeight(f.event, 560)
-
-    expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1280, 560)
-    expect(f.window.setMinimumSize).toHaveBeenCalledExactlyOnceWith(1024, 560)
-    expect(f.window.setContentSize.mock.invocationCallOrder[0]).toBeLessThan(
-      f.window.setMinimumSize.mock.invocationCallOrder[0]
-    )
+    expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1600, 300)
   })
 
   it('창이 놓인 화면의 작업 영역보다 높게 늘리지 않는다', async () => {
-    mocks.workAreaHeight = 728
+    mocks.workAreaHeight = 240
     const f = fixture()
-    await f.setContentHeight(f.event, 400)
-    await f.setContentHeight(f.event, 800)
+    await f.setContentHeight(f.event, 300)
 
-    expect(f.window.setContentSize).toHaveBeenLastCalledWith(1280, 728)
-    expect(f.window.setMinimumSize).toHaveBeenLastCalledWith(1024, 640)
+    expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1280, 240)
   })
 
   it.each(['isMaximized', 'isFullScreen'] as const)(
-    '%s 상태에서는 창 크기와 최소 크기를 바꾸지 않는다',
+    '%s 상태에서는 창 크기를 바꾸지 않는다',
     async (state) => {
       const f = fixture()
       f.window[state].mockReturnValue(true)
-      await expect(f.setContentHeight(f.event, 400)).resolves.toBeUndefined()
+      await expect(f.setContentHeight(f.event, 300)).resolves.toBeUndefined()
 
       expect(f.window.setContentSize).not.toHaveBeenCalled()
-      expect(f.window.setMinimumSize).not.toHaveBeenCalled()
     }
   )
 
   it.each([
     { name: '인자 없음', args: [] },
-    { name: '인자 두 개', args: [400, 800] },
-    { name: '접은 높이보다 작음', args: [399] },
-    { name: '기준 높이보다 큼', args: [801] },
-    { name: '소수', args: [400.5] },
+    { name: '인자 두 개', args: [163, 300] },
+    { name: '파티 높이보다 작음', args: [162] },
+    { name: '공대 높이보다 큼', args: [301] },
+    { name: '이전 기준 높이', args: [800] },
+    { name: '소수', args: [163.5] },
     { name: 'NaN', args: [Number.NaN] },
     { name: 'Infinity', args: [Number.POSITIVE_INFINITY] },
-    { name: '숫자 문자열', args: ['400'] },
+    { name: '숫자 문자열', args: ['163'] },
     { name: 'null', args: [null] },
-    { name: '배열', args: [[400]] }
+    { name: '배열', args: [[163]] }
   ])('$name 요청은 창 크기를 바꾸지 않는다', async ({ args }) => {
     const f = fixture()
     await expect(f.setContentHeight(f.event, ...args)).rejects.toThrow(
       'INVALID_WINDOW_CHROME_COMMAND'
     )
     expect(f.window.setContentSize).not.toHaveBeenCalled()
-    expect(f.window.setMinimumSize).not.toHaveBeenCalled()
   })
 
   it('객체를 숫자로 변환해 높이로 허용하지 않는다', async () => {
     const f = fixture()
-    const toNumber = vi.fn(() => 400)
+    const toNumber = vi.fn(() => 163)
     await expect(f.setContentHeight(f.event, { valueOf: toNumber })).rejects.toThrow(
       'INVALID_WINDOW_CHROME_COMMAND'
     )

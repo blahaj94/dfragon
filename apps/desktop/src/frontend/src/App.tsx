@@ -8,9 +8,11 @@ import { PartyScreen } from './pages/party/PartyScreen'
 import { RaidScreen } from './pages/raid/RaidScreen'
 import { useRaidCapture } from './hooks/useRaidCapture'
 import { useUpdateNotice } from './hooks/useUpdateNotice'
+import { useMainWindowHeight } from './hooks/useMainWindowHeight'
 import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
 import { getRaidScreenCapture } from './lib/capture-presentation'
+import { MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
 
 function App(): React.JSX.Element {
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
@@ -27,6 +29,10 @@ function App(): React.JSX.Element {
     receivesShortcut: searchMode === 'raid'
   })
   const updateNotice = useUpdateNotice()
+  // 창 내용 높이는 보이는 화면을 따른다(파티 163, 공대 300).
+  useMainWindowHeight(
+    searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidHeight : MAIN_WINDOW_SIZE.partyHeight
+  )
   const raidScreenCapture = getRaidScreenCapture({
     party: { phase: capture.phase, status: capture.status, sourceReady: capture.sourceReady },
     raid: { phase: raidCapture.phase, status: raidCapture.status }

@@ -380,11 +380,11 @@ it.each([
 })
 
 it.each([
-  ['win32', { color: '#121214', symbolColor: '#f1ede6', height: 56 }],
-  ['linux', { color: '#121214', symbolColor: '#f1ede6', height: 56 }],
-  ['darwin', { height: 56 }]
+  ['win32', { color: '#121214', symbolColor: '#f1ede6', height: 44 }],
+  ['linux', { color: '#121214', symbolColor: '#f1ede6', height: 44 }],
+  ['darwin', { height: 44 }]
 ] as const)(
-  '%s에서 시스템 테마와 관계없이 다크 상단 바 색으로 제목 표시줄과 초기 창 색상을 설정한다',
+  '%s에서 시스템 테마와 관계없이 다크 상단 바 색과 높이 44로 제목 표시줄을 두고 파티 화면 크기로 창을 연다',
   async (platform, titleBarOverlay) => {
     const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!
     Object.defineProperty(process, 'platform', { value: platform })
@@ -394,10 +394,11 @@ it.each([
 
       expect(mocks.constructWindow).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining({
+          useContentSize: true,
           width: 1280,
-          height: 800,
+          height: 163,
           minWidth: 1024,
-          minHeight: 640,
+          minHeight: 163,
           titleBarStyle: 'hidden',
           titleBarOverlay,
           backgroundColor: '#121214'
