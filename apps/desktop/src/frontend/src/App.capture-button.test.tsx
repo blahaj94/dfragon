@@ -87,9 +87,7 @@ async function chooseSource(name: string): Promise<void> {
     (item) => item.getAttribute('aria-label') === name
   )!
   await act(async () => option.click())
-  const close = [...document.querySelectorAll('button')].find(
-    (button) => button.textContent === '닫기'
-  )!
+  const close = document.querySelector<HTMLButtonElement>('[role="dialog"] [aria-label="닫기"]')!
   await act(async () => close.click())
 }
 
