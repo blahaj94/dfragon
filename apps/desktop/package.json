@@ -19,6 +19,7 @@
     "test:raid-row-evaluation": "tsc --noEmit -p scripts/raid-row-evaluation/tsconfig.json && vitest run --config scripts/raid-row-evaluation/vitest.config.ts",
     "dev": "pnpm run prepare:ocr-assets && install-electron && node --env-file-if-exists=.env ./node_modules/electron-vite/bin/electron-vite.js dev",
     "dev:preview": "pnpm run ui:fixture:prepare && node scripts/mvp-dev.mjs",
+    "build": "pnpm run typecheck && pnpm run prepare:ocr-assets && electron-vite build",
     "build:development": "pnpm run typecheck && pnpm run prepare:ocr-assets && electron-vite build --mode dfragon-development",
     "build:test": "pnpm run typecheck && pnpm run prepare:ocr-assets && electron-vite build --mode dfragon-test",
     "build:distribution": "pnpm run typecheck && pnpm run prepare:ocr-assets && electron-vite build --mode dfragon-distribution",
