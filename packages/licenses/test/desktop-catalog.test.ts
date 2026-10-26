@@ -44,14 +44,14 @@ function expectedStaticEntries(): NoticeEntry[] {
       ]
     },
     {
-      name: 'DenkiChip Hangul',
+      name: 'MaruMinya Hangul',
       version: '',
       license: 'OFL-1.1',
       documents: [
         {
-          name: 'DENKICHIP-LICENSE',
+          name: 'MARUMINYA-LICENSE',
           text: readFileSync(
-            new URL('../notices/desktop/DENKICHIP-LICENSE', import.meta.url),
+            new URL('../notices/desktop/MARUMINYA-LICENSE', import.meta.url),
             'utf8'
           )
         }
