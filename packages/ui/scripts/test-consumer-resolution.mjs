@@ -13,21 +13,15 @@ beforeEach(() => {
   for (const path of [
     'packages/ui/dist',
     'packages/ui/dist-examples',
-    'apps/web/dist',
     'apps/desktop/out',
     'packages/ui/node_modules/.vite',
-    'apps/web/node_modules/.vite',
-    'apps/desktop/node_modules/.vite',
-    'apps/web/node_modules/.tmp'
+    'apps/desktop/node_modules/.vite'
   ]) {
     rmSync(new URL(`../../../${path}`, import.meta.url), { recursive: true, force: true })
   }
 })
 
 for (const [workspace, command] of [
-  ['@dfragon/web', 'test'],
-  ['@dfragon/web', 'typecheck'],
-  ['@dfragon/web', 'build'],
   ['@dfragon/desktop', 'test'],
   ['@dfragon/desktop', 'typecheck'],
   ['@dfragon/desktop', 'build'],
@@ -49,13 +43,6 @@ for (const [workspace, command] of [
 }
 
 for (const { name, executable, args, cwd, entries } of [
-  {
-    name: 'pnpm --filter @dfragon/web dev',
-    executable: 'pnpm',
-    args: ['--filter', '@dfragon/web', 'dev', '--host', '127.0.0.1', '--port', '0'],
-    cwd: root,
-    entries: ['/src/main.tsx', '/src/App.tsx']
-  },
   {
     name: 'pnpm --filter @dfragon/ui dev:examples',
     executable: 'pnpm',
