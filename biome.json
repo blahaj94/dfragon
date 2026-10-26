@@ -172,8 +172,6 @@
         "!apps/desktop/scripts/*fixture*.ts",
         "!apps/desktop/scripts/*fixture*.mjs",
         "!apps/desktop/scripts/*fixture*.cts",
-        "!apps/desktop/scripts/credential-store-native/**",
-        "!apps/desktop/scripts/credential-store-native.mjs",
         "!apps/desktop/scripts/search-server-integration/**",
         "!packages/ui/scripts/test-consumer-resolution.mjs",
         "!**/generated/**",

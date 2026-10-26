@@ -41,7 +41,6 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "husky": "catalog:",
-    "sharp": "catalog:",
     "tar": "catalog:",
     "typescript": "catalog:parser"
   }
