@@ -16,7 +16,7 @@ COPY apps/api/test apps/api/test
 COPY apps/api/test-support apps/api/test-support
 RUN pnpm --filter @dfragon/api test \
     && pnpm --filter @dfragon/api deploy --legacy --prod /production
-COPY packages/licenses/notices/upstream/remeda-2.51.0-LICENSE.txt apps/api/dist/notices/remeda-2.51.0-LICENSE.txt
+COPY packages/licenses/notices/upstream/remeda-2.52.0-LICENSE.txt apps/api/dist/notices/remeda-2.52.0-LICENSE.txt
 
 FROM docker.io/library/node:26-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS runtime
 ARG SOURCE_COMMIT=""
