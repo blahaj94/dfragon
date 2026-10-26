@@ -232,7 +232,7 @@ it.each([
   ['recognizing', '인식 중', 'signal', true],
   ['unavailable', '확인 필요', 'warning', false]
 ] as const)(
-  '대화상자 머리는 제목, %s 단계의 %s 칩, 닫기 순서이고 네 모서리 꺾쇠가 %s 톤을 따른다',
+  '대화상자 머리는 제목, %s 단계의 %s 칩, 새로고침, 닫기 순서이고 네 모서리 꺾쇠가 %s 톤을 따른다',
   async (phase, label, tone, busy) => {
     props.phase = phase
     await openDialog()
@@ -244,9 +244,13 @@ it.each([
     expect(chip.dataset.tone).toBe(tone)
     expect(chip.hasAttribute('data-busy')).toBe(busy)
     const close = dialog().querySelector<HTMLButtonElement>('button[aria-label="닫기"]')!
+    const refresh = [...dialog().querySelectorAll('button')].find(
+      (button) => button.textContent === '새로고침'
+    )!
     for (const [before, after] of [
       [title, chip],
-      [chip, close]
+      [chip, refresh],
+      [refresh, close]
     ]) {
       expect(before.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
     }
@@ -284,7 +288,7 @@ it('닫기 버튼은 캡처를 유지한 채 대화상자만 닫는다', async (
   expect(props.capture.stopCapture).not.toHaveBeenCalled()
 })
 
-it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에는 닫기만 둔다', async () => {
+it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에는 캡처 중지를 두지 않는다', async () => {
   props.phase = 'unavailable'
   props.status = '게임 창이 가려져 있습니다. 게임 창을 앞으로 가져온 뒤 Alt+R을 누르세요.'
   await openDialog()
@@ -310,14 +314,40 @@ it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에
   props.capture.selectedSourceId = 'game'
   const actions = () =>
     [...dialog().querySelectorAll('button')]
-      .map((button) => button.textContent)
-      .filter((text) => text === '닫기' || text === '캡처 중지')
-  expect(actions()).toEqual(['닫기', '캡처 중지'])
+      .map((button) => button.getAttribute('aria-label') ?? button.textContent)
+      .filter((name) => name === '닫기' || name === '캡처 중지' || name === '새로고침')
+  // 머리 줄의 버튼 순서다. 아래쪽에는 닫기 버튼을 따로 두지 않는다.
+  expect(actions()).toEqual(['캡처 중지', '새로고침', '닫기'])
   props.phase = 'idle'
   props.capture.selectedSourceId = ''
   props.capture.sources = []
   await render()
-  expect(actions()).toEqual(['닫기'])
+  expect(actions()).toEqual(['새로고침', '닫기'])
+})
+
+it('안내는 머리 줄의 상태 칩 오른쪽 한 줄이고 전체 문구를 title로 전한다', async () => {
+  props.phase = 'failed'
+  props.status = '게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.'
+  await openDialog()
+  const chip = dialog().querySelector<HTMLElement>('[role="status"][data-tone]')!
+  const notice = dialog().querySelector<HTMLElement>('p[role="status"]')!
+  expect(notice.getAttribute('title')).toBe(props.status)
+  expect(notice.parentElement).toBe(chip.parentElement)
+  expect(chip.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  props.status = ''
+  await render()
+  expect(dialog().querySelector('p[role="status"]')).toBeNull()
+})
+
+it('새로고침 버튼은 창 목록을 다시 조회하고 대화상자를 연 채로 둔다', async () => {
+  await openDialog()
+  expect(props.capture.refreshSources).toHaveBeenCalledOnce()
+  const refresh = [...dialog().querySelectorAll('button')].find(
+    (button) => button.textContent === '새로고침'
+  )!
+  await click(refresh)
+  expect(props.capture.refreshSources).toHaveBeenCalledTimes(2)
+  expect(document.querySelector('[role="dialog"]')).not.toBeNull()
 })
 
 it('창을 찾는 동안 재조회 진행 막대가 마지막 조회 완료부터 15초 주기로 차고 새 조회 때 다시 시작한다', async () => {
