@@ -34,4 +34,4 @@ last-reviewed: 2026-10-09
 
 ## 검사
 
-`scripts/check-writing.mjs`가 Git이 추적하는 텍스트 파일에서 위 표기와 어미를 찾아 `경로:줄: 규칙: 내용`으로 출력하고, 위반이 있으면 실패한다. 이 문서와 검사 스크립트, 그 테스트는 금지 표기를 예시로 담으므로 검사에서 제외하고, `packages/lib/src/cp949-characters.ts`와 `apps/desktop/assets/ocr/korean-dict.txt`는 가운뎃점이 문자 표와 사전의 데이터라 제외한다. 사용법은 [scripts 안내](../../scripts/README.md#check-writing)에 있다. Code Quality의 Static checks가 `pnpm check:writing`을 실행하며, 디자인 저장소는 같은 정규식을 `git grep`으로 실행하는 workflow를 둔다.
+`scripts/check-writing.mjs`가 Git이 추적하는 텍스트 파일에서 위 표기와 어미를 찾아 `경로:줄: 규칙: 내용`으로 출력하고, 위반이 있으면 실패한다. 이 문서와 검사 스크립트, 그 테스트는 금지 표기를 예시로 담으므로 검사에서 제외하고, `packages/lib/src/cp949-characters.ts`와 `apps/desktop/assets/ocr/korean-dict.txt`는 가운뎃점이 문자 표와 사전의 데이터라 제외한다. 사용법은 [scripts 안내](../../scripts/README.md#check-writing)에 있다. `pnpm verify`가 `pnpm check:writing`을 실행하며, 디자인 저장소는 같은 정규식을 `git grep`으로 실행하는 workflow를 둔다.
