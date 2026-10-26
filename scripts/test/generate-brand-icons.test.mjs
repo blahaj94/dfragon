@@ -10,7 +10,6 @@ const outputs = [
   ['apps/desktop/build/icon.png', 'set/512x512.png'],
   ['apps/desktop/resources/icon.png', 'set/512x512.png'],
   ['apps/desktop/resources/brand.png', 'set/128x128.png'],
-  ['apps/accounts/browser/icon.png', 'set/128x128.png'],
   ['apps/web/public/favicon.png', 'set/64x64.png']
 ]
 

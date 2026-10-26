@@ -9,7 +9,7 @@ const commit = 'a'.repeat(40)
 
 test('이미지 빌더는 환경변수 대신 선택한 정확한 서비스와 source commit을 기록한다', (t) => {
   const { output, run } = fixture(t)
-  for (const service of ['api', 'accounts', 'ocr']) {
+  for (const service of ['api']) {
     const result = run([service, commit, output], {
       env: { ...process.env, GITHUB_SHA: 'b'.repeat(40), SOURCE_COMMIT: 'c'.repeat(40) }
     })

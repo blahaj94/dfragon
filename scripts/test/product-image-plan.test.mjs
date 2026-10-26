@@ -15,19 +15,14 @@ import { createProductImageApiFixture } from './fixtures/task-tools/product-imag
 import { createProductImageCliFixture } from './fixtures/task-tools/product-image-cli.mjs'
 import { createProductImageRepository as repository } from './fixtures/task-tools/product-image-repository.mjs'
 
-const allServices = ['api', 'ocr', 'accounts']
+const allServices = ['api']
 
-test('앱별 경로는 해당 서비스만 선택하고 여러 서비스는 정해진 순서로 정렬한다', () => {
-  for (const service of allServices) {
-    assert.deepEqual(selectServices([`apps/${service}/src/main.ts`]), [service])
-  }
-  assert.deepEqual(selectServices(['apps/accounts/Dockerfile', 'apps/api/src/main.ts']), [
-    'api',
-    'accounts'
-  ])
+test('API 경로는 API 이미지를 선택한다', () => {
+  assert.deepEqual(selectServices(['apps/api/src/main.ts']), ['api'])
+  assert.deepEqual(selectServices(['apps/api/Dockerfile', 'apps/api/src/main.ts']), ['api'])
 })
 
-test('공용 빌드 입력은 모든 서비스를 선택하고 UI 변경은 두 소비자만 선택한다', () => {
+test('공용 빌드 입력은 모든 서비스를 선택한다', () => {
   for (const path of [
     'packages/lib/src/index.ts',
     'packages/licenses/notices/unknown.txt',
@@ -43,7 +38,6 @@ test('공용 빌드 입력은 모든 서비스를 선택하고 UI 변경은 두 
   ]) {
     assert.deepEqual(selectServices([path]), allServices, path)
   }
-  assert.deepEqual(selectServices(['packages/ui/src/button.tsx']), ['ocr', 'accounts'])
 })
 
 test('문서, 무관한 앱, 다른 tooling과 비슷한 접두사의 경로는 이미지를 선택하지 않는다', () => {
@@ -56,7 +50,7 @@ test('문서, 무관한 앱, 다른 tooling과 비슷한 접두사의 경로는 
       'apps/web/src/main.tsx',
       'scripts/create-app.mjs',
       'apps/api-copy/src/main.ts',
-      'apps/ocr-extra/src/main.ts',
+      'packages/ui/src/button.tsx',
       'packages/library/src/main.ts',
       'packages/ui-kit/src/button.tsx',
       'docs/apps/accounts/src/main.ts'
@@ -69,7 +63,7 @@ test('push 계획은 마지막 commit뿐 아니라 before 이후의 모든 commi
   const repo = repository(t)
   repo.write('apps/api/src/main.ts')
   repo.commit()
-  repo.write('apps/accounts/src/main.ts')
+  repo.write('docs/README.md', 'Documentation after the API change\n')
   const sourceCommit = repo.commit()
 
   const plan = createPlan({
@@ -79,31 +73,42 @@ test('push 계획은 마지막 commit뿐 아니라 before 이후의 모든 commi
     sourceCommit
   })
 
-  assert.deepEqual(plan, { sourceCommit, services: ['api', 'accounts'] })
+  assert.deepEqual(plan, { sourceCommit, services: ['api'] })
 })
 
-test('PR 계획은 head payload 대신 checkout source의 삭제, 이름 변경 경로를 포함한다', (t) => {
-  const repo = repository(t)
-  repo.write('apps/api/src/delete me.ts')
-  repo.write('apps/ocr/src/rename\nme.ts')
-  const base = repo.commit()
-  rmSync(join(repo.cwd, 'apps/api/src/delete me.ts'))
-  mkdirSync(join(repo.cwd, 'apps/accounts/src'), { recursive: true })
-  renameSync(
-    join(repo.cwd, 'apps/ocr/src/rename\nme.ts'),
-    join(repo.cwd, 'apps/accounts/src/renamed.ts')
-  )
-  const sourceCommit = repo.commit()
+for (const [name, change] of [
+  [
+    '삭제',
+    (cwd) => {
+      rmSync(join(cwd, 'apps/api/src/delete me.ts'))
+    }
+  ],
+  [
+    '이름 변경',
+    (cwd) => {
+      mkdirSync(join(cwd, 'docs/renamed'), { recursive: true })
+      renameSync(join(cwd, 'apps/api/src/rename\nme.ts'), join(cwd, 'docs/renamed/me.md'))
+    }
+  ]
+]) {
+  test(`PR 계획은 head payload 대신 checkout source의 ${name} 경로를 포함한다`, (t) => {
+    const repo = repository(t)
+    repo.write('apps/api/src/delete me.ts')
+    repo.write('apps/api/src/rename\nme.ts')
+    const base = repo.commit()
+    change(repo.cwd)
+    const sourceCommit = repo.commit()
 
-  const plan = createPlan({
-    cwd: repo.cwd,
-    eventName: 'pull_request',
-    event: { pull_request: { base: { sha: base }, head: { sha: repo.initial } } },
-    sourceCommit
+    const plan = createPlan({
+      cwd: repo.cwd,
+      eventName: 'pull_request',
+      event: { pull_request: { base: { sha: base }, head: { sha: repo.initial } } },
+      sourceCommit
+    })
+
+    assert.deepEqual(plan, { sourceCommit, services: allServices })
   })
-
-  assert.deepEqual(plan, { sourceCommit, services: allServices })
-})
+}
 
 test('before가 zero SHA인 새 push는 모든 이미지를 선택한다', (t) => {
   const repo = repository(t)
@@ -144,7 +149,7 @@ test('계획은 미커밋 변경을 포함하지 않고 실제 checkout과 다�
   const sourceCommit = repo.commit()
   repo.write('apps/api/src/main.ts', 'Staged server change\n')
   repo.git('add', 'apps/api/src/main.ts')
-  repo.write('apps/ocr/src/local.ts', 'Untracked server change\n')
+  repo.write('apps/api/src/local.ts', 'Untracked server change\n')
   const statusBefore = repo.git('status', '--porcelain')
   const options = {
     cwd: repo.cwd,
@@ -164,7 +169,7 @@ test('계획은 미커밋 변경을 포함하지 않고 실제 checkout과 다�
     'Staged server change\n'
   )
   assert.equal(
-    readFileSync(join(repo.cwd, 'apps/ocr/src/local.ts'), 'utf8'),
+    readFileSync(join(repo.cwd, 'apps/api/src/local.ts'), 'utf8'),
     'Untracked server change\n'
   )
 })
@@ -264,10 +269,10 @@ test('CLI select의 입력, revision, 사용법 오류는 기존 plan과 GitHub 
   }
 })
 
-test('CLI output은 SOURCE_COMMIT을 우선하고 서비스 순서를 정렬해 기존 출력에 추가한다', (t) => {
+test('CLI output은 SOURCE_COMMIT을 우선하고 기존 출력에 추가한다', (t) => {
   const { planPath, outputPath, run } = createProductImageCliFixture(t)
   const sourceCommit = 'a'.repeat(40)
-  const planBody = JSON.stringify({ sourceCommit, services: ['accounts', 'api', 'ocr'] })
+  const planBody = JSON.stringify({ sourceCommit, services: ['api'] })
   writeFileSync(planPath, planBody)
   writeFileSync(outputPath, 'existing output\n')
 
@@ -284,7 +289,7 @@ test('CLI output은 SOURCE_COMMIT을 우선하고 서비스 순서를 정렬해 
   assert.equal(result.stdout, '')
   assert.equal(
     readFileSync(outputPath, 'utf8'),
-    'existing output\nmatrix={"service":["api","ocr","accounts"]}\nhas_changes=true\n'
+    'existing output\nmatrix={"service":["api"]}\nhas_changes=true\n'
   )
   assert.equal(readFileSync(planPath, 'utf8'), planBody)
 })
@@ -308,7 +313,7 @@ test('CLI output의 읽기, 검증, 쓰기 실패는 기존 matrix를 변경하�
     },
     {
       planBody: JSON.stringify({ sourceCommit, services: ['api', 'api'] }),
-      error: 'Expected a plan with unique api, ocr, or accounts services'
+      error: 'Expected a plan with unique api services'
     },
     { outputPath: '', error: 'Expected GITHUB_OUTPUT for product image planning' },
     { outputPath: directoryOutput, error: 'Could not write the product image planning output' }
@@ -334,9 +339,9 @@ test('CLI output의 읽기, 검증, 쓰기 실패는 기존 matrix를 변경하�
   }
 })
 
-test('catch-up은 취소된 accounts 변경을 문서만 바뀐 다음 push 계획에 복구한다', (t) => {
+test('catch-up은 취소된 API 변경을 문서만 바뀐 다음 push 계획에 복구한다', (t) => {
   const repo = repository(t)
-  repo.write('apps/accounts/src/main.ts')
+  repo.write('apps/api/src/main.ts')
   const canceledSource = repo.commit()
   repo.write('docs/README.md', 'Documentation after the canceled push')
   const sourceCommit = repo.commit()
@@ -359,7 +364,7 @@ test('catch-up은 취소된 accounts 변경을 문서만 바뀐 다음 push 계�
   assert.equal(result.status, 0, result.stderr)
   assert.deepEqual(JSON.parse(readFileSync(planPath, 'utf8')), {
     sourceCommit,
-    services: ['accounts']
+    services: ['api']
   })
 })
 
@@ -375,10 +380,9 @@ test('catch-up은 현재 선택을 유지하고 이미 발행한 source의 빈 �
   }
 
   assert.deepEqual(catchUpPlan(options).services, ['api'])
-  assert.deepEqual(
-    catchUpPlan({ ...options, plan: { sourceCommit, services: ['accounts'] } }).services,
-    ['api', 'accounts']
-  )
+  assert.deepEqual(catchUpPlan({ ...options, plan: { sourceCommit, services: [] } }).services, [
+    'api'
+  ])
   assert.deepEqual(
     catchUpPlan({
       ...options,
@@ -386,6 +390,28 @@ test('catch-up은 현재 선택을 유지하고 이미 발행한 source의 빈 �
       baselinePlan: { sourceCommit, services: allServices }
     }).services,
     []
+  )
+})
+
+test('catch-up은 지운 서비스가 남은 이전 baseline을 거절하지 않는다', (t) => {
+  const repo = repository(t)
+  repo.write('docs/README.md', 'Documentation only\n')
+  const sourceCommit = repo.commit()
+  const options = {
+    cwd: repo.cwd,
+    sourceCommit,
+    plan: { sourceCommit, services: [] },
+    baselinePlan: { sourceCommit: repo.initial, services: ['api', 'ocr', 'accounts'] }
+  }
+
+  assert.deepEqual(catchUpPlan(options).services, [])
+  assert.throws(
+    () =>
+      catchUpPlan({
+        ...options,
+        plan: { sourceCommit, services: ['accounts'] }
+      }),
+    { message: 'Expected a plan with unique api services' }
   )
 })
 
@@ -409,7 +435,7 @@ test('CLI catch-up에 지정한 baseline이 읽기, 검증에 실패하면 기�
     {
       path: baselinePath,
       body: JSON.stringify({ sourceCommit: repo.initial, services: ['unknown'] }),
-      error: 'Expected a plan with unique api, ocr, or accounts services'
+      error: 'Expected a plan with unique api services'
     }
   ]) {
     writeFileSync(baselinePath, options.body)
@@ -432,7 +458,7 @@ test('발행 baseline이 없거나 조회 불가, 비조상이면 모든 이미�
   repo.write('apps/api/src/main.ts')
   const sourceCommit = repo.commit()
   repo.git('checkout', '--quiet', '-b', 'other', repo.initial)
-  repo.write('apps/accounts/src/main.ts')
+  repo.write('docs/README.md', 'Other branch\n')
   const nonancestor = repo.commit()
   repo.git('checkout', '--quiet', sourceCommit)
   const options = { cwd: repo.cwd, sourceCommit, plan: { sourceCommit, services: ['api'] } }
@@ -440,7 +466,7 @@ test('발행 baseline이 없거나 조회 불가, 비조상이면 모든 이미�
   for (const baselinePlan of [
     undefined,
     { sourceCommit: 'f'.repeat(40), services: [] },
-    { sourceCommit: nonancestor, services: ['accounts'] }
+    { sourceCommit: nonancestor, services: ['api'] }
   ]) {
     assert.deepEqual(catchUpPlan({ ...options, baselinePlan }).services, allServices)
   }
