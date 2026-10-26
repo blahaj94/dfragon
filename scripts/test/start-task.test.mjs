@@ -48,7 +48,7 @@ test('허용한 workspace와 공용 범위별 브랜치를 만들고 기존 브�
   f.git(['branch', 'codex/issue-30'])
   const legacyHead = f.git(['rev-parse', 'codex/issue-30'])
 
-  for (const project of ['api', 'desktop', 'web', 'ui', 'cross', 'repo']) {
+  for (const project of ['api', 'desktop', 'ui', 'cross', 'repo']) {
     const destination = join(f.repository, `${project}-worktree`)
     const result = startTask([project, '30', 'add-oauth2-login', destination], f.run)
     const branch = `${project}-30-add-oauth2-login`

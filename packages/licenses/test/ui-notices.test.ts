@@ -76,7 +76,7 @@ test('앱의 production 전이 고지와 번들 고지를 합치되 main 전용 
   assert.equal(assets.get('notices/THIRD-PARTY.txt')!.includes(fixture.root), false)
 })
 
-test('runtimeRoot가 없는 UI, Web 빌드는 번들 입력의 고지만 수집한다', (t) => {
+test('runtimeRoot가 없는 UI 빌드는 번들 입력의 고지만 수집한다', (t) => {
   const fixture = createPackageFixture(t)
   fixture.writeManifest('', { dependencies: { 'unbundled-production': '1' } })
   fixture.pkg('unbundled-production', { documents: {} })
