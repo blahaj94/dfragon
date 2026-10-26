@@ -2,7 +2,6 @@ import { useId } from 'react'
 import { createPortal } from 'react-dom'
 import { BoardHeader } from '../../components/BoardHeader'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
-import type { PartyCollapse } from '../../hooks/usePartyCollapse'
 import type { RaidCapture } from '../../hooks/useRaidCapture'
 import { slotAdventureName } from '../../lib/adventure-snapshot'
 import { seatValuesToSlotOrder } from '../../lib/raid-seats'
@@ -34,13 +33,10 @@ export type RaidScreenCapture = Pick<
 export function RaidScreen({
   capture,
   hidden,
-  collapse,
   headerSlot
 }: {
   capture: RaidScreenCapture
   hidden: boolean
-  /** 파티와 공대가 함께 쓰는 카드 접기 */
-  collapse: PartyCollapse
   /** 상단 바의 화면 머리 자리. 아직 그려지지 않았으면 null이다. */
   headerSlot: HTMLElement | null
 }): React.JSX.Element {
@@ -87,7 +83,6 @@ export function RaidScreen({
       resetKey={String(capture.round)}
       slots={cards}
       seats={capture}
-      collapsed={collapse.collapsed}
       actions={search}
     />
   )

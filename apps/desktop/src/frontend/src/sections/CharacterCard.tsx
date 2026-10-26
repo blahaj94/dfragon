@@ -28,7 +28,6 @@ export function CharacterCard({
   card,
   slot,
   inputEnabled = false,
-  collapsed = false,
   onRetry,
   onLookup,
   onPickCandidate
@@ -37,8 +36,6 @@ export function CharacterCard({
   card: SlotCard
   slot: number
   inputEnabled?: boolean
-  /** 파티 머리의 접기. 그림 칸과 직업을 접고 머리, 소속, 이름, 명성, 점수만 남긴다. */
-  collapsed?: boolean
   onRetry?: () => void
   onLookup?: (nickname: string, serverId: string) => void
   /** 후보 창의 후보를 서버로 누른다. */
@@ -98,7 +95,6 @@ export function CharacterCard({
             {...stylex.props(
               shapes.gridWell,
               styles.well,
-              collapsed && styles.wellCollapsed,
               tier === 'top' && styles.wellTop,
               tier === 'ranker' && styles.wellRanker
             )}
@@ -214,7 +210,7 @@ export function CharacterCard({
               tier={tier}
             />
             {characterFound && (
-              <div {...stylex.props(styles.line, collapsed && styles.lineHidden)}>
+              <div {...stylex.props(styles.line)}>
                 <Typo.caption {...stylex.props(styles.job)}>
                   {toJobLabel(character.job)}
                 </Typo.caption>

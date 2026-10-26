@@ -49,7 +49,6 @@ export const styles = stylex.create({
     paddingBlockEnd: 6,
     paddingInline: space.s8
   },
-  bodyCollapsed: { gridTemplateColumns: 'minmax(0, 1fr)' },
   well: { position: 'relative', height: 40, overflow: 'hidden' },
   // 상위, 랭커 카드의 그림 칸 아래 2px 단계 색 선. 캐릭터 그림 위에 그린다. 랭커는 그림 칸 면도 단계 면이다.
   wellTop: {
@@ -75,7 +74,6 @@ export const styles = stylex.create({
   },
   portrait: { position: 'absolute', inset: 0 },
   progress: { position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' },
-  hidden: { display: 'none' },
   column: { display: 'flex', flexDirection: 'column', gap: space.s4, minWidth: 0 },
   // 이름 칸과 오른쪽 끝의 상태, 스냅샷 순번, 자리 번호. 이름 칸이 남는 폭을 채운다.
   header: { display: 'flex', alignItems: 'center', gap: space.s4, minWidth: 0, height: 20 },
