@@ -1,8 +1,8 @@
-/* Pretendard 1.3.9 가변 글꼴 하나로 400~700 굵기를 표시한다. 출처, 체크섬은 packages/licenses/notices/desktop에 있다. */
+/* 전기칩 한글(x10y12pxDenkiChipHangul) 1.213 비트맵 글꼴 하나로 모든 굵기를 표시한다. 출처, 체크섬은 packages/licenses/notices/desktop에 있다. */
 @font-face {
-  font-family: 'Pretendard Variable';
-  src: url('./fonts/PretendardVariable.woff2') format('woff2');
-  font-weight: 45 920;
+  font-family: 'DenkiChip Hangul';
+  src: url('./fonts/x10y12pxDenkiChipHangul.woff2') format('woff2');
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
@@ -29,11 +29,21 @@
   unicode-range: U+0020-007E;
 }
 
+/* 공용 tokens.css의 글꼴 토큰을 Desktop에서만 전기칩 한글 우선으로 바꾼다. */
+:root {
+  --df-font-ui:
+    'DenkiChip Hangul', -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo',
+    'Malgun Gothic', sans-serif;
+  --df-font-num:
+    'Barlow Condensed', 'DenkiChip Hangul', -apple-system, BlinkMacSystemFont, system-ui,
+    'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
 /* foundation.css 다음에 import해 UI 글꼴과 한국어 줄바꿈 기준을 body에서 한 번 정한다. */
 body {
   font-family:
-    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
-    'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    'DenkiChip Hangul', -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo',
+    'Malgun Gothic', sans-serif;
   word-break: keep-all;
   overflow-wrap: anywhere;
 }
