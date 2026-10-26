@@ -10,25 +10,8 @@ import type { projectCharacterDetails } from '../src/characters/details/project.
 
 const signal = new AbortController().signal
 const item: CatalogKey = { kind: 'item', itemId: 'fixture-item' }
-const skill: CatalogKey = { kind: 'skill', jobId: 'fixture-job', skillId: 'fixture-skill' }
 function catalogPayload(key: CatalogKey) {
-  if (key.kind === 'item') {
-    const itemId = key.itemId
-    const itemName = '합성 아이템 ' + itemId
-
-    return { itemId, itemName }
-  }
-
-  if (key.kind === 'set') {
-    const setItemId = key.setItemId
-    const setItemName = '합성 세트 ' + setItemId
-
-    return { setItemId, setItemName, setItemOption: [] }
-  }
-  const jobId = key.jobId
-  const name = '합성 스킬 ' + key.skillId
-
-  return { jobId, name, levelInfo: { rows: [] } }
+  return { itemId: key.itemId, itemName: '합성 아이템 ' + key.itemId }
 }
 test('중복을 제거한 128개까지만 조회하고 15개 이하 배치 9개를 모두 동시에 시작한다', async () => {
   let active = 0,
@@ -68,13 +51,13 @@ test('중복을 제거한 128개까지만 조회하고 15개 이하 배치 9개�
   }
 })
 
-test('처리 기한이 끝나면 진행 중인 스킬 조회를 쓰지 않고 취소된 요청은 전송하지 않는다', async () => {
+test('처리 기한이 끝나면 진행 중인 아이템 조회를 쓰지 않고 취소된 요청은 전송하지 않는다', async () => {
   let calls = 0
   const controller = new AbortController()
   const keys: CatalogKey[] = Array.from({ length: 10 }, (_, i) => {
-    const skillId = `skill-${i}`
+    const itemId = `item-${i}`
 
-    return { kind: 'skill', jobId: 'job', skillId }
+    return { kind: 'item', itemId }
   })
   const service = createCatalogService(async (group, requestSignal) => {
     calls++
@@ -87,8 +70,8 @@ test('처리 기한이 끝나면 진행 중인 스킬 조회를 쓰지 않고 �
     })
   }, 5)
   const result = await service.load(keys, signal)
-  // 스킬 10개는 기한 전에 모두 동시에 시작한다.
-  assert.equal(calls, 10)
+  // 아이템 10개는 하나의 배치로 시작한다.
+  assert.equal(calls, 1)
   const started = calls
   for (const entry of result.values()) {
     assert.deepEqual(entry.detail, { data: null, fetchedAt: null, status: 'unavailable' })
@@ -98,7 +81,7 @@ test('처리 기한이 끝나면 진행 중인 스킬 조회를 쓰지 않고 �
   assert.equal(calls, started)
 })
 
-test('공급자 응답을 요청 itemId, jobId로 대응하고 옵션을 보존하며 오류 원문을 정제한다', async () => {
+test('공급자 응답을 요청 itemId로 대응하고 옵션을 보존하며 오류 원문을 정제한다', async () => {
   const requestPaths: string[] = []
   const fetchImpl: typeof fetch = async (url, options) => {
     requestPaths.push(String(url))
@@ -119,16 +102,6 @@ test('공급자 응답을 요청 itemId, jobId로 대응하고 옵션을 보존�
   assert.equal(values.length, 1)
   assert.deepEqual(values[0]!.payload.option, { value: '3%' })
   assert(!requestPaths[0]!.includes('fixture-key'))
-  const skillAdapter = createNeopleCatalog('fixture-key', async (url) => {
-    assert(String(url).endsWith('/skills/fixture-job/fixture-skill'))
-
-    return Response.json({ jobId: 'fixture-job', name: '스킬', levelInfo: { rows: [] } })
-  })
-  assert.deepEqual((await skillAdapter([skill], signal))[0]!.key, skill)
-  const wrongJob = createNeopleCatalog('fixture-key', async () =>
-    Response.json({ jobId: 'other-job', name: '스킬' })
-  )
-  await assert.rejects(wrongJob([skill], signal), { message: 'Catalog lookup failed' })
   const failure = createNeopleCatalog('fixture-key', async () => {
     throw new Error('secret upstream message')
   })
@@ -187,7 +160,7 @@ test('14개 장비 슬롯, 마법부여 스킬 옵션, 체인 null과 캐릭터 
     })
   })
   const result = await enrichCharacterDetails(details, service, signal)
-  assert.equal(requested, 2)
+  assert.equal(requested, 1)
   assert.deepEqual(details, original)
   const resultItems = result.equipment.equipment as Array<Record<string, unknown>>
   assert.equal(resultItems.length, 14)
@@ -197,12 +170,8 @@ test('14개 장비 슬롯, 마법부여 스킬 옵션, 체인 null과 캐릭터 
     (result.skillStyle as Record<string, unknown>).style,
     (original.skillStyle as Record<string, unknown>).style
   )
-  assert.equal(
-    (result.skillStyle as { skillDetails: Record<string, { status: string }> }).skillDetails[
-      'fixture-skill'
-    ]!.status,
-    'fresh'
-  )
+  assert.equal(Object.hasOwn(result.skillStyle as object, 'skillDetails'), false)
+  assert.equal(Object.hasOwn(result, 'setDetails'), false)
 })
 
 test('연결 종료 뒤 늦은 성공은 반환하지 않고 연결된 요청의 성공만 반환한다', async () => {
@@ -287,18 +256,4 @@ test('아이템 다중 응답의 누락, 중복, 잘못된 이름은 저장 대�
   )
 
   assert.deepEqual(await adapter(wanted, signal), [{ key: wanted[0], payload: valid }])
-})
-
-test('스킬 응답에서 제공된 skillId가 다르거나 직업, 이름 envelope가 없으면 정제 오류로 거절한다', async (t) => {
-  for (const [name, body] of [
-    ['다른 skillId', { jobId: 'fixture-job', skillId: 'different-skill', name: '스킬' }],
-    ['누락 jobId', { name: '스킬' }],
-    ['빈 이름', { jobId: 'fixture-job', name: ' ' }],
-    ['오류 envelope', { error: { code: 'API901', message: 'private upstream detail' } }]
-  ] as const) {
-    await t.test(name, async () => {
-      const adapter = createNeopleCatalog('fixture-key', async () => Response.json(body))
-      await assert.rejects(adapter([skill], signal), { message: 'Catalog lookup failed' })
-    })
-  }
 })
