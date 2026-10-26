@@ -18,5 +18,12 @@ export const styles = stylex.create({
     outlineColor: colors.signal,
     outlineOffset: 2
   },
-  item: { display: 'inline-flex', alignItems: 'center', gap: space.s8 }
+  // 공용 메뉴 항목은 14px이지만 축소 시안의 한글은 12px, 행간 14px 하나로 쓴다.
+  item: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: space.s8,
+    fontSize: 12,
+    lineHeight: '14px'
+  }
 })

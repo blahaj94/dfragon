@@ -32,7 +32,9 @@ export function UpdateNotice({
               <ExternalLinkIcon width={14} height={14} />
             </span>
           </Menu.Item>
-          <Menu.Item onClick={onDismiss}>닫기</Menu.Item>
+          <Menu.Item onClick={onDismiss}>
+            <span {...stylex.props(styles.item)}>닫기</span>
+          </Menu.Item>
         </Menu.Popup>
       </Menu.Root>
     </span>
