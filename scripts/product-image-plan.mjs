@@ -10,7 +10,6 @@ const commonFiles = new Set([
   '.dockerignore',
   '.npmrc',
   '.github/workflows/product-images.yml',
-  '.github/workflows/code-quality.yml',
   'scripts/product-image-plan.mjs',
   'scripts/server-build-info.mjs'
 ])
@@ -75,21 +74,19 @@ export function createPlan({ eventName, event, sourceCommit, cwd = process.cwd()
     throw new Error('Expected a GitHub event object')
   }
 
-  let base
-  if (eventName === 'push') {
-    if (commitSha(event.after, 'push after commit') !== source) {
-      throw new Error('Push after commit does not match the product image source commit')
-    }
-    base = commitSha(event.before, 'push before commit')
-    if (base === '0'.repeat(40)) {
-      const selectedServices = [...services]
+  if (eventName !== 'push') {
+    throw new Error('Expected a push event')
+  }
 
-      return { sourceCommit: source, services: selectedServices }
-    }
-  } else if (eventName === 'pull_request') {
-    base = commitSha(event.pull_request?.base?.sha, 'pull request base commit')
-  } else {
-    throw new Error('Expected a push or pull_request event')
+  if (commitSha(event.after, 'push after commit') !== source) {
+    throw new Error('Push after commit does not match the product image source commit')
+  }
+
+  const base = commitSha(event.before, 'push before commit')
+  if (base === '0'.repeat(40)) {
+    const selectedServices = [...services]
+
+    return { sourceCommit: source, services: selectedServices }
   }
 
   const diff = git(['diff', '--name-only', '--no-renames', '-z', `${base}..${source}`, '--'], cwd)
@@ -212,7 +209,7 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
 
   // (build) 없는 main push의 실행은 발행 없이 성공하고 계획 artifact를 남기지 않으므로 건너뛴다.
   const runs = await request(
-    `${repoUrl}/actions/workflows/product-images.yml/runs?branch=main&event=workflow_run&status=success&per_page=${BASELINE_RUN_LIMIT}`
+    `${repoUrl}/actions/workflows/product-images.yml/runs?branch=main&event=push&status=success&per_page=${BASELINE_RUN_LIMIT}`
   )
   if (!isRecord(runs) || !Array.isArray(runs.workflow_runs)) {
     throw new Error('Expected a GitHub workflow runs response')
@@ -222,7 +219,7 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
     if (
       !isRecord(run) ||
       !positiveId(run.id) ||
-      run.event !== 'workflow_run' ||
+      run.event !== 'push' ||
       run.head_branch !== 'main' ||
       run.conclusion !== 'success'
     ) {
