@@ -12,25 +12,12 @@ const fixtureArguments = process.argv.slice(entryIndex + 1)
 const mode = fixtureArguments[0] ?? 'desktop'
 const theme = fixtureArguments[1] ?? 'system'
 const MVP_MODE = 'mvp'
-const DEVELOPER_MODE = 'developer'
 const isMvp = mode === MVP_MODE
-const isDeveloper = mode === DEVELOPER_MODE
-const isModeValid = ['desktop', 'example', MVP_MODE, DEVELOPER_MODE].includes(mode)
+const isModeValid = ['desktop', 'example', MVP_MODE].includes(mode)
 const isThemeValid = ['system', 'light', 'dark'].includes(theme)
-const scenario = fixtureArguments[2] ?? 'default'
-const isScenarioValid = [
-  'default',
-  'hotkey-error',
-  'capture-error',
-  'participants-sparse',
-  'raid',
-  'raid-sparse'
-].includes(scenario)
-const isInputInvalid = !isModeValid || !isThemeValid || !isScenarioValid
+const isInputInvalid = !isModeValid || !isThemeValid
 if (isInputInvalid) {
-  throw new Error(
-    `Use desktop|example|${MVP_MODE}|${DEVELOPER_MODE} and system|light|dark and default|hotkey-error|capture-error|participants-sparse|raid|raid-sparse`
-  )
+  throw new Error(`Use desktop|example|${MVP_MODE} and system|light|dark`)
 }
 
 const previewDocument = new URL('../out/frontend/mvp-preview.html', import.meta.url)
@@ -57,13 +44,8 @@ app.whenReady().then(async () => {
   )
 
   const title = `DFragon UI fixture — ${mode}, ${theme}`
-  const width = isMvp || isDeveloper ? 900 : 1100
-  let height = 800
-  if (isMvp) {
-    height = 600
-  } else if (isDeveloper) {
-    height = 980
-  }
+  const width = isMvp ? 900 : 1100
+  const height = isMvp ? 600 : 800
   const window = new BrowserWindow({
     title,
     width,
@@ -75,53 +57,11 @@ app.whenReady().then(async () => {
       ),
       contextIsolation: true,
       sandbox: true,
-      nodeIntegration: false,
-      additionalArguments: isDeveloper ? [`--developer-fixture=${scenario}`] : []
+      nodeIntegration: false
     }
   })
   window.on('page-title-updated', (event) => event.preventDefault())
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    const requested = new URL(url)
-    const allowed = previewDocument
-    const isPreviewDetail =
-      isMvp &&
-      requested.protocol === allowed.protocol &&
-      requested.host === allowed.host &&
-      requested.pathname === allowed.pathname &&
-      requested.searchParams.get('detail') === 'sample'
-    if (!isPreviewDetail) {
-      return { action: 'deny' }
-    }
-
-    return {
-      action: 'allow',
-      // 제품 상세 창처럼 내용 540x650, 폭 고정의 OS 제목줄 없는 다크 카드 패널로 연다. 값은
-      // preload/common/window-chrome.ts의 DETAIL_WINDOW_SIZE, DETAIL_WINDOW_BACKGROUND와 같다.
-      overrideBrowserWindowOptions: {
-        show: true,
-        width: 540,
-        height: 650,
-        minWidth: 540,
-        maxWidth: 540,
-        minHeight: 480,
-        useContentSize: true,
-        frame: false,
-        maximizable: false,
-        fullscreenable: false,
-        backgroundColor: '#17171a',
-        webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false }
-      }
-    }
-  })
-  window.webContents.on('did-create-window', (child) => {
-    child.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-    child.webContents.once('did-finish-load', () => {
-      child.webContents.on('will-navigate', (event) => event.preventDefault())
-    })
-    const closeChild = child.destroy.bind(child)
-    window.once('closed', closeChild)
-    child.once('closed', () => window.removeListener('closed', closeChild))
-  })
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
   const isolated = new Promise((resolve, reject) => {
     const deadline = setTimeout(
@@ -153,7 +93,7 @@ app.whenReady().then(async () => {
         : window.loadFile(fileURLToPath(target), { query: { theme } })
     await Promise.all([load, isolated])
     window.show()
-    console.log(`UI fixture ready: ${mode}, ${theme}, ${scenario}; native media disabled`)
+    console.log(`UI fixture ready: ${mode}, ${theme}; native media disabled`)
   } catch (error) {
     window.destroy()
     app.quit()

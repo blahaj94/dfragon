@@ -1,25 +1,21 @@
 import type { BrowserWindow } from 'electron'
 import {
   DESKTOP_SHORTCUT_CHANNEL,
-  DESKTOP_SHORTCUTS,
-  type DesktopShortcut
+  DESKTOP_SHORTCUTS
 } from '../../preload/common/types/desktop-shortcut'
 import { createKeyboardShortcut } from '../lib/keyboard-shortcut'
 import { isCurrentProcessForeground, isDnfForeground } from '../lib/win32-window-capture'
 
 const VK_R = 0x52
-const VK_SNAPSHOT = 0x2c
 
 /** Routes foreground product hotkeys only to the live, trusted main document. */
 export function registerDesktopShortcuts({
   window,
   rendererDocumentUrl,
-  onShortcut,
   onUnavailable
 }: {
   window: BrowserWindow
   rendererDocumentUrl: string
-  onShortcut?: (shortcut: DesktopShortcut) => void
   onUnavailable?: () => void
 }): () => void {
   let navigating = false
@@ -36,10 +32,7 @@ export function registerDesktopShortcuts({
   }
 
   const shortcut = createKeyboardShortcut({
-    bindings: [
-      { key: VK_R, alt: true, action: DESKTOP_SHORTCUTS.restartSearch },
-      { key: VK_SNAPSHOT, alt: true, action: DESKTOP_SHORTCUTS.uploadCapture, releaseOnly: true }
-    ],
+    bindings: [{ key: VK_R, alt: true, action: DESKTOP_SHORTCUTS.restartSearch }],
     isForeground: () => isTrusted() && (isCurrentProcessForeground() || isDnfForeground())
   })
 
@@ -84,7 +77,6 @@ export function registerDesktopShortcuts({
   window.once('closed', dispose)
   const registered = shortcut.register((action) => {
     if (isTrusted()) {
-      onShortcut?.(action)
       contents.mainFrame.send(DESKTOP_SHORTCUT_CHANNEL, action)
     }
   })

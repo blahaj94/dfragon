@@ -2,18 +2,17 @@ import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, vi, type Mocked } from 'vitest'
 import type { WindowFrameResult } from '../../../../preload/common/types/capture'
-import type { AuthApi, AuthSnapshot } from '../../../../preload/common/types/auth'
 import type { DesktopShortcutApi } from '../../../../preload/common/types/desktop-shortcut'
 import type { SearchCommandResult, SearchSnapshot } from '../../../../preload/common/types/search'
 import {
   CAPTURE_ID,
-  SEARCH_RUN,
   searchSlot,
   searchSnapshot,
   type SearchTestApi,
   type ObservationTestApi
 } from '../../../../preload/api/search-test-fixture'
-import { LegacyApp } from '../../fixture/legacy/LegacyApp'
+import { ManualSearch } from '../../sections/ManualSearch'
+import PartyCapture from '../../sections/PartyCapture'
 import type { PartyOcrWorker } from '../../types/capture'
 import type { PartyFrameSource } from '../../lib/party'
 
@@ -48,31 +47,6 @@ vi.mock('../../lib/party', async (original) => {
 })
 const cleanup: Array<() => Promise<void>> = []
 
-type AuthSnapshotInput = Readonly<{
-  revision?: number
-  signedIn?: boolean
-}>
-
-export function authSnapshot({
-  revision = 1,
-  signedIn = true
-}: AuthSnapshotInput = {}): AuthSnapshot {
-  const phase = signedIn ? 'signedIn' : 'signedOut'
-  const user = signedIn ? { nickname: '합성 계정' } : null
-  const entry = signedIn ? 'home' : null
-
-  return {
-    runId: SEARCH_RUN,
-    revision,
-    phase,
-    providers: [],
-    login: null,
-    user,
-    entry,
-    notice: null
-  }
-}
-
 type CaptureResources = {
   frame: WindowFrameResult
   worker: {
@@ -91,7 +65,6 @@ type RendererFixture = {
     notifyOcrCandidatesDetected: Mocked<ObservationTestApi>['notifyOcrCandidatesDetected']
     onDesktopShortcut: Mocked<DesktopShortcutApi>['onDesktopShortcut']
   }
-  auth: Mocked<AuthApi>
   resources: CaptureResources
   readCaptureFrame: ReturnType<typeof vi.fn>
   order: string[]
@@ -103,7 +76,6 @@ type RendererFixture = {
   restart: () => Promise<void>
   start: () => Promise<void>
   emit: (snapshot: SearchSnapshot) => Promise<void>
-  emitAuth: (snapshot: AuthSnapshot) => Promise<void>
   current: () => SearchSnapshot
   result: () => SearchCommandResult
 }
@@ -133,11 +105,9 @@ export function createRendererFixture(): RendererFixture {
   const root: Root = createRoot(container)
   let mounted = true
   let currentSearch = searchSnapshot({ captureId: null, revision: 0 })
-  let currentAuth = authSnapshot()
   let sequence = 0
   const order: string[] = []
   const searchListeners = new Set<(snapshot: SearchSnapshot) => void>()
-  const authListeners = new Set<(snapshot: AuthSnapshot) => void>()
   const resources = captureResources()
   const readCaptureFrame = vi.fn().mockResolvedValue(resources.frame)
   const search = {
@@ -225,21 +195,7 @@ export function createRendererFixture(): RendererFixture {
         return { ok: true, snapshot: currentSearch }
       })
   }
-  const auth = {
-    getAuthState: vi.fn().mockImplementation(async () => currentAuth),
-    onAuthStateChanged: vi.fn().mockImplementation((listener: (snapshot: AuthSnapshot) => void) => {
-      authListeners.add(listener)
-
-      return () => authListeners.delete(listener)
-    }),
-    beginLogin: vi.fn(),
-    cancelLogin: vi.fn(),
-    retryAuth: vi.fn(),
-    managePasskeys: vi.fn(),
-    logout: vi.fn()
-  }
   Object.defineProperty(window, 'api', { configurable: true, value: capture })
-  Object.defineProperty(window, 'auth', { configurable: true, value: auth })
   Object.defineProperty(window, 'desktopShortcut', {
     configurable: true,
     value: { onDesktopShortcut: capture.onDesktopShortcut }
@@ -290,24 +246,23 @@ export function createRendererFixture(): RendererFixture {
       }
     })
   }
-  async function emitAuth(snapshot: AuthSnapshot): Promise<void> {
-    currentAuth = snapshot
-    await act(async () => {
-      for (const listener of authListeners) {
-        listener(snapshot)
-      }
-    })
-  }
 
   return {
     container,
     search,
     capture,
-    auth,
     resources,
     readCaptureFrame,
     order,
-    mount: async (content = <LegacyApp />) => {
+    // 상단 바 화면 이전의 직접 검색과 캡처 섹션. 통합 테스트가 검색 연결만 확인하도록 그대로 띄운다.
+    mount: async (
+      content = (
+        <>
+          <ManualSearch api={window.manualSearch} />
+          <PartyCapture />
+        </>
+      )
+    ) => {
       await act(async () => root.render(content))
     },
     unmount,
@@ -319,7 +274,6 @@ export function createRendererFixture(): RendererFixture {
       await act(async () => capture.onDesktopShortcut.mock.lastCall![0]('restart-search'))
     },
     emit,
-    emitAuth,
     current: () => currentSearch,
     result: (): SearchCommandResult => ({ ok: true, snapshot: currentSearch })
   }

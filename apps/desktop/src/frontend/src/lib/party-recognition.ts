@@ -13,11 +13,10 @@ export type FirstCandidate =
 
 export type PartySlotRecognition =
   | { kind: 'missing'; slot: number }
-  | { kind: 'failed'; slot: number; portrait: CharacterPortrait | null; prediction: null }
+  | { kind: 'failed'; slot: number; portrait: CharacterPortrait | null }
   | (FirstCandidate & {
       slot: number
       portrait: CharacterPortrait | null
-      prediction: string | null
       legacyNickname: string
     })
 
@@ -38,14 +37,13 @@ export async function recognizePartyFrame(
       const result = await recognize(input.nickname)
       data = result.data
     } catch {
-      results.push({ kind: 'failed', slot, portrait: input.portrait, prediction: null })
+      results.push({ kind: 'failed', slot, portrait: input.portrait })
       continue
     }
     results.push({
       ...firstCandidate(data),
       slot,
       portrait: input.portrait,
-      prediction: data.candidates[0]?.nickname ?? null,
       legacyNickname: normalizeNickname(data.text)
     })
   }

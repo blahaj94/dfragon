@@ -61,13 +61,8 @@ const member: CardCharacter = {
   job: '공대직업',
   serverId: 'cain',
   fame: 120000,
-  // 스탯이 없는 카드 값. 스탯 한 줄은 딜러 라벨에 `-`로 자리만 둔다.
-  card: {
-    ...dealerCard,
-    role: null,
-    stats: null,
-    serverRank: { ...dealerCard.serverRank!, rank: 5000 }
-  }
+  // 역할을 모르는 카드 값. 점수 라벨은 장비 점수다.
+  card: { ...dealerCard, role: null }
 }
 const idle: SlotState[] = Array.from({ length: 12 }, () => 'idle')
 
@@ -91,7 +86,6 @@ async function render({
   canMoveSeats = true,
   swapSeats: swap = vi.fn(() => true),
   lookupSlot,
-  openDetails,
   ...props
 }: RenderProps = {}): Promise<void> {
   const slots = (states ?? idle).map((state, index) => {
@@ -113,7 +107,7 @@ async function render({
         collapsed={false}
         {...props}
         seats={{ seatOrder, canMoveSeats, swapSeats: swap }}
-        actions={{ lookupSlot, openDetails }}
+        actions={{ lookupSlot }}
         slots={slots}
       />
     )
@@ -196,9 +190,9 @@ it('파티 라벨 열 옆에 세 파티 네 자리씩 12자리를 번호 순서�
   expect(first.textContent).toContain('공대모험단')
   expect(first.textContent).toContain('공대길드')
   expect(first.textContent).toContain('공대직업')
-  expect(first.textContent).toContain('서버 순위 5000위')
-  expect(first.querySelector('[aria-label="1번 캐릭터 상세 열기"]')).not.toBeNull()
-  // 면 탭 없는 축약 카드다.
+  // 서버 순위, 상세 열기, 면 탭 없는 축약 카드다.
+  expect(first.textContent).not.toContain('서버 순위')
+  expect(first.querySelector('[aria-label="1번 캐릭터 상세 열기"]')).toBeNull()
   expect(container.querySelector('[role="tab"]')).toBeNull()
   // 빈 자리도 이름 입력과 서버 선택부터 시작할 수 있다.
   const vacant = seats()[11]
@@ -209,59 +203,19 @@ it('파티 라벨 열 옆에 세 파티 네 자리씩 12자리를 번호 순서�
   expect(vacant.querySelector('[aria-label="12번 서버"]')).not.toBeNull()
 })
 
-it('찾은 카드의 스탯 한 줄은 응답에 스탯이 없으면 딜러 라벨에 -로, 합성 스탯은 역할별 라벨과 단위로 보인다', async () => {
-  await render({
-    characters: [
-      member,
-      {
-        ...member,
-        card: {
-          ...dealerCard,
-          role: 'buffer',
-          stats: {
-            role: 'buffer',
-            townStatName: '지능',
-            townStat: 31420,
-            buff30: 1284000,
-            buff50: null,
-            switchingLevel: 18
-          }
-        }
-      }
-    ]
-  })
-  const statsOf = (seat: HTMLElement): string[] =>
-    [...seat.querySelectorAll('dl')[0].querySelectorAll('div')].map((stat) => stat.textContent!)
-
-  expect(statsOf(seats()[0])).toEqual(['공격력 증가-', '증폭-', '크리티컬-', '스위칭-'])
-  expect(statsOf(seats()[1])).toEqual(['마을 지능31,420', '30레벨128.4만', '50레벨-', '스위칭18Lv'])
-  // 찾지 못한 자리는 스탯 한 줄 없이 명성과 장비 점수만 둔다.
-  expect([...seats()[2].querySelectorAll('dt')].map((term) => term.textContent)).toEqual([
-    '명성',
-    '장비 점수'
-  ])
-})
-
-it('자리 배치대로 슬롯을 그리고 조회와 상세 열기는 그 자리에 놓인 검색 슬롯 번호로 알린다', async () => {
+it('자리 배치대로 슬롯을 그리고 조회는 그 자리에 놓인 검색 슬롯 번호로 알린다', async () => {
   const lookup = vi.fn()
-  const detail = vi.fn()
   const seatOrder = swapSeats(createSeatOrder(), 0, 5)
   await render({
     characters: [member],
     seatOrder,
-    lookupSlot: lookup,
-    openDetails: detail
+    lookupSlot: lookup
   })
 
   // 슬롯 0의 캐릭터는 6번 자리에 번호 06으로 보이고 1번 자리에는 슬롯 5가 놓인다.
   expect(nameOf(seats()[5])).toBe('공대원')
   expect(seats()[5].textContent).toContain('06')
   expect(nameOf(seats()[0])).toBe('')
-  await act(async () =>
-    seats()[5].querySelector<HTMLButtonElement>('[aria-label="6번 캐릭터 상세 열기"]')!.click()
-  )
-  expect(detail).toHaveBeenCalledExactlyOnceWith(0)
-
   const firstSeat = seats()[0]
   const input = await enterName(firstSeat, '첫자리')
   const select = firstSeat.querySelector('select')!
@@ -461,10 +415,9 @@ it('조회 중, 실패, 결과 0건은 자리마다 따로 보이고 실패 안�
   expect(card(11).getAttribute('data-state')).toBe('failure')
   expect(card(11).querySelector('p')?.textContent).toBe('검색 결과가 없습니다')
   expect(card(0).getAttribute('aria-busy')).toBe('false')
-  expect(card(7).querySelector<HTMLButtonElement>('[aria-label$="상세 열기"]')?.disabled).toBe(true)
 })
 
-it('찾은 카드에 추정 안내가 있으면 스탯 한 줄 대신 안내를 보이고 확정한 카드는 안내 없이 스탯 줄을 보인다', async () => {
+it('찾은 카드에 추정 안내가 있으면 안내 줄을 보이고 확정한 카드는 명성과 장비 점수 줄만 보인다', async () => {
   const notices: (string | undefined)[] = Array.from({ length: 12 }, () => undefined)
   notices[1] = '장비 점수로 추정한 후보입니다.'
   await render({
@@ -475,13 +428,12 @@ it('찾은 카드에 추정 안내가 있으면 스탯 한 줄 대신 안내를 
 
   const card = (index: number): HTMLElement => seats()[index].querySelector('article')!
   expect(card(0).querySelector('p')).toBeNull()
-  expect(card(0).querySelectorAll('dl')).toHaveLength(2)
+  expect(card(0).querySelectorAll('dl')).toHaveLength(1)
   expect(card(1).querySelector('p')?.textContent).toBe('장비 점수로 추정한 후보입니다.')
-  // 안내가 스탯 한 줄 자리를 쓰므로 명성과 장비 점수 줄만 남는다.
   expect(card(1).querySelectorAll('dl')).toHaveLength(1)
 })
 
-it('공대 카드의 장비 점수와 서버 순위는 카드 값에서 오고 계산값이나 계산하지 못한 사유를 보조 기술에 전한다', async () => {
+it('공대 카드의 장비 점수는 카드 값에서 오고 계산값이나 계산하지 못한 사유를 보조 기술에 전한다', async () => {
   await render({
     characters: [
       member,
@@ -504,7 +456,6 @@ it('공대 카드의 장비 점수와 서버 순위는 카드 값에서 오고 �
 
   expect(scoreOf(seats()[0]).querySelector('[aria-hidden="true"]')?.textContent).toBe('330,556')
   expect(scoreOf(seats()[0]).textContent).toContain('DFragon 계산값')
-  expect(seats()[0].textContent).toContain('서버 순위 5000위, DFragon이 수집한 캐릭터')
   expect(scoreOf(seats()[1]).textContent).toBe('-계산하지 못함, 장비 정보 부족')
 })
 
@@ -569,14 +520,13 @@ it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 
   expect(toneClassesOf(termValue(missingSeat, '버프 점수')!)).toEqual([])
 })
 
-it('검색 응답에 없는 길드, 서버 순위, 명성, 장비 점수는 -로 보인다', async () => {
+it('검색 응답에 없는 길드, 명성, 장비 점수는 -로 보인다', async () => {
   await render({
     characters: [{ ...member, guild: null, card: null, fame: null }]
   })
   const first = seats()[0]
   const footer = [...first.querySelectorAll('dl')].at(-1)!
   expect([...footer.querySelectorAll('dd')].map((value) => value.textContent)).toEqual(['-', '-'])
-  expect(first.textContent).toContain('서버 순위 없음')
   expect(first.textContent).toContain('공대모험단-')
 })
 
@@ -615,7 +565,7 @@ it('보드는 창 크기와 상관없이 1280×800 배치의 카드 크기로 �
   }
 })
 
-it('접힌 동안은 그림 칸, 직업, 스탯 한 줄을 숨기고 이름 입력과 명성, 장비 점수를 남긴다', async () => {
+it('접힌 동안은 그림 칸과 직업을 숨기고 이름 입력과 명성, 장비 점수를 남긴다', async () => {
   await render({ characters: [member] })
   const first = (): HTMLElement => seats()[0]
   const hiddenClasses = classesOf(expectedLayout.hidden)
@@ -624,7 +574,7 @@ it('접힌 동안은 그림 칸, 직업, 스탯 한 줄을 숨기고 이름 입�
       hiddenClasses.every((name) => element.classList.contains(name))
     )
   expect(hiddenParts()).toEqual([])
-  expect(first().querySelectorAll('dl')).toHaveLength(2)
+  expect(first().querySelectorAll('dl')).toHaveLength(1)
 
   await render({ characters: [member], collapsed: true })
   expect(nameOf(first())).toBe('공대원')

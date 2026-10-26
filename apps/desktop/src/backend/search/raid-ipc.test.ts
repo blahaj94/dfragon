@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { deferred } from '../auth/auth-test-fixtures'
+import { deferred } from '../lib/async-test-fixture'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
@@ -55,7 +55,7 @@ function respondFound(fixture: Awaited<ReturnType<typeof createSearchFixture>>):
 }
 
 it('공대 수명은 12자리를 갖고 12번째 자리까지 조회하며 범위 밖 자리는 HTTP 전에 거절한다', async () => {
-  const fixture = await createSearchFixture(false, 'raid', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
   expect((await fixture.read()).slots.map((slot) => slot.slot)).toEqual(
     Array.from({ length: 12 }, (_, slot) => slot)
   )
@@ -80,8 +80,7 @@ it('공대 수명은 12자리를 갖고 12번째 자리까지 조회하며 범�
     selected: {
       characterName: '가나',
       guildName: '합성길드',
-      equipmentScore: null,
-      serverRank: null
+      equipmentScore: null
     }
   })
   expect(snapshot.slots.slice(0, 11).every((slot) => slot.state === 'idle')).toBe(true)
@@ -89,7 +88,7 @@ it('공대 수명은 12자리를 갖고 12번째 자리까지 조회하며 범�
 })
 
 it('공대와 파티 카드 조회는 같은 자리 번호에서도 서로의 결과와 요청을 바꾸지 않는다', async () => {
-  const fixture = await createSearchFixture(false, 'raid', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
   const raidResponse = deferred<Response>()
   fixture.fetchSearch.mockReturnValueOnce(raidResponse.promise)
   await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 0))
@@ -127,7 +126,7 @@ it('공대와 파티 카드 조회는 같은 자리 번호에서도 서로의 �
 })
 
 it('한 자리를 다시 조회하면 이전 요청을 취소하고 늦은 응답을 버리며 다른 자리 요청은 유지한다', async () => {
-  const fixture = await createSearchFixture(false, 'raid', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
   const first = deferred<Response>()
   const other = deferred<Response>()
   fixture.fetchSearch.mockReturnValueOnce(first.promise).mockReturnValueOnce(other.promise)
@@ -158,7 +157,7 @@ it('한 자리를 다시 조회하면 이전 요청을 취소하고 늦은 응�
 it.each(['navigation', 'destruction'])(
   '문서 %s 뒤에는 공대 요청을 취소하고 늦은 결과를 버린다',
   async (transition) => {
-    const fixture = await createSearchFixture(false, 'raid', INITIAL_PORTRAIT_COLOR_POLICY)
+    const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
     const response = deferred<Response>()
     fixture.fetchSearch.mockReturnValueOnce(response.promise)
     await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 9))
@@ -189,7 +188,7 @@ it.each(['navigation', 'destruction'])(
 )
 
 it('공대 조회 IPC도 신뢰하지 않는 sender는 HTTP 전에 거절한다', async () => {
-  const fixture = await createSearchFixture(false, 'raid', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
   Object.assign(fixture.event, { sender: {} })
   await expect(fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 0))).rejects.toThrow(
     'SEARCH_NOT_ALLOWED'
@@ -217,7 +216,7 @@ function ocr(captureId: string, slot: number, observationRevision = 1, nickname 
 // 공대 캡처 회차처럼 게임 창을 등록한 뒤 공대 수명을 시작한다. OCR 관측은 이 창 선택에 묶인다.
 const CAPTURE_SOURCE = 'window:search-fixture'
 async function createRaidRoundFixture() {
-  const fixture = await createSearchFixture(false, 'raid', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
   await fixture.invoke('selectCaptureSource', CAPTURE_SOURCE)
   const begun = (await fixture.invoke('controlRaidSearch', { action: 'begin' })) as {
     snapshot: { captureId: string }
@@ -282,7 +281,7 @@ it('공대 OCR 관측은 12번째 자리까지 받아 이름 후보 중 최고 �
 })
 
 it('공대 OCR 관측은 다른 수명의 ID와 파티 캡처 채널로 섞이지 않는다', async () => {
-  const fixture = await createSearchFixture(false, 'raid', INITIAL_PORTRAIT_COLOR_POLICY)
+  const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
   const party = (await fixture.invoke('controlManualSearch', { action: 'begin' })) as {
     snapshot: { captureId: string }
   }

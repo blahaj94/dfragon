@@ -59,7 +59,6 @@ function viewWithChoices(requestId = REQUEST_ID): SearchView {
     imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1',
     guildName: null,
     equipmentScore: null,
-    serverRank: null,
     card: null
   }
   const slots = emptySearchSlots().map((slot) => {
@@ -105,7 +104,6 @@ beforeEach(async () => {
     observe: vi.fn(),
     lookup: vi.fn(),
     retry: vi.fn(),
-    selectedReference: () => null,
     dispose: vi.fn()
   }
   mocks.create.mockReturnValue(bridge)

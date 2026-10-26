@@ -2,7 +2,6 @@ import { CardFrame, NumericText, ProgressCircle, shapes } from '@dfragon/ui'
 import type { HTMLAttributes, Ref } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CardImage } from '../components/CardImage'
-import { ExternalLinkIcon } from '../components/ExternalLinkIcon'
 import { HourglassIcon } from '../components/HourglassIcon'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
@@ -13,7 +12,7 @@ import {
   getCharacterCardStatus,
   isVacantSlot
 } from '../lib/card-presentation'
-import { type ScoreView, formatApproximateScore, toCharacterFace } from '../lib/card-faces'
+import { type ScoreView, formatApproximateScore, toScoreView } from '../lib/card-score'
 import type { SlotCard } from '../lib/slot-cards'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import { serverNames } from '../constants/servers'
@@ -35,14 +34,13 @@ export type RaidCardMove = Pick<
 
 /**
  * 공대 화면의 축약 캐릭터 카드(DFragon 디자인 캔버스 공대 보드). 파티 카드처럼 서버와 이름으로 그 자리를
- * 조회하고 상태를 꺾쇠로 보이지만, 면 탭 없이 그림 칸 72, 스탯 한 줄, 명성과 장비 점수만 둔다. 카드 자체가
+ * 조회하고 상태를 꺾쇠로 보이지만, 그림 칸 72, 명성과 장비 점수만 둔다. 카드 자체가
  * 자리를 옮기는 손잡이라 끌거나 포커스한 뒤 Alt와 방향키로 이웃 자리와 맞바꾼다.
  */
 export function RaidCard({
   card,
   slot,
   collapsed = false,
-  onDetail,
   onLookup,
   move
 }: {
@@ -50,9 +48,8 @@ export function RaidCard({
   card: SlotCard
   /** 화면의 자리 번호(1~12) */
   slot: number
-  /** 그림 칸, 직업, 스탯 한 줄을 접고 머리, 소속, 이름, 명성, 장비 점수만 남긴다. */
+  /** 그림 칸, 직업, 안내 줄을 접고 머리, 소속, 이름, 명성, 장비 점수만 남긴다. */
   collapsed?: boolean
-  onDetail?: () => void
   onLookup?: (nickname: string, serverId: string) => void
   move: RaidCardMove
 }): React.JSX.Element {
@@ -74,9 +71,8 @@ export function RaidCard({
     tier: characterFound ? character.tier : undefined
   })
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
-  const showStats = characterFound && message === ''
-  const characterFace = toCharacterFace(characterFound ? character.card : null, 'short')
-  const showRow = !collapsed && (message !== '' || showStats)
+  const score = toScoreView(characterFound ? character.card : null)
+  const showRow = !collapsed && message !== ''
   const { movable, drag, describedBy, ref, ...handlers } = move
 
   return (
@@ -125,19 +121,6 @@ export function RaidCard({
           </div>
           {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
           <span {...stylex.props(styles.spacer)} />
-          {characterFound && frameState !== 'selected' && (
-            <span
-              {...stylex.props(
-                styles.rank,
-                tier === 'top' && styles.rankTop,
-                tier === 'ranker' && styles.rankRanker,
-                tier === 'ranker' && shapes.cutTopRight
-              )}
-            >
-              <span aria-hidden="true">{characterFace.serverRank.text}</span>
-              <span {...stylex.props(shapes.srOnly)}>{characterFace.serverRank.label}</span>
-            </span>
-          )}
           {frameState === 'selected' && (
             <span role="img" aria-label="이름 수정 중" {...stylex.props(styles.dots)}>
               <span {...stylex.props(styles.dot)} />
@@ -162,17 +145,6 @@ export function RaidCard({
             >
               <HourglassIcon width="12" height="12" />
             </span>
-          )}
-          {!vacant && (
-            <button
-              type="button"
-              disabled={!hasCharacter || onDetail == null}
-              aria-label={`${slot}번 캐릭터 상세 열기`}
-              onClick={onDetail}
-              {...stylex.props(styles.detail)}
-            >
-              <ExternalLinkIcon width="14" height="14" />
-            </button>
           )}
         </div>
         <div {...stylex.props(styles.body, collapsed && styles.bodyCollapsed)}>
@@ -239,30 +211,10 @@ export function RaidCard({
             )}
           </div>
         </div>
-        {showRow && message !== '' && (
+        {showRow && (
           <p title={message} {...stylex.props(styles.notice)}>
             {message}
           </p>
-        )}
-        {showRow && showStats && (
-          <dl {...stylex.props(styles.stats)}>
-            {characterFace.stats.map((stat) => (
-              <div key={stat.label} {...stylex.props(styles.stat)}>
-                <dt {...stylex.props(styles.statLabel)}>{stat.label}</dt>
-                <dd {...stylex.props(styles.statValue)}>
-                  <span
-                    {...stylex.props(
-                      styles.statNumber,
-                      stat.value === MISSING_VALUE && styles.statMissing
-                    )}
-                  >
-                    {stat.value}
-                  </span>
-                  {stat.unit !== '' && <span {...stylex.props(styles.statUnit)}>{stat.unit}</span>}
-                </dd>
-              </div>
-            ))}
-          </dl>
         )}
         <dl
           {...stylex.props(
@@ -281,13 +233,13 @@ export function RaidCard({
             />
           </div>
           <div {...stylex.props(styles.footerItem)}>
-            <dt {...stylex.props(styles.footerLabel)}>{characterFace.score.label}</dt>
+            <dt {...stylex.props(styles.footerLabel)}>{score.label}</dt>
             <FooterValue
-              value={characterFace.score.value}
+              value={score.value}
               vacant={vacant}
-              role={characterFace.score.tone}
-              approximate={characterFace.score.approximate}
-              description={characterFace.score.description}
+              role={score.tone}
+              approximate={score.approximate}
+              description={score.description}
             />
           </div>
         </dl>

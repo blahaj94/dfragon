@@ -40,23 +40,13 @@ async function key(target: Element, name: string): Promise<void> {
   })
 }
 
-it('검색은 현재 화면이고 현재 하위 이름을 함께 보이며, 나머지 메뉴는 누를 수 없다고 알린다', async () => {
+it('주 메뉴는 현재 화면인 검색 하나와 현재 하위 이름만 보인다', async () => {
   await render('raid')
   const nav = container.querySelector('nav[aria-label="주 메뉴"]')!
   const buttons = [...nav.querySelectorAll('button')]
 
-  expect(buttons.map((button) => button.textContent)).toEqual([
-    '검색공대',
-    '캐릭터',
-    '도구',
-    '플래너'
-  ])
+  expect(buttons.map((button) => button.textContent)).toEqual(['검색공대'])
   expect(trigger().getAttribute('aria-current')).toBe('page')
-  expect(buttons.slice(1).map((button) => button.getAttribute('aria-disabled'))).toEqual([
-    'true',
-    'true',
-    'true'
-  ])
 })
 
 it('하위 메뉴는 파티와 공대 중 현재 항목을 표시하고 고르면 닫힌다', async () => {

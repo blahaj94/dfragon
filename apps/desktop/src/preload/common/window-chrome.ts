@@ -21,18 +21,6 @@ export const MAIN_WINDOW_SIZE = {
   raidCollapsedHeight: 560
 } as const
 
-// DFragon 디자인 캔버스 상세 창 보드의 패널 540 × 650을 창 내용 크기로 쓴다. 폭은 고정이고, 낮은 화면을
-// 위해 높이는 장비 목록 몇 줄이 남는 480까지 줄일 수 있다(작업자가 정함).
-export const DETAIL_WINDOW_SIZE = {
-  width: 540,
-  height: 650,
-  minHeight: 480
-} as const
-
-// @dfragon/ui tokens.css의 카드 면 card.bg 값이다. 상세 창은 테마와 관계없이 다크 카드 면이라 창 배경도
-// 이 색이며, 토큰 값을 바꾸면 함께 고친다.
-export const DETAIL_WINDOW_BACKGROUND = '#17171a'
-
 /** 창 색상에 허용된 테마만 변환 없이 확인한다. */
 export function isWindowChromeTheme(value: unknown): value is WindowChromeTheme {
   return value === 'light' || value === 'dark'

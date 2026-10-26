@@ -22,13 +22,7 @@ export type PartyScreenCapture = Pick<
 > & {
   search: Pick<
     PartyCapture['search'],
-    | 'slots'
-    | 'manualSlots'
-    | 'detailNotice'
-    | 'lookupSlot'
-    | 'openDetails'
-    | 'candidatePickers'
-    | 'pickCandidate'
+    'slots' | 'manualSlots' | 'lookupSlot' | 'candidatePickers' | 'pickCandidate'
   >
 }
 
@@ -63,7 +57,7 @@ export function PartyScreen({
       <BoardHeader
         target="파티"
         filledCount={filledSlotCount(cards)}
-        notice={search.detailNotice}
+        notice=""
         capture={capture}
         snapshot={snapshot}
         collapse={collapse}

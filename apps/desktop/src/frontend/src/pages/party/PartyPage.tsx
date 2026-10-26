@@ -1,5 +1,4 @@
 import * as stylex from '@stylexjs/stylex'
-import { cardFaces } from '../../constants/cards'
 import { CharacterCard } from '../../sections/CharacterCard'
 import type { SlotCard, SlotCardActions } from '../../lib/slot-cards'
 import { styles } from './PartyPage.style'
@@ -8,7 +7,6 @@ export function PartyPage({
   id,
   slots,
   resetKey = 'party',
-  compareFaces = false,
   inputEnabled = false,
   collapsed = false,
   actions = {}
@@ -18,14 +16,12 @@ export function PartyPage({
   /** 슬롯마다 카드가 그릴 값 */
   slots: readonly SlotCard[]
   resetKey?: string
-  /** 합성 미리보기에서 카드마다 다른 면을 처음에 펼쳐 세 면을 나란히 비교한다. */
-  compareFaces?: boolean
   inputEnabled?: boolean
   collapsed?: boolean
-  /** 슬롯 번호로 부르는 조회, 상세 열기, 다시 시도, 후보 고르기 */
+  /** 슬롯 번호로 부르는 조회, 다시 시도, 후보 고르기 */
   actions?: SlotCardActions
 }): React.JSX.Element {
-  const { lookupSlot, openDetails, retrySlot, pickCandidate } = actions
+  const { lookupSlot, retrySlot, pickCandidate } = actions
 
   return (
     <section
@@ -39,8 +35,6 @@ export function PartyPage({
           card={card}
           slot={index + 1}
           inputEnabled={inputEnabled}
-          initialFace={compareFaces ? index % cardFaces.length : 0}
-          onDetail={openDetails === undefined ? undefined : () => openDetails(index)}
           onRetry={retrySlot === undefined ? undefined : () => retrySlot(index)}
           collapsed={collapsed}
           onLookup={

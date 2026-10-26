@@ -5,11 +5,7 @@ import {
 } from '../../preload/common/types/search'
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { addHandler } from '../ipc'
-import {
-  createCaptureSearchLifetime,
-  type CaptureBinding,
-  type CaptureSearchLifetime
-} from './capture-lifetime'
+import { createCaptureSearchLifetime, type CaptureBinding } from './capture-lifetime'
 import { parseOcrSearchObservation, parseSearchControl, parseSearchObservation } from './commands'
 import type { SearchRuntime } from './request'
 import type { SearchSnapshot } from '../../preload/common/types/search'
@@ -51,7 +47,6 @@ export function registerManualSearchIpc({
   /** 게임 창이 바뀌거나 캡처를 멈추면 진행 중인 OCR 기원 요청을 끝낸다. */
   cancelOcrRequests: () => void
   dispose: () => void
-  selection: CaptureSearchLifetime['selection']
 } {
   const slotCount = SEARCH_SLOT_COUNTS[kind]
   const { control: controlChannel, changed: changedChannel } = CHANNELS[kind]
@@ -125,7 +120,6 @@ export function registerManualSearchIpc({
     get current() {
       return lifetime.current
     },
-    selection: lifetime.selection,
     invalidate: () => lifetime.invalidate(),
     cancelOcrRequests: () => lifetime.cancelOcrRequests(),
     dispose: () => {

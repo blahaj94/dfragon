@@ -30,7 +30,7 @@ export function BoardHeader({
   target: keyof typeof seatCounts
   /** 캐릭터를 찾은 자리 수 */
   filledCount: number
-  /** 상세 정보 창을 열지 못했을 때처럼 캡처 진행이 아닌 안내. 없으면 빈 문자열이다. */
+  /** 검색 연결 실패처럼 캡처 진행이 아닌 안내. 없으면 빈 문자열이다. */
   notice: string
   capture: {
     /** 마지막으로 인식을 마친 회차의 완료 시각(ms). 없으면 null이다. */

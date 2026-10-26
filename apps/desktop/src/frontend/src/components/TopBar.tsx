@@ -14,17 +14,11 @@ import { styles } from './TopBar.style'
  */
 export function TopBar({
   nav,
-  capture,
-  settings,
-  showCapture
+  capture
 }: {
-  /** 상단 내비. null이면 로고 옆 구분선과 함께 숨긴다. */
   nav: ReactNode
   /** 게임 연결 상태 칩. 누르면 캡처할 창을 고르는 대화상자를 연다. */
   capture: ReactNode
-  /** 설정 버튼과 대화상자. 로그인 버튼은 설정 대화상자의 메뉴 아래쪽에 있다. */
-  settings: ReactNode
-  showCapture: boolean
 }): React.JSX.Element {
   const { light, toggleTheme } = useColorTheme()
 
@@ -37,19 +31,13 @@ export function TopBar({
           {PRODUCT_NAME}
         </Typo.h6>
       </div>
-      {nav != null && (
-        <>
-          <span aria-hidden="true" {...stylex.props(styles.divider)} />
-          {nav}
-        </>
-      )}
+      <span aria-hidden="true" {...stylex.props(styles.divider)} />
+      {nav}
       <div {...stylex.props(styles.end)}>
-        {showCapture && (
-          <span {...stylex.props(styles.status)}>
-            {capture}
-            <span aria-hidden="true" {...stylex.props(styles.divider)} />
-          </span>
-        )}
+        <span {...stylex.props(styles.status)}>
+          {capture}
+          <span aria-hidden="true" {...stylex.props(styles.divider)} />
+        </span>
         <div {...stylex.props(styles.tools)}>
           <span {...stylex.props(windowChromeStyles.noDrag)}>
             <IconButton
@@ -59,7 +47,6 @@ export function TopBar({
               icon={light ? <MoonIcon /> : <SunIcon />}
             />
           </span>
-          {settings}
         </div>
       </div>
     </header>

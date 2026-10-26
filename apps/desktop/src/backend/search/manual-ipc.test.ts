@@ -1,15 +1,14 @@
 import { expect, it, vi } from 'vitest'
-import { deferred } from '../auth/auth-test-fixtures'
+import { deferred } from '../lib/async-test-fixture'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 
-it('manual search works signed out without listing, selecting or capturing a window', async () => {
-  const fixture = await createSearchFixture(false, 'manual')
+it('manual search works without listing, selecting or capturing a window', async () => {
+  const fixture = await createSearchFixture('manual')
   fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: { rows: [candidate] } }))
   await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
 
   expect(fixture.getSources).not.toHaveBeenCalled()
-  expect(fixture.auth.getSnapshot().phase).toBe('signedOut')
   expect(new Request(...fixture.fetchSearch.mock.calls[0]).headers.has('authorization')).toBe(false)
   expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
     snapshot: { captureId: null }
@@ -21,7 +20,7 @@ it('manual search works signed out without listing, selecting or capturing a win
 })
 
 it('capture source and Stop do not cancel manual requests; each channel rejects the other ID', async () => {
-  const fixture = await createSearchFixture(false, 'manual')
+  const fixture = await createSearchFixture('manual')
   const response = deferred<Response>()
   fixture.fetchSearch.mockReturnValueOnce(response.promise)
   await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
@@ -67,7 +66,7 @@ it('capture source and Stop do not cancel manual requests; each channel rejects 
 it.each(['navigation', 'destruction', 'render-process-gone'])(
   'manual %s aborts and discards late results after a new document begins',
   async (transition) => {
-    const fixture = await createSearchFixture(false, 'manual')
+    const fixture = await createSearchFixture('manual')
     const response = deferred<Response>()
     fixture.fetchSearch.mockReturnValueOnce(response.promise)
     await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
@@ -102,7 +101,7 @@ it.each(['navigation', 'destruction', 'render-process-gone'])(
 it.each(['sender', 'frame', 'document'])(
   'manual IPC rejects untrusted %s before HTTP',
   async (kind) => {
-    const fixture = await createSearchFixture(false, 'manual')
+    const fixture = await createSearchFixture('manual')
     if (kind === 'sender') {
       Object.assign(fixture.event, { sender: {} })
     } else if (kind === 'frame') {
@@ -119,7 +118,7 @@ it.each(['sender', 'frame', 'document'])(
 )
 
 it('manual input keeps exact command validation, retry and revision ordering', async () => {
-  const fixture = await createSearchFixture(false, 'manual')
+  const fixture = await createSearchFixture('manual')
   expect(
     await fixture.invoke('notifyManualNickname', {
       captureId: fixture.captureId,
@@ -178,7 +177,7 @@ it('ending manual search leaves an active capture request and its frame access i
 })
 
 it('manual begin replaces an orphaned session and ignores its late response and end', async () => {
-  const fixture = await createSearchFixture(false, 'manual')
+  const fixture = await createSearchFixture('manual')
   const response = deferred<Response>()
   fixture.fetchSearch.mockReturnValueOnce(response.promise)
   await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })

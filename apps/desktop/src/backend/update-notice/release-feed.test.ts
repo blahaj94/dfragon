@@ -49,7 +49,7 @@ it.each([
     name: '정식 버전은 더 높은 alpha, beta가 있어도 정식 버전만 받는다',
     current: '0.0.2',
     tags: ['v0.0.4-alpha.1', 'v0.0.4-beta.1', 'v0.0.3'],
-    expected: { tag: 'v0.0.3', endsOcrCollection: false }
+    expected: { tag: 'v0.0.3' }
   },
   {
     name: '정식 버전은 더 높은 alpha, beta만 있으면 알리지 않는다',
@@ -61,31 +61,31 @@ it.each([
     name: 'beta는 beta와 정식 가운데 가장 높은 버전을 받는다',
     current: '0.0.1-beta.8',
     tags: ['v0.0.3-alpha.2', 'v0.0.2-beta.1', 'v0.0.2'],
-    expected: { tag: 'v0.0.2', endsOcrCollection: false }
+    expected: { tag: 'v0.0.2' }
   },
   {
     name: 'alpha는 나중에 게시한 낮은 정식 hotfix가 아니라 더 높은 alpha를 받는다',
     current: '0.0.3-alpha.1',
     tags: ['v0.0.2', 'v0.0.3-alpha.2'],
-    expected: { tag: 'v0.0.3-alpha.2', endsOcrCollection: false }
+    expected: { tag: 'v0.0.3-alpha.2' }
   },
   {
-    name: 'alpha가 beta로 옮기면 OCR 자료 수집이 꺼진다고 알린다',
+    name: 'alpha는 같은 core의 더 높은 beta를 받는다',
     current: '0.0.3-alpha.5',
     tags: ['v0.0.3-alpha.5', 'v0.0.2', 'v0.0.3-beta.1'],
-    expected: { tag: 'v0.0.3-beta.1', endsOcrCollection: true }
+    expected: { tag: 'v0.0.3-beta.1' }
   },
   {
-    name: 'alpha가 정식으로 옮기면 OCR 자료 수집이 꺼진다고 알린다',
+    name: 'alpha는 더 높은 정식 버전을 받는다',
     current: '0.0.3-alpha.5',
     tags: ['v0.0.4'],
-    expected: { tag: 'v0.0.4', endsOcrCollection: true }
+    expected: { tag: 'v0.0.4' }
   },
   {
     name: 'prerelease 번호는 문자열 순서가 아니라 숫자로 비교한다',
     current: '0.0.3-alpha.9',
     tags: ['v0.0.3-alpha.10', 'v0.0.3-alpha.8'],
-    expected: { tag: 'v0.0.3-alpha.10', endsOcrCollection: false }
+    expected: { tag: 'v0.0.3-alpha.10' }
   },
   {
     name: '현재보다 높은 버전이 없으면 알리지 않는다',

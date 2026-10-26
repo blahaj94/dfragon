@@ -1,5 +1,5 @@
 import { isFiniteNumber } from '@dfragon/lib/utils/shape-check'
-import type { AuthClock } from '../auth/types'
+import type { MonotonicClock } from '../lib/monotonic-clock'
 import type {
   CharacterChoice,
   CharacterSearchRow,
@@ -7,7 +7,6 @@ import type {
   OcrSearchInput
 } from '../../preload/common/types/search'
 import type {
-  CharacterDetails,
   SelectedCharacterSummary,
   CharacterJsonValue
 } from '../../preload/common/types/character'
@@ -42,7 +41,7 @@ export type IdentificationAdapters = {
 
 export type SearchRuntime = {
   http: SearchHttp
-  clock: AuthClock
+  clock: MonotonicClock
   identification?: IdentificationAdapters
   /**
    * OCR 이름의 식별 방식. 파티 캡처는 얼굴 비교(`portrait`, 기본), 공대 캡처는 공대 후보 선택 함수(`raid`)를
@@ -58,7 +57,6 @@ export type SearchOutcome =
       rows: readonly CharacterSearchRow[]
       selected?: {
         summary: SelectedCharacterSummary
-        details: CharacterDetails
         selectionMethod: CharacterSelectionMethod
         choices?: readonly CharacterChoice[]
       }
@@ -171,7 +169,6 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
   const detailFame = displayNumber(character.fame)
   const guildName = displayText(character.guildName)
   const equipmentScore = card?.score?.value ?? null
-  const serverRank = card?.serverRank?.rank ?? null
   const summary: SelectedCharacterSummary = {
     characterId: character.characterId,
     characterName: character.characterName,
@@ -185,15 +182,14 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
     imageUrl: candidate.imageUrl,
     guildName,
     equipmentScore,
-    serverRank,
     card
   }
 
   if (choices === undefined) {
-    return { kind: 'success', rows, selected: { summary, details, selectionMethod } }
+    return { kind: 'success', rows, selected: { summary, selectionMethod } }
   }
 
-  return { kind: 'success', rows, selected: { summary, details, selectionMethod, choices } }
+  return { kind: 'success', rows, selected: { summary, selectionMethod, choices } }
 }
 
 function identifyCharacter(

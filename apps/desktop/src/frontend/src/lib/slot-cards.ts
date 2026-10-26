@@ -33,8 +33,6 @@ export type SlotCard = {
 export type SlotCardActions = {
   /** 검색 슬롯 번호의 서버와 이름을 조회한다. */
   lookupSlot?: (slot: number, nickname: string, serverId: string) => void
-  /** 검색 슬롯 번호의 상세 창을 연다. */
-  openDetails?: (slot: number) => void
   /** 검색 슬롯 번호의 후보 줄에서 서버로 후보를 누른다. */
   pickCandidate?: (slot: number, serverId: string) => void
   /** 합성 미리보기만 채운다. 검색 슬롯 번호의 검색을 다시 시도한다. */

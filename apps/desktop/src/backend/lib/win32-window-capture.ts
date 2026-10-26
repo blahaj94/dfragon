@@ -440,15 +440,6 @@ function isWindowCloaked(api: Win32PartyApi, hwnd: bigint): boolean {
   return result >= 0 && value.readUInt32LE(0) !== 0
 }
 
-function rectsIntersect(left: WindowRect, right: WindowRect): boolean {
-  return (
-    left.left < right.right &&
-    right.left < left.right &&
-    left.top < right.bottom &&
-    right.top < left.bottom
-  )
-}
-
 function assertClientInsideVirtualScreen(api: Win32PartyApi, client: ScreenRect): void {
   const left = api.GetSystemMetrics(SM_XVIRTUALSCREEN)
   const top = api.GetSystemMetrics(SM_YVIRTUALSCREEN)
@@ -673,25 +664,6 @@ export function assertShortcutProcessAccess(api: ShortcutAccessApi, gameProcessI
   }
 }
 
-/** Rejects a known elevation mismatch before arming the DNF-only Print Screen shortcut. */
-export function assertDnfShortcutAccess(): void {
-  if (process.platform !== 'win32') {
-    throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)
-  }
-  try {
-    const api = getApi()
-    withPerMonitorV2(api, () => {
-      const gameWindow = findDnfGameWindow(api)
-      assertShortcutProcessAccess(api, gameWindow.pid)
-    })
-  } catch (error) {
-    if (error instanceof Error && error.message === WINDOW_CAPTURE_ERRORS.ADMIN_REQUIRED) {
-      throw error
-    }
-    throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)
-  }
-}
-
 /** True only when the foreground top-level window is owned by DNF.exe. */
 export function isDnfForeground(): boolean {
   if (process.platform !== 'win32') {
@@ -731,23 +703,6 @@ export function isCurrentProcessForeground(): boolean {
   } catch {
     return false
   }
-}
-
-/** Pure region predicate kept exportable for deterministic coverage tests. */
-export function partySlotCoverageIntersectsWindow(
-  client: ScreenRect,
-  coverage: { x: number; y: number; width: number; height: number },
-  window: WindowRect
-): boolean {
-  return rectsIntersect(
-    {
-      left: client.x + coverage.x,
-      top: client.y + coverage.y,
-      right: client.x + coverage.x + coverage.width,
-      bottom: client.y + coverage.y + coverage.height
-    },
-    window
-  )
 }
 
 // Keep path handling explicitly Windows-aware even when these pure utilities are exercised on macOS.
@@ -883,26 +838,5 @@ export function captureWindowClient(target: WindowCaptureTarget): WindowCaptureF
       return window
     },
     true
-  )
-}
-
-/** 개발자 수집용 DNF 창을 같은 GDI 구현으로 읽고 검출 영역의 가림 판단에 필요한 정보를 돌려준다. */
-export function captureDnfClient(): WindowCaptureFrame {
-  if (process.platform !== 'win32') {
-    throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)
-  }
-  const api = getApi()
-
-  return captureClient(api, () => findDnfGameWindow(api), false)
-}
-
-/** 프레임 안의 관심 영역이 캡처 전후에 다른 창과 겹쳤는지 검사한다. */
-export function isCapturedRegionCovered(frame: WindowCaptureFrame, region: ScreenRect): boolean {
-  return frame.coveredRegions.some(
-    (covered) =>
-      region.x < covered.x + covered.width &&
-      covered.x < region.x + region.width &&
-      region.y < covered.y + covered.height &&
-      covered.y < region.y + region.height
   )
 }

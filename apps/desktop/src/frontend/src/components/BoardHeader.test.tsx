@@ -141,13 +141,13 @@ it('꺼진 스냅샷 버튼을 누르면 스냅샷을 켠다', async () => {
   expect(clear).not.toHaveBeenCalled()
 })
 
-it('상세 열기 실패 안내만 status 영역에 보이고 없으면 영역을 비워 둔다', async () => {
+it('화면이 넘긴 안내만 status 영역에 보이고 없으면 영역을 비워 둔다', async () => {
   await render()
   const status = container.querySelector('[role="status"]')!
   expect(status.textContent).toBe('')
-  await render({ notice: '캐릭터 정보 창을 열지 못했습니다. 다시 시도해 주세요.' })
+  await render({ notice: '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.' })
   expect(container.querySelector('[role="status"]')).toBe(status)
-  expect(status.textContent).toBe('캐릭터 정보 창을 열지 못했습니다. 다시 시도해 주세요.')
+  expect(status.textContent).toBe('검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.')
 })
 
 it('캡처 버튼은 누를 수 있을 때만 회차 시작을 요청한다', async () => {

@@ -1,4 +1,3 @@
-import { isOcrCollectionEnabled } from '../ocr-collection/policy'
 import { parseReleaseTag, type ReleaseVersion } from '../../preload/common/update-notice'
 import type { UpdateNotice } from '../../preload/common/types/update-notice'
 
@@ -80,11 +79,7 @@ export function selectUpdateNotice(
     return null
   }
 
-  const releaseVersion = best.tag.slice(RELEASE_TAG_PREFIX.length)
-  const endsOcrCollection =
-    collectsOcrSamples(currentVersion) && !collectsOcrSamples(releaseVersion)
-
-  return { tag: best.tag, endsOcrCollection }
+  return { tag: best.tag }
 }
 
 /** 검증한 Release tag의 GitHub Release 페이지 주소만 만든다. */
@@ -103,11 +98,6 @@ function readTrack(version: ReleaseVersion): ReleaseTrack {
   }
 
   return 'stable'
-}
-
-// 알림은 배포 채널 패키지에서만 확인하고, 알린 Release도 패키지 빌드다.
-function collectsOcrSamples(version: string): boolean {
-  return isOcrCollectionEnabled({ isPackaged: true, version })
 }
 
 /** semver 우선순위로 비교한다. 정식 버전은 같은 core의 prerelease보다 높다. */

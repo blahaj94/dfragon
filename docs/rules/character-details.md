@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: apps/api character details
-last-reviewed: 2026-10-19
+last-reviewed: 2026-10-26
 ---
 
 # 캐릭터 상세 정보
@@ -25,37 +25,11 @@ last-reviewed: 2026-10-19
 
 ## 카드 투영
 
-응답 최상위 `card`는 조회한 섹션을 Desktop 카드의 세 면(캐릭터, 장비, 기타)에 맞춰 정규화한 값이다. 형태는 Desktop `SelectedCharacterSummary.card`와 같은 공유 계약이며 [#716](https://github.com/blahaj94/dfragon/issues/716)의 공유 계약을 따른다. 기존 응답 필드는 바꾸지 않는다. `apps/api/src/characters/card/project.ts`의 순수 함수가 HTTP 없이 만든다. 모르는 값은 null이고 0이나 빈 값으로 바꾸지 않는다. Desktop이 strict 스키마로 검증하므로 빈 문자열과 유한하지 않은 숫자도 null로 둔다. 이미지 URL은 넣지 않고 Desktop renderer가 itemId로 만든다.
+응답 최상위 `card`는 Desktop 카드의 캐릭터 면이 쓰는 역할이다. 형태는 [#716](https://github.com/blahaj94/dfragon/issues/716)의 공유 계약을 따르며 `apps/api/src/characters/card/project.ts`의 순수 함수가 HTTP 없이 만든다. Desktop은 캐릭터 면만 두므로 API는 역할만 정한다(2026-10-26 결정, [Issue #796](https://github.com/blahaj94/dfragon/issues/796)).
 
 - `role`: 기본정보 `jobGrowName`에서 앞의 `眞`을 뺀 이름이 크루세이더, 인챈트리스, 패러메딕, 뮤즈면 `buffer`, 다른 문자열이면 `dealer`, 문자열이 아니면 null이다. Desktop은 이 값으로 점수 계산기를 고른다.
-- `stats`: 능력치 `status`의 마을 값이다. 딜러는 공격력 증가, 공격력 증폭, 물리와 마법 크리티컬 중 큰 값이다. 버퍼는 직업의 주 스탯 이름(`townStatName`)과 값(`townStat`)이며, 뮤즈와 패러메딕은 정신력, 남자 크루세이더(직업 `프리스트(남)`)는 정신력과 체력 중 큰 쪽(같거나 체력을 모르면 정신력), 여자 크루세이더와 인챈트리스는 지능이다(2026-10-20 사용자 결정). 이전 `townIntelligence`를 바꾼 필드라 이전 Desktop은 새 API의 버퍼 카드를 받지 못한다. 직업의 공격 유형을 API가 알지 못하므로 크리티컬은 항상 둘 중 큰 값이다. 숫자와 `48.3%` 같은 숫자 문자열을 받고 그 밖의 값은 null이다. 역할이 null이면 `stats`도 null이다.
-- Desktop main이 채우는 값: `stats`의 `buff30`, `buff50`과 `score`는 네이티브 점수 엔진으로, `switchingLevel`은 상세 응답의 버프 강화 장비(`skill/buff/equip/equipment`) 스위칭 스킬 레벨(`skillInfo.option.level`, 스위칭 장비를 입었을 때 장비 옵션까지 더한 레벨)로 채우며 API 응답에서는 항상 null이다(스위칭 2026-10-20 사용자 결정). 서버는 점수를 계산하지 않는다.
-- `set`: 장비 `setItemInfo` 중 `slotInfo`가 가장 많은 항목이며 같으면 앞의 것이다. `setItemId`나 이름이 없는 항목은 후보에서 뺀다. `active.setPoint`의 current, min, max가 모두 숫자일 때만 `point`를 둔다. `imageItemId`는 같은 `setItemId`를 가진 장착 아이템 중 첫 번째다.
-- `oath`: 서약 `info`에 itemId와 이름이 있을 때만 만든다. `setInfo`의 세트 이름, 옵션 이름, 세트 포인트와 결정(`crystal`) 목록을 담는다. 묵언의 진의는 `oathUpgrade.options`의 목록 위치를 단계 번호로 쓰며 `oathUpgrade`가 null이면 빈 목록이다.
-- 희귀도 개수: 세트는 `slotInfo`, 서약은 결정의 희귀도를 처음 나온 순서로 센다. 희귀도가 없는 항목은 세지 않는다. 세트의 유일 장비 부위는 희귀도 대신 `유일`로 센다.
-- `investment`: 무기, 상의, 머리어깨, 하의, 벨트, 신발, 목걸이, 팔찌, 반지, 보조장비, 마법석, 귀걸이의 12부위 고정 순서이며 칭호는 넣지 않는다. 빈 슬롯은 아이템 필드가 null이다. `reinforce`가 숫자일 때 `amplificationName`이 있으면 증폭(`amplify`), 없으면 강화(`reinforce`)다. 마법부여는 `status` 옵션만 담고 `reinforceSkill`만 있는 마법부여는 빈 목록이다.
-- `exclusive`: `investment` 행과 `set.slots`에 붙는 유일 장비 여부다. 아래 [유일 장비](#유일-장비) 기준표로 정하고 빈 슬롯은 false다. 이 필드를 더한 뒤로 이전 Desktop은 새 API의 카드를 strict 스키마에서 거절해 카드 값을 `-`로 보인다(2026-10-20, [#726](https://github.com/blahaj94/dfragon/issues/726)).
-
-### 마법부여 등급
-
-`apps/api/src/characters/card/enchant-grades.json`의 부위별 종결, 준종결, 기타 항목과 장착 마법부여 `status`의 옵션 이름, 값이 순서와 무관하게 모두 같을 때만 그 등급이다. 같은 옵션이 여러 등급에 있으면 종결, 준종결, 기타 순으로 앞의 등급이다. 표에 없거나 옵션이 없으면 null(미평가)이며 기타로 바꾸지 않는다. 표의 형식이 틀리면 API가 시작하지 않는다. 표의 내용은 담당자가 정한 퍼스트서버 신규 카드 글 기준의 부위별 종결, 준종결 항목이며 규칙, 다시 만드는 절차, 항목별 근거, 같은 옵션을 주는 카드와 정할 것은 [마법부여 등급표](../reference/enchant-grades.md)에 있다. 표에 기타 항목은 두지 않는다.
-
-### 유일 장비
-
-유일 장비는 주요 보스 컨셉의 장비이고 Neople 장비, 아이템 상세 응답에는 유일 장비를 가리키는 필드가 없다. `apps/api/src/characters/card/exclusive-items.json`의 `slots`에 부위별 아이템 이름을 두고, 장착 아이템의 부위와 이름이 모두 같을 때만 유일 장비다. 세트의 `slotInfo`에는 아이템 이름이 없어 같은 부위의 장착 아이템 이름으로 판단한다. 표의 형식이 틀리면 API가 시작하지 않는다.
-
-표의 내용은 던전앤파이터 [유일 장비 가이드](https://df.nexon.com/guide?no=1509)의 네 장비다(2026-10-20 확인). `source.checked_at`은 담당자가 가이드와 표를 마지막으로 맞춘 날짜다. 새 유일 장비가 나오면 담당자가 가이드의 장착 부위와 이름 그대로 해당 부위 목록에 더하고 `checked_at`을 고친다.
-
-| 부위 | 아이템 |
-| --- | --- |
-| 반지(`RING`) | 광휘를 머금은 눈동자 |
-| 보조장비(`SUPPORT`) | 만병을 잉태한 역병의 심장 |
-| 마법석(`MAGIC_STON`) | 우아한 기품의 향수 |
-| 귀걸이(`EARRING`) | 영롱한 날씨의 큐브 |
-
-### 명성 순위
-
-`serverRank`는 항상 null이다. 저장한 캐릭터끼리 명성을 비교하던 값이라 DB 없이는 계산하지 않는다. 기존 Desktop의 strict 스키마가 이 필드를 요구하므로 필드는 남긴다.
+- `score`: 항상 null이다. 장비 점수는 Desktop main이 네이티브 점수 엔진으로 채운다. 서버는 점수를 계산하지 않는다.
+- `stats`, `serverRank`, `set`, `oath`는 항상 null이고 `investment`는 항상 빈 배열이다. 카드의 스탯 한 줄, 서버 내 명성 순위, 장비 면, 기타 면에 쓰던 값이다. 이미 배포된 Desktop이 카드 전체를 strict 스키마로 검사하므로, 그 버전이 역할과 점수를 계속 표시하도록 필드만 남긴다. 새 Desktop은 역할만 읽는다.
 
 모험단명으로 저장된 캐릭터를 찾던 `GET /adventures/characters`도 DB에만 있던 기능이라 지웠다. 이 경로는 일반 404다.
 

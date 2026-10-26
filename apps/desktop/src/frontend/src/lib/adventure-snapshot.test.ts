@@ -88,7 +88,6 @@ describe('slotAdventureName', () => {
     imageUrl: '',
     guildName: null,
     equipmentScore: null,
-    serverRank: null,
     card: null
   }
 

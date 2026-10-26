@@ -7,7 +7,7 @@ import {
   type WebFrameMain
 } from 'electron'
 import { addHandler } from '../ipc'
-import type { AuthClock } from '../auth/types'
+import type { MonotonicClock } from '../lib/monotonic-clock'
 import {
   createCaptureSearchLifetime,
   type CaptureSearchLifetime,
@@ -16,10 +16,8 @@ import {
 import {
   parseSearchControl,
   parseSearchObservation,
-  parseOcrSearchObservation,
-  parseCharacterSelection
+  parseOcrSearchObservation
 } from '../search/commands'
-import type { openSelectedCharacterDetail } from '../character-detail/windows'
 import { createSearchHttp } from '../search/http'
 import {
   createCharacterCandidatesHttp,
@@ -35,9 +33,6 @@ import { registerManualSearchIpc, type ManualSearchKind } from '../search/manual
 import { findSelectedSource } from './capture-policy'
 import { bindWindowFrame, type ReadWindowFrame } from './native-frame'
 import { toRaidFrameResult } from './raid-frame'
-import { parseCollectOcrSample } from '../../preload/common/ocr-collection'
-import type { OcrCollectionResult } from '../../preload/common/types/ocr-collection'
-import type { OcrCollection } from '../ocr-collection/collection'
 
 let captureWindow: BrowserWindow | null = null
 let documentUrl: string | null = null
@@ -49,7 +44,6 @@ let selectingSource = false
 let search: CaptureSearchLifetime | undefined
 // 파티 카드와 공대 카드의 서버 지정 조회. 캡처와 별도 수명이고 문서가 바뀌면 함께 무효화한다.
 let cardSearches: ReturnType<typeof registerManualSearchIpc>[] = []
-let ocrCollection: OcrCollection | undefined
 
 async function getWindowSources(): Promise<Electron.DesktopCapturerSource[]> {
   return desktopCapturer.getSources({
@@ -60,7 +54,6 @@ async function getWindowSources(): Promise<Electron.DesktopCapturerSource[]> {
 }
 
 function clearSource(): void {
-  ocrCollection?.clear()
   selectedSourceId = null
   readSelectedFrame = null
   selectingSource = false
@@ -173,18 +166,13 @@ function isCurrentSearch(binding: CaptureBinding): boolean {
   return isCurrent
 }
 
-function registerCaptureIpc(
-  configuration?: {
-    apiOrigin: string
-    fetch?: typeof fetch
-    clock: AuthClock
-    portraitColorPolicy?: PortraitColorPolicy & CharacterSelectionPolicy
-    score?: ScoreEngine
-  },
-  details?: { openSelected: typeof openSelectedCharacterDetail },
-  collection?: OcrCollection
-): () => void {
-  ocrCollection = collection
+function registerCaptureIpc(configuration?: {
+  apiOrigin: string
+  fetch?: typeof fetch
+  clock: MonotonicClock
+  portraitColorPolicy?: PortraitColorPolicy & CharacterSelectionPolicy
+  score?: ScoreEngine
+}): () => void {
   let runtime: SearchRuntime | undefined
   if (configuration != null) {
     runtime = {
@@ -242,47 +230,6 @@ function registerCaptureIpc(
   cardSearches = [manual, raid]
   search = lifetime
   clearSource()
-  addHandler('openCharacterDetails', async (event, ...args) => {
-    requireSearchSender(event)
-    const reference = parseCharacterSelection(args)
-    const owner = captureWindow
-    if (
-      reference === null ||
-      owner === null ||
-      details === undefined ||
-      event.senderFrame?.detached !== false
-    ) {
-      return { ok: false }
-    }
-    const selected =
-      lifetime.selection(reference) ?? manual.selection(reference) ?? raid.selection(reference)
-    if (selected === null) {
-      return { ok: false }
-    }
-    const isCurrent = (): boolean => {
-      try {
-        requireSearchSender(event)
-        const currentSelected =
-          lifetime.selection(reference) ?? manual.selection(reference) ?? raid.selection(reference)
-
-        return (
-          captureWindow === owner &&
-          event.senderFrame?.detached === false &&
-          currentSelected === selected
-        )
-      } catch {
-        return false
-      }
-    }
-    try {
-      const opened = await details.openSelected(owner, selected, isCurrent)
-      const ok = opened && isCurrent()
-
-      return { ok }
-    } catch {
-      return { ok: false }
-    }
-  })
   addHandler('listCaptureSources', async (event, ...args) => {
     const window = captureWindow
     const startedWindowGeneration = windowGeneration
@@ -373,13 +320,6 @@ function registerCaptureIpc(
       throw new Error('CAPTURE_NOT_ALLOWED')
     }
 
-    if (result.kind === 'frame') {
-      const frameId = ocrCollection?.retain(binding.captureId, result.image)
-      if (frameId !== undefined) {
-        return { ...result, frameId }
-      }
-    }
-
     return result
   })
 
@@ -408,27 +348,6 @@ function registerCaptureIpc(
     return toRaidFrameResult(result)
   })
 
-  addHandler('collectOcrSample', (event, ...args) => {
-    requireSearchSender(event)
-    const input = parseCollectOcrSample(args)
-    const binding = lifetime.current
-    if (
-      input === null ||
-      binding === null ||
-      binding.captureId !== input.captureId ||
-      event.senderFrame?.detached !== false ||
-      !isCurrentSearch(binding)
-    ) {
-      return { status: 'skipped' }
-    }
-
-    if (ocrCollection === undefined) {
-      return { status: 'skipped' }
-    }
-
-    return ocrCollection.collect(input)
-  })
-
   addHandler('controlCharacterSearch', (event, ...args) => {
     requireSearchSender(event)
     const control = parseSearchControl(args)
@@ -442,10 +361,6 @@ function registerCaptureIpc(
     }
     const isEnd = control.action === SEARCH_ACTIONS.END
     if (isEnd) {
-      if (lifetime.current?.captureId === control.captureId) {
-        ocrCollection?.clear()
-      }
-
       return lifetime.end(control.captureId)
     }
 
@@ -502,50 +417,13 @@ function registerCaptureIpc(
     manual.dispose()
     raid.dispose()
     clearSource()
-    ocrCollection?.dispose()
-    ocrCollection = undefined
     ipcMain.removeHandler('listCaptureSources')
     ipcMain.removeHandler('selectCaptureSource')
     ipcMain.removeHandler('readCaptureFrame')
     ipcMain.removeHandler('readRaidCaptureFrame')
-    ipcMain.removeHandler('collectOcrSample')
     ipcMain.removeHandler('notifyStableNicknameDetected')
     ipcMain.removeHandler('notifyOcrCandidatesDetected')
     ipcMain.removeHandler('controlCharacterSearch')
-    ipcMain.removeHandler('openCharacterDetails')
-  }
-}
-
-/** foreground 검사를 마친 main 단축키에서 선택 창의 최신 프레임만 수집한다. */
-export async function collectCurrentCapture(): Promise<OcrCollectionResult> {
-  const binding = search?.current
-  const readFrame = readSelectedFrame
-  const collection = ocrCollection
-  if (
-    binding == null ||
-    readFrame === null ||
-    collection === undefined ||
-    currentMainFrame()?.detached !== false ||
-    !isCurrentSearch(binding)
-  ) {
-    return { status: 'skipped' }
-  }
-  try {
-    const result = await readFrame()
-    if (
-      search?.current !== binding ||
-      readSelectedFrame !== readFrame ||
-      ocrCollection !== collection ||
-      currentMainFrame()?.detached !== false ||
-      !isCurrentSearch(binding) ||
-      result.kind !== 'frame'
-    ) {
-      return { status: 'skipped' }
-    }
-
-    return collection.collectShortcut(binding.captureId, result.image)
-  } catch {
-    return { status: 'failed' }
   }
 }
 

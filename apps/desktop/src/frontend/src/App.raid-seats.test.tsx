@@ -70,7 +70,6 @@ function selected(name: string, adventureName = '합성모험단'): SelectedChar
     imageUrl: characterImageUrl(character),
     guildName: null,
     equipmentScore: null,
-    serverRank: null,
     card: null
   }
 }

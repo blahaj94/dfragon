@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { API_ORIGIN, deferred } from '../auth/auth-test-fixtures'
+import { deferred } from '../lib/async-test-fixture'
+import { API_ORIGIN } from './search-test-fixture'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 
 describe('main 검색 관측과 slot 수명', () => {
@@ -43,7 +44,6 @@ describe('main 검색 관측과 slot 수명', () => {
     await vi.waitFor(async () => {
       expect((await fixture.read()).slots[0]).toMatchObject({ state: 'success', rows: [candidate] })
     })
-    expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
   })
 
   it('다섯 응답 field와 서버 순서를 유지하고 추가 field는 IPC에 보내지 않는다', async () => {

@@ -32,7 +32,7 @@ export type CharacterCardFrameState = Extract<
   'default' | 'selected' | 'failure' | 'waiting' | CharacterTier
 >
 
-/** 빈 슬롯과 인식 대기. 상세 열기와 면 탭이 없는 비어 있는 카드다. */
+/** 빈 슬롯과 인식 대기. 찾은 캐릭터가 없는 비어 있는 카드다. */
 export function isVacantSlot(state: SlotState): boolean {
   return state === 'idle' || state === 'waiting-portrait' || state === 'waiting-policy'
 }

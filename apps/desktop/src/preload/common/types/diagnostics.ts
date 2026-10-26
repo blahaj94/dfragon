@@ -15,8 +15,6 @@ export const DIAGNOSTIC_MESSAGES = {
   SCORE_ENGINE_UNAVAILABLE: '점수 엔진을 불러오지 못해 장비 점수 없이 표시합니다.',
   SCORE_ENGINE_FAILED: '점수 엔진이 장비 점수를 계산하지 못했습니다.',
   SCORE_ENGINE_SLOW: '장비 점수 계산이 50ms를 넘었습니다.',
-  UPLOAD_FAILED: 'OCR 자료를 업로드하지 못했습니다.',
-  UPLOAD_QUEUE_FULL: '업로드 대기 한도를 초과해 자료 수집을 건너뛰었습니다.',
   SHORTCUT_FAILED: '단축키를 준비하지 못했습니다.',
   RENDERER_ERROR: '화면 실행 중 오류가 발생했습니다.',
   RENDERER_REJECTION: '화면의 비동기 작업 중 오류가 발생했습니다.',
@@ -33,7 +31,6 @@ export const RENDERER_DIAGNOSTIC_CODES = [
   'CAPTURE_READ_FAILED',
   'OCR_FAILED',
   'SEARCH_FAILED',
-  'UPLOAD_FAILED',
   'RENDERER_ERROR',
   'RENDERER_REJECTION'
 ] as const satisfies readonly DiagnosticCode[]

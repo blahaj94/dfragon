@@ -16,14 +16,7 @@ function Harness(): React.JSX.Element | null {
     return null
   }
 
-  return (
-    <UpdateNotice
-      tag={notice.tag}
-      endsOcrCollection={notice.endsOcrCollection}
-      onOpenRelease={openRelease}
-      onDismiss={dismiss}
-    />
-  )
+  return <UpdateNotice tag={notice.tag} onOpenRelease={openRelease} onDismiss={dismiss} />
 }
 
 let container: HTMLDivElement
@@ -73,18 +66,17 @@ async function click(label: string): Promise<void> {
   await act(async () => button.click())
 }
 
-it('새 버전과 OCR 수집 종료 안내를 보이고 열기, 닫기에 같은 tag를 보낸다', async () => {
+it('새 버전을 보이고 열기, 닫기에 같은 tag를 보낸다', async () => {
   const api = installApi({
     getUpdateNotice: vi.fn(async () => ({
       revision: 1,
-      notice: { tag: 'v0.0.4-beta.1', endsOcrCollection: true }
+      notice: { tag: 'v0.0.4-beta.1' }
     })),
     dismissUpdateNotice: vi.fn(async () => ({ revision: 2, notice: null }))
   })
   await act(async () => root.render(<Harness />))
 
   expect(container.textContent).toContain('새 버전 v0.0.4-beta.1')
-  expect(container.textContent).toContain('이 버전으로 바꾸면 OCR 자료 수집이 꺼집니다.')
   await click('Release 열기')
   expect(api.openUpdateRelease).toHaveBeenCalledExactlyOnceWith('v0.0.4-beta.1')
   await click('닫기')
@@ -106,13 +98,10 @@ it('늦게 도착한 이전 상태는 나중 알림을 덮지 않는다', async 
 
   await act(async () => {
     for (const listener of listeners) {
-      listener({ revision: 2, notice: { tag: 'v0.0.5', endsOcrCollection: false } })
+      listener({ revision: 2, notice: { tag: 'v0.0.5' } })
     }
   })
-  await act(async () =>
-    respond({ revision: 1, notice: { tag: 'v0.0.4', endsOcrCollection: true } })
-  )
+  await act(async () => respond({ revision: 1, notice: { tag: 'v0.0.4' } }))
 
   expect(container.textContent).toContain('새 버전 v0.0.5')
-  expect(container.textContent).not.toContain('OCR 자료 수집')
 })

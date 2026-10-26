@@ -7,11 +7,10 @@ import { createPartyOcrWorker } from './ocr'
 import { recognizePartyFrame, type PartySlotRecognition } from './party-recognition'
 import { reportRendererDiagnostic, showRejectedOcrNickname } from './runtime-diagnostics'
 
-const PARTY_SAMPLE_SLOTS = [1, 2, 3, 4] as const
 const OCR_FAILED_STATUS =
   '글자 인식에 실패했습니다. Alt+R을 누르거나 캐릭터 직접 검색을 사용해 주세요.'
 
-type RoundFrame = CharacterImage & { captureId: string; frameId?: string }
+type RoundFrame = CharacterImage & { captureId: string }
 type CaptureInput = {
   selectSource: (sourceId: string) => Promise<unknown>
   beginSearch: (signal: AbortSignal) => Promise<string | null>
@@ -40,26 +39,6 @@ type CaptureEvent =
   | { type: 'SELECT'; sourceId: string }
   | { type: 'START'; request: object }
   | { type: 'STOP'; status?: string }
-
-/** 회차 결과 반영 중 수집 실패가 검색 통지를 막지 않도록 별도로 처리한다. */
-async function collectSample(frame: RoundFrame, result: PartySlotRecognition): Promise<void> {
-  if (result.kind === 'missing' || frame.frameId === undefined) {
-    return
-  }
-  try {
-    const response = await window.ocrCollection.collectOcrSample({
-      captureId: frame.captureId,
-      frameId: frame.frameId,
-      slot: PARTY_SAMPLE_SLOTS[result.slot],
-      prediction: result.prediction
-    })
-    if (response.status === 'failed') {
-      reportRendererDiagnostic('UPLOAD_FAILED')
-    }
-  } catch {
-    reportRendererDiagnostic('UPLOAD_FAILED')
-  }
-}
 
 export const partyCaptureMachine = setup({
   types: {
@@ -162,14 +141,6 @@ export const partyCaptureMachine = setup({
         } else if (result.legacyNickname.length > 0) {
           effects.observe({ slot, nickname: result.legacyNickname })
         }
-      }
-    },
-    collectRecognition: ({ context }) => {
-      if (context.frame === null) {
-        return
-      }
-      for (const result of context.results) {
-        void collectSample(context.frame, result)
       }
     }
   }
@@ -287,8 +258,7 @@ export const partyCaptureMachine = setup({
 
                     return {
                       ...event.output.image,
-                      captureId: context.captureId!,
-                      frameId: event.output.frameId
+                      captureId: context.captureId!
                     }
                   }
                 })
@@ -335,8 +305,6 @@ export const partyCaptureMachine = setup({
                 target: '#partyCapture.captureFailed',
                 actions: [
                   assign({ results: ({ event }) => event.output }),
-                  // captureFailed의 END가 원본을 지우기 전에 검출 슬롯 수집을 요청한다.
-                  'collectRecognition',
                   () => reportRendererDiagnostic('OCR_FAILED'),
                   assign({ status: OCR_FAILED_STATUS })
                 ]
@@ -351,11 +319,7 @@ export const partyCaptureMachine = setup({
               },
               {
                 target: 'complete',
-                actions: [
-                  assign({ results: ({ event }) => event.output }),
-                  'applyRecognition',
-                  'collectRecognition'
-                ]
+                actions: [assign({ results: ({ event }) => event.output }), 'applyRecognition']
               }
             ],
             onError: {

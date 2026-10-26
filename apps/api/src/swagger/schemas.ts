@@ -86,19 +86,11 @@ const catalogCreature: SchemaObject = {
   }
 }
 
-const nullableNumber: SchemaObject = { type: 'number', nullable: true }
-const nullableText: SchemaObject = { type: 'string', nullable: true }
-function nullable(schema: SchemaObject): SchemaObject {
-  return { ...schema, nullable: true }
-}
-const cardSetPoint = nullable(
-  object({ current: { type: 'number' }, min: { type: 'number' }, max: { type: 'number' } })
-)
-const cardRarityCounts: SchemaObject = {
-  type: 'array',
-  description: '희귀도별 개수. 처음 나온 희귀도 순서이며 희귀도가 없는 항목은 세지 않습니다.',
-  items: object({ rarity: text, count: { type: 'integer', minimum: 1 } })
-}
+const retiredNull = (description: string): SchemaObject => ({
+  nullable: true,
+  enum: [null],
+  description: `항상 null. ${description} 이전 Desktop과의 호환을 위해 필드만 남깁니다.`
+})
 const characterCard = object({
   role: {
     type: 'string',
@@ -107,142 +99,17 @@ const characterCard = object({
     description:
       'jobGrowName이 크루세이더, 인챈트리스, 패러메딕, 뮤즈(眞 접두 포함)면 buffer, 그 밖은 dealer, 직업을 모르면 null.'
   },
-  stats: {
-    description:
-      'Neople status의 마을 능력치. switchingLevel, buff30, buff50은 Desktop 점수 엔진이 채우며 API에서는 항상 null입니다.',
-    oneOf: [
-      nullable(
-        object({
-          role: { type: 'string', enum: ['dealer'] },
-          attackIncrease: nullableNumber,
-          amplification: nullableNumber,
-          critical: { ...nullableNumber, description: '물리, 마법 크리티컬 중 큰 값' },
-          switchingLevel: nullableNumber
-        })
-      ),
-      object({
-        role: { type: 'string', enum: ['buffer'] },
-        townStatName: {
-          type: 'string',
-          enum: ['지능', '정신력', '체력'],
-          description:
-            '버퍼 주 스탯. 뮤즈, 패러메딕은 정신력, 남자 크루세이더는 정신력과 체력 중 큰 쪽, 그 밖은 지능'
-        },
-        townStat: { ...nullableNumber, description: '마을 스탯 창의 townStatName 값' },
-        buff30: nullableNumber,
-        buff50: nullableNumber,
-        switchingLevel: nullableNumber
-      })
-    ]
-  },
-  score: nullable(
-    object({
-      calculator: { type: 'string', enum: ['equipment', 'buff'] },
-      value: nullableNumber,
-      skipped: nullable(object({ kind: text, message: text })),
-      approximate: nullable(object({ value: { type: 'number' }, source: text, warning: text })),
-      versions: object({ package: text, rulesRev: text, bundleId: text })
-    })
-  ),
-  serverRank: {
-    ...object({
-      rank: { type: 'integer', minimum: 1 },
-      total: { type: 'integer', minimum: 1 },
-      basis: { type: 'string', enum: ['fame'] },
-      scope: { type: 'string', enum: ['stored'] },
-      observedAt: timestamp
-    }),
-    nullable: true,
-    description:
-      '항상 null. 저장한 캐릭터끼리 비교하던 명성 순위이며 기존 Desktop과의 호환을 위해 필드만 남깁니다.'
-  },
-  set: nullable(
-    object({
-      setItemId: text,
-      name: text,
-      rarityName: nullableText,
-      point: cardSetPoint,
-      imageItemId: { ...nullableText, description: '세트에 속한 장착 아이템 중 첫 번째' },
-      slots: {
-        type: 'array',
-        items: object({
-          slotId: text,
-          rarity: nullableText,
-          exclusive: { type: 'boolean', description: '유일 장비 부위' }
-        })
-      },
-      rarityCounts: cardRarityCounts
-    })
-  ),
-  oath: nullable(
-    object({
-      itemId: text,
-      name: text,
-      rarity: nullableText,
-      point: nullableNumber,
-      setName: nullableText,
-      optionName: nullableText,
-      setPoint: cardSetPoint,
-      upgrades: {
-        type: 'array',
-        description: '묵언의 진의 단계. 업그레이드가 없으면 빈 배열입니다.',
-        items: object({ step: { type: 'integer', minimum: 1 }, stepName: text, optionName: text })
-      },
-      crystals: {
-        type: 'array',
-        items: object({
-          slotNo: { type: 'number' },
-          itemId: text,
-          name: text,
-          rarity: nullableText,
-          setPoint: nullableNumber
-        })
-      },
-      rarityCounts: cardRarityCounts
-    })
-  ),
+  stats: retiredNull('카드 스탯 한 줄의 값이었습니다.'),
+  score: retiredNull('장비 점수는 Desktop 점수 엔진이 채웁니다.'),
+  serverRank: retiredNull('저장한 캐릭터끼리 비교하던 명성 순위였습니다.'),
+  set: retiredNull('카드 장비 면의 세트 값이었습니다.'),
+  oath: retiredNull('카드 장비 면의 서약 값이었습니다.'),
   investment: {
     type: 'array',
-    minItems: 12,
-    maxItems: 12,
+    maxItems: 0,
+    items: object({}),
     description:
-      '무기, 상의, 머리어깨, 하의, 벨트, 신발, 목걸이, 팔찌, 반지, 보조장비, 마법석, 귀걸이 순서의 12부위. 빈 슬롯은 아이템 필드가 null입니다.',
-    items: object({
-      slotId: text,
-      slotName: text,
-      itemId: nullableText,
-      itemName: nullableText,
-      rarity: nullableText,
-      exclusive: {
-        type: 'boolean',
-        description: '유일 장비 기준표에 있는 장비면 true, 빈 슬롯은 false입니다.'
-      },
-      reinforce: nullable(
-        object({
-          kind: { type: 'string', enum: ['reinforce', 'amplify'] },
-          value: { type: 'number' },
-          amplificationName: nullableText
-        })
-      ),
-      enchant: nullable(
-        object({
-          status: {
-            type: 'array',
-            items: object({
-              name: text,
-              value: { oneOf: [{ type: 'number' }, { type: 'string' }] }
-            })
-          },
-          grade: {
-            type: 'string',
-            enum: ['종결', '준종결', '기타'],
-            nullable: true,
-            description:
-              '마법부여 등급표와 모든 옵션 이름, 값이 같을 때만 정하며 표에 없으면 null(미평가)입니다.'
-          }
-        })
-      )
-    })
+      '항상 빈 배열. 카드 기타 면의 12부위 값이었으며 이전 Desktop과의 호환을 위해 필드만 남깁니다.'
   }
 })
 
@@ -397,8 +264,7 @@ export const apiSchemas: Record<string, SchemaObject> = {
     ),
     card: {
       ...characterCard,
-      description:
-        '저장된 섹션을 카드 세 면(캐릭터, 장비, 기타)용으로 정규화한 값. 모르는 값은 null이며 점수는 Desktop이 채웁니다.'
+      description: '카드의 역할. 직업을 모르면 null이며 점수는 Desktop이 채웁니다.'
     }
   })
 }

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CharacterDetails } from '../../preload/common/types/character'
 import type { IdentificationAdapters } from './request'
 import { createCaptureSearchLifetime } from './capture-lifetime'
-import { FakeClock } from '../auth/auth-test-fixtures'
+import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
 const details: CharacterDetails = {
@@ -27,76 +27,9 @@ const details: CharacterDetails = {
   }
 }
 
-describe('선택 상세의 main 전용 보관 수명', () => {
-  it.each(['clear', 'end', '새 입력', '권한 만료'] as const)(
-    '%s는 상세 접근을 무효화한다',
-    async (reset) => {
-      let current = true
-      const identification: IdentificationAdapters = {
-        candidates: async () => [
-          {
-            ...details.character,
-            fame: 50000,
-            imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character?zoom=1',
-            adventureName: null,
-            jobName: null,
-            jobGrowName: null
-          }
-        ],
-        image: async () => ({ width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }),
-        details: async () => details,
-        scorePortrait: async () => null,
-        selection: INITIAL_PORTRAIT_COLOR_POLICY
-      }
-      const lifetime = createCaptureSearchLifetime({
-        publish: vi.fn(),
-        isCurrent: () => current,
-        runtime: { http: vi.fn(), clock: new FakeClock(), identification }
-      })
-      const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot
-        .captureId!
-      lifetime.observeOcr({
-        captureId,
-        slot: 0,
-        observationRevision: 1,
-        nickname: '가나',
-        candidateNicknames: ['가나'],
-        portrait: {
-          image: { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) },
-          rasterScale: 1
-        }
-      })
-      await vi.waitFor(() => expect(lifetime.snapshot().slots[0].state).toBe('success'))
-      const requestId = lifetime.snapshot().slots[0].requestId!
-      const identity = { captureId, slot: 0, requestId }
-      expect(lifetime.selection(identity)?.details).toBe(details)
-      expect(lifetime.selection(identity)?.card).toBeNull()
-      expect(lifetime.selection({ ...identity, requestId: 'stale' })).toBeNull()
-      expect(lifetime.selection({ ...identity, slot: -1 })).toBeNull()
-      expect(lifetime.selection({ ...identity, captureId: 'stale' })).toBeNull()
-      expect(lifetime.snapshot().slots[0]).not.toHaveProperty('details')
-      if (reset === 'clear') {
-        lifetime.clear({ action: 'clear', captureId, slot: 0, observationRevision: 2 })
-      } else if (reset === 'end') {
-        lifetime.end(captureId)
-      } else if (reset === '새 입력') {
-        lifetime.observeOcr({
-          captureId,
-          slot: 0,
-          observationRevision: 2,
-          nickname: '다라',
-          candidateNicknames: ['다라'],
-          portrait: null
-        })
-      } else {
-        current = false
-      }
-      expect(lifetime.selection(identity)).toBeNull()
-      lifetime.invalidate()
-    }
-  )
-
-  it('상세 응답의 카드 값을 선택 결과와 메인 카드 요약에 같은 값으로 보관한다', async () => {
+describe('OCR로 고른 캐릭터의 카드 요약', () => {
+  it('이전 API가 함께 보내던 카드 값은 버리고 역할만 메인 카드 요약에 넘긴다', async () => {
+    // 지금 배포된 API의 카드 응답 모양이다. 새 Desktop은 역할만 읽는다.
     const card = {
       role: 'dealer',
       stats: null,
@@ -136,7 +69,7 @@ describe('선택 상세의 main 전용 보관 수명', () => {
     const lifetime = createCaptureSearchLifetime({
       publish: vi.fn(),
       isCurrent: () => true,
-      runtime: { http: vi.fn(), clock: new FakeClock(), identification }
+      runtime: { http: vi.fn(), clock: new FakeMonotonicClock(), identification }
     })
     const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot
       .captureId!
@@ -152,11 +85,9 @@ describe('선택 상세의 main 전용 보관 수명', () => {
       }
     })
     await vi.waitFor(() => expect(lifetime.snapshot().slots[0].state).toBe('success'))
-    const requestId = lifetime.snapshot().slots[0].requestId!
-    const selected = lifetime.selection({ captureId, slot: 0, requestId })
 
-    expect(selected?.card).toEqual(card)
-    expect(selected?.card).toEqual(lifetime.snapshot().slots[0].selected?.card)
+    expect(lifetime.snapshot().slots[0].selected?.card).toEqual({ role: 'dealer', score: null })
+    expect(lifetime.snapshot().slots[0]).not.toHaveProperty('details')
     lifetime.invalidate()
   })
 })

@@ -13,7 +13,6 @@ import {
   type CandidatePicker
 } from '../lib/candidate-picker'
 import type { SearchView } from '../types/search'
-import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
 import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
 import { useManualCharacterLookup } from './useManualCharacterLookup'
 
@@ -23,8 +22,6 @@ type CharacterSearch = SearchView & {
   observe: (input: { slot: number; nickname: string | null }) => void
   observeOcr: (input: OcrCaptureObservation) => void
   retry: (slot: number) => void
-  openDetails: (slot: number) => void
-  detailNotice: string
   manualSlots: readonly boolean[]
   editSlot: (slot: number) => void
   submitSlot: (slot: number, nickname: string) => void
@@ -49,8 +46,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     lookup: manualLookup,
     reset: resetManual
   } = useManualCharacterLookup(window.manualSearch, SEARCH_SLOT_COUNTS.party)
-  const detailPendingRef = useRef(new Set<string>())
-  const [detailFailure, setDetailFailure] = useState<CharacterSelectionReference | null>(null)
   const manualSlotsRef = useRef(new Set<number>())
   const serverLookupSlotsRef = useRef(new Set<number>())
   const [serverLookupSlots, setServerLookupSlots] = useState([false, false, false, false])
@@ -75,7 +70,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
 
   useEffect(() => {
     let active = true
-    const pendingDetails = detailPendingRef.current
     const bridge = createCaptureSearch({
       api,
       notify,
@@ -83,24 +77,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
       onChange: (value) => {
         if (active) {
           setView(value)
-          setDetailFailure((failure) => {
-            if (failure === null) {
-              return null
-            }
-            const activeBridge = serverLookupSlotsRef.current.has(failure.slot)
-              ? manualBridge.current
-              : bridgeRef.current
-            const current = activeBridge?.selectedReference(failure.slot)
-            if (
-              current?.captureId === failure.captureId &&
-              current.slot === failure.slot &&
-              current.requestId === failure.requestId
-            ) {
-              return failure
-            }
-
-            return null
-          })
         }
       },
       onInvalidated: () => invalidatedRef.current()
@@ -111,10 +87,9 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     return () => {
       active = false
       bridgeRef.current = null
-      pendingDetails.clear()
       bridge.dispose()
     }
-  }, [api, notify, notifyOcr, manualBridge])
+  }, [api, notify, notifyOcr])
 
   const begin = useCallback(async (signal: AbortSignal): Promise<string | null> => {
     const bridge = bridgeRef.current
@@ -125,7 +100,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     return bridge.begin({ signal })
   }, [])
   const end = useCallback((): void => {
-    setDetailFailure(null)
     manualSlotsRef.current.clear()
     serverLookupSlotsRef.current.clear()
     setServerLookupSlots([false, false, false, false])
@@ -188,7 +162,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     (slot: number, nickname: string, serverId: string): void => {
       manualSlotsRef.current.add(slot)
       setManualSlots([0, 1, 2, 3].map((index) => manualSlotsRef.current.has(index)))
-      setDetailFailure(null)
       serverLookupSlotsRef.current.add(slot)
       setServerLookupSlots((slots) => slots.map((value, index) => index === slot || value))
       manualLookup(slot, nickname, serverId)
@@ -226,46 +199,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   const candidatePickers = view.slots.map((slot, index) =>
     toCandidatePicker(slot, picks[index] ?? null)
   )
-  const openDetails = useCallback(
-    (slot: number): void => {
-      const bridge = serverLookupSlotsRef.current.has(slot)
-        ? manualBridge.current
-        : bridgeRef.current
-      const reference = bridge?.selectedReference(slot)
-      if (bridge == null || reference == null) {
-        return
-      }
-      const identity = `${reference.captureId}:${reference.slot}:${reference.requestId}`
-      if (detailPendingRef.current.has(identity)) {
-        return
-      }
-      detailPendingRef.current.add(identity)
-      setDetailFailure(null)
-      const reportFailure = (): void => {
-        const current = bridge.selectedReference(slot)
-        if (
-          (serverLookupSlotsRef.current.has(slot) ? manualBridge.current : bridgeRef.current) ===
-            bridge &&
-          current?.captureId === reference.captureId &&
-          current.requestId === reference.requestId
-        ) {
-          setDetailFailure(reference)
-        }
-      }
-      void window.api
-        .openCharacterDetails(reference)
-        .then((result) => {
-          if (!result.ok) {
-            reportFailure()
-          }
-        })
-        .catch(reportFailure)
-        .finally(() => detailPendingRef.current.delete(identity))
-    },
-    [manualBridge]
-  )
-  const detailNotice =
-    detailFailure === null ? '' : '캐릭터 정보 창을 열지 못했습니다. 다시 시도해 주세요.'
   const slots = view.slots.map((slot) => {
     if (serverLookupSlots[slot.slot]) {
       const manualSlot = manualView.slots[slot.slot]
@@ -305,8 +238,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     observe,
     observeOcr: observe,
     retry,
-    openDetails,
-    detailNotice,
     manualSlots,
     editSlot,
     submitSlot,

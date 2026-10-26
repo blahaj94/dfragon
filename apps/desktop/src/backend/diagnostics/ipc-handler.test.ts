@@ -145,7 +145,7 @@ it('등록한 문서를 벗어나거나 창을 닫으면 진단을 보내지 않
   expect(f.contents.send).not.toHaveBeenCalled()
   f.window.emit('closed')
   dispose?.()
-  f.log.report('UPLOAD_FAILED')
+  f.log.report('SEARCH_FAILED')
   expect(f.contents.send).not.toHaveBeenCalled()
   expect(mocks.remove.mock.calls).toEqual([
     [DIAGNOSTIC_CHANNELS.history],

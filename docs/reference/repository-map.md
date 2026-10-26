@@ -47,17 +47,11 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 ## Shared library
 
 - Package: `@dfragon/lib`, 위치: `packages/lib`. 앱, UI, 플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
-- `detectPartyFrameGeometry`는 가득 찬 HP, MP와 주변 테두리에서 HUD 닉네임 위치와 래스터 배율을 검출한다. 일반 Desktop OCR과 개발자 이미지 수집이 같은 함수를 사용하며, 특정 해상도 일치 조건 대신 `isValidPartyFrameSize`의 메모리 보호 한도를 적용한다. [검출 범위와 한계](desktop-party-geometry.md#일반-캡처와-개발자-수집의-공용-검출)를 참고한다.
-- `detectDNFPartyParticipantWindow`, `cropDNFPartyParticipantNicknames`는 RGBA 화면과 호출자가 제공한 기준 헤더로 이동 가능한 파티참가인원 팝업과 네 행의 상태를 찾아 원본 닉네임을 자른다. 빈 행, 자물쇠 행의 슬롯 번호를 유지하며 Desktop의 파티원창 크롭 탭에서 사용한다. [입력 계약과 사용법](../../packages/lib/README.md#파티참가인원-닉네임-검출-크롭), [관측값과 검증 한계](desktop-party-participants.md)를 참고한다.
-- `detectDNFRaidParticipantWindow`, `cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대원창 크롭 탭과 공대 캡처에서 사용한다. `readDNFRaidParticipantMetadata`의 파티, 수치 판독, `readDNFRaidParticipantValues`의 수치 판독과 `classifyDNFRaidValueColumn`의 수치 열 종류 판별, `parseDNFRaidValueNotation`의 표기 해석은 순수 객체 반환에 한정한다. [공대원창 안내](desktop-raid-participants.md)를 참고한다.
+- `detectPartyFrameGeometry`는 가득 찬 HP, MP와 주변 테두리에서 HUD 닉네임 위치와 래스터 배율을 검출한다. 일반 Desktop OCR이 이 함수를 사용하며, 특정 해상도 일치 조건 대신 `isValidPartyFrameSize`의 메모리 보호 한도를 적용한다. [검출 범위와 한계](desktop-party-geometry.md#일반-캡처의-검출)를 참고한다.
+- `detectDNFPartyParticipantWindow`, `cropDNFPartyParticipantNicknames`는 RGBA 화면과 호출자가 제공한 기준 헤더로 이동 가능한 파티참가인원 팝업과 네 행의 상태를 찾아 원본 닉네임을 자른다. 빈 행, 자물쇠 행의 슬롯 번호를 유지한다. 이 함수를 쓰던 Desktop 개발자 도구를 지워 지금은 제품에서 쓰지 않는다. [입력 계약과 사용법](../../packages/lib/README.md#파티참가인원-닉네임-검출-크롭)을 참고한다.
+- `detectDNFRaidParticipantWindow`, `cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대 캡처에서 사용한다. `readDNFRaidParticipantMetadata`의 파티, 수치 판독, `readDNFRaidParticipantValues`의 수치 판독과 `classifyDNFRaidValueColumn`의 수치 열 종류 판별, `parseDNFRaidValueNotation`의 표기 해석은 순수 객체 반환에 한정한다. [공대원창 안내](desktop-raid-participants.md)를 참고한다.
 - `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색, 계정 규칙을 대신하지 않는다. 앱은 호출하지 않으며 dfragon-ocr의 학습 닉네임 생성이 원본으로 복사해 쓴다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
 - `pnpm --filter @dfragon/lib test`는 build 후 공개 export, 경계값, 문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
-
-## Skill data
-
-- Package: `@dfragon/skill-layouts`, 위치: `packages/skill-layouts`. 직업(`jobId`)과 전직(`jobGrowId`)별 고정 11열 스킬트리 배치 `layouts.json`(71개 전직, 3388칸)을 제공한다. 칸은 네오플 skillId, 행, 열, 이름, 종류, 습득 레벨과 각성기 여부다. 코드와 build 명령은 없다. [형식과 출처](../../packages/skill-layouts/README.md)를 참고한다.
-- Package: `@dfragon/icons`, 위치: `packages/icons`. 제품이 번들하는 게임 아이콘이다. 28 × 28 스킬 아이콘 2184개를 묶은 무손실 WebP sprite `skills.webp`와 `skills.json`(`jobId/skillId` → 칸 번호), 서약과 115 세트 아이콘을 묶은 `equipment.webp`와 `equipment.json`(`희귀도/서약 이름`, 네오플 setItemId → 칸 번호)이 있다. [출처와 권리](../../packages/icons/README.md)를 참고한다.
-- Desktop 상세 창 스킬 탭이 두 패키지를, 카드 장비 면과 상세 창 장비 탭이 `@dfragon/icons`의 서약, 세트 아이콘을 소비한다. 스킬 배치와 스킬 아이콘은 `scripts/import-skill-data.mjs`, 서약과 세트 아이콘은 `scripts/import-equipment-icons.mjs`로 외부 수집본에서 다시 만들며 손으로 고치지 않는다.
 
 ## Models
 
@@ -96,26 +90,25 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 ### `apps/desktop`
 
 - Package: `@dfragon/desktop`
-- Windows MVP 배포: 이름 `DFragon`, x64 NSIS, `dfragon` identity, profile과 빌드 시 HTTPS API origin을 사용한다. 로그인은 시스템 기본 브라우저와 loopback 수신기로 연결한다. 기존 `dfragon.dev` 개발 설치본과 분리하며 [설치, 사용, 빌드 안내](../../apps/desktop/README.md)를 따른다.
+- Windows MVP 배포: 이름 `DFragon`, x64 NSIS, `dfragon` identity, profile과 빌드 시 HTTPS API origin을 사용한다. 로그인은 없다. 기존 `dfragon.dev` 개발 설치본과 분리하며 [설치, 사용, 빌드 안내](../../apps/desktop/README.md)를 따른다.
 - Stack: Electron, React, TypeScript, electron-vite
 - Process boundary: `main`, `preload`, `renderer`
-- TypeScript: `tsconfig.node.json`, `tsconfig.web.json`에 `composite: false`, `noEmit: true`와 base 설정의 `noImplicitAny: false`를 덮어쓰는 `noImplicitAny: true`를 정의하며 에디터와 `typecheck`는 같은 설정을 사용한다. Root `tsconfig.json`은 빈 `files`와 두 프로젝트 참조로 에디터의 프로젝트 탐색을 연결한다. 타입 검사는 각 설정에 `tsc -p`를 실행하고 제품 산출물은 electron-vite가 생성한다. 인증 fixture도 이 설정을 상속하며 명령에서 `composite`를 덮어쓰지 않는다.
+- TypeScript: `tsconfig.node.json`, `tsconfig.web.json`에 `composite: false`, `noEmit: true`와 base 설정의 `noImplicitAny: false`를 덮어쓰는 `noImplicitAny: true`를 정의하며 에디터와 `typecheck`는 같은 설정을 사용한다. Root `tsconfig.json`은 빈 `files`와 두 프로젝트 참조로 에디터의 프로젝트 탐색을 연결한다. 타입 검사는 각 설정에 `tsc -p`를 실행하고 제품 산출물은 electron-vite가 생성한다.
 - Main entry: `src/backend/main.ts` → `out/backend/main.js`
-- Auth core: `src/backend/auth/coordinator.ts`의 단일 main coordinator가 pending, generation, credential writer와 restore, refresh, logout을 소유한다. 제품 main은 완전한 trusted runtime 설정에서 conditional bootstrap과 플랫폼별 credential adapter(win32는 `createWindowsCredentialStore`, macOS는 `createMacOsCredentialStore`)를 구성한다. 상세 검증 범위는 [`desktop-auth-core.md`](desktop-auth-core.md)를 참고한다.
 - 캐릭터 검색: main 검색 수명, HTTP와 preload/renderer의 위치 및 검증은 [`desktop-character-search.md`](desktop-character-search.md)를 참고한다. 실제 서버 소비 검증은 별도 `apps/desktop/scripts/search-server-integration/README.md`를 따른다.
 - Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 아래 역할로 나눈다. 실행 진입점 `main.tsx`, `App.tsx`와 App 테스트는 root에 두고, 앱 조합 통합 테스트는 `integration`에 둔다.
-  - `constants/`: 서버 목록, 카드 면, 장비 배치, 인증 문구, 캡처 설정과 공유 StyleX 변수, 테마.
-  - `components/`: `CardImage`, `InvestmentTable`, `CharacterCandidates`, `SlotNicknameEditor`, `LoginButtonLabel`처럼 독립적으로 쓸 수 있는 UI와 전용 스타일, 테스트를 하위 폴더 없이 둔다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. 이미지 실패, 입력 draft 같은 자체 UI 상태를 가질 수 있다.
-  - `sections/`: 카드, 인증, 캡처, 검색의 기능 조합을 하위 폴더 없이 배치한다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. `CharacterCard`와 공대 축약 카드 `RaidCard`, 상세 창 패널 `CharacterDetailPanel`, `LoginSection`의 시스템 브라우저 로그인 진입과 진행 중 취소, `ManualSearch`, `PartyCapture`의 요청, 구독 수명을 담당하며 전용 스타일, UI 테스트를 함께 둔다. UI는 `hooks`의 커스텀 hook을 사용한다.
-  - `pages/`: `party/PartyScreen`, `raid/RaidScreen`(캡처 결과로 화면 값을 계산하는 파티, 공대 화면 컨테이너), `party/PartyPage`(4개 슬롯), `raid/RaidPage`(공대 보드, 자리 맞바꾸기), `character-detail/CharacterSnapshotPage`(제품 상세 창), `character-detail/CharacterDetailPage`(합성 미리보기 상세 창), `login/LoginPage`(인증, 홈 배치), `home/HomePage`(`fixture/legacy/LegacyApp`의 직접 검색, 캡처 홈).
-  - `fixture/`: MVP 합성 데이터, 자산, 화면 제어, 구버전 조합 `legacy/LegacyApp`, 인증 bridge 실행 화면. 공용 글꼴은 `assets/fonts`, UI 자산 원본 고지는 `packages/licenses/notices/desktop`에 두고 공용 도구가 앱별 산출물을 만든다. 제품 페이지가 fixture를 import하지 않는다.
+  - `constants/`: 서버 목록, 카드 표시 값, 캡처 설정과 공유 StyleX 변수, 테마.
+  - `components/`: `CardImage`, `CharacterCandidates`, `SlotNicknameEditor`, `CaptureControls`처럼 독립적으로 쓸 수 있는 UI와 전용 스타일, 테스트를 하위 폴더 없이 둔다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. 이미지 실패, 입력 draft 같은 자체 UI 상태를 가질 수 있다.
+  - `sections/`: 카드, 캡처, 검색의 기능 조합을 하위 폴더 없이 배치한다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. `CharacterCard`와 공대 축약 카드 `RaidCard`, 통합 테스트가 띄우는 `ManualSearch`, `PartyCapture`의 요청, 구독 수명을 담당하며 전용 스타일, UI 테스트를 함께 둔다. UI는 `hooks`의 커스텀 hook을 사용한다.
+  - `pages/`: `party/PartyScreen`, `raid/RaidScreen`(캡처 결과로 화면 값을 계산하는 파티, 공대 화면 컨테이너), `party/PartyPage`(4개 슬롯), `raid/RaidPage`(공대 보드, 자리 맞바꾸기).
+  - `fixture/`: MVP 합성 데이터, 자산, 화면 제어. 공용 글꼴은 `assets/fonts`, UI 자산 원본 고지는 `packages/licenses/notices/desktop`에 두고 공용 도구가 앱별 산출물을 만든다. 제품 페이지가 fixture를 import하지 않는다.
   - `lib/`: 화면과 독립적인 입력 검증, OCR 계산, 파티 이미지 처리, 검색 초기 슬롯 생성, 검색 연결 및 캡처 수명, OCR worker와 관련 단위 테스트를 하위 폴더 없이 배치한다. 각 유틸리티 함수에는 역할 설명 주석을 둔다.
-  - `hooks/`: 인증 연결, 캐릭터 검색, 캡처 창 목록, 인식, XState 연결을 담당하는 커스텀 hook과 `ColorThemeProvider`의 공유 상태를 읽는 테마 hook, hook 전용 테스트를 하위 폴더 없이 둔다. 검색, OCR의 기존 비UI 구현은 `lib/capture-search.ts`, `lib/ocr.ts`에서 직접 참조한다. 인증 IPC 연결 전이는 `lib/auth-bridge-machine.ts`가 소유하며 인증 결과는 main snapshot에서 읽는다. 캡처 전이는 `lib/party-capture-machine.ts`가 소유한다. 창 등록과 회차 시작을 구분하고 회차마다 한 프레임으로 인식하며 이전 회차의 자원과 늦은 결과를 정리한다.
+  - `hooks/`: 캐릭터 검색, 캡처 창 목록, 인식, XState 연결을 담당하는 커스텀 hook과 `ColorThemeProvider`의 공유 상태를 읽는 테마 hook, hook 전용 테스트를 하위 폴더 없이 둔다. 검색, OCR의 기존 비UI 구현은 `lib/capture-search.ts`, `lib/ocr.ts`에서 직접 참조한다. 캡처 전이는 `lib/party-capture-machine.ts`가 소유한다. 창 등록과 회차 시작을 구분하고 회차마다 한 프레임으로 인식하며 이전 회차의 자원과 늦은 결과를 정리한다.
   - `testing/`: 여러 테스트가 공유하는 유틸리티, mock, fixture를 둔다. 현재 `testing/fixtures`의 검색 renderer 도우미를 공유하며, 실제 테스트 파일은 검증하는 코드 옆 또는 기존 `integration`에 둔다.
-  - `types/`: 카드, 인증, 검색, 캡처, 서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
+  - `types/`: 카드, 검색, 캡처, 서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
   - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section, page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트, fixture의 조합은 이 제품 의존 규칙과 구분한다.
   - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일, 불필요한 wrapper로 계층을 채우지 않는다. UI와 독립적인 검색 연결, OCR 구현은 `lib`에 두고, React 상태 연결은 `hooks`와 UI가 담당한다.
-- 기본 앱: `pnpm --filter @dfragon/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개, 테마 전환과 인증 설정이 있을 때 설정 대화상자 로그인 버튼의 시스템 브라우저 진입, 진행 중 취소, 실패 후 재시도를 제공한다. 상단 바 게임 연결 상태 칩의 CaptureControls 모달은 창 등록, 대상 변경, 중지를 연결한다. 던파 창 하나 자동 감지도 등록만 하며 Alt+R이나 파티 머리의 캡처 버튼마다 한 프레임으로 네 슬롯을 인식하고 OCR 첫 후보를 카드에 표시한다. 미검출 슬롯은 비워 두고 화면 복귀 후 자동 재개나 주기적인 반복 인식을 하지 않는다. 인증 연결은 `useAuthBridge`와 main/preload IPC를 재사용한다. 구버전 조합 `fixture/legacy/LegacyApp`은 기존 기능 테스트에서만 사용하며 캡처 시작 버튼도 같은 회차 시작을 보낸다. 합성 메인, 상세, 캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML, 데이터, 이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
+- 기본 앱: `pnpm --filter @dfragon/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개와 테마 전환을 제공한다. 로그인, 설정, 개발자 도구는 없다. 상단 바 게임 연결 상태 칩의 CaptureControls 모달은 창 등록, 대상 변경, 중지를 연결한다. 던파 창 하나 자동 감지도 등록만 하며 Alt+R이나 파티 머리의 캡처 버튼마다 한 프레임으로 네 슬롯을 인식하고 OCR 첫 후보를 카드에 표시한다. 미검출 슬롯은 비워 두고 화면 복귀 후 자동 재개나 주기적인 반복 인식을 하지 않는다. 통합 테스트가 띄우는 `ManualSearch`, `PartyCapture` 섹션의 캡처 시작 버튼도 같은 회차 시작을 보낸다. 합성 메인, 캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML, 데이터, 이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
 - Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 `@dfragon/ui`의 토큰과 Component를 사용한다. 제품, test, fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 - Command:
   - `pnpm --filter @dfragon/desktop dev`
@@ -168,9 +161,3 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 - Runtime 또는 주요 framework 변경
 - 표준 command 변경
 - Process boundary 또는 source root 변경
-
-## Desktop 개발 도구
-
-설치 앱의 설정에서 개발자 모드를 활성화한다. `apps/desktop/src/backend/developer`가 로컬 설정, PNG/라벨 저장과 Windows 게임 client 캡처를 소유하고, `src/preload/api/developer.ts`의 제한된 API로 연결한다. Renderer의 `sections/DeveloperWorkbench.tsx`가 HUD, 파티원창의 네 위치와 공대원창의 12행 수집, 라벨, 기존 OCR 모델 평가를 조합한다. `backend/developer/ocr-upload.ts`는 로그인 중 Print Screen 수집의 원본, 선택 좌표를 기존 인증 coordinator로 OCR 서버에 전송하며 토큰, 원본 전송 IPC나 재시도 큐는 노출하지 않는다. `backend/developer/ocr-dataset.ts`는 같은 소유자 인증으로 서버 정답 스냅샷과 크롭을 읽고, `hooks/useOcrSamples.ts`가 자료 위치, 조회 수명과 읽기 전용 평가 화면을 연결한다. 모델 실행은 제품의 `lib/ocr.ts`, Otsu 반전 이진화는 `lib/nickname-pixels.ts`를 공유한다. [사용법과 현재 이관 범위](../../apps/desktop/README.md#개발자-모드)를 참고한다.
-
-`lib/developer-mode-machine.ts`, `lib/developer-samples-machine.ts`, `lib/developer-evaluation-machine.ts`가 각각 설정 전환, 샘플 조회, 저장, 평가 실행, 취소의 상태를 소유한다. 대응하는 `hooks/useDeveloper*.ts`는 machine 상태를 화면 API로 연결하고, `lib/developer-evaluation-run.ts`는 actor의 취소 신호에 따라 OCR 자원을 정리한다. 정답 입력의 필터, 자료실 페이지, 선택한 이미지, 라벨 초안과 저장 뒤 다음 이미지 이동은 `hooks/useDeveloperLabeling.ts`가, 수집 종류별로 고른 위치는 `hooks/useDeveloperPartyCollection.ts`가 소유한다. 이미지 읽기 재시도 같은 표시 상태는 컴포넌트에 둔다.

@@ -5,12 +5,10 @@ import { styles } from './UpdateNotice.style'
 
 export function UpdateNotice({
   tag,
-  endsOcrCollection,
   onOpenRelease,
   onDismiss
 }: {
   tag: string
-  endsOcrCollection: boolean
   onOpenRelease: () => void
   onDismiss: () => void
 }): React.JSX.Element {
@@ -20,11 +18,6 @@ export function UpdateNotice({
         <Typo.txtS as="p" weight={700}>
           새 버전 {tag}
         </Typo.txtS>
-        {endsOcrCollection && (
-          <Typo.caption as="p" {...stylex.props(styles.detail)}>
-            이 버전으로 바꾸면 OCR 자료 수집이 꺼집니다.
-          </Typo.caption>
-        )}
       </div>
       <div {...stylex.props(styles.actions)}>
         <Button size="sm" onClick={onOpenRelease}>

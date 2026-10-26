@@ -51,7 +51,7 @@ it('시작하면 바로 확인하고 새 버전을 구독과 조회에 같은 �
   notices.start()
   await settle()
 
-  const expected = { revision: 1, notice: { tag: 'v0.0.3', endsOcrCollection: false } }
+  const expected = { revision: 1, notice: { tag: 'v0.0.3' } }
   expect(listener).toHaveBeenCalledExactlyOnceWith(expected)
   expect(notices.snapshot()).toEqual(expected)
   expect(readFeed).toHaveBeenCalledOnce()
@@ -109,7 +109,7 @@ it('닫은 버전은 다시 확인해도 알리지 않고 더 높은 버전은 �
 
   expect(notices.dismiss('v0.0.2')).toEqual({
     revision: 1,
-    notice: { tag: 'v0.0.3', endsOcrCollection: false }
+    notice: { tag: 'v0.0.3' }
   })
   expect(notices.dismiss('v0.0.3')).toEqual({ revision: 2, notice: null })
   expect(listener).toHaveBeenLastCalledWith({ revision: 2, notice: null })
@@ -120,7 +120,7 @@ it('닫은 버전은 다시 확인해도 알리지 않고 더 높은 버전은 �
   await vi.advanceTimersByTimeAsync(SIX_HOURS_MS)
   expect(notices.snapshot()).toEqual({
     revision: 3,
-    notice: { tag: 'v0.0.4', endsOcrCollection: false }
+    notice: { tag: 'v0.0.4' }
   })
   notices.dispose()
 })

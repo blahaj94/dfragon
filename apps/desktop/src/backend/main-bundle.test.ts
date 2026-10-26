@@ -7,36 +7,36 @@ import { expect, it, vi } from 'vitest'
 
 const requireDependency = createRequire(import.meta.url)
 
-it.each([
-  ['src/backend/auth/http.ts', 'createAuthHttpClient'],
-  ['src/backend/search/http.ts', 'createSearchHttp']
-])('제품 main 설정으로 빌드한 %s는 실제 Ky export로 초기화된다', async (entry, factory) => {
-  const resolved = await resolveConfig(
-    { configFile: 'electron.vite.config.ts', logLevel: 'silent' },
-    'build',
-    'dfragon-development'
-  )
-  const main = resolved.config!.main!
-  const output = await build({
-    ...main,
-    logLevel: 'silent',
-    build: { ...main.build, write: false, lib: { entry: resolve(entry), formats: ['cjs'] } }
-  })
-  const bundles = Array.isArray(output) ? output : [output]
-  expect(bundles).toHaveLength(1)
-  const bundle = bundles[0]
-  if (!('output' in bundle)) {
-    throw new Error('Expected completed HTTP client build')
+it.each([['src/backend/search/http.ts', 'createSearchHttp']])(
+  '제품 main 설정으로 빌드한 %s는 실제 Ky export로 초기화된다',
+  async (entry, factory) => {
+    const resolved = await resolveConfig(
+      { configFile: 'electron.vite.config.ts', logLevel: 'silent' },
+      'build',
+      'dfragon-development'
+    )
+    const main = resolved.config!.main!
+    const output = await build({
+      ...main,
+      logLevel: 'silent',
+      build: { ...main.build, write: false, lib: { entry: resolve(entry), formats: ['cjs'] } }
+    })
+    const bundles = Array.isArray(output) ? output : [output]
+    expect(bundles).toHaveLength(1)
+    const bundle = bundles[0]
+    if (!('output' in bundle)) {
+      throw new Error('Expected completed HTTP client build')
+    }
+    const chunks = bundle.output.filter((item) => item.type === 'chunk')
+    expect(chunks).toHaveLength(1)
+    const environment = mainEnvironment()
+    runInContext(chunks[0].code, environment.context)
+    // Native profile failures previously let the full-main smoke skip this initialization.
+    expect(() =>
+      environment.context.exports[factory]({ apiOrigin: 'https://api.example.test' })
+    ).not.toThrow()
   }
-  const chunks = bundle.output.filter((item) => item.type === 'chunk')
-  expect(chunks).toHaveLength(1)
-  const environment = mainEnvironment()
-  runInContext(chunks[0].code, environment.context)
-  // Native profile failures previously let the full-main smoke skip this initialization.
-  expect(() =>
-    environment.context.exports[factory]({ apiOrigin: 'https://api.example.test' })
-  ).not.toThrow()
-})
+)
 
 function mainEnvironment(): {
   context: ReturnType<typeof createContext>
@@ -55,12 +55,7 @@ function mainEnvironment(): {
     setDisplayMediaRequestHandler: vi.fn(),
     webRequest: { onBeforeRequest: vi.fn() }
   }
-  const detailSession = {
-    setPermissionCheckHandler: vi.fn(),
-    setPermissionRequestHandler: vi.fn(),
-    setDisplayMediaRequestHandler: vi.fn()
-  }
-  const fromPartition = vi.fn(() => detailSession)
+  const fromPartition = vi.fn(() => session)
   const electron = {
     app: {
       getPath,
@@ -68,6 +63,8 @@ function mainEnvironment(): {
       isPackaged: true,
       setPath: vi.fn(),
       setName: vi.fn(),
+      setAppUserModelId: vi.fn(),
+      requestSingleInstanceLock: vi.fn(() => true),
       on: vi.fn(),
       quit: vi.fn(),
       exit: vi.fn(),
@@ -267,8 +264,7 @@ it.each([
   }
   const environment = mainEnvironment()
   if (mode === 'dfragon-development') {
-    // Exercise the built-in tuple on an OS-style cold launch without auth env vars.
-    // This isolated bundle has no Win32 module; native loading must fail before profile IO.
+    // 셸 설정 없이 OS에서 바로 실행한 것처럼 빌드에 넣은 채널 값만으로 시작한다.
     environment.context.process.platform = 'win32'
   }
   environment.context.__dirname = dirname(resolve(main!.build!.outDir!, entry.fileName))
@@ -287,13 +283,10 @@ it.each([
   }
   expect(failure).toBeNull()
   expect(environment.error).not.toHaveBeenCalled()
-  expect(environment.fromPartition).toHaveBeenCalledExactlyOnceWith('character-detail-1')
+  // 채널 빌드만 채널 profile 폴더를 정하고, 채널 없는 빌드는 Electron 기본 profile을 쓴다.
   if (mode === 'dfragon-development') {
-    expect(environment.getPath).toHaveBeenCalledTimes(2)
-    expect(environment.getPath).toHaveBeenNthCalledWith(1, 'appData')
-    expect(environment.getPath).toHaveBeenNthCalledWith(2, 'userData')
+    expect(environment.getPath).toHaveBeenCalledExactlyOnceWith('appData')
   } else {
-    expect(environment.getPath).toHaveBeenCalledExactlyOnceWith('userData')
-    expect(environment.getPath).not.toHaveBeenCalledWith('appData')
+    expect(environment.getPath).not.toHaveBeenCalled()
   }
 })

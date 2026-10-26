@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net'
 import { crc32, deflateSync } from 'node:zlib'
 import { PNG } from 'pngjs'
 import { describe, expect, it, vi } from 'vitest'
-import type { AuthClock } from '../auth/types'
+import type { MonotonicClock } from '../lib/monotonic-clock'
 import type { CharacterCandidate, CharacterDetails } from '../../preload/common/types/character'
 import {
   CHARACTER_HTTP_LIMITS,
@@ -351,8 +351,8 @@ describe('캐릭터 PNG HTTP', () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(new Response(null, { status: 429, headers: { 'Retry-After': '7' } }))
-    const clock: Pick<AuthClock, 'read'> = {
-      read: () => ({ monotonicMs: 1234, wallMs: 5678, discontinuous: false })
+    const clock: Pick<MonotonicClock, 'read'> = {
+      read: () => ({ monotonicMs: 1234 })
     }
     const read = createCharacterImageHttp({ fetch, clock })
 
@@ -409,8 +409,8 @@ describe('캐릭터 통신 실패와 호출자 취소', () => {
       const fetch = vi
         .fn<typeof globalThis.fetch>()
         .mockResolvedValue(json({ error: { code } }, 429, { 'Retry-After': '7' }))
-      const clock: Pick<AuthClock, 'read'> = {
-        read: () => ({ monotonicMs: 1234, wallMs: 5678, discontinuous: false })
+      const clock: Pick<MonotonicClock, 'read'> = {
+        read: () => ({ monotonicMs: 1234 })
       }
       const options = { apiOrigin: API_ORIGIN, fetch, clock }
       const request =

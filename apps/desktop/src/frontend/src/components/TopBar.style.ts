@@ -3,8 +3,8 @@ import { colors, size, space } from '@dfragon/ui/tokens.stylex'
 
 // 숨김 기준은 OS 창 버튼 자리를 뺀 상단 바 내용 폭이다. Windows 최소 창 1024에서 내용 폭은 846px(왼쪽
 // 여백 24, 창 버튼 138과 간격 16)이고 제품 이름은 900px 이하에서 숨긴다. 게임 연결 상태 칩은 캡처할 창을
-// 고르는 대화상자를 여는 유일한 길이라 숨기지 않는다. 카메라 버튼이 빠져 로고 마크, 내비 312px, 칩 묶음
-// 약 123px, 테마와 설정 72px과 간격을 더해도 약 560px이라 846px 안에 들어간다. 로그인은 설정 대화상자에 있다.
+// 고르는 대화상자를 여는 유일한 길이라 숨기지 않는다. 로고 마크, 내비, 칩 묶음 약 123px, 테마 버튼과 간격을
+// 더해도 846px 안에 들어간다.
 const HIDE_NAME = '@container (max-width: 900px)'
 
 export const styles = stylex.create({

@@ -185,14 +185,22 @@ test('공유 조회 실패 뒤 새 요청을 허용하고 서버 종료는 취�
   await closing
 })
 
-test('상세 응답은 기존 필드에 card를 더하고 서버 내 순위는 null이다', async (t) => {
+test('상세 응답은 기존 필드에 역할만 정한 card를 더하고 지운 카드 칸은 빈 값이다', async (t) => {
+  // 이 fixture의 기본정보에는 전직명이 없어 역할은 null이다.
   const service = createCharacterDetailService({ fetchDetails: async () => payloads })
   t.after(() => service.onModuleDestroy())
 
   const result = await service.get('192.0.2.1', identity, signal)
 
-  assert.equal(result.card.serverRank, null)
-  assert.equal(result.card.investment.length, 12)
+  assert.deepEqual(result.card, {
+    role: null,
+    stats: null,
+    score: null,
+    serverRank: null,
+    set: null,
+    oath: null,
+    investment: []
+  })
   const { card: _card, ...rest } = result
   assert.deepEqual(
     Object.keys(rest).sort(),

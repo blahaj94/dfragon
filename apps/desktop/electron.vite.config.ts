@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { defineConfig } from 'electron-vite'
 import type { Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
-import { uiNotices, desktopNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
+import { uiNotices, desktopNotices } from '@dfragon/licenses/vite'
 import { readChannelNameFromMode, readDesktopChannel } from './build/channels'
 
 const LIB_IMPORT_PATTERN = /^@dfragon\/lib$/
@@ -23,7 +23,6 @@ export default defineConfig(({ mode, command }) => {
   const frontendRoot = resolve('src/frontend')
   const rendererInput = {
     app: resolve('src/frontend/index.html'),
-    characterDetail: resolve('src/frontend/character-detail.html'),
     ...(mode === 'mvp-preview' ? { mvpPreview: resolve('src/frontend/mvp-preview.html') } : {})
   }
   const rendererAliases = [
@@ -39,11 +38,6 @@ export default defineConfig(({ mode, command }) => {
     ...rendererTransforms(),
     uiNotices({ runtimeRoot: resolve('.') }),
     desktopNotices(),
-    desktopLicenseCatalog({
-      runtimeRoot: resolve('.'),
-      uiRoot: resolve('../../packages/ui'),
-      ocrRoot: resolve('assets/ocr')
-    }),
     ...(mode === 'mvp-preview'
       ? [
           {
@@ -107,10 +101,7 @@ export default defineConfig(({ mode, command }) => {
       build: {
         externalizeDeps: false,
         rollupOptions: {
-          input: {
-            index: resolve('src/preload/index.ts'),
-            'character-detail': resolve('src/preload/character-detail.ts')
-          }
+          input: { index: resolve('src/preload/index.ts') }
         }
       }
     },

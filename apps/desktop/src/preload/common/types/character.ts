@@ -16,28 +16,6 @@ export type CharacterSummary = CharacterIdentity &
 
 export type CharacterCardRole = 'dealer' | 'buffer'
 export type CharacterScoreCalculator = 'equipment' | 'buff'
-export type CharacterCardPoint = Readonly<{ current: number; min: number; max: number }>
-export type CharacterRarityCount = Readonly<{ rarity: string; count: number }>
-
-export type CharacterTownStatName = '지능' | '정신력' | '체력'
-
-export type CharacterCardStats =
-  | Readonly<{
-      role: 'dealer'
-      attackIncrease: number | null
-      amplification: number | null
-      critical: number | null
-      switchingLevel: number | null
-    }>
-  | Readonly<{
-      role: 'buffer'
-      /** 버퍼 주 스탯. 뮤즈, 패러메딕은 정신력, 남자 크루세이더는 정신력과 체력 중 큰 쪽, 그 밖은 지능이다. */
-      townStatName: CharacterTownStatName
-      townStat: number | null
-      buff30: number | null
-      buff50: number | null
-      switchingLevel: number | null
-    }>
 
 /**
  * 엔진 점수. `value`는 정확한 점수만 담고, 계산을 건너뛴 결과에 엔진이 근사값을 내면 `approximate`에 따로 둔다.
@@ -51,80 +29,23 @@ export type CharacterCardScore = Readonly<{
   versions: Readonly<{ package: string; rulesRev: string; bundleId: string }>
 }>
 
-export type CharacterCardInvestment = Readonly<{
-  slotId: string
-  slotName: string
-  itemId: string | null
-  itemName: string | null
-  rarity: string | null
-  /** 유일 장비 여부. API의 유일 장비 기준표로 정하고 장착하지 않은 부위는 false다. */
-  exclusive: boolean
-  reinforce: Readonly<{
-    kind: 'reinforce' | 'amplify'
-    value: number
-    amplificationName: string | null
-  }> | null
-  enchant: Readonly<{
-    status: readonly Readonly<{ name: string; value: number | string }>[]
-    grade: '종결' | '준종결' | '기타' | null
-  }> | null
-}>
-
 /**
- * API 상세 응답의 카드 투영에 main이 점수 엔진 결과를 채운 값. 모르는 값은 null이며 0이나 빈 값으로
- * 바꾸지 않는다. 형태는 API 응답의 `card`와 같다.
+ * 카드의 캐릭터 면 값. API 상세 응답의 `card.role`에 main이 점수 엔진 결과를 채운다. 모르는 값은 null이며
+ * 0이나 빈 값으로 바꾸지 않는다.
  */
 export type CharacterCard = Readonly<{
   role: CharacterCardRole | null
-  stats: CharacterCardStats | null
   score: CharacterCardScore | null
-  serverRank: Readonly<{
-    rank: number
-    total: number
-    basis: 'fame'
-    scope: 'stored'
-    observedAt: string
-  }> | null
-  set: Readonly<{
-    setItemId: string
-    name: string
-    rarityName: string | null
-    point: CharacterCardPoint | null
-    imageItemId: string | null
-    /** `exclusive`는 유일 장비 부위이고 `rarityCounts`는 그 부위를 희귀도 대신 `유일`로 센다. */
-    slots: readonly Readonly<{ slotId: string; rarity: string | null; exclusive: boolean }>[]
-    rarityCounts: readonly CharacterRarityCount[]
-  }> | null
-  oath: Readonly<{
-    itemId: string
-    name: string
-    rarity: string | null
-    point: number | null
-    setName: string | null
-    optionName: string | null
-    setPoint: CharacterCardPoint | null
-    upgrades: readonly Readonly<{ step: number; stepName: string; optionName: string }>[]
-    crystals: readonly Readonly<{
-      slotNo: number
-      itemId: string
-      name: string
-      rarity: string | null
-      setPoint: number | null
-    }>[]
-    rarityCounts: readonly CharacterRarityCount[]
-  }> | null
-  investment: readonly CharacterCardInvestment[]
 }>
 
 /**
  * 검색 슬롯이 카드에 넘기는 선택 요약. `card`는 main이 검증하지 못하면 null이고 나머지 요약은 그대로
- * 보낸다. `equipmentScore`와 `serverRank`는 `card`의 점수 값과 순위를 그대로 옮긴 값이다.
+ * 보낸다. `equipmentScore`는 `card`의 점수 값을 그대로 옮긴 값이다.
  */
 export type SelectedCharacterSummary = CharacterSummary &
   Readonly<{
     guildName: string | null
     equipmentScore: number | null
-    serverRank: number | null
     card: CharacterCard | null
   }>
 

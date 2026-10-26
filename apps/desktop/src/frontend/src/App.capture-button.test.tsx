@@ -1,11 +1,7 @@
 // @vitest-environment jsdom
 import { act } from 'react'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
-import {
-  createRendererFixture,
-  authSnapshot,
-  media
-} from './testing/fixtures/search-renderer-test-fixture'
+import { createRendererFixture, media } from './testing/fixtures/search-renderer-test-fixture'
 import App from './App'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
 
@@ -241,11 +237,10 @@ it.each(triggers)(
   }
 )
 
-it.each(triggers)('로그인하지 않아도 %s은 회차를 시작한다', async (trigger) => {
+it.each(triggers)('창을 감지하면 %s이 회차를 시작한다', async (trigger) => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
   await mount(f)
-  await f.emitAuth(authSnapshot({ revision: 2, signedIn: false }))
   await press(f, trigger)
   expect(beginCount(f)).toBe(1)
   expect(f.readCaptureFrame).toHaveBeenCalledOnce()

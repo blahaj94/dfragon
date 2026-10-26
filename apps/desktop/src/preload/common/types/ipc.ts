@@ -1,4 +1,3 @@
-import type { AuthSnapshot, AuthCommandResult, AuthProvider } from './auth'
 import type {
   CaptureSource,
   RaidFrameResult,
@@ -11,29 +10,14 @@ import type {
   SearchObservation,
   OcrSearchObservation
 } from './search'
-import type { CollectOcrSample, OcrCollectionResult } from './ocr-collection'
 import type { DiagnosticIPCFunctions } from './diagnostics'
 import type { UpdateNoticeIPCFunctions } from './update-notice'
 import type { WindowChromeIPCFunctions } from './window-chrome'
-import type {
-  CharacterDetailSnapshot,
-  CharacterSelectionReference,
-  OpenCharacterDetailResult
-} from './character-detail'
 
 interface AsyncIPCFunctions
   extends DiagnosticIPCFunctions,
     UpdateNoticeIPCFunctions,
     WindowChromeIPCFunctions {
-  collectOcrSample: (input: CollectOcrSample) => Promise<OcrCollectionResult>
-  readCharacterDetail: () => Promise<CharacterDetailSnapshot>
-  openCharacterDetails: (input: CharacterSelectionReference) => Promise<OpenCharacterDetailResult>
-  getAuthState: () => Promise<AuthSnapshot>
-  beginLogin: (input: { provider: AuthProvider }) => Promise<AuthCommandResult>
-  cancelLogin: (input: { attemptId: string }) => Promise<AuthCommandResult>
-  retryAuth: () => Promise<AuthCommandResult>
-  managePasskeys: () => Promise<AuthCommandResult>
-  logout: () => Promise<AuthCommandResult>
   listCaptureSources: () => Promise<CaptureSource[]>
   selectCaptureSource: (sourceId: string) => Promise<CaptureSource | null>
   readCaptureFrame: (captureId: string) => Promise<WindowFrameResult>

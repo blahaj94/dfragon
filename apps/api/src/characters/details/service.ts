@@ -7,8 +7,6 @@ import { enrichCharacterDetails } from '../catalog/enrich.js'
 import { characterFreshness } from './freshness.js'
 import { SharedCharacterFetches } from './shared-fetches.js'
 import type { CatalogService } from '../catalog/service.js'
-import { enchantGrades } from '../card/enchant-grades.js'
-import { exclusiveItems } from '../card/exclusive-items.js'
 import { projectCharacterCard } from '../card/project.js'
 
 export interface CharacterDetailDependencies {
@@ -57,8 +55,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
       if (!freshness) {
         throw new CharacterDetailFailure('internal')
       }
-      // 서버 내 순위는 저장한 캐릭터끼리 비교하던 값이라 DB 없이는 계산하지 않는다.
-      const card = projectCharacterCard(projected, null, enchantGrades, exclusiveItems)
+      const card = projectCharacterCard(projected)
       const details = deps.catalog
         ? await enrichCharacterDetails(projected, deps.catalog, signal)
         : projected

@@ -1,8 +1,8 @@
 import ky from 'ky'
 import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
-import { validateApiOrigin } from '../auth/protocol'
-import type { AuthClock } from '../auth/types'
+import { validateApiOrigin } from '../lib/api-origin'
+import type { MonotonicClock } from '../lib/monotonic-clock'
 import { SEARCH_ERRORS } from '../../preload/common/types/search'
 import type { CharacterSearchRow, SearchErrorCode } from '../../preload/common/types/search'
 
@@ -87,7 +87,7 @@ export function createSearchHttp({
 }: {
   apiOrigin: string
   fetch?: typeof fetch
-  clock?: Pick<AuthClock, 'read'>
+  clock?: Pick<MonotonicClock, 'read'>
 }): SearchHttp {
   const origin = validateApiOrigin(apiOrigin)
   const client = ky.create({

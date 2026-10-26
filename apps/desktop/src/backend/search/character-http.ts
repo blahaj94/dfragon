@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
-import { validateApiOrigin } from '../auth/protocol'
-import type { AuthClock } from '../auth/types'
+import { validateApiOrigin } from '../lib/api-origin'
+import type { MonotonicClock } from '../lib/monotonic-clock'
 import type {
   CharacterCandidate,
   CharacterDetails,
@@ -95,7 +95,7 @@ const statusErrors: Readonly<Partial<Record<number, SearchErrorCode>>> = {
 }
 
 type TransportOptions = { fetch?: typeof fetch }
-type ApiOptions = TransportOptions & { apiOrigin: string; clock?: Pick<AuthClock, 'read'> }
+type ApiOptions = TransportOptions & { apiOrigin: string; clock?: Pick<MonotonicClock, 'read'> }
 type IdentityRequest = CharacterIdentity & { signal: AbortSignal }
 export type CharacterCandidatesHttp = (input: {
   nickname: string
@@ -194,7 +194,7 @@ export function createCharacterCandidatesHttp({
 export function createCharacterImageHttp({
   fetch: transport = fetchApi,
   clock
-}: TransportOptions & { clock?: Pick<AuthClock, 'read'> } = {}): CharacterImageHttp {
+}: TransportOptions & { clock?: Pick<MonotonicClock, 'read'> } = {}): CharacterImageHttp {
   const client = createCharacterHttpClient(transport)
 
   return async ({ serverId, characterId, signal }) => {

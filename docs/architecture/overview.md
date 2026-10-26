@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: architecture
-last-reviewed: 2026-10-19
+last-reviewed: 2026-10-26
 ---
 
 # Architecture Overview
@@ -20,10 +20,8 @@ apps/
 packages/
   ui/
   lib/
-  icons/
   licenses/
   models/
-  skill-layouts/
 scripts/
 ```
 
@@ -32,8 +30,6 @@ scripts/
 - `apps/desktop`: Electron, React, TypeScript, electron-vite 기반 desktop application.
 - `packages/ui`: 현재 tracked shared UI package `@dfragon/ui`. 실제 구현, 명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
 - `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@dfragon/lib`. 아래 Shared library boundary를 따른다.
-- `packages/icons`: 제품 화면이 번들하는 게임 아이콘 `@dfragon/icons`. 코드 없이 sprite와 JSON을 제공한다.
-- `packages/skill-layouts`: 직업별 스킬트리 배치 `@dfragon/skill-layouts`. 코드 없이 `layouts.json`을 제공한다.
 - `packages/licenses`: 빌드 시 고지 원문, 수집, 배포 자료를 관리하는 `@dfragon/licenses`. 제품 runtime에서 import하지 않는다.
 - `packages/models`: 빌드에 넣는 학습 모델 파일을 제공하는 `@dfragon/models`. 아래 Model package boundary를 따른다.
 - `scripts`: repository 생성, 관리 script.
@@ -50,7 +46,7 @@ scripts/
 
 미정 사항을 구현해야 하면 AI는 임의로 architecture를 확정하지 않고 사용자에게 대안과 trade-off를 제시한다.
 
-Desktop에 남은 로그인 코드와 그 계약([`../rules/desktop-auth.md`](../rules/desktop-auth.md), [`../rules/desktop-auth-lifecycle.md`](../rules/desktop-auth-lifecycle.md), [`../rules/desktop-auth-platform.md`](../rules/desktop-auth-platform.md))은 Desktop을 줄이는 변경에서 함께 지운다.
+Desktop은 파티, 공대 캡처와 검색, 카드의 캐릭터 면만 둔다. 로그인, 설정, 개발자 도구, OCR 수집 업로드, 캐릭터 상세 창과 카드의 장비, 기타 면은 두지 않는다(2026-10-26 결정, [Issue #796](https://github.com/blahaj94/dfragon/issues/796)).
 
 ## 점수 엔진 경계
 

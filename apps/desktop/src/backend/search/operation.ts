@@ -1,4 +1,4 @@
-import type { AuthClock } from '../auth/types'
+import type { MonotonicClock } from '../lib/monotonic-clock'
 import type { SearchError, SearchErrorCode } from '../../preload/common/types/search'
 import { SearchHttpFailure } from './http'
 
@@ -14,7 +14,7 @@ export type SearchOperationOutcome<T> =
   | SearchOperationFailure
   | null
 export type SearchOperationContext = {
-  clock: AuthClock
+  clock: MonotonicClock
   startedAt: number
   signal: AbortSignal
   isCurrent: () => boolean

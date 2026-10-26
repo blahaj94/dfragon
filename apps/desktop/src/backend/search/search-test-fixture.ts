@@ -1,9 +1,7 @@
 import { EventEmitter } from 'node:events'
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import { afterEach, expect, vi } from 'vitest'
-import { createAuthCoordinator } from '../auth/coordinator'
-import type { AuthCoordinator } from '../auth/types'
-import { API_ORIGIN, REFRESH_0, createAuthHarness } from '../auth/auth-test-fixtures'
+import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { registerCaptureIpc, registerCaptureWindow } from '../capture/ipc-handler'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 import type { CharacterSelectionPolicy } from './identify'
@@ -30,6 +28,8 @@ const disposeFixtures: Array<() => void> = []
 const source = { id: 'window:search-fixture', name: 'Synthetic search window' }
 const rendererUrl = 'file:///search-fixture/index.html'
 
+export const API_ORIGIN = 'https://api.example.test'
+
 export const candidate = {
   characterId: 'synthetic-character',
   characterName: '가나',
@@ -54,15 +54,12 @@ export function jsonResponse({
 }
 
 export async function createSearchFixture(
-  signedIn = false,
   searchKind: 'capture' | 'manual' | 'raid' = 'capture',
-  portraitColorPolicy?: PortraitColorPolicy & CharacterSelectionPolicy,
-  details?: Parameters<typeof registerCaptureIpc>[1]
+  portraitColorPolicy?: PortraitColorPolicy & CharacterSelectionPolicy
 ): Promise<{
-  auth: AuthCoordinator
   event: IpcMainInvokeEvent
   getSources: typeof electron.getSources
-  harness: ReturnType<typeof createAuthHarness>
+  clock: FakeMonotonicClock
   fetchSearch: ReturnType<typeof vi.fn<typeof fetch>>
   captureId: string
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
@@ -79,14 +76,7 @@ export async function createSearchFixture(
   electron.handle.mockClear()
   electron.getSources.mockClear()
   electron.getSources.mockResolvedValue([source])
-  const harness = createAuthHarness()
-  if (signedIn) {
-    harness.store.inspection = { status: 'ready', refreshToken: REFRESH_0 }
-  }
-  const auth = createAuthCoordinator(harness.dependencies)
-  await auth.start()
-  harness.http.refresh.mockClear()
-  harness.http.me.mockClear()
+  const clock = new FakeMonotonicClock()
   const fetchSearch = vi
     .fn<typeof fetch>()
     .mockImplementation(async () => jsonResponse({ body: { rows: [] } }))
@@ -102,15 +92,12 @@ export async function createSearchFixture(
   }
   const window = { webContents: contents, isDestroyed: () => false, on: vi.fn() }
   // Main 설정과 외부 fetch만 제어하며 실제 core와 capture handler를 사용한다.
-  const dispose = registerCaptureIpc(
-    {
-      apiOrigin: API_ORIGIN,
-      fetch: fetchSearch,
-      clock: harness.clock,
-      portraitColorPolicy
-    },
-    details
-  )
+  const dispose = registerCaptureIpc({
+    apiOrigin: API_ORIGIN,
+    fetch: fetchSearch,
+    clock,
+    portraitColorPolicy
+  })
   disposeFixtures.push(dispose)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   const handlers = new Map<string, Handler>()
@@ -169,10 +156,9 @@ export async function createSearchFixture(
   }
 
   return {
-    auth,
     event,
     getSources: electron.getSources,
-    harness,
+    clock,
     fetchSearch,
     captureId,
     invoke,

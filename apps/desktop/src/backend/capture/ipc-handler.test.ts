@@ -1,17 +1,9 @@
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import { EventEmitter } from 'node:events'
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
-import { createAuthCoordinator } from '../auth/coordinator'
-import {
-  createAuthHarness,
-  deferred,
-  REFRESH_0,
-  CODE,
-  RETURN_TARGET
-} from '../auth/auth-test-fixtures'
-import { registerCaptureIpc, registerCaptureWindow, collectCurrentCapture } from './ipc-handler'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { deferred } from '../lib/async-test-fixture'
+import { registerCaptureIpc, registerCaptureWindow } from './ipc-handler'
 import type { WindowFrameResult } from '../../preload/common/types/capture'
-import type { OcrCollection } from '../ocr-collection/collection'
 import { raidFrame } from '../lib/raid-window-test-fixture'
 
 const nativeFrame = vi.hoisted(() => {
@@ -48,12 +40,7 @@ type MediaHandler = (
   callback: (result: unknown) => void
 ) => void
 
-async function setup(
-  signedIn = true,
-  collection?: OcrCollection
-): Promise<{
-  auth: ReturnType<typeof createAuthCoordinator>
-  harness: ReturnType<typeof createAuthHarness>
+async function setup(): Promise<{
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
   event: IpcMainInvokeEvent
   documentEvents: EventEmitter
@@ -62,13 +49,6 @@ async function setup(
   mainFrame: { url: string; detached: boolean; isDestroyed: () => boolean }
   dispatchMedia: (callback: (result: unknown) => void) => void
 }> {
-  const harness = createAuthHarness()
-  if (signedIn) {
-    harness.store.inspection = { status: 'ready', refreshToken: REFRESH_0 }
-  }
-  const auth = createAuthCoordinator(harness.dependencies)
-  await auth.start()
-  harness.http.refresh.mockClear()
   let mediaHandler: MediaHandler | undefined
   const documentEvents = new EventEmitter()
   const windowEvents = new EventEmitter()
@@ -86,7 +66,7 @@ async function setup(
     }
   }
   const window = { webContents, isDestroyed: () => false, on: windowEvents.on.bind(windowEvents) }
-  const disposeIpc = registerCaptureIpc(undefined, undefined, collection)
+  const disposeIpc = registerCaptureIpc(undefined)
   disposeFixtures.add(disposeIpc)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   const handlers = new Map<string, Handler>()
@@ -120,8 +100,6 @@ async function setup(
   }
 
   return {
-    auth,
-    harness,
     invoke,
     event,
     mainFrame,
@@ -165,7 +143,7 @@ describe('capture main document and source boundary', () => {
   ] as const)(
     '%s는 열거하거나 기존 캡처를 끝내기 전에 거절한다',
     async (_name, channel, args, message) => {
-      const fixture = await setup(false)
+      const fixture = await setup()
       const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
       await fixture.invoke('selectCaptureSource', sources[0].id)
       await beginCapture(fixture)
@@ -189,7 +167,7 @@ describe('capture main document and source boundary', () => {
   )
 
   it('나중에 끝난 이전 source 선택은 새 선택과 시작한 캡처를 덮지 않는다', async () => {
-    const fixture = await setup(false)
+    const fixture = await setup()
     const nextSource = { id: 'window:second-fixture', name: 'Second synthetic capture window' }
     const pending = deferred<typeof sources>()
     electron.getSources
@@ -209,7 +187,7 @@ describe('capture main document and source boundary', () => {
   })
 
   it('subframe navigation은 캡처를 유지하고 main document navigation은 수명을 끝낸다', async () => {
-    const fixture = await setup(false)
+    const fixture = await setup()
     const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
     nativeFrame.read.mockResolvedValueOnce({ kind: 'frame', image })
     await fixture.invoke('selectCaptureSource', sources[0].id)
@@ -243,7 +221,7 @@ describe('capture main document and source boundary', () => {
   })
 
   it('IPC 해제는 캡처, 직접 검색과 캡처 프레임 읽기를 정리하고 모든 전용 handler를 제거한다', async () => {
-    const fixture = await setup(false)
+    const fixture = await setup()
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
     const captured = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
@@ -255,7 +233,6 @@ describe('capture main document and source boundary', () => {
     fixture.dispose()
 
     expect(electron.removeHandler.mock.calls.map(([channel]) => channel).sort()).toEqual([
-      'collectOcrSample',
       'controlCharacterSearch',
       'controlManualSearch',
       'controlRaidSearch',
@@ -264,7 +241,6 @@ describe('capture main document and source boundary', () => {
       'notifyOcrCandidatesDetected',
       'notifyRaidOcrCandidatesDetected',
       'notifyStableNicknameDetected',
-      'openCharacterDetails',
       'readCaptureFrame',
       'readRaidCaptureFrame',
       'selectCaptureSource'
@@ -284,14 +260,13 @@ describe('capture main document and source boundary', () => {
     expect(nativeFrame.read).not.toHaveBeenCalled()
   })
 
-  it('검색 read는 capture를 시작하거나 인증 HTTP를 실행하지 않는다', async () => {
+  it('검색 read는 capture를 시작하지 않는다', async () => {
     const fixture = await setup()
 
     const result = await fixture.invoke('controlCharacterSearch', { action: 'read' })
 
     expect(result).toMatchObject({ ok: true, snapshot: { captureId: null } })
     expect(electron.getSources).not.toHaveBeenCalled()
-    expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
   })
 
   it('선택 source로 begin하고 이전 end가 새 capture를 끝내지 않는다', async () => {
@@ -428,11 +403,10 @@ describe('capture main document and source boundary', () => {
         }))
       }
     })
-    expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
   })
 
-  it('signedOut에서도 source 열거, 선택, begin과 cleanup을 허용한다', async () => {
-    const fixture = await setup(false)
+  it('source 열거, 선택, begin과 cleanup을 허용한다', async () => {
+    const fixture = await setup()
     await expect(fixture.invoke('listCaptureSources')).resolves.toEqual(sources)
     await expect(fixture.invoke('selectCaptureSource', sources[0].id)).resolves.toEqual(sources[0])
     await beginCapture(fixture)
@@ -444,7 +418,7 @@ describe('capture main document and source boundary', () => {
   })
 
   it('검색 설정이 없어도 guest capture와 OCR 관측을 유지하고 검색 불가를 표시한다', async () => {
-    const fixture = await setup(false)
+    const fixture = await setup()
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
     const current = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
@@ -473,37 +447,6 @@ describe('capture main document and source boundary', () => {
         ]
       }
     })
-    expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
-  })
-
-  it.each(['listCaptureSources', 'selectCaptureSource'])(
-    '%s 완료 전 logout이어도 결과를 허용한다',
-    async (channel) => {
-      const fixture = await setup()
-      const pending = deferred<typeof sources>()
-      electron.getSources.mockReturnValue(pending.promise)
-      const isSelection = channel === 'selectCaptureSource'
-      const operation = fixture.invoke(channel, ...(isSelection ? [sources[0].id] : []))
-      await Promise.resolve()
-      await fixture.auth.logout()
-      pending.resolve(sources)
-      expect(await operation).toEqual(isSelection ? sources[0] : sources)
-    }
-  )
-
-  it('source 열거는 logout과 재로그인의 영향을 받지 않는다', async () => {
-    const fixture = await setup()
-    const pending = deferred<typeof sources>()
-    electron.getSources.mockReturnValue(pending.promise)
-    const operation = fixture.invoke('listCaptureSources')
-    await Promise.resolve()
-    await fixture.auth.logout()
-    await fixture.auth.beginLogin('passkey')
-    await vi.waitFor(() => expect(fixture.auth.getSnapshot().phase).toBe('waitingBrowser'))
-    await fixture.auth.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
-    expect(fixture.auth.getSnapshot().phase).toBe('signedIn')
-    pending.resolve(sources)
-    expect(await operation).toEqual(sources)
   })
 
   it.each(['subframe', 'document'])(
@@ -538,25 +481,9 @@ describe('capture main document and source boundary', () => {
   )
 
   it('trusted renderer의 빈 선택도 subframe에서는 cleanup을 허용하지 않는다', async () => {
-    const fixture = await setup(false)
+    const fixture = await setup()
     Object.assign(fixture.event, { senderFrame: { url: rendererUrl } })
     await expect(fixture.invoke('selectCaptureSource', '')).rejects.toThrow()
-  })
-
-  it('선택 뒤 logout은 main source와 캡처 프레임 읽기를 유지한다', async () => {
-    const fixture = await setup()
-    const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
-    await fixture.invoke('selectCaptureSource', sources[0].id)
-    await beginCapture(fixture)
-    const captured = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
-      snapshot: { captureId: string }
-    }
-    await fixture.auth.logout()
-    nativeFrame.read.mockResolvedValueOnce({ kind: 'frame', image })
-    await expect(fixture.invoke('readCaptureFrame', captured.snapshot.captureId)).resolves.toEqual({
-      kind: 'frame',
-      image
-    })
   })
 
   // Electron 44.7.2는 null을 예외 없는 거절로 처리한다. {}는 별도 TypeError도 낸다.
@@ -588,30 +515,22 @@ describe('capture main document and source boundary', () => {
     expect(callback).toHaveBeenCalledExactlyOnceWith(null)
   })
 
-  it.each(['signedOut', 'logout'])(
-    '%s에서도 capture ID가 없는 관측은 STALE_SEARCH로 거절한다',
-    async (phase) => {
-      const startsSignedIn = phase === 'logout'
-      const fixture = await setup(startsSignedIn)
-      vi.spyOn(console, 'info').mockImplementation(() => undefined)
-      if (startsSignedIn) {
-        await fixture.auth.logout()
-      }
-      await expect(
-        fixture.invoke('notifyStableNicknameDetected', {
-          captureId: '00000000-0000-4000-8000-000000000001',
-          slot: 0,
-          observationRevision: 1,
-          nickname: '가나'
-        })
-      ).resolves.toMatchObject({
-        ok: false,
-        error: { code: 'STALE_SEARCH' },
-        snapshot: { captureId: null }
+  it('capture ID가 없는 관측은 STALE_SEARCH로 거절한다', async () => {
+    const fixture = await setup()
+    vi.spyOn(console, 'info').mockImplementation(() => undefined)
+    await expect(
+      fixture.invoke('notifyStableNicknameDetected', {
+        captureId: '00000000-0000-4000-8000-000000000001',
+        slot: 0,
+        observationRevision: 1,
+        nickname: '가나'
       })
-      expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
-    }
-  )
+    ).resolves.toMatchObject({
+      ok: false,
+      error: { code: 'STALE_SEARCH' },
+      snapshot: { captureId: null }
+    })
+  })
 
   it.each(['notifyStableNicknameDetected', 'controlCharacterSearch'])(
     '%s의 untrusted sender는 snapshot 없는 SEARCH_NOT_ALLOWED rejection을 받는다',
@@ -629,27 +548,24 @@ describe('capture main document and source boundary', () => {
         : { action: 'read' }
 
       await expect(fixture.invoke(channel, input)).rejects.toThrow(/^SEARCH_NOT_ALLOWED$/)
-      expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
       expect(electron.getSources).not.toHaveBeenCalled()
     }
   )
 
-  it('capture 조회, 선택, begin은 HTTP refresh 없이 실행하고 raw OCR를 log하지 않는다', async () => {
+  it('capture 조회, 선택, begin은 raw OCR를 log하지 않는다', async () => {
     const fixture = await setup()
-    fixture.harness.clock.elapseWithoutTimers(16 * 60 * 1000)
     const log = vi.spyOn(console, 'info').mockImplementation(() => undefined)
     await fixture.invoke('listCaptureSources')
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
     await fixture.invoke('notifyStableNicknameDetected', { slot: 0, nickname: 'SYNTHETIC_CANARY' })
-    expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
     expect(log).not.toHaveBeenCalled()
   })
 })
 
 describe('선택한 창의 네이티브 프레임 IPC', () => {
   it('활성 캡처에 결합된 창만 읽고 임의 창 식별자를 받지 않는다', async () => {
-    const f = await setup(false)
+    const f = await setup()
     const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
     nativeFrame.read.mockResolvedValue({ kind: 'frame', image })
     await f.invoke('selectCaptureSource', sources[0].id)
@@ -671,7 +587,7 @@ describe('선택한 창의 네이티브 프레임 IPC', () => {
   it.each(['end', 'source', 'document'] as const)(
     '%s 뒤 늦은 픽셀 응답은 전달하지 않는다',
     async (change) => {
-      const f = await setup(false)
+      const f = await setup()
       const pending = deferred<WindowFrameResult>()
       nativeFrame.read.mockReturnValueOnce(pending.promise)
       await f.invoke('selectCaptureSource', sources[0].id)
@@ -697,7 +613,7 @@ describe('선택한 창의 네이티브 프레임 IPC', () => {
   it.each(['다른 문서', '파괴된 main frame'])(
     '%s에서는 네이티브 읽기를 시작하지 않는다',
     async (condition) => {
-      const f = await setup(false)
+      const f = await setup()
       await f.invoke('selectCaptureSource', sources[0].id)
       const begun = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
         snapshot: { captureId: string }
@@ -725,7 +641,7 @@ async function beginRaid(fixture: Awaited<ReturnType<typeof setup>>): Promise<st
 
 describe('공대 캡처 회차의 프레임 IPC', () => {
   it('창 등록 뒤 시작한 공대 수명만 프레임을 한 장 읽고 12행 크롭과 수치 열 종류만 돌려준다', async () => {
-    const f = await setup(false)
+    const f = await setup()
     nativeFrame.read.mockResolvedValue({ kind: 'frame', image: raidFrame(7) })
     await f.invoke('selectCaptureSource', sources[0].id)
     const raidId = await beginRaid(f)
@@ -748,7 +664,7 @@ describe('공대 캡처 회차의 프레임 IPC', () => {
   })
 
   it('파티 캡처, 오래된 공대 수명, 추가 인자로는 공대 프레임을 읽지 않는다', async () => {
-    const f = await setup(false)
+    const f = await setup()
     nativeFrame.read.mockResolvedValue({ kind: 'unsupported' })
     await f.invoke('selectCaptureSource', sources[0].id)
     const party = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
@@ -767,7 +683,7 @@ describe('공대 캡처 회차의 프레임 IPC', () => {
   })
 
   it('창을 등록하기 전이나 창을 바꾸기 전에 시작한 공대 수명으로는 읽지 않는다', async () => {
-    const f = await setup(false)
+    const f = await setup()
     nativeFrame.read.mockResolvedValue({ kind: 'unsupported' })
     const beforeSource = await beginRaid(f)
     await expect(f.invoke('readRaidCaptureFrame', beforeSource)).rejects.toThrow(
@@ -786,7 +702,7 @@ describe('공대 캡처 회차의 프레임 IPC', () => {
   it.each(['new round', 'source', 'document'] as const)(
     '%s 뒤 늦은 공대 프레임 응답은 전달하지 않는다',
     async (change) => {
-      const f = await setup(false)
+      const f = await setup()
       const pending = deferred<WindowFrameResult>()
       nativeFrame.read.mockReturnValueOnce(pending.promise)
       await f.invoke('selectCaptureSource', sources[0].id)
@@ -809,7 +725,7 @@ describe('공대 캡처 회차의 프레임 IPC', () => {
   it.each(['다른 문서', '신뢰하지 않는 sender'])(
     '%s에서는 공대 프레임 읽기를 시작하지 않는다',
     async (condition) => {
-      const f = await setup(false)
+      const f = await setup()
       await f.invoke('selectCaptureSource', sources[0].id)
       const raidId = await beginRaid(f)
       if (condition === '다른 문서') {
@@ -822,73 +738,4 @@ describe('공대 캡처 회차의 프레임 IPC', () => {
       expect(nativeFrame.read).not.toHaveBeenCalled()
     }
   )
-})
-
-describe('OCR 수집 프레임 권한', () => {
-  const frameId = '10000000-0000-4000-8000-000000000002'
-  const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
-
-  function collectionFixture(): { [K in keyof OcrCollection]: Mock<OcrCollection[K]> } {
-    return {
-      retain: vi.fn<OcrCollection['retain']>(() => frameId),
-      collect: vi.fn<OcrCollection['collect']>(() => ({ status: 'queued' })),
-      collectShortcut: vi.fn<OcrCollection['collectShortcut']>(() => ({ status: 'queued' })),
-      clear: vi.fn<OcrCollection['clear']>(),
-      dispose: vi.fn<OcrCollection['dispose']>()
-    }
-  }
-
-  it('API 설정과 로그인 없이 현재 main 프레임을 보관하고 발급 참조만 수집기에 전달한다', async () => {
-    const collection = collectionFixture()
-    const f = await setup(false, collection)
-    nativeFrame.read.mockResolvedValue({ kind: 'frame', image })
-    await f.invoke('selectCaptureSource', sources[0].id)
-    const begun = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
-      snapshot: { captureId: string }
-    }
-    const captureId = begun.snapshot.captureId
-    await expect(f.invoke('readCaptureFrame', captureId)).resolves.toEqual({
-      kind: 'frame',
-      image,
-      frameId
-    })
-    expect(collection.retain).toHaveBeenCalledExactlyOnceWith(captureId, image)
-    const request = { captureId, frameId, slot: 1, prediction: null }
-    await expect(f.invoke('collectOcrSample', request)).resolves.toEqual({ status: 'queued' })
-    expect(collection.collect).toHaveBeenCalledExactlyOnceWith(request)
-    await expect(f.invoke('collectOcrSample', { ...request, rgba: image.rgba })).resolves.toEqual({
-      status: 'skipped'
-    })
-    await expect(f.invoke('collectOcrSample', { ...request, captureId: frameId })).resolves.toEqual(
-      { status: 'skipped' }
-    )
-    expect(collection.collect).toHaveBeenCalledTimes(1)
-    f.mainFrame.url = 'file:///other.html'
-    await expect(f.invoke('collectOcrSample', request)).rejects.toThrow()
-    expect(collection.collect).toHaveBeenCalledTimes(1)
-  })
-
-  it('단축키는 최신 프레임을 읽되 캡처 종료 후 늦은 응답은 업로드하지 않는다', async () => {
-    const collection = collectionFixture()
-    const f = await setup(false, collection)
-    await f.invoke('selectCaptureSource', sources[0].id)
-    const begun = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
-      snapshot: { captureId: string }
-    }
-    const captureId = begun.snapshot.captureId
-    nativeFrame.read.mockResolvedValueOnce({ kind: 'frame', image })
-    await expect(collectCurrentCapture()).resolves.toEqual({ status: 'queued' })
-    expect(collection.collectShortcut).toHaveBeenCalledExactlyOnceWith(captureId, image)
-    const pending = deferred<WindowFrameResult>()
-    nativeFrame.read.mockReturnValueOnce(pending.promise)
-    const result = collectCurrentCapture()
-    collection.clear.mockClear()
-    await f.invoke('controlCharacterSearch', { action: 'end', captureId })
-    pending.resolve({ kind: 'frame', image })
-    await expect(result).resolves.toEqual({ status: 'skipped' })
-    expect(collection.collectShortcut).toHaveBeenCalledTimes(1)
-    expect(collection.clear).toHaveBeenCalledOnce()
-    f.dispose()
-    expect(collection.dispose).toHaveBeenCalledOnce()
-  })
 })
