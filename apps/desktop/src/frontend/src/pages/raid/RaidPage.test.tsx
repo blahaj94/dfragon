@@ -34,8 +34,7 @@ vi.mock('../../components/ServerSelect', () => ({
 const expectedLayout = stylex.create({
   columns: { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' },
   gap: { gap: space.s8 },
-  scroll: { overflow: 'auto' },
-  hidden: { display: 'none' }
+  scroll: { overflow: 'auto' }
 })
 
 let root: Root
@@ -104,7 +103,6 @@ async function render({
       <RaidPage
         id="raid-cards"
         header={null}
-        collapsed={false}
         {...props}
         seats={{ seatOrder, canMoveSeats, swapSeats: swap }}
         actions={{ lookupSlot }}
@@ -568,27 +566,6 @@ it('보드는 창 폭을 네 등분한 열에 간격 8로 카드를 놓고 넘�
   expect(
     [...board.querySelectorAll('[id^="raid-cards-party-"]')].map((label) => label.textContent)
   ).toEqual(['1파티', '2파티', '3파티'])
-})
-
-it('접힌 동안은 그림 칸을 숨기고 이름 입력과 소속, 명성, 장비 점수를 남긴다', async () => {
-  await render({ characters: [member] })
-  const first = (): HTMLElement => seats()[0]
-  const hiddenClasses = classesOf(expectedLayout.hidden)
-  const hiddenParts = (): Element[] =>
-    [...first().querySelectorAll('article *')].filter((element) =>
-      hiddenClasses.every((name) => element.classList.contains(name))
-    )
-  expect(hiddenParts()).toEqual([])
-
-  await render({ characters: [member], collapsed: true })
-  expect(nameOf(first())).toBe('공대원')
-  expect(first().textContent).toContain('공대모험단')
-  expect([...first().querySelectorAll('dt')].map((term) => term.textContent)).toEqual([
-    '명성',
-    '장비'
-  ])
-  // 그림 칸(이미지가 없어 대체 표시 —)이 숨김 스타일을 받는다.
-  expect(hiddenParts().map((element) => element.textContent)).toEqual(['—'])
 })
 
 it('슬롯에 붙은 스냅샷 표시는 그 슬롯이 놓인 자리 카드에 칩과 경고로 들어간다', async () => {

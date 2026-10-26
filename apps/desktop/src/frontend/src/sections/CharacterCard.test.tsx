@@ -699,21 +699,6 @@ it('다음 회차에 새로 그린 카드는 닫았던 후보 창을 다시 연 
   expect(candidateWindow()).not.toBeNull()
 })
 
-it('접힌 카드도 같은 후보 창으로 고른다', async () => {
-  const pick = vi.fn()
-  await render({
-    state: 'success',
-    character: found,
-    picker: { choices, shownServerId: 'cain', previewServerId: null },
-    collapsed: true,
-    onPickCandidate: pick
-  })
-
-  expect(container.querySelectorAll('[role="group"]')).toHaveLength(1)
-  await act(async () => candidateTile('시로코').click())
-  expect(pick).toHaveBeenCalledExactlyOnceWith('siroco')
-})
-
 it('미리보기 조회가 실패해도 후보 창은 남는다', async () => {
   const picker = { choices, shownServerId: 'cain', previewServerId: null }
   await render({ state: 'failure', character: undefined, picker, onPickCandidate: vi.fn() })
