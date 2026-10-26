@@ -100,10 +100,9 @@ Product Images의 변경 경로를 서비스별 빌드 목록으로 바꿉니다
 [서버 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)를 따릅니다.
 새 dependency 없이 Git과 Node.js 26을 사용합니다.
 
-`select <plan-file>`은 GitHub event 파일과 checkout된 source commit을 확인하고,
-PR의 base 또는 main push의 `before`부터 변경된 경로를 비교해 JSON 목록을 저장합니다.
-Code Quality는 main push의 목록을 artifact로 전달하고 Product Images는 그 실행에서만 받습니다.
-main에서는 `baseline`으로 마지막 성공 발행 실행을 찾고 `catch-up <plan-file> [baseline-plan-file]`로
+`select <plan-file>`은 GitHub push event 파일과 checkout된 source commit을 확인하고,
+main push의 `before`부터 변경된 경로를 비교해 JSON 목록을 저장합니다.
+`baseline`으로 마지막 성공 발행 실행을 찾고 `catch-up <plan-file> [baseline-plan-file]`로
 아직 발행되지 않은 변경도 합칩니다. 성공 목록이 없거나 만료되었으면 전체 이미지 빌드로 복구합니다.
 `output <plan-file>`은 source commit, 서비스 목록을 검증한 뒤 `GITHUB_OUTPUT`에 matrix와
 `has_changes`를 기록합니다. 빈 목록이면 빌드, 발행을 건너뜁니다.
@@ -113,7 +112,7 @@ main에서는 `baseline`으로 마지막 성공 발행 실행을 찾고 `catch-u
 
 ## `build-scope`
 
-PR 제목, PR 작성자, 실행 event로 빌드와 전체 테스트를 실행할지 정해 `GITHUB_OUTPUT`에 `build=true` 또는 `build=false`를 기록합니다. [`build-scope.yml`](../.github/workflows/build-scope.yml)이 이 도구를 실행하며 규칙은 [Repository Map의 CI 설명](../docs/reference/repository-map.md)에 있습니다. main push와 그 뒤의 `workflow_run`은 GitHub API로 commit을 merge한 PR을 찾고, 조회에 실패하면 빌드를 건너뛰지 않고 실패합니다. 새 dependency 없이 Node.js 26을 사용합니다.
+PR 제목, PR 작성자, 실행 event로 빌드할지 정해 `GITHUB_OUTPUT`에 `build=true` 또는 `build=false`를 기록합니다. [`build-scope.yml`](../.github/workflows/build-scope.yml)이 이 도구를 실행하며 규칙은 [Repository Map의 배포 workflow 설명](../docs/reference/repository-map.md)에 있습니다. main push는 GitHub API로 commit을 merge한 PR을 찾고, 조회에 실패하면 빌드를 건너뛰지 않고 실패합니다. 새 dependency 없이 Node.js 26을 사용합니다.
 
 검증: `node --test scripts/test/build-scope.test.mjs`, `node --check scripts/build-scope.mjs`.
 

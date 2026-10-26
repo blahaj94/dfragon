@@ -97,15 +97,13 @@ DB suite에는 Docker와 Playwright Chromium이 필요하다. 이미지 입력�
 (`scripts/server-build-info.mjs`) 변경도 세 이미지를 검사합니다.
 서버 이미지 입력이 없는 문서, Desktop, Web 전용 변경은 이미지 빌드, 발행을 건너뜁니다.
 PR 제목 scope가 `(build)`가 아닌 PR과 그 main push도 이미지를 빌드, 발행하지 않으며, 그 변경은 다음
-`(build)` main push가 함께 발행합니다. 규칙은 [Repository Map의 CI 설명](repository-map.md)에 있습니다.
+`(build)` main push가 함께 발행합니다. 규칙은 [Repository Map의 배포 workflow 설명](repository-map.md)에 있습니다.
 
-PR은 base와 빌드할 merge commit을 비교해 선택한 이미지를 빌드만 합니다.
-기존 Code Quality는 앱 테스트, 정적 검사를 계속 담당하며, main push 전체의 `before`부터
-`head_sha`까지 비교한 선택 목록을 `product-image-plan` artifact로 전달합니다.
-Product Images는 성공한 해당 실행의 목록과 source commit을 확인해 같은 `head_sha`로
+Product Images는 main push에서만 실행하며 테스트 통과를 확인하지 않습니다. 테스트는 로컬의 `pnpm verify`가 맡습니다.
+main push 전체의 `before`부터 push한 commit까지 비교해 이미지를 선택하고 같은 commit으로
 빌드, 발행합니다. 후속 실행 때의 최신 main을 다시 선택하지 않습니다.
 main에서는 마지막으로 Product Images 전체가 성공한 실행의 source commit 이후 변경도
-포함합니다. 앞선 CI, 빌드, 발행의 취소나 실패로 발행되지 않은 변경은 다음 성공 실행에서
+포함합니다. 앞선 빌드, 발행의 취소나 실패로 발행되지 않은 변경은 다음 성공 실행에서
 반영합니다. 이전 성공 목록이 없거나 90일 보관 기한이 지났으면 세 이미지를 모두 빌드합니다.
 선택 목록이 없거나 source commit이 다르면 실패하며 임의로 빌드를 생략하지 않습니다.
 
@@ -114,7 +112,7 @@ OCI `source`, `revision` label에 저장소와 commit을 기록합니다. 대상
 같은 제품 commit을 `SOURCE_COMMIT` 빌드 인자로 전달해 이미지 내부 `/app/build-info.json`에도
 고정합니다. 빌드와 발행 전에 컨테이너를 시작하지 않고 파일을 추출해 서비스명과 commit을
 대조합니다. 이미지의 label, 내부 버전 정보와 인계 artifact가 같은 소스를 가리켜야 합니다.
-테스트 실패는 Code Quality, 이미지 빌드 실패는 `Build image`, 인증, 발행, digest 확인
+이미지 빌드 실패는 `Build image`, 인증, 발행, digest 확인
 실패는 각각 `Authenticate to GHCR`, `Publish the built image`, `Verify the registry digest`에서 확인합니다.
 Provenance 기록 실패는 `Attest the published image provenance`에서 확인합니다.
 선택한 이미지 빌드가 모두 성공해야 같은 목록의 발행 job이 시작됩니다.
