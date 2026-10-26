@@ -35,7 +35,7 @@ it('미리보기는 앱 첫 줄의 상단 바와 그 아래 파티 콘텐츠를 
   expect(header.textContent).toContain('DFragon')
   expect(header.textContent).toContain('창 감지됨')
   expect(header.querySelector('[aria-label^="화면 캡처"]')).not.toBeNull()
-  expect(header.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
+  expect(header.querySelector('[aria-label$="테마"]')).toBeNull()
   expect(header.querySelector('[aria-label="설정"]')).toBeNull()
   expect(header.textContent).not.toContain('로그인')
   const party = main.querySelector('[aria-label="파티 캐릭터"]')!

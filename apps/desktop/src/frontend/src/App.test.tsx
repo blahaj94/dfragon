@@ -92,7 +92,7 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(container.querySelector('header [aria-label="설정"]')).toBeNull()
 })
 
-it('새 기본 화면에서 다크, 라이트 테마를 전환하고 창 버튼 색도 함께 바꾼다', async () => {
+it('새 기본 화면은 시작 테마를 창 버튼 색에도 맞춘다', async () => {
   const setTheme = vi.fn<WindowChromeApi['setTheme']>(async () => {})
   Object.defineProperty(window, 'windowChrome', { configurable: true, value: { setTheme } })
   try {
@@ -105,18 +105,6 @@ it('새 기본 화면에서 다크, 라이트 테마를 전환하고 창 버튼 
     )
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(setTheme.mock.calls).toEqual([['dark']])
-
-    await act(async () =>
-      container.querySelector<HTMLButtonElement>('[aria-label="라이트 테마"]')!.click()
-    )
-    expect(document.documentElement.dataset.theme).toBe('light')
-    expect(setTheme.mock.calls).toEqual([['dark'], ['light']])
-
-    await act(async () =>
-      container.querySelector<HTMLButtonElement>('[aria-label="다크 테마"]')!.click()
-    )
-    expect(document.documentElement.dataset.theme).toBe('dark')
-    expect(setTheme.mock.calls).toEqual([['dark'], ['light'], ['dark']])
   } finally {
     Reflect.deleteProperty(window, 'windowChrome')
   }
