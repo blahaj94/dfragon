@@ -87,3 +87,11 @@ it('모달에서 창을 고르면 미리보기 목록과 안내도 창 선택됨
     '던전앤파이터'
   )
 })
+
+it('미리보기 조작부는 제품 창 영역 밖, 창 아래에 둔다', () => {
+  const main = container.querySelector('main')!
+  const controls = container.querySelector('[aria-label="미리보기 상태"]')!
+  expect(main.contains(controls)).toBe(false)
+  expect(main.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(main.querySelector('[aria-label="파티 캐릭터"]')).not.toBeNull()
+})
