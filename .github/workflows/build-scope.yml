@@ -1,13 +1,13 @@
 name: Build Scope
 
-# Code Quality, Desktop Windows, Windows Test Build and Product Images call this workflow so every
-# build and full test run follows one rule: the PR title scope is (build), the PR is from
-# Dependabot, or the run was started by hand. Main pushes read the title of the merged PR.
+# Windows Test Build and Product Images call this workflow so every build follows one rule: the
+# PR title scope is (build), the PR is from Dependabot, or the run was started by hand. Main pushes
+# read the title of the merged PR.
 on:
   workflow_call:
     outputs:
       build:
-        description: "'true' when the run should build and run the full test suite"
+        description: "'true' when the run should build"
         value: ${{ jobs.scope.outputs.build }}
 
 permissions:
@@ -42,7 +42,6 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          # workflow_run's github.sha can be a newer main commit. Read the tested commit.
-          SOURCE_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+          SOURCE_COMMIT: ${{ github.sha }}
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/build-scope.mjs
