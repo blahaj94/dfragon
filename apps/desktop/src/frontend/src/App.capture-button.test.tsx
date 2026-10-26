@@ -113,7 +113,10 @@ it('캡처 버튼은 상단 바가 아니라 파티 머리에만 있고 대화�
   expect(button.closest('section[aria-label="공대"]')).toBeNull()
   expect(button.getAttribute('aria-haspopup')).toBeNull()
   expect(button.getAttribute('aria-keyshortcuts')).toBe('Alt+R')
-  expect([...button.querySelectorAll('kbd')].map((kbd) => kbd.textContent)).toEqual(['Alt', 'R'])
+  // 카메라 아이콘과 `Alt R` 글자만 두고 `캡처` 글자와 키 테두리는 없다.
+  expect(button.querySelector('kbd')).toBeNull()
+  expect(button.querySelector('svg')).not.toBeNull()
+  expect(button.textContent).toBe('Alt R')
   await press(f, '캡처 버튼')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(beginCount(f)).toBe(1)
