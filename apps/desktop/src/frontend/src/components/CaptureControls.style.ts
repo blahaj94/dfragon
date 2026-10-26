@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, font, motion, space } from '@dfragon/ui/tokens.stylex'
+import { colors, font, motion, size, space } from '@dfragon/ui/tokens.stylex'
 
 // 인식하는 동안 대화상자 꺾쇠가 박자 두 번에 한 번 바깥 4px에서 제자리로 조여 든다. 카드의 이름 수정
 // 중 꺾쇠(@dfragon/ui CornerBrackets selected)와 같은 움직임이다.
@@ -38,20 +38,43 @@ export const styles = stylex.create({
     outlineColor: colors.signal,
     outlineOffset: 2
   },
-  // 머리, 본문, 바닥이 각자 여백을 가진다. 꺾쇠가 테두리 1px 바깥까지 걸치므로 잘리지 않게 넘침을 보인다.
-  // 같은 우선순위의 속성끼리는 어느 쪽이 이길지 정해지지 않으므로, 공용 대화상자의 padding, gap, overflow
-  // 단축 속성보다 우선하는 개별 속성으로 덮는다.
+  // 상단 바 아래를 덮는 어두운 막. 상단 바는 가리지 않아 게임 연결 칩이 그대로 보인다.
+  backdrop: {
+    position: 'fixed',
+    top: `env(titlebar-area-height, ${size.topbar})`,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 100,
+    backgroundColor: colors.bgOverlay,
+    opacity: { default: 1, ':is([data-starting-style], [data-ending-style])': 0 },
+    transitionProperty: 'opacity',
+    transitionDuration: motion.durState,
+    transitionTimingFunction: motion.ease
+  },
+  // 게임 연결 칩 아래에 오른쪽 정렬로 뜨는 760 x 104 가로 패널. 머리와 본문이 각자 여백을 가진다. 꺾쇠가
+  // 테두리 1px 바깥까지 걸치므로 잘리지 않게 넘침을 보인다.
   dialog: {
-    // OS 창 버튼 띠 아래에서 가운데에 놓는다. 창 버튼은 웹 내용보다 먼저 클릭을 받는다.
-    marginTop: 'env(titlebar-area-height, 0px)',
-    rowGap: 0,
-    paddingTop: 0,
-    paddingRight: 0,
-    paddingBottom: 0,
-    paddingLeft: 0,
-    overflowX: 'visible',
-    overflowY: 'visible',
-    boxShadow: '0 16px 48px rgba(0, 0, 0, 0.6)'
+    // OS 창 버튼 띠(상단 바) 바로 아래에 4px 띄우고, 오른쪽은 상단 바의 오른쪽 여백과 맞춘다.
+    position: 'fixed',
+    top: `calc(env(titlebar-area-height, ${size.topbar}) + 4px)`,
+    right:
+      'max(24px, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 16px))',
+    zIndex: 100,
+    display: 'flex',
+    flexDirection: 'column',
+    boxSizing: 'border-box',
+    width: 760,
+    maxWidth: 'calc(100vw - 32px)',
+    height: 104,
+    backgroundColor: colors.bgSurface,
+    color: colors.fgDefault,
+    boxShadow: '0 16px 48px rgba(0, 0, 0, 0.6)',
+    opacity: { default: 1, ':is([data-starting-style], [data-ending-style])': 0 },
+    transitionProperty: 'opacity',
+    transitionDuration: motion.durState,
+    transitionTimingFunction: motion.ease,
+    outlineStyle: 'none'
   },
   corner: {
     position: 'absolute',
@@ -98,24 +121,32 @@ export const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     gap: space.s12,
-    height: 64,
-    paddingInlineStart: space.s24,
-    paddingInlineEnd: space.s16
+    height: 44,
+    flexShrink: 0,
+    paddingInlineStart: space.s16,
+    paddingInlineEnd: space.s12
   },
-  title: { flexGrow: 1, margin: 0 },
+  title: { flexShrink: 0, margin: 0 },
   // 닫기 아이콘은 18px이다. IconButton sm의 16px 아이콘 칸 가운데에 두려고 바깥으로 1px씩 넘긴다.
   closeIcon: { width: 18, height: 18, margin: -1 },
-  body: { paddingTop: space.s4, paddingInline: space.s24 },
+  body: { paddingInline: space.s16, paddingBottom: space.s16 },
+  // 상태 칩 오른쪽 한 줄. 남는 폭을 채워 뒤 버튼을 오른쪽 끝으로 민다.
   notice: {
     display: 'flex',
     alignItems: 'center',
+    flexGrow: 1,
     gap: space.s8,
+    minWidth: 0,
     margin: 0,
-    marginTop: space.s12,
-    fontSize: 13,
-    lineHeight: '20px',
-    color: colors.fgMuted,
-    overflowWrap: 'anywhere'
+    fontSize: 12,
+    lineHeight: '14px',
+    color: colors.fgMuted
+  },
+  noticeText: {
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
   },
   // 확인 필요, 캡처 실패 안내 앞의 `!` 칸. 카드의 검색 실패 칸과 같은 모양이다(shapes.cutTopRight와 함께).
   mark: {
@@ -135,14 +166,6 @@ export const styles = stylex.create({
   },
   // 캡처 실패는 카드의 검색 실패 `!` 칸과 같은 위험 색이다.
   failureMark: { backgroundColor: colors.bgDangerWeak, color: colors.fgDanger },
-  actions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: space.s8,
-    paddingTop: 20,
-    paddingInline: space.s24,
-    paddingBottom: space.s24
-  },
   secondaryAction: {
     paddingLeft: 18,
     paddingRight: 18,

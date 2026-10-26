@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { Dialog } from '@base-ui/react/dialog'
 import * as stylex from '@stylexjs/stylex'
 import { windowChromeStyles } from '../constants/window-chrome.style'
 import {
@@ -6,7 +7,6 @@ import {
   Button,
   DialogRoot,
   DialogTrigger,
-  DialogContent,
   IconButton,
   StatusChip,
   shapes
@@ -111,92 +111,98 @@ export function CaptureControls({
           {status}
         </span>
       </span>
-      <DialogContent
-        showCloseButton={false}
-        aria-labelledby={titleId}
-        {...stylex.props(styles.dialog)}
-      >
-        {/* DFragon 디자인 캔버스의 캡처 보드대로 대화상자 네 모서리 꺾쇠가 상태 색을 따른다. 인식하는
+      {/* 공용 DialogContent는 화면 가운데에 놓고 전체 창을 덮는다. 이 패널은 상단 바 아래에 붙고 상단 바는
+          어둡게 덮지 않으므로 같은 Base UI Dialog를 직접 쓴다. 포커스 가두기, Esc 닫기, 바깥 가리기는 그대로다. */}
+      <Dialog.Portal>
+        <Dialog.Backdrop {...stylex.props(styles.backdrop)} />
+        <Dialog.Popup aria-labelledby={titleId} {...stylex.props(styles.dialog)}>
+          {/* DFragon 디자인 캔버스의 캡처 보드대로 대화상자 네 모서리 꺾쇠가 상태 색을 따른다. 인식하는
             동안은 꺾쇠가 박자 두 번마다 바깥에서 조여 든다. */}
-        {corners.map(({ position, pulse }, index) => (
-          <span
-            // 네 모서리는 순서가 바뀌지 않는 고정 목록이다.
-            key={index}
-            aria-hidden="true"
-            data-tone={state.tone}
-            {...stylex.props(
-              styles.corner,
-              position,
-              styles[state.tone],
-              state.busy && styles.pulse,
-              state.busy && pulse
-            )}
-          />
-        ))}
-        <div {...stylex.props(styles.header)}>
-          <Typo.h6 as="h2" id={titleId} weight={700} {...stylex.props(styles.title)}>
-            화면 캡처
-          </Typo.h6>
-          <StatusChip tone={state.tone} busy={state.busy} role="status">
-            {state.label}
-          </StatusChip>
-          <IconButton
-            size="sm"
-            aria-label="닫기"
-            icon={<CloseIcon {...stylex.props(styles.closeIcon)} />}
-            onClick={() => setOpen(false)}
-          />
-        </div>
-        <div {...stylex.props(styles.body)}>
-          <CaptureSourceSelect
-            detected={detected}
-            others={others}
-            value={hasSelection ? selectedSourceId : ''}
-            loading={capture.sourcesLoading}
-            failed={capture.sourcesFailed}
-            ready={capture.search.ready}
-            retryStartedAt={retry.startedAt}
-            onSelect={capture.selectSource}
-            onRefresh={capture.refreshSources}
-          />
-          {status && (
-            <p role="status" {...stylex.props(styles.notice)}>
-              {markLabel != null && (
-                <span
-                  role="img"
-                  aria-label={markLabel}
-                  {...stylex.props(
-                    shapes.cutTopRight,
-                    styles.mark,
-                    phase === 'failed' ? styles.failureMark : styles.warningMark
-                  )}
-                >
-                  !
-                </span>
+          {corners.map(({ position, pulse }, index) => (
+            <span
+              // 네 모서리는 순서가 바뀌지 않는 고정 목록이다.
+              key={index}
+              aria-hidden="true"
+              data-tone={state.tone}
+              {...stylex.props(
+                styles.corner,
+                position,
+                styles[state.tone],
+                state.busy && styles.pulse,
+                state.busy && pulse
               )}
-              {status}
-            </p>
-          )}
-        </div>
-        <div {...stylex.props(styles.actions)}>
-          <Button onClick={() => setOpen(false)} {...stylex.props(styles.secondaryAction)}>
-            <Typo.txtS as="span" weight={700}>
-              닫기
-            </Typo.txtS>
-          </Button>
-          {hasSelection && (
+            />
+          ))}
+          <div {...stylex.props(styles.header)}>
+            <Typo.caption as="h2" id={titleId} weight={700} {...stylex.props(styles.title)}>
+              화면 캡처
+            </Typo.caption>
+            <StatusChip tone={state.tone} busy={state.busy} role="status">
+              {state.label}
+            </StatusChip>
+            {/* 안내는 한 줄이라 길면 말줄임하고 전체 문구는 title과 보조 기술 알림이 전한다. 패널 높이는
+              안내가 있어도 같다. */}
+            {status && (
+              <p role="status" title={status} {...stylex.props(styles.notice)}>
+                {markLabel != null && (
+                  <span
+                    role="img"
+                    aria-label={markLabel}
+                    {...stylex.props(
+                      shapes.cutTopRight,
+                      styles.mark,
+                      phase === 'failed' ? styles.failureMark : styles.warningMark
+                    )}
+                  >
+                    !
+                  </span>
+                )}
+                <span {...stylex.props(styles.noticeText)}>{status}</span>
+              </p>
+            )}
+            {hasSelection && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => capture.stopCapture()}
+                {...stylex.props(styles.primaryAction)}
+              >
+                <Typo.caption as="span" weight={700}>
+                  캡처 중지
+                </Typo.caption>
+              </Button>
+            )}
             <Button
-              variant="primary"
-              onClick={() => capture.stopCapture()}
-              {...stylex.props(styles.primaryAction)}
+              size="sm"
+              onClick={() => capture.refreshSources()}
+              {...stylex.props(shapes.cutTopRight, styles.secondaryAction)}
             >
-              <Typo.txtS as="span" weight={700}>
-                캡처 중지
-              </Typo.txtS>
+              <Typo.caption as="span" weight={700}>
+                새로고침
+              </Typo.caption>
             </Button>
-          )}
-        </div>
-      </DialogContent>
+            <IconButton
+              size="sm"
+              aria-label="닫기"
+              icon={<CloseIcon {...stylex.props(styles.closeIcon)} />}
+              onClick={() => setOpen(false)}
+            />
+          </div>
+          <div {...stylex.props(styles.body)}>
+            <CaptureSourceSelect
+              detected={detected}
+              others={others}
+              value={hasSelection ? selectedSourceId : ''}
+              loading={capture.sourcesLoading}
+              failed={capture.sourcesFailed}
+              ready={capture.search.ready}
+              retryStartedAt={retry.startedAt}
+              onSelect={capture.selectSource}
+              onRefresh={capture.refreshSources}
+            />
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
     </DialogRoot>
   )
 }
