@@ -1,7 +1,7 @@
 export function createProductImageApiFixture() {
   const successfulRun = {
     id: 123,
-    event: 'workflow_run',
+    event: 'push',
     head_branch: 'main',
     conclusion: 'success'
   }
