@@ -1,10 +1,10 @@
-import { Button, Kbd } from '@dfragon/ui'
+import { Button, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import { CameraIcon } from './CameraIcon'
 import { styles } from './CaptureButton.style'
 
 /**
- * 머리의 캡처 주 버튼. 카메라 아이콘, 구분선, `Alt` `R` 키캡을 두고 누르면 Alt+R과 같은 회차 시작을 요청한다.
+ * 머리의 캡처 주 버튼. 카메라 아이콘과 `Alt R` 글자를 두고 누르면 Alt+R과 같은 회차 시작을 요청한다.
  * 접근 가능한 이름은 `<대상> 캡처, 단축키 Alt R`이다.
  */
 export function CaptureButton({
@@ -21,20 +21,17 @@ export function CaptureButton({
   return (
     <Button
       variant="primary"
-      size="lg"
+      size="sm"
       aria-label={`${target} 캡처, 단축키 Alt R`}
       aria-keyshortcuts="Alt+R"
       disabled={disabled}
       onClick={onClick}
+      {...stylex.props(styles.button)}
     >
-      <span {...stylex.props(styles.content)}>
-        <CameraIcon width={24} height={24} />
-        <span aria-hidden="true" {...stylex.props(styles.divider)} />
-        <span aria-hidden="true" {...stylex.props(styles.keys)}>
-          <Kbd surface="signal">Alt</Kbd>
-          <Kbd surface="signal">R</Kbd>
-        </span>
-      </span>
+      <CameraIcon width={16} height={16} />
+      <Typo.caption as="span" weight={700}>
+        Alt R
+      </Typo.caption>
     </Button>
   )
 }
