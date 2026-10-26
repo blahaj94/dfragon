@@ -143,7 +143,7 @@ last-reviewed: 2026-10-20
 ## 표현과 이미지
 
 - 라이트 메인 보드도 캐릭터 카드 면은 다크 색상을 유지하며 바깥 배경과 상단 바를 밝게 바꾼다.
-- 글꼴은 번들한 Pretendard이며 한국어 줄바꿈과 표기 기준은 [글꼴과 한국어 타이포그래피](design-system.md#글꼴과-한국어-타이포그래피)를 따른다. 메인 카드의 기타 면 목록은 캔버스 카드 면 보드대로 머리 12px, 행 높이 30에 위쪽 `card.divider` 선, 아이템 이름 13px 500, 강화와 증폭 Barlow Condensed 22px 700이다(2026-10-19, 이전에는 2026-09-19 Typo 적용 요청의 `Typo.caption` 12px/18px 교차 행 목록). 상세 창의 장비 목록은 [상세 창](#상세-창)대로 최소 높이 40 줄에 아이템 이름 13px 500, 마법부여 옵션 12px, 강화와 증폭 Barlow Condensed 18px 700이다. 카드 면의 라벨과 단위도 최소 글자 크기 12px를 지킨다.
+- 글꼴은 번들한 마루미냐 한글(MaruMinya Hangul)이며 한국어 줄바꿈과 표기 기준은 [글꼴과 한국어 타이포그래피](design-system.md#글꼴과-한국어-타이포그래피)를 따른다. 메인 카드의 기타 면 목록은 캔버스 카드 면 보드대로 머리 12px, 행 높이 30에 위쪽 `card.divider` 선, 아이템 이름 13px 500, 강화와 증폭 Barlow Condensed 22px 700이다(2026-10-19, 이전에는 2026-09-19 Typo 적용 요청의 `Typo.caption` 12px/18px 교차 행 목록). 상세 창의 장비 목록은 [상세 창](#상세-창)대로 최소 높이 40 줄에 아이템 이름 13px 500, 마법부여 옵션 12px, 강화와 증폭 Barlow Condensed 18px 700이다. 카드 면의 라벨과 단위도 최소 글자 크기 12px를 지킨다.
 - 무료 아이콘의 디자인 원본은 [Lucide 아이콘 목록](https://lucide.dev/icons)이다. 현재 사용 중인 moon, camera, chevron-down, chevron-right, check, monitor, refresh-cw, user, external-link를 기준으로 구현 자산과 출처를 맞추고, 선 끝과 꺾임은 각지게(`stroke-linecap="square"`, `stroke-linejoin="miter"`) 그린다. 설정(조절 막대), 테마(마름모 해), 대기(각진 모래시계), 접기, 스냅샷은 dfragon-design [아이콘](https://github.com/blahaj94/dfragon-design/blob/main/design/icons.md)의 DFragon 아이콘을 쓴다.
 - 캐릭터 이미지: `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=<zoom>`.
 - 아이템 이미지: `https://img-api.neople.co.kr/df/items/<itemId>`.

@@ -44,13 +44,16 @@ function expectedStaticEntries(): NoticeEntry[] {
       ]
     },
     {
-      name: 'Pretendard',
+      name: 'MaruMinya Hangul',
       version: '',
       license: 'OFL-1.1',
       documents: [
         {
-          name: 'FONT-LICENSE',
-          text: readFileSync(new URL('../notices/desktop/FONT-LICENSE', import.meta.url), 'utf8')
+          name: 'MARUMINYA-LICENSE',
+          text: readFileSync(
+            new URL('../notices/desktop/MARUMINYA-LICENSE', import.meta.url),
+            'utf8'
+          )
         }
       ]
     },

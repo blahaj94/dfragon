@@ -29,10 +29,10 @@ export function collectDesktopCatalog({
       documents: [document(join(noticeRoot, 'desktop'), 'LUCIDE-LICENSE')]
     },
     {
-      name: 'Pretendard',
+      name: 'MaruMinya Hangul',
       version: '',
       license: 'OFL-1.1',
-      documents: [document(join(noticeRoot, 'desktop'), 'FONT-LICENSE')]
+      documents: [document(join(noticeRoot, 'desktop'), 'MARUMINYA-LICENSE')]
     },
     {
       name: 'Barlow Condensed',
