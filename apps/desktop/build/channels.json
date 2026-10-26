@@ -26,10 +26,7 @@
       "appIdentity": "dfragon.test"
     },
     "origins": {
-      "api": {
-        "variable": "DFRAGON_TEST_API_ORIGIN",
-        "default": "https://api.dfragon.com"
-      }
+      "api": "https://api.dfragon.com"
     }
   },
   "distribution": {
