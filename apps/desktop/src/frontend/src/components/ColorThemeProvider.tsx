@@ -1,29 +1,17 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ColorThemeContext } from '../hooks/color-theme-context'
+import { useEffect, type ReactNode } from 'react'
 
-export function ColorThemeProvider({
-  initialTheme = 'system',
-  children
-}: {
-  initialTheme?: 'system' | 'light' | 'dark'
-  children: ReactNode
-}): React.JSX.Element {
-  const [light, setLight] = useState(
-    () =>
-      initialTheme === 'light' ||
-      (initialTheme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches)
-  )
-  const toggleTheme = useCallback(() => setLight((current) => !current), [])
-  const value = useMemo(() => ({ light, toggleTheme }), [light, toggleTheme])
-
+/**
+ * Desktop 창의 테마를 다크로 고정한다. 시스템 설정이나 이전에 남은 `data-theme`과 관계없이 다크를 쓰고,
+ * 해제하면 이전 값을 되돌린다.
+ */
+export function ColorThemeProvider({ children }: { children: ReactNode }): React.JSX.Element {
   useEffect(() => {
     const root = document.documentElement
     const previousTheme = root.dataset.theme
     const previousColorScheme = root.style.colorScheme
-    const theme = light ? 'light' : 'dark'
     // tokens.css가 data-theme으로 색을 고르고, color-scheme은 스크롤 막대 같은 기본 컨트롤을 맞춘다.
-    root.dataset.theme = theme
-    root.style.colorScheme = theme
+    root.dataset.theme = 'dark'
+    root.style.colorScheme = 'dark'
 
     return () => {
       if (previousTheme == null) {
@@ -33,7 +21,7 @@ export function ColorThemeProvider({
       }
       root.style.colorScheme = previousColorScheme
     }
-  }, [light])
+  }, [])
 
-  return <ColorThemeContext.Provider value={value}>{children}</ColorThemeContext.Provider>
+  return <>{children}</>
 }

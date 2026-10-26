@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeTheme, session } from 'electron'
+import { app, BrowserWindow, session } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'node:url'
 import { optimizer, is } from '@electron-toolkit/utils'
@@ -57,7 +57,6 @@ function createWindow(): void {
   if (mainWindow != null && !mainWindow.isDestroyed()) {
     throw new Error('Main window already exists.')
   }
-  const theme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
   const window = new BrowserWindow({
     width: MAIN_WINDOW_SIZE.width,
     height: MAIN_WINDOW_SIZE.height,
@@ -69,8 +68,8 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
-    titleBarOverlay: getTitleBarOverlay(process.platform, theme),
-    backgroundColor: WINDOW_CHROME_COLORS[theme].color,
+    titleBarOverlay: getTitleBarOverlay(process.platform),
+    backgroundColor: WINDOW_CHROME_COLORS.color,
     icon,
     webPreferences: {
       backgroundThrottling: false,

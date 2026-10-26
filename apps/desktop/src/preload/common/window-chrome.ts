@@ -1,11 +1,6 @@
-export type WindowChromeTheme = 'light' | 'dark'
-
-// @dfragon/ui tokens.css의 상단 바 면 bg.bar와 글자 fg.default 값이다. preload와 main은 CSS 변수를
-// 읽을 수 없어 값을 옮겨 적으며, 토큰 값을 바꾸면 함께 고친다. 라이트 값은 provisional이다.
-export const WINDOW_CHROME_COLORS = {
-  dark: { color: '#121214', symbolColor: '#f1ede6' },
-  light: { color: '#ffffff', symbolColor: '#1a1c20' }
-} as const
+// @dfragon/ui tokens.css의 다크 상단 바 면 bg.bar와 글자 fg.default 값이다. Desktop은 다크 테마만 쓴다.
+// preload와 main은 CSS 변수를 읽을 수 없어 값을 옮겨 적으며, 토큰 값을 바꾸면 함께 고친다.
+export const WINDOW_CHROME_COLORS = { color: '#121214', symbolColor: '#f1ede6' } as const
 
 export const WINDOW_CHROME_HEIGHT = 56
 
@@ -20,11 +15,6 @@ export const MAIN_WINDOW_SIZE = {
   collapsedHeight: 400,
   raidCollapsedHeight: 560
 } as const
-
-/** 창 색상에 허용된 테마만 변환 없이 확인한다. */
-export function isWindowChromeTheme(value: unknown): value is WindowChromeTheme {
-  return value === 'light' || value === 'dark'
-}
 
 /** 메인 창 내용 높이로 접은 높이와 기준 높이 사이의 정수만 변환 없이 허용한다. */
 export function isMainWindowContentHeight(value: unknown): value is number {
