@@ -5,6 +5,8 @@ type ServerSelectProps = {
   value: string
   options: readonly { id: string; label: string }[]
   disabled?: boolean
+  /** `field`는 이름 입력 칸 안에 넣는 높이 16의 작은 칩이다. @default 'chip' */
+  variant?: 'chip' | 'field'
   onValueChange: (id: string) => void
 }
 
@@ -14,6 +16,7 @@ export function ServerSelect({
   value,
   options,
   disabled = false,
+  variant = 'chip',
   onValueChange
 }: ServerSelectProps): React.JSX.Element {
   return (
@@ -27,7 +30,7 @@ export function ServerSelect({
       items={options.map((option) => ({ value: option.id, label: option.label }))}
       disabled={disabled}
     >
-      <Select.Trigger size="xs" surface="card" aria-label={label}>
+      <Select.Trigger size={variant === 'field' ? '2xs' : 'xs'} surface="card" aria-label={label}>
         <Select.Value placeholder="서버" />
       </Select.Trigger>
       <Select.Popup surface="card" aria-label={label}>
