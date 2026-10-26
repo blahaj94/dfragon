@@ -1,21 +1,23 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, font } from '@dfragon/ui/tokens.stylex'
 
-// DFragon 디자인 캔버스 메인 보드의 파티 머리: 라벨 12 fg.subtle 위에 값 13 fg.muted, 숫자는 Barlow 20 600.
+// 축소 시안 상단 바 머리: `마지막 캡처 12초 전`을 높이 28 한 줄에 둔다. 라벨은 fg.subtle, 값은 fg.muted인
+// 12px이고 초, 분 숫자만 Barlow Condensed로 쓴다. 라벨과 값은 한 줄 안에서 글자 기준선을 맞춘다.
 export const styles = stylex.create({
   root: {
     display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: 2,
+    alignItems: 'center',
+    height: 28,
     flexShrink: 0,
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    fontSize: 12,
+    lineHeight: '14px'
   },
-  label: { fontSize: 12, lineHeight: '18px', color: colors.fgSubtle },
-  value: { fontSize: 13, lineHeight: 1, color: colors.fgMuted },
+  label: { marginInlineEnd: 6, color: colors.fgSubtle },
+  value: { color: colors.fgMuted },
   number: {
     fontFamily: font.num,
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: 600,
     fontVariantNumeric: 'tabular-nums'
   }

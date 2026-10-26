@@ -195,7 +195,10 @@ it('공대 머리에 파티와 같은 모양의 캡처 버튼과 마지막 캡�
   await showScreen('공대')
   const button = raidCaptureButton()
   expect(button.getAttribute('aria-keyshortcuts')).toBe('Alt+R')
-  expect([...button.querySelectorAll('kbd')].map((kbd) => kbd.textContent)).toEqual(['Alt', 'R'])
+  // 카메라 아이콘과 `Alt R` 글자만 두고 `캡처` 글자와 키 테두리는 없다.
+  expect(button.querySelector('kbd')).toBeNull()
+  expect(button.querySelector('svg')).not.toBeNull()
+  expect(button.textContent).toBe('Alt R')
   expect(raidSection().textContent).toContain('마지막 캡처')
   expectSingleAnnouncement('Alt+R을 눌러 공대를 인식해 주세요.')
   await act(async () => button.click())

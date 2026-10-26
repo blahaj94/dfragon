@@ -6,7 +6,7 @@ import { SnapshotIcon } from './SnapshotIcon'
 import { styles } from './SnapshotToggle.style'
 
 /**
- * 머리의 모험단 순번 스냅샷 토글. 꺼진 버튼을 누르면 바로 스냅샷을 찍고, 켜진 버튼을 누르면 버튼 아래에
+ * 머리의 모험단 순번 스냅샷 토글(높이 28). 꺼진 버튼을 누르면 바로 스냅샷을 찍고, 켜진 버튼을 누르면 버튼 아래에
  * 끄기 확인을 연다. 확인 팝오버는 되돌릴 수 없는 삭제를 묻는 `alertdialog`라 취소 버튼에 먼저 포커스한다.
  */
 export function SnapshotToggle({
@@ -39,7 +39,13 @@ export function SnapshotToggle({
     >
       <Popover.Trigger
         render={
-          <IconButton size="lg" aria-label={label} pressed={active} icon={<SnapshotIcon />} />
+          <IconButton
+            size="lg"
+            aria-label={label}
+            pressed={active}
+            icon={<SnapshotIcon width={16} height={16} {...stylex.props(styles.icon)} />}
+            {...stylex.props(styles.trigger)}
+          />
         }
       />
       <Popover.Portal>
