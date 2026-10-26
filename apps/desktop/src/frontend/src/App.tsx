@@ -16,6 +16,8 @@ import { MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
 
 function App(): React.JSX.Element {
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
+  // 상단 바의 화면 머리 자리. 보이는 화면이 자기 머리를 이 요소에 그린다.
+  const [boardSlot, setBoardSlot] = useState<HTMLDivElement | null>(null)
   // Alt+R은 지금 보이는 화면의 회차만 시작한다. 게임 창 선택과 중지는 파티 캡처가 소유한다.
   const capture = usePartyCapture({
     identifyCharacters: true,
@@ -49,6 +51,7 @@ function App(): React.JSX.Element {
     <main {...stylex.props(styles.app)}>
       <TopBar
         nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
+        boardRef={setBoardSlot}
         notice={
           updateNotice.notice != null && (
             <UpdateNotice
@@ -65,9 +68,19 @@ function App(): React.JSX.Element {
       <div {...stylex.props(styles.content)}>
         <div {...stylex.props(styles.page)}>
           {/* 파티 카드는 공대를 보는 동안에도 상태를 유지하도록 숨기기만 한다. */}
-          <PartyScreen capture={capture} hidden={searchMode !== 'party'} collapse={party} />
+          <PartyScreen
+            capture={capture}
+            hidden={searchMode !== 'party'}
+            collapse={party}
+            headerSlot={boardSlot}
+          />
           {/* 공대 카드도 파티를 보는 동안 자리별 입력과 검색 상태를 유지하도록 숨기기만 한다. */}
-          <RaidScreen capture={raidCapture} hidden={searchMode !== 'raid'} collapse={party} />
+          <RaidScreen
+            capture={raidCapture}
+            hidden={searchMode !== 'raid'}
+            collapse={party}
+            headerSlot={boardSlot}
+          />
         </div>
       </div>
     </main>

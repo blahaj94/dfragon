@@ -1,46 +1,52 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, font, size, space } from '@dfragon/ui/tokens.stylex'
+import { colors, font, space } from '@dfragon/ui/tokens.stylex'
 
-// dfragon-design layout.md의 파티 머리는 높이 48이고 카드와 16 떨어진다. 배치와 글자 크기는 DFragon
-// 디자인 캔버스 메인 보드의 파티 머리를 따르며 공대 보드의 머리도 같다. 간격은 머리를 놓는 화면이 정한다.
+// 축소 시안은 파티, 공대 머리를 높이 44 상단 바 안 한 줄에 둔다. 제목은 12px 한글이고 인원수와 회차만
+// Barlow Condensed 숫자다. 머리는 상단 바의 내비와 알림 사이 남는 폭을 채운다.
 export const styles = stylex.create({
   header: {
     display: 'flex',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     gap: space.s16,
-    minHeight: size.controlLg,
-    // 공대 보드는 머리를 고정하고 보드만 스크롤한다.
-    flexShrink: 0
+    flexGrow: 1,
+    minWidth: 0
   },
-  title: { display: 'flex', alignItems: 'baseline', gap: space.s12, minWidth: 0 },
-  heading: { flexShrink: 0, letterSpacing: '-0.01em' },
-  count: {
+  title: { display: 'flex', alignItems: 'baseline', gap: space.s8, minWidth: 0 },
+  heading: {
+    flexShrink: 0,
+    margin: 0,
+    fontSize: 12,
+    fontWeight: 400,
+    lineHeight: '14px',
+    color: colors.fgDefault
+  },
+  number: {
     flexShrink: 0,
     color: colors.fgDefault,
     fontFamily: font.num,
-    fontSize: 28,
+    fontSize: 16,
     fontWeight: 700,
     fontVariantNumeric: 'tabular-nums',
     lineHeight: 1
   },
-  // 스냅샷 회차 번호(`#2`). 인원수와 같은 28px이고 `#`도 줄이지 않는다. 색은 신호색이라 다크는 크림이다.
-  round: {
-    flexShrink: 0,
-    color: colors.signal,
-    fontFamily: font.num,
-    fontSize: 28,
-    fontWeight: 700,
-    fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1
-  },
+  // 스냅샷 회차 번호(`#2`). 색은 신호색이라 크림이다.
+  round: { color: colors.signal },
   total: { color: colors.fgSubtle },
+  // 안내가 길면 한 줄에서 말줄임하고 전체 문구는 title과 status 영역으로 전한다.
   notice: {
     minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
     color: colors.fgMuted,
-    fontSize: 13,
-    lineHeight: '18px',
-    overflowWrap: 'anywhere'
+    fontSize: 12,
+    lineHeight: '14px'
   },
-  actions: { display: 'flex', alignItems: 'center', gap: space.s16, flexShrink: 0 }
+  actions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: space.s12,
+    flexShrink: 0,
+    marginInlineStart: 'auto'
+  }
 })
