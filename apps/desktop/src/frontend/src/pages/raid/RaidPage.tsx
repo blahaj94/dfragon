@@ -32,7 +32,6 @@ export function RaidPage({
   slots,
   resetKey = 'raid',
   seats,
-  collapsed,
   actions = {}
 }: {
   /** 보드 영역의 id. 자리 설명과 이동 안내 id의 접두어로도 쓴다. */
@@ -54,7 +53,6 @@ export function RaidPage({
     /** 두 화면 자리(0~11)를 맞바꾸고 맞바꿨는지 돌려준다. 맞바꿀 수 없는 동안에는 false다. */
     swapSeats: (from: number, to: number) => boolean
   }
-  collapsed: boolean
   /** 검색 슬롯 번호로 부르는 조회 */
   actions?: Pick<SlotCardActions, 'lookupSlot'>
 }): React.JSX.Element {
@@ -125,7 +123,6 @@ export function RaidPage({
         key={`${resetKey}-${slot}`}
         card={card}
         slot={seat + 1}
-        collapsed={collapsed}
         onLookup={
           lookupSlot === undefined
             ? undefined

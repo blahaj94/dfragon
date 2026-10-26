@@ -5,7 +5,6 @@ import { CaptureControls } from '../../components/CaptureControls'
 import { MainNav, type SearchMode } from '../../components/MainNav'
 import { BoardHeader } from '../../components/BoardHeader'
 import { TopBar } from '../../components/TopBar'
-import { usePartyCollapse } from '../../hooks/usePartyCollapse'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { RaidPage } from '../../pages/raid/RaidPage'
 import { scenarios } from './scenarios'
@@ -28,7 +27,6 @@ import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import type { CardCharacter } from '../../types/cards'
 import { createSeatOrder, seatValuesToSlotOrder, swapSeats } from '../../lib/raid-seats'
 import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
-import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
 
 export function Preview(): React.JSX.Element {
   // 상단 바의 화면 머리 자리. 보이는 화면의 머리를 이 요소에 그린다.
@@ -39,15 +37,11 @@ export function Preview(): React.JSX.Element {
   // 합성 인식 완료 시각. 미리보기에서 인식 완료를 고르면 12초 전으로, 캡처 버튼을 누르면 지금으로 둔다.
   const [completedAt, setCompletedAt] = useState<number | null>(null)
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
-  const party = usePartyCollapse(
-    searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidCollapsedHeight : MAIN_WINDOW_SIZE.collapsedHeight
-  )
   // 합성 공대 보드의 자리 배치. 카드를 끌거나 Alt와 방향키로 맞바꿔 본다.
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
   // 모험단 순번 스냅샷 미리보기의 회차. 파티와 공대 모두 캡처 버튼을 누를 때마다 다른 회차로 바뀐다.
   const [partyRound, setPartyRound] = useState(0)
   const [raidRound, setRaidRound] = useState(0)
-  const partyCardsId = useId()
   const raidCardsId = useId()
   // 후보 줄 미리보기에서 슬롯마다 미리보기 중이거나 확정한 후보의 서버
   const [candidatePicks, setCandidatePicks] = useState<
@@ -209,8 +203,6 @@ export function Preview(): React.JSX.Element {
               boardSlot
             )}
           <PartyPage
-            id={partyCardsId}
-            collapsed={party.collapsed}
             slots={partyCards}
             resetKey={scenario}
             inputEnabled
@@ -259,7 +251,6 @@ export function Preview(): React.JSX.Element {
                   return true
                 }
               }}
-              collapsed={party.collapsed}
             />
           </div>
         )}

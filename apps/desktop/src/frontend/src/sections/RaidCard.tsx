@@ -65,7 +65,6 @@ export type RaidCardMove = Pick<
 export function RaidCard({
   card,
   slot,
-  collapsed = false,
   onLookup,
   move
 }: {
@@ -73,8 +72,6 @@ export function RaidCard({
   card: SlotCard
   /** 화면의 자리 번호(1~12) */
   slot: number
-  /** 그림 칸을 접고 이름 칸, 소속 줄, 명성과 점수 한 줄만 남긴다. */
-  collapsed?: boolean
   onLookup?: (nickname: string, serverId: string) => void
   move: RaidCardMove
 }): React.JSX.Element {
@@ -119,12 +116,11 @@ export function RaidCard({
       )}
     >
       <CardFrame as="article" state={frameState} aria-busy={busy}>
-        <div {...stylex.props(styles.body, collapsed && styles.bodyCollapsed)}>
+        <div {...stylex.props(styles.body)}>
           <div
             {...stylex.props(
               shapes.gridWell,
               styles.well,
-              collapsed && styles.hidden,
               tier === 'top' && styles.wellTop,
               tier === 'ranker' && styles.wellRanker
             )}

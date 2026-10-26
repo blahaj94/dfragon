@@ -57,8 +57,6 @@ export const styles = stylex.create({
     height: THUMBNAIL_SIZE,
     overflow: 'hidden'
   },
-  // 접힌 카드는 썸네일을 숨기고 내용 열만 남긴다.
-  wellCollapsed: { display: 'none' },
   // 상위, 랭커 카드의 썸네일 아래 2px 단계 색 선. 캐릭터 그림 위에 그리도록 썸네일의 마지막 층에 둔다.
   // 랭커는 썸네일 면도 단계 면이다.
   wellTop: {
@@ -129,7 +127,6 @@ export const styles = stylex.create({
     minWidth: 0,
     minHeight: LINE_HEIGHT
   },
-  lineHidden: { display: 'none' },
   lineDivider: {
     flexShrink: 0,
     width: 1,
