@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: application-browser-ui
-last-reviewed: 2026-10-19
+last-reviewed: 2026-10-27
 ---
 
 # Design System Contract
@@ -26,13 +26,12 @@ last-reviewed: 2026-10-19
 
 공용 디자인 값은 `@dfragon/ui`가 CSS custom property와 StyleX용 문자열 상수로 제공한다.
 
-- `@dfragon/ui/tokens.css`(`packages/ui/tokens.css`)가 `--df-*` 변수를 정의한다. `:root`가 다크 기본값이고 `:root[data-theme='light']`가 라이트 값이다. `prefers-reduced-motion: reduce`에서 `--df-dur-*`를 0으로 둔다.
+- `@dfragon/ui/tokens.css`(`packages/ui/tokens.css`)가 `--df-*` 변수를 정의한다. 테마는 다크 하나이고 `:root`에 값을 둔다. `prefers-reduced-motion: reduce`에서 `--df-dur-*`를 0으로 둔다.
 - 모든 browser entry가 `tokens.css`, `foundation.css`, 앱 전역 글꼴 CSS 순서로 한 번 import한다.
 - `@dfragon/ui/tokens.stylex`(`packages/ui/src/tokens.stylex.ts`)는 `stylex.defineConsts`로 `colors`, `space`, `radius`, `motion`, `font`를 `'var(--df-…)'` 문자열 상수로 제공한다. React는 쓰지 않지만 소비 앱의 StyleX 컴파일이 필요한 entry다.
 - StyleX compiler는 import 경로가 `.stylex`로 끝나는 모듈의 값만 다른 파일에서 정적으로 읽고, 그 경로를 bundler alias가 아닌 package exports로 해석한다. 그래서 entry 이름에 `.stylex`를 붙이고 `@dfragon/ui` 내부도 `./tokens.stylex`로 가져온다. `src/shapes.ts`처럼 `stylex.create`만 쓰는 파일은 이 이름 규칙의 대상이 아니다.
-- `defineVars`, `createTheme`, runtime 테마는 쓰지 않는다. 컴파일 결과에는 `var(--df-…)` 값이 그대로 들어가고 새 `:root` 변수가 생기지 않으므로, 모드 전환은 `tokens.css`만으로 끝나고 portal마다 테마를 다시 바르지 않는다.
+- `defineVars`, `createTheme`, runtime 테마는 쓰지 않는다. 컴파일 결과에는 `var(--df-…)` 값이 그대로 들어가고 새 `:root` 변수가 생기지 않으므로, portal마다 테마를 다시 바르지 않는다.
 - `packages/ui/src/shapes.ts`는 공용 `stylex.create`로 `cutTopRight`, `cutBottomRight`, `gridWell`, `alertHatch`, `scanlines`, `srOnly`를 제공한다.
-- 모드는 `document.documentElement.dataset.theme`에 `'light'` 또는 `'dark'`를 넣어 바꾼다.
 
 색 토큰은 현재 Desktop 색 토큰의 이름(`bgCanvas`, `bgSurface`, `bgInset`, `bgControl*`, `borderDefault`, `borderStrong`, `fgDefault`, `fgMuted`, `fgSubtle`, `fgSuccess`, `fgDanger`, `card*`, 희귀도, 강화, 게임, 속성 색)을 유지하고 다음을 바꾼다.
 

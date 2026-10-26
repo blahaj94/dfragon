@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { useColorTheme } from './hooks/useColorTheme'
-import { useWindowChromeTheme } from './hooks/useWindowChromeTheme'
 import { usePartyCapture } from './hooks/usePartyCapture'
 import { CaptureControls } from './components/CaptureControls'
 import { TopBar } from './components/TopBar'
@@ -17,8 +15,6 @@ import { getRaidScreenCapture } from './lib/capture-presentation'
 import { MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
 
 function App(): React.JSX.Element {
-  const { light } = useColorTheme()
-  useWindowChromeTheme(light)
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
   // Alt+R은 지금 보이는 화면의 회차만 시작한다. 게임 창 선택과 중지는 파티 캡처가 소유한다.
   const capture = usePartyCapture({

@@ -90,7 +90,7 @@ function Examples() {
   const [server, setServer] = useState<string | null>('siroco')
   const [mode, setMode] = useState('party')
   const [activation, setActivation] = useState('아직 실행하지 않았습니다.')
-  const [light, setLight] = useState(false)
+  const [enabled, setEnabled] = useState(false)
 
   return (
     <main {...stylex.props(styles.page)}>
@@ -101,14 +101,11 @@ function Examples() {
         </SupportingText>
         <div {...stylex.props(styles.row)}>
           <Switch
-            aria-label="라이트 모드"
-            checked={light}
-            onCheckedChange={(checked) => {
-              setLight(checked)
-              document.documentElement.dataset.theme = checked ? 'light' : 'dark'
-            }}
+            aria-label="예시 스위치"
+            checked={enabled}
+            onCheckedChange={(checked) => setEnabled(checked)}
           />
-          <SupportingText>라이트 모드</SupportingText>
+          <SupportingText>예시 스위치</SupportingText>
         </div>
         <ExampleSection title="버튼의 변형과 상태">
           <div {...stylex.props(styles.row)}>

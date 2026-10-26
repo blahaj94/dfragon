@@ -1,25 +1,17 @@
 import { ipcMain, screen, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
-import {
-  isMainWindowContentHeight,
-  isWindowChromeTheme,
-  MAIN_WINDOW_SIZE,
-  WINDOW_CHROME_COLORS
-} from '../../preload/common/window-chrome'
-import { canColorTitleBarOverlay, getTitleBarOverlay } from './title-bar-overlay'
+import { isMainWindowContentHeight, MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
 import {
   WINDOW_CHROME_CHANNELS,
   type WindowChromeIPCFunctions
 } from '../../preload/common/types/window-chrome'
 
-/** 신뢰한 메인 화면의 테마를 OS 창 버튼과 창 배경에, 파티 카드 접기를 창 높이에 적용한다. */
+/** 신뢰한 메인 화면의 파티 카드 접기를 창 높이에 적용한다. */
 export function registerWindowChromeWindow({
   window,
-  documentUrl,
-  platform = process.platform
+  documentUrl
 }: {
   window: BrowserWindow
   documentUrl: string
-  platform?: NodeJS.Platform
 }): () => void {
   let disposed = false
   // 등록에 성공한 채널만 지운다. 등록에 실패한 채널의 기존 handler는 이 창의 것이 아니다.
@@ -34,21 +26,6 @@ export function registerWindowChromeWindow({
     if (!attached || event.sender !== contents || frame.url !== documentUrl) {
       throw new Error('WINDOW_CHROME_NOT_ALLOWED')
     }
-  }
-
-  const setTheme = async (
-    event: IpcMainInvokeEvent,
-    ...args: Parameters<WindowChromeIPCFunctions['setWindowChromeTheme']>
-  ): ReturnType<WindowChromeIPCFunctions['setWindowChromeTheme']> => {
-    requireSender(event)
-    if (args.length !== 1 || !isWindowChromeTheme(args[0])) {
-      throw new Error('INVALID_WINDOW_CHROME_COMMAND')
-    }
-    const theme = args[0]
-    if (canColorTitleBarOverlay(platform)) {
-      window.setTitleBarOverlay(getTitleBarOverlay(platform, theme))
-    }
-    window.setBackgroundColor(WINDOW_CHROME_COLORS[theme].color)
   }
 
   const setContentHeight = async (
@@ -93,8 +70,6 @@ export function registerWindowChromeWindow({
   }
 
   try {
-    ipcMain.handle(WINDOW_CHROME_CHANNELS.setTheme, setTheme)
-    registeredChannels.push(WINDOW_CHROME_CHANNELS.setTheme)
     ipcMain.handle(WINDOW_CHROME_CHANNELS.setContentHeight, setContentHeight)
     registeredChannels.push(WINDOW_CHROME_CHANNELS.setContentHeight)
     contents.on('destroyed', dispose)

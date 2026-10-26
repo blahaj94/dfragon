@@ -13,7 +13,7 @@ vi.mock('electron', () => ({
     })
   }
 }))
-const channels = [WINDOW_CHROME_CHANNELS.setTheme, WINDOW_CHROME_CHANNELS.setContentHeight]
+const channels = [WINDOW_CHROME_CHANNELS.setContentHeight]
 
 const documentUrl = 'file:///synthetic/index.html'
 let dispose: (() => void) | undefined
@@ -36,8 +36,6 @@ function windowFixture() {
     isDestroyed: vi.fn(() => false),
     isMaximized: vi.fn(() => false),
     isFullScreen: vi.fn(() => false),
-    setTitleBarOverlay: vi.fn(),
-    setBackgroundColor: vi.fn(),
     getBounds: vi.fn(() => ({ x: 0, y: 0, width: contentSize[0], height: contentSize[1] })),
     getContentSize: vi.fn(() => [...contentSize]),
     setContentSize: vi.fn((width: number, height: number) => {
@@ -50,12 +48,11 @@ function windowFixture() {
   return { window, contents, frame, event }
 }
 
-function fixture(platform: NodeJS.Platform = 'win32') {
+function fixture() {
   const f = windowFixture()
   dispose = registerWindowChromeWindow({
     window: f.window as unknown as BrowserWindow,
-    documentUrl,
-    platform
+    documentUrl
   })
   const handler = (name: string) =>
     mocks.handle.mock.calls.find(([channel]) => channel === name)![1] as (
@@ -65,34 +62,9 @@ function fixture(platform: NodeJS.Platform = 'win32') {
 
   return {
     ...f,
-    setTheme: handler(WINDOW_CHROME_CHANNELS.setTheme),
     setContentHeight: handler(WINDOW_CHROME_CHANNELS.setContentHeight)
   }
 }
-
-it.each(['win32', 'linux'] as const)(
-  '%s에서 라이트와 다크 창 색상을 적용한다',
-  async (platform) => {
-    const f = fixture(platform)
-    await f.setTheme(f.event, 'light')
-    await f.setTheme(f.event, 'dark')
-
-    expect(f.window.setTitleBarOverlay.mock.calls).toEqual([
-      [{ color: '#ffffff', symbolColor: '#1a1c20', height: 56 }],
-      [{ color: '#121214', symbolColor: '#f1ede6', height: 56 }]
-    ])
-    expect(f.window.setBackgroundColor.mock.calls).toEqual([['#ffffff'], ['#121214']])
-  }
-)
-
-it('macOS에서는 신호등 overlay를 바꾸지 않고 창 배경만 적용한다', async () => {
-  const f = fixture('darwin')
-  await f.setTheme(f.event, 'light')
-  await f.setTheme(f.event, 'dark')
-
-  expect(f.window.setTitleBarOverlay).not.toHaveBeenCalled()
-  expect(f.window.setBackgroundColor.mock.calls).toEqual([['#ffffff'], ['#121214']])
-})
 
 it.each([
   'sender',
@@ -103,7 +75,7 @@ it.each([
   'destroyedFrame',
   'destroyedWindow',
   'destroyedContents'
-])('%s에서 온 테마 변경은 부수 효과 전에 거부한다', async (kind) => {
+])('%s에서 온 높이 변경은 부수 효과 전에 거부한다', async (kind) => {
   const f = fixture()
   const event: { sender: unknown; senderFrame: unknown } = { ...f.event }
   if (kind === 'sender') {
@@ -137,51 +109,18 @@ it.each([
   if (kind === 'destroyedContents') {
     f.contents.isDestroyed.mockReturnValue(true)
   }
-  await expect(f.setTheme(event, 'dark')).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
-  expect(f.window.setTitleBarOverlay).not.toHaveBeenCalled()
-  expect(f.window.setBackgroundColor).not.toHaveBeenCalled()
+  await expect(f.setContentHeight(event, 400)).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
+  expect(f.window.setContentSize).not.toHaveBeenCalled()
+  expect(f.window.setMinimumSize).not.toHaveBeenCalled()
 })
 
 it('호출할 때마다 현재 문서 URL을 다시 확인한다', async () => {
   const f = fixture()
-  await f.setTheme(f.event, 'light')
+  await f.setContentHeight(f.event, 400)
   f.frame.url = 'https://synthetic.invalid/'
 
-  await expect(f.setTheme(f.event, 'dark')).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
-  expect(f.window.setTitleBarOverlay).toHaveBeenCalledExactlyOnceWith({
-    color: '#ffffff',
-    symbolColor: '#1a1c20',
-    height: 56
-  })
-  expect(f.window.setBackgroundColor).toHaveBeenCalledExactlyOnceWith('#ffffff')
-})
-
-it.each([
-  { name: '인자 없음', args: [] },
-  { name: '인자 두 개', args: ['light', 'dark'] },
-  { name: '알 수 없는 enum', args: ['system'] },
-  { name: '대문자 enum', args: ['DARK'] },
-  { name: '공백 포함 enum', args: [' light'] },
-  { name: 'null', args: [null] },
-  { name: 'undefined', args: [undefined] },
-  { name: '숫자', args: [1] },
-  { name: '배열', args: [['light']] }
-])('$name 요청은 창 색상을 바꾸지 않는다', async ({ args }) => {
-  const f = fixture()
-  await expect(f.setTheme(f.event, ...args)).rejects.toThrow('INVALID_WINDOW_CHROME_COMMAND')
-  expect(f.window.setTitleBarOverlay).not.toHaveBeenCalled()
-  expect(f.window.setBackgroundColor).not.toHaveBeenCalled()
-})
-
-it('객체를 문자열로 변환해 테마로 허용하지 않는다', async () => {
-  const f = fixture()
-  const stringify = vi.fn(() => 'light')
-  await expect(f.setTheme(f.event, { toString: stringify })).rejects.toThrow(
-    'INVALID_WINDOW_CHROME_COMMAND'
-  )
-  expect(stringify).not.toHaveBeenCalled()
-  expect(f.window.setTitleBarOverlay).not.toHaveBeenCalled()
-  expect(f.window.setBackgroundColor).not.toHaveBeenCalled()
+  await expect(f.setContentHeight(f.event, 800)).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
+  expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1280, 400)
 })
 
 it.each(['closed', 'destroyed', 'dispose'] as const)(
@@ -207,11 +146,8 @@ it.each(['closed', 'destroyed', 'dispose'] as const)(
     expect(f.contents.listenerCount('destroyed')).toBe(0)
     dispose?.()
     dispose?.()
-    expect(mocks.remove).toHaveBeenCalledTimes(2)
-    await expect(f.setTheme(f.event, 'dark')).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
+    expect(mocks.remove).toHaveBeenCalledTimes(channels.length)
     await expect(f.setContentHeight(f.event, 400)).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
-    expect(f.window.setTitleBarOverlay).not.toHaveBeenCalled()
-    expect(f.window.setBackgroundColor).not.toHaveBeenCalled()
     expect(f.window.setContentSize).not.toHaveBeenCalled()
   }
 )
@@ -229,21 +165,6 @@ it('listener 등록 실패 시 이미 등록한 handler와 listener를 정리하
   expect(mocks.remove.mock.calls).toEqual(channels.map((channel) => [channel]))
   expect(f.contents.listenerCount('destroyed')).toBe(0)
   expect(f.window.listenerCount('closed')).toBe(0)
-})
-
-it('두 번째 handler 등록 실패 시 등록한 첫 handler만 제거한다', () => {
-  const f = windowFixture()
-  const failure = new Error('Synthetic second handler registration failure')
-  mocks.handle
-    .mockImplementationOnce(() => {})
-    .mockImplementationOnce(() => {
-      throw failure
-    })
-
-  expect(() =>
-    registerWindowChromeWindow({ window: f.window as unknown as BrowserWindow, documentUrl })
-  ).toThrow(failure)
-  expect(mocks.remove).toHaveBeenCalledExactlyOnceWith(WINDOW_CHROME_CHANNELS.setTheme)
 })
 
 it('handler 등록 실패 시 기존 handler를 제거하지 않는다', () => {
@@ -355,34 +276,4 @@ describe('창 내용 높이', () => {
     expect(toNumber).not.toHaveBeenCalled()
     expect(f.window.setContentSize).not.toHaveBeenCalled()
   })
-
-  it.each(['sender', 'subframe', 'document', 'detached', 'destroyedWindow'])(
-    '%s에서 온 높이 변경은 부수 효과 전에 거부한다',
-    async (kind) => {
-      const f = fixture()
-      const event: { sender: unknown; senderFrame: unknown } = { ...f.event }
-      if (kind === 'sender') {
-        event.sender = {}
-      }
-
-      if (kind === 'subframe') {
-        event.senderFrame = {}
-      }
-
-      if (kind === 'document') {
-        f.frame.url = `${documentUrl}?unexpected`
-      }
-
-      if (kind === 'detached') {
-        f.frame.detached = true
-      }
-
-      if (kind === 'destroyedWindow') {
-        f.window.isDestroyed.mockReturnValue(true)
-      }
-      await expect(f.setContentHeight(event, 400)).rejects.toThrow('WINDOW_CHROME_NOT_ALLOWED')
-      expect(f.window.setContentSize).not.toHaveBeenCalled()
-      expect(f.window.setMinimumSize).not.toHaveBeenCalled()
-    }
-  )
 })

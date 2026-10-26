@@ -77,7 +77,6 @@ function mainEnvironment(): {
         }
       })
     },
-    nativeTheme: { shouldUseDarkColors: false },
     BrowserWindow: class {
       static getAllWindows(): never[] {
         return []
