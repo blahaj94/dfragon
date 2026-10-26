@@ -56,8 +56,13 @@ async function click(element: HTMLElement): Promise<void> {
   await act(async () => element.click())
 }
 
-function trigger(): HTMLButtonElement {
-  return document.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!
+// 창 고르기 타일. 선택 순서는 감지된 게임 먼저, 다른 창 다음이다.
+function tiles(): HTMLInputElement[] {
+  return [...dialog().querySelectorAll<HTMLInputElement>('input[type="radio"]')]
+}
+
+function tile(name: string): HTMLInputElement {
+  return tiles().find((input) => input.getAttribute('aria-label') === name)!
 }
 
 function chip(): HTMLButtonElement {
@@ -68,9 +73,11 @@ function dialog(): HTMLElement {
   return document.querySelector<HTMLElement>('[role="dialog"]')!
 }
 
-// 창 목록 안의 찾는 중 안내. 대화상자 머리의 상태 칩도 status 영역이라 목록 안에서 찾는다.
-function searchingNotice(): HTMLElement {
-  return document.querySelector<HTMLElement>('[role="menu"] [role="status"]')!
+// 창 타일 줄 맨 앞의 찾는 중 안내. 대화상자 머리의 상태 칩도 status 영역이라 문구로 찾는다.
+function searchingNotice(): HTMLElement | undefined {
+  return [...dialog().querySelectorAll<HTMLElement>('[role="status"]')].find((status) =>
+    status.textContent?.startsWith('던전앤파이터 찾는 중')
+  )
 }
 
 function announcer(): HTMLElement {
@@ -127,102 +134,99 @@ it('게임 연결 상태 칩으로 연 대화상자를 닫으면 포커스가 �
   expect(props.capture.stopCapture).not.toHaveBeenCalled()
 })
 
-it('자동 감지한 창은 선택 전에 표시하고 사용자 클릭 전에는 캡처를 시작하지 않는다', async () => {
+it('자동 감지한 창은 선택 전에 타일로 표시하고 사용자 클릭 전에는 캡처를 시작하지 않는다', async () => {
   props.phase = 'idle'
   props.capture.selectedSourceId = ''
   await openDialog()
-  expect(trigger().textContent).toContain('던전앤파이터, 감지됨')
   const statuses = [...document.querySelectorAll('[role="dialog"] [role="status"]')]
   expect(statuses.map((status) => status.textContent)).toContain('창 감지됨')
   expect(document.body.textContent).not.toContain('캡처 중지')
+  expect(tiles().map((input) => input.checked)).toEqual([false, false])
   expect(props.capture.selectSource).not.toHaveBeenCalled()
-  await click(trigger())
-  const gameOption = document.querySelector<HTMLElement>(
-    '[role="menuitemradio"][aria-label="던전앤파이터"]'
-  )!
-  expect(gameOption.getAttribute('aria-checked')).toBe('false')
-  await click(gameOption)
+  await click(tile('던전앤파이터'))
   expect(props.capture.selectSource).toHaveBeenCalledExactlyOnceWith('game')
 })
 
-it('후보가 여러 개여도 임의로 선택하지 않고 발견한 개수를 표시한다', async () => {
+it('후보가 여러 개여도 임의로 선택하지 않고 모두 타일로 보인다', async () => {
   props.phase = 'idle'
   props.capture.selectedSourceId = ''
   props.capture.sources.push({ id: 'second-game', name: 'DNF' })
   await openDialog()
-  expect(trigger().textContent).toContain('던파 창 2개 감지됨')
+  expect(tiles().map((input) => input.getAttribute('aria-label'))).toEqual([
+    '던전앤파이터',
+    'DNF',
+    '테스트 창'
+  ])
+  expect(tiles().some((input) => input.checked)).toBe(false)
   expect(props.capture.selectSource).not.toHaveBeenCalled()
 })
 
-it('감지된 게임을 먼저 표시하고 선택 표시와 직접 선택을 연결한다', async () => {
+it('감지된 게임을 먼저 두고 그룹 이름과 선택 표시를 타일 한 줄로 보인다', async () => {
   await openDialog()
-  await click(trigger())
-  // 목록은 body portal에 그려지지만 모달이 바깥을 가리는 범위에 들지 않아 누를 수 있어야 한다.
-  const menu = document.querySelector('[role="menu"]')!
-  expect(menu.closest('[aria-hidden="true"], [inert]')).toBeNull()
-  const items = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')]
-  expect(items.map((item) => item.getAttribute('aria-label'))).toEqual([
+  const group = dialog().querySelector('[role="radiogroup"]')!
+  expect(group.getAttribute('aria-label')).toBe('캡처할 창')
+  expect(tiles().map((input) => input.getAttribute('aria-label'))).toEqual([
     '던전앤파이터',
     '테스트 창'
   ])
-  expect(items[0].getAttribute('aria-checked')).toBe('true')
-  expect(items[1].getAttribute('aria-checked')).toBe('false')
-  await click(items[1])
+  // 이름과 그룹은 같은 타일의 두 줄이다.
+  expect(tiles().map((input) => input.parentElement?.textContent)).toEqual([
+    '던전앤파이터감지된 게임',
+    '테스트 창다른 창'
+  ])
+  expect(tiles().map((input) => input.checked)).toEqual([true, false])
+  // 고른 창만 체크 아이콘을 둔다.
+  expect(tiles().map((input) => input.parentElement?.querySelector('svg') != null)).toEqual([
+    true,
+    false
+  ])
+  await click(tile('테스트 창'))
   expect(props.capture.selectSource).toHaveBeenCalledExactlyOnceWith('other')
-  expect(trigger().getAttribute('aria-expanded')).toBe('false')
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   expect(props.capture.stopCapture).not.toHaveBeenCalled()
 })
 
-it('Escape는 목록만 닫고 모달과 캡처를 유지한다', async () => {
+it('긴 창 이름은 한 줄로 말줄임하고 전체 이름을 title로 전한다', async () => {
+  const name = '아주 긴 이름을 가진 던전앤파이터 게임 창 제목 아주 긴 이름을 가진 던전앤파이터'
+  props.capture.sources = [{ id: 'long', name }]
   await openDialog()
-  await click(trigger())
-  await act(async () => {
-    document.activeElement!.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
-    )
-  })
-  expect(trigger().getAttribute('aria-expanded')).toBe('false')
-  expect(document.querySelector('[role="dialog"]')).not.toBeNull()
-  expect(props.capture.selectSource).not.toHaveBeenCalled()
-  expect(props.capture.stopCapture).not.toHaveBeenCalled()
+  expect(tile(name).parentElement?.getAttribute('title')).toBe(name)
 })
 
-it('조회 실패 시 이전 목록 선택을 막고 새로고침 명령만 실행한다', async () => {
+it('조회 실패 시 실패 타일을 두고 이전 목록 선택을 막는다', async () => {
   props.capture.sourcesFailed = true
   await openDialog()
-  await click(trigger())
-  expect(document.body.textContent).toContain('창 목록을 불러오지 못했습니다')
-  const stale = document.querySelector<HTMLElement>('[role="menuitemradio"]')!
-  expect(stale.getAttribute('aria-disabled')).toBe('true')
-  await click(stale)
-  expect(props.capture.selectSource).not.toHaveBeenCalled()
-  const refresh = document.querySelector<HTMLElement>('[role="menuitem"]')!
-  await act(async () =>
-    refresh.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
-    )
+  const failure = [...dialog().querySelectorAll<HTMLElement>('[role="status"]')].find((status) =>
+    status.textContent?.includes('창 목록을 불러오지 못했습니다')
   )
-  expect(props.capture.refreshSources).toHaveBeenCalledTimes(2)
+  expect(failure?.textContent).toContain('15초마다 다시 확인합니다')
+  expect(tiles().every((input) => input.disabled)).toBe(true)
+  await click(tile('테스트 창'))
   expect(props.capture.selectSource).not.toHaveBeenCalled()
+  // 새로고침은 목록 안이 아니라 머리 줄 버튼 하나뿐이다.
+  expect(document.body.textContent).not.toContain('창 목록 새로고침')
 })
 
 it('빈 목록, 사라진 선택과 로딩, 연결 미준비 상태를 처리한다', async () => {
   props.capture.sources = []
   await openDialog()
-  expect(trigger().textContent).toContain('선택한 창, 목록에서 사라짐')
-  await click(trigger())
-  expect(searchingNotice().textContent).toBe('던전앤파이터 찾는 중')
-  expect(searchingNotice().querySelector('[aria-hidden="true"]')?.children).toHaveLength(3)
-  expect(document.querySelector('[role="menuitemradio"]')).toBeNull()
-  await click(trigger())
+  // 선택한 창이 목록에서 사라져도 선택은 남고 어느 창이었는지는 알리지 못한다.
+  expect(tiles().map((input) => [input.getAttribute('aria-label'), input.checked])).toEqual([
+    ['선택한 창', true]
+  ])
+  expect(searchingNotice()?.textContent).toBe('던전앤파이터 찾는 중')
+  expect(searchingNotice()?.querySelector('[aria-hidden="true"]')?.children).toHaveLength(3)
+  props.capture.selectedSourceId = ''
+  await render()
+  expect(tiles()).toHaveLength(0)
+  props.capture.sources = [{ id: 'game', name: '던전앤파이터' }]
   props.capture.sourcesLoading = true
   await render()
-  expect(trigger().disabled).toBe(true)
+  expect(tiles().every((input) => input.disabled)).toBe(true)
   props.capture.sourcesLoading = false
   props.capture.search.ready = false
   await render()
-  expect(trigger().disabled).toBe(true)
+  expect(tiles().every((input) => input.disabled)).toBe(true)
   expect(props.capture.selectSource).not.toHaveBeenCalled()
 })
 
@@ -348,6 +352,10 @@ it('새로고침 버튼은 창 목록을 다시 조회하고 대화상자를 연
   await click(refresh)
   expect(props.capture.refreshSources).toHaveBeenCalledTimes(2)
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
+  // 조회 중에는 겹쳐 조회하지 않도록 누를 수 없다.
+  props.capture.sourcesLoading = true
+  await render()
+  expect(refresh.disabled).toBe(true)
 })
 
 it('창을 찾는 동안 재조회 진행 막대가 마지막 조회 완료부터 15초 주기로 차고 새 조회 때 다시 시작한다', async () => {
@@ -357,10 +365,9 @@ it('창을 찾는 동안 재조회 진행 막대가 마지막 조회 완료부�
   props.capture.selectedSourceId = ''
   props.capture.sources = []
   await render()
-  // 목록을 6초 뒤에 열면 막대는 이미 지난 6초만큼 앞당겨 시작한다.
+  // 대화상자를 6초 뒤에 열면 막대는 이미 지난 6초만큼 앞당겨 시작한다.
   now.mockReturnValue(start + 6_000)
   await click(chip())
-  await click(trigger())
   const timing = (name: string) => retryProgress()!.style.getPropertyValue(`--x-${name}`)
   expect(timing('animationDuration')).toBe('15000ms')
   expect(timing('animationDelay')).toBe('-6000ms')
@@ -379,15 +386,13 @@ it('던파 창이 있거나 조회가 실패하면 찾는 중 안내와 진행 �
   props.phase = 'idle'
   props.capture.selectedSourceId = ''
   await openDialog()
-  await click(trigger())
   expect(retryProgress()).toBeNull()
   expect(document.body.textContent).not.toContain('던전앤파이터 찾는 중')
-  await click(trigger())
   props.capture.sources = []
   props.capture.sourcesFailed = true
   await render()
-  await click(trigger())
   expect(retryProgress()).toBeNull()
+  expect(searchingNotice()).toBeUndefined()
   expect(document.body.textContent).toContain('창 목록을 불러오지 못했습니다')
 })
 

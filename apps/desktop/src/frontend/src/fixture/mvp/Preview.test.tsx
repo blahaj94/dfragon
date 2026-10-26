@@ -71,11 +71,8 @@ it('모달에서 창을 고르면 미리보기 목록과 안내도 창 선택됨
     container.querySelector<HTMLButtonElement>('[aria-label^="화면 캡처"]')!.click()
   )
   const dialog = document.querySelector('[role="dialog"]')!
-  await act(async () =>
-    dialog.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click()
-  )
-  const option = document.querySelector<HTMLElement>(
-    '[role="menuitemradio"][aria-label="던전앤파이터"]'
+  const option = dialog.querySelector<HTMLInputElement>(
+    'input[type="radio"][aria-label="던전앤파이터"]'
   )!
   expect(option).not.toBeNull()
   await act(async () => option.click())
@@ -84,7 +81,7 @@ it('모달에서 창을 고르면 미리보기 목록과 안내도 창 선택됨
   expect(selector.value).toBe('selected')
   expect(selector.selectedOptions[0].textContent).toBe('캡처, 창 선택됨')
   expect(dialog.textContent).toContain('Alt+R을 눌러 파티를 인식해 주세요.')
-  expect(dialog.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
+  expect(dialog.querySelector('input[type="radio"]:checked')?.getAttribute('aria-label')).toBe(
     '던전앤파이터'
   )
 })
