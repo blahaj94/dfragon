@@ -1,11 +1,9 @@
 version: 2
-# Monthly updates keep the number of Dependabot PRs, each of which runs the full CI, small.
+# Monthly updates keep the number of Dependabot PRs small.
 updates:
   - package-ecosystem: github-actions
-    # "/" covers .github/workflows. Composite actions live under .github/actions.
-    directories:
-      - /
-      - /.github/actions/*
+    # "/" covers .github/workflows.
+    directory: /
     schedule:
       interval: monthly
     cooldown:

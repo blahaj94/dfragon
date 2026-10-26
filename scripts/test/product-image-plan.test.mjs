@@ -32,7 +32,6 @@ test('공용 빌드 입력은 모든 서비스를 선택한다', () => {
     '.dockerignore',
     '.npmrc',
     '.github/workflows/product-images.yml',
-    '.github/workflows/code-quality.yml',
     'scripts/product-image-plan.mjs',
     'scripts/server-build-info.mjs'
   ]) {
@@ -91,7 +90,7 @@ for (const [name, change] of [
     }
   ]
 ]) {
-  test(`PR 계획은 head payload 대신 checkout source의 ${name} 경로를 포함한다`, (t) => {
+  test(`push 계획은 checkout source의 ${name} 경로를 포함한다`, (t) => {
     const repo = repository(t)
     repo.write('apps/api/src/delete me.ts')
     repo.write('apps/api/src/rename\nme.ts')
@@ -101,8 +100,8 @@ for (const [name, change] of [
 
     const plan = createPlan({
       cwd: repo.cwd,
-      eventName: 'pull_request',
-      event: { pull_request: { base: { sha: base }, head: { sha: repo.initial } } },
+      eventName: 'push',
+      event: { before: base, after: sourceCommit },
       sourceCommit
     })
 
@@ -134,10 +133,10 @@ test('불명확한 event 범위와 source commit은 빈 계획 대신 실패 처
     { sourceCommit: 'invalid' },
     { sourceCommit: 'f'.repeat(40) },
     { eventName: 'workflow_run' },
+    { eventName: 'pull_request' },
     { event: null },
     { event: { before: repo.initial, after: 'f'.repeat(40) } },
-    { event: { before: 'f'.repeat(40), after: repo.initial } },
-    { eventName: 'pull_request', event: { pull_request: { base: { sha: 'invalid' } } } }
+    { event: { before: 'f'.repeat(40), after: repo.initial } }
   ]) {
     assert.throws(() => createPlan({ ...defaults, ...override }))
   }
@@ -235,7 +234,7 @@ test('CLI select의 입력, revision, 사용법 오류는 기존 plan과 GitHub 
   writeFileSync(outputPath, 'existing output\n')
 
   for (const options of [
-    { eventName: 'workflow_run', error: 'Expected a push or pull_request event' },
+    { eventName: 'workflow_run', error: 'Expected a push event' },
     { eventBody: '{invalid JSON', error: 'Could not read GitHub event JSON' },
     { eventPath: join(repo.cwd, 'missing-event.json'), error: 'Could not read GitHub event JSON' },
     {
@@ -513,7 +512,7 @@ test('baseline 조회는 만료되지 않은 계획 artifact가 있는 성공한
   assert.equal(runId, 123)
   assert.equal(
     requests[0].url,
-    'https://api.github.com/repos/example/product/actions/workflows/product-images.yml/runs?branch=main&event=workflow_run&status=success&per_page=30'
+    'https://api.github.com/repos/example/product/actions/workflows/product-images.yml/runs?branch=main&event=push&status=success&per_page=30'
   )
   assert.equal(
     requests[1].url,

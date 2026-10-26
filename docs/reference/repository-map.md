@@ -32,13 +32,17 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 각 leaf의 명령은 root `biome.json`을 자동으로 찾아 실행 위치 아래 파일만 처리한다. 생성물, lockfile, license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사, 정렬 대상이다. 세부 범위는 실행되는 config와 Git ignore를 따른다.
 
-`.github/workflows/code-quality.yml`은 read-only 권한으로 PR과 main push마다 root Biome lint, format 비수정 검사와 표기, 문서 링크와 경로 검사(Static checks), 루트 도구 테스트를 실행한다. 각 app, package의 `test`, Desktop `typecheck`와 검색 통합, Web `build`는 아래 build scope일 때만 실행한다. UI `test`와 Web `build`는 각 typecheck를 포함하므로 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 검사는 독립 job으로 병렬 실행하고, main ruleset의 required check인 `lint-and-format` job이 build scope 판정, Static checks, 루트 도구 테스트의 성공과 나머지 검사 job의 성공 또는 건너뜀을 확인한다. 로컬에서는 `pnpm verify`가 같은 검사 job의 run 명령을 같은 순서로 실행한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
+GitHub Actions에는 CI 검사 workflow가 없고 배포 workflow만 둔다. Lint, format, 표기, 문서 검사와 앱 테스트는 로컬에서 `pnpm verify`로 실행한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
 
-`.github/workflows/workflow-lint.yml`은 모든 PR과 `.github` 경로가 바뀐 main push에서 실행된다. PR에서는 `.github` 경로가 바뀐 경우에만 actionlint(runner의 shellcheck 포함)와 zizmor로 workflow, composite action, Dependabot 설정을 검사하고, 바뀐 경로가 없으면 검사 job을 건너뛴다. zizmor 무시 항목과 사유는 `.github/zizmor.yml`에 둔다. `.github/workflows/desktop-windows.yml`도 같은 방식으로 Desktop 관련 경로가 바뀐 PR에서만, 그리고 build scope일 때만 Windows 테스트를 실행한다. 두 workflow는 결과를 `Workflow Lint gate`, `Desktop Windows gate` check로 모으며, gate는 앞 job이 성공하거나 건너뛰면 통과하고 실패하거나 취소되면 실패한다. 두 gate는 `lint-and-format`과 함께 main ruleset의 required check다. 저장소 Actions 설정은 외부 action을 40자리 commit SHA로 고정하도록 요구하므로 tag로 참조한 action은 실행되지 않는다. 저장소 안의 composite action을 `./.github/actions/...` 경로로 부르는 참조 자체는 이 요구의 대상이 아니지만, 그 composite action 안에서 부르는 외부 action은 같은 방식으로 고정해야 한다. Action, npm catalog, Docker base image 갱신은 `.github/dependabot.yml`이 기본 7일 cooldown(npm major는 14일)을 둔 월간 PR로 제안하며, 관련 패키지와 이미지는 group으로 묶는다. `.github/workflows/dependency-review.yml`은 required check가 아니므로 `package.json`, lockfile, workspace 설정이 바뀐 PR과 main push에서만 실행한다.
+Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify`를 실행한다. 실패하면 push를 막는다. Node.js 버전은 root `package.json`의 `devEngines.runtime`으로 고정하며, pnpm이 이 버전을 내려받아 script를 실행하고 workflow의 `actions/setup-node`도 같은 값을 읽는다.
 
-Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify`를 실행한다. 실패하면 push를 막는다. Node.js 버전은 root `package.json`의 `devEngines.runtime`으로 고정하며, pnpm이 이 버전을 내려받아 script를 실행하고 CI의 `actions/setup-node`도 같은 값을 읽는다.
+배포 workflow는 다음과 같다. 저장소 Actions 설정은 외부 action을 40자리 commit SHA로 고정하도록 요구하므로 tag로 참조한 action은 실행되지 않는다. Action, npm catalog, Docker base image 갱신은 `.github/dependabot.yml`이 기본 7일 cooldown(npm major는 14일)을 둔 월간 PR로 제안하며, 관련 패키지와 이미지는 group으로 묶는다.
 
-빌드와 전체 테스트는 비용이 큰 job이라 [`build-scope.yml`](../../.github/workflows/build-scope.yml)이 정한 build scope에서만 실행한다. PR 제목이 `feat(build): ...`, `fix(build)!: ...`처럼 Conventional Commits scope가 `(build)`이거나, Dependabot PR이거나, Actions 페이지에서 수동 실행한 경우다. main push는 그 commit을 merge한 PR의 제목으로 같은 규칙을 적용한다. 판정은 `scripts/build-scope.mjs`가 하며 Code Quality의 앱 테스트, Desktop Windows 테스트, Windows Test Build, Product Images의 이미지 빌드, 발행이 이 결과를 따른다. 제목은 PR을 열거나 새 commit을 push할 때 읽으므로, 열린 PR의 제목에 `(build)`를 붙였으면 새 commit을 push하거나 Actions 페이지에서 Code Quality를 수동 실행한다.
+- `.github/workflows/product-images.yml`: main push에서 API 이미지를 빌드해 GHCR에 발행한다. [서버 이미지](api-start-development.md#서버-이미지)를 참고한다.
+- `.github/workflows/desktop-test-build.yml`: Desktop 관련 PR에서 test channel 포터블 exe를 artifact로 만든다.
+- `.github/workflows/desktop-release.yml`: Release 게시나 수동 실행에서 배포 포터블 exe를 Release에 첨부한다. [포터블 exe와 GitHub Releases](../../apps/desktop/README.md#포터블-exe와-github-releases)를 참고한다.
+
+빌드는 비용이 큰 job이라 [`build-scope.yml`](../../.github/workflows/build-scope.yml)이 정한 build scope에서만 실행한다. PR 제목이 `feat(build): ...`, `fix(build)!: ...`처럼 Conventional Commits scope가 `(build)`이거나, Dependabot PR이거나, Actions 페이지에서 수동 실행한 경우다. main push는 그 commit을 merge한 PR의 제목으로 같은 규칙을 적용한다. 판정은 `scripts/build-scope.mjs`가 하며 Windows Test Build, Product Images의 이미지 빌드, 발행이 이 결과를 따른다. 제목은 PR을 열거나 새 commit을 push할 때 읽으므로, 열린 PR의 제목에 `(build)`를 붙였으면 새 commit을 push하거나 Actions 페이지에서 Windows Test Build를 수동 실행한다.
 
 ## Shared library
 
@@ -142,10 +146,10 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 - `node scripts/format-date.mjs '2026-09-08T15:35:00Z'`: UTC ISO 시각을 `2026년 9월 9일 00시 35분`으로 표시; 인자 생략 시 현재 한국 시간. 사용법과 검증은 [`scripts/README.md`](../../scripts/README.md#format-date)
 - `pnpm check:writing`: 제품 이름 표기와 사용자 문구 문체 검사. 기준은 [표기와 문체](../rules/writing.md), 사용법은 [`scripts/README.md`](../../scripts/README.md#check-writing)
 - `pnpm check:docs`: 추적 Markdown의 상대 링크 대상, heading anchor와 code span에 적은 `apps/`, `packages/`, `.github/` 경로 검사. 사용법은 [`scripts/README.md`](../../scripts/README.md#check-docs)
-- `pnpm check:static`: Code Quality의 Static checks와 같은 `lint`, `format:check`, `check:writing`, `check:docs`를 같은 순서로 실행하고 먼저 실패한 검사에서 멈춘다. 사용법은 [`scripts/README.md`](../../scripts/README.md#native-validation)
+- `pnpm check:static`: `lint`, `format:check`, `check:writing`, `check:docs`를 차례로 실행하고 먼저 실패한 검사에서 멈춘다. 사용법은 [`scripts/README.md`](../../scripts/README.md#native-validation)
 - 작업 준비와 workspace별 native validation 예제: [`scripts/README.md`](../../scripts/README.md)
-- `pnpm test:tooling`: `scripts/test/*.test.mjs`의 루트 도구, 공용 helper, 포맷, CI 연결 검사를 실행한다. Code Quality의 PR, main push에서 같은 명령을 호출한다.
-- `pnpm verify`: Code Quality의 검사 job을 `scripts/verify.mjs` 목록대로 차례로 실행한다. Root `test` script도 같은 명령이다. Desktop 테스트의 HOME 조건과 준비 절차는 [`scripts/README.md`](../../scripts/README.md#verify)
+- `pnpm test:tooling`: `scripts/test/*.test.mjs`의 루트 도구, 공용 helper, 포맷, workflow 연결 검사를 실행한다.
+- `pnpm verify`: 저장소 검사 job을 `scripts/verify.mjs` 목록대로 차례로 실행한다. Root `test` script도 같은 명령이다. Desktop 테스트의 HOME 조건과 준비 절차는 [`scripts/README.md`](../../scripts/README.md#verify)
 
 ## Generated and dependency output
 

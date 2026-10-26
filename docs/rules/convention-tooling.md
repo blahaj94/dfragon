@@ -7,7 +7,7 @@ last-reviewed: 2026-10-09
 
 # Convention 도구 적용
 
-이 문서는 저장소의 Biome 설정과 문장 간격 도구, 생성물 소유권과 CI 계약을 정의한다. 실행 명령과 현재 적용 범위는 package/config 및 아래 Reference에서 확인한다.
+이 문서는 저장소의 Biome 설정과 문장 간격 도구, 생성물 소유권과 검증 계약을 정의한다. 실행 명령과 현재 적용 범위는 package/config 및 아래 Reference에서 확인한다.
 
 ## 설정과 소유권
 
@@ -32,7 +32,7 @@ Root의 `biome.json`, `scripts/biome/`의 GritQL lint 플러그인, `scripts/sta
 - Root TypeScript는 문장 간격 도구의 parser 전용이다. App compiler/runtime을 이 설정 정리로 교체하지 않는다.
 - Generated/vendor, OCR, lockfile, license/notice의 소유 규칙과 기존 ignore를 유지한다. 제외 범위는 `biome.json`의 `files.includes`와 Git ignore 연동이 정하며, 문장 간격 도구도 같은 includes와 Git ignore 기준을 따른다. `build`라는 경로 이름만으로 직접 관리 generator source를 제외하지 않는다. Broad 자동수정으로 무관한 파일을 바꾸지 않는다.
 
-## 검증과 CI
+## 검증
 
 관련 파일에 필요한 fixer, formatter를 적용하고 diff의 의미와 비수정 검사를 확인한다. 최초 설정이나 충돌 조정에서 수렴 여부가 불확실할 때만 재확인하며 매 실행마다 반복하지 않는다. 동작이나 공통 설정이 바뀌면 영향받는 소비자를 확인한다. 현재 명령은 [scripts 안내](../../scripts/README.md#native-validation)에서 찾는다.
 
@@ -40,4 +40,4 @@ Root의 `biome.json`, `scripts/biome/`의 GritQL lint 플러그인, `scripts/sta
 
 `pnpm test:format-policy`는 Biome 포맷 뒤 문장 간격 도구를 적용한 결과로 블록, `case` 첫 `return`의 빈 줄 제거와 이후 `return`의 빈 줄, 연속된 블록 `if` 사이 빈 줄, `else if` 연결, directive, 빈 문장, 주석, 분기, ASI, 확장자별 결과와 Biome 재검사의 수렴을 검증한다. CLI가 실행 위치와 Biome 제외 경로, Git ignore 대상을 따르는지도 확인한다. 공통 포맷 정책을 바꾸거나 Biome를 갱신할 때 같은 검사를 실행한다.
 
-기존 Code Quality CI의 root Biome lint, format 검사를 유지한다. 같은 검사를 workspace별로 중복할 의무는 없으며 실패를 glob, ignore, disable이나 기대값 약화로 숨기지 않는다. 도구 성공을 제품 계약이나 전체 컨벤션 이행 완료로 확대하지 않는다.
+`pnpm verify`의 root Biome lint, format 검사를 유지한다. 같은 검사를 workspace별로 중복할 의무는 없으며 실패를 glob, ignore, disable이나 기대값 약화로 숨기지 않는다. 도구 성공을 제품 계약이나 전체 컨벤션 이행 완료로 확대하지 않는다.

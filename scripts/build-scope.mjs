@@ -1,9 +1,9 @@
 import { appendFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
-// feat(build):, fix(build)!: 처럼 Conventional Commits scope가 build인 PR 제목만 빌드와 전체 검사를 요청한다.
+// feat(build):, fix(build)!: 처럼 Conventional Commits scope가 build인 PR 제목만 빌드를 요청한다.
 const BUILD_TITLE_PATTERN = /^[a-z]+\(build\)!?:/iu
-// Dependabot PR은 로컬 pre-push 검사를 거치지 않으므로 제목과 관계없이 CI에서 모두 검사한다.
+// Dependabot PR은 로컬 pre-push 검사를 거치지 않으므로 제목과 관계없이 빌드한다.
 const DEPENDABOT_LOGIN = 'dependabot[bot]'
 const COMMIT_PATTERN = /^[a-f\d]{40}$/iu
 const GITHUB_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/u
@@ -93,8 +93,7 @@ export async function resolveBuildScope({ eventName, pullRequest, lookup }) {
     return requestsBuild(pullRequest)
   }
 
-  // Product Images는 main push의 Code Quality가 끝난 뒤 workflow_run으로 시작한다.
-  if (eventName === 'push' || eventName === 'workflow_run') {
+  if (eventName === 'push') {
     const merged = await lookup()
     if (merged === null) {
       return false
@@ -103,7 +102,7 @@ export async function resolveBuildScope({ eventName, pullRequest, lookup }) {
     return requestsBuild(merged)
   }
 
-  throw new Error('Expected a pull_request, push, workflow_run, or workflow_dispatch event')
+  throw new Error('Expected a pull_request, push, or workflow_dispatch event')
 }
 
 async function main() {

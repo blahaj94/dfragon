@@ -12,8 +12,7 @@ function workspace(name, ...args) {
   return pnpm('--filter', name, ...args)
 }
 
-// Code Quality workflow의 job과 그 run 명령을 같은 순서로 옮긴다. 의존성 설치는 먼저 끝냈다고 본다.
-// scripts/test/code-quality-workflow.test.mjs가 workflow와 이 목록이 어긋나면 실패한다.
+// 저장소 검사 job과 그 run 명령을 차례로 실행한다. 의존성 설치는 먼저 끝냈다고 본다.
 export const checkJobs = [
   {
     job: 'static',
@@ -100,7 +99,7 @@ function formatDuration(milliseconds) {
   return `${minutes}분 ${seconds % 60}초`
 }
 
-// CI처럼 job 안의 명령은 앞 명령이 실패하면 멈추고, 다른 job은 계속 실행해 실패한 job을 모두 보고한다.
+// job 안의 명령은 앞 명령이 실패하면 멈추고, 다른 job은 계속 실행해 실패한 job을 모두 보고한다.
 // job끼리 같은 build 산출물을 쓰므로 병렬로 실행하지 않는다.
 export function runJobs(jobs, cwd = repositoryRoot) {
   const startedAt = Date.now()

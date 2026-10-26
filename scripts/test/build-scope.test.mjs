@@ -78,20 +78,21 @@ test('수동 실행은 항상, PR은 제목으로 빌드 여부를 정하고 mai
   )
 })
 
-test('main push와 그 뒤의 workflow_run은 merge된 PR 제목으로 정하고 PR이 없으면 빌드하지 않는다', async () => {
-  for (const eventName of ['push', 'workflow_run']) {
-    const build = { title: 'feat(build): 빌드', author: 'someone' }
-    const plain = { title: 'feat: 빌드 없음', author: 'someone' }
+test('main push는 merge된 PR 제목으로 정하고 PR이 없으면 빌드하지 않는다', async () => {
+  const eventName = 'push'
+  const build = { title: 'feat(build): 빌드', author: 'someone' }
+  const plain = { title: 'feat: 빌드 없음', author: 'someone' }
 
-    assert.equal(await resolveBuildScope({ eventName, lookup: async () => build }), true)
-    assert.equal(await resolveBuildScope({ eventName, lookup: async () => plain }), false)
-    assert.equal(await resolveBuildScope({ eventName, lookup: async () => null }), false)
+  assert.equal(await resolveBuildScope({ eventName, lookup: async () => build }), true)
+  assert.equal(await resolveBuildScope({ eventName, lookup: async () => plain }), false)
+  assert.equal(await resolveBuildScope({ eventName, lookup: async () => null }), false)
+
+  for (const unsupported of ['schedule', 'workflow_run']) {
+    await assert.rejects(
+      resolveBuildScope({ eventName: unsupported, lookup: async () => null }),
+      /Expected a pull_request, push/
+    )
   }
-
-  await assert.rejects(
-    resolveBuildScope({ eventName: 'schedule', lookup: async () => null }),
-    /Expected a pull_request, push/
-  )
 })
 
 test('commit의 PR 조회는 merge된 PR의 제목과 작성자를 돌려준다', async () => {
@@ -186,7 +187,7 @@ test('Build Scope workflow가 넘기는 env로 CLI가 PR 제목을 읽어 build 
     'EVENT_NAME: ${{ github.event_name }}',
     'PR_TITLE: ${{ github.event.pull_request.title }}',
     'PR_AUTHOR: ${{ github.event.pull_request.user.login }}',
-    'SOURCE_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}',
+    'SOURCE_COMMIT: ${{ github.sha }}',
     'GITHUB_TOKEN: ${{ github.token }}'
   ]) {
     assert.ok(workflow.includes(`          ${line}\n`), line)
