@@ -32,8 +32,11 @@ export const styles = stylex.create({
   // 스냅샷 회차 번호(`#2`). 색은 신호색이라 크림이다.
   round: { color: colors.signal },
   total: { color: colors.fgSubtle },
-  // 안내가 길면 한 줄에서 말줄임하고 전체 문구는 title과 status 영역으로 전한다.
+  // 안내가 길면 한 줄에서 말줄임하고 전체 문구는 title과 status 영역으로 전한다. title 툴팁이 뜨도록 상단
+  // 바의 끌기 영역에서 뺀다. 한글 12px, 행간 14px은 Typo.caption의 행간 18px 대신 직접 준다.
   notice: {
+    position: 'relative',
+    WebkitAppRegion: 'no-drag',
     minWidth: 0,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
