@@ -5,7 +5,6 @@ import type {
 } from '../../preload/common/types/search'
 import type {
   CharacterCandidate,
-  CharacterDetails,
   CharacterIdentity,
   CharacterImage,
   CharacterPortrait
@@ -24,7 +23,6 @@ export type IdentificationServices = {
   findCandidates: (nickname: string) => Promise<readonly CharacterCandidate[]>
   /** 후보 한 명의 비교용 이미지. 받지 못하면 null이다. */
   loadPortrait: (identity: CharacterIdentity) => Promise<CharacterImage | null>
-  getDetails: (identity: CharacterIdentity) => Promise<CharacterDetails>
   /**
    * 얼굴과 후보 이미지의 거리와 얼굴을 맞춘 후보 이미지 안의 창. 후보 직업으로 아는 얼굴 위치(`anchor`)가
    * 있으면 그 주변만 비교한다. 비교할 수 없으면 null이며 거리는 확률이 아니다.
@@ -55,7 +53,6 @@ export type CharacterIdentification =
   | {
       kind: 'matched'
       candidate: CharacterCandidate
-      details: CharacterDetails
       nickname: string
       selectionMethod: CharacterSelectionMethod
       /** 얼굴이나 공대 행 값으로 확정하지 못했을 때 사용자가 고를 후보. 확정한 선택에는 없다. */
@@ -123,7 +120,7 @@ export function createCharacterIdentifier(
 
     // 동명 후보가 한 명이면 고를 후보가 없어 이미지를 받지 않는다.
     if (candidates.length === 1) {
-      return selectCandidate(services, highest, nickname, 'highest-fame')
+      return toMatchedIdentification(highest, nickname, 'highest-fame', undefined)
     }
     const compared = candidates.slice(0, accepted.maxCandidates)
     const scores = await scoreCandidates(services, input.portrait, compared)
@@ -133,17 +130,17 @@ export function createCharacterIdentifier(
         toChoice(candidate, portraitFaceWindowOf(candidate.jobName))
       )
 
-      return selectCandidate(services, highest, nickname, 'highest-fame', choices)
+      return toMatchedIdentification(highest, nickname, 'highest-fame', choices)
     }
 
     if (isConfident(accepted, scores, best)) {
-      return selectCandidate(services, best.candidate, nickname, 'portrait')
+      return toMatchedIdentification(best.candidate, nickname, 'portrait', undefined)
     }
     const choices = scores.map(({ candidate, score }) =>
       toChoice(candidate, score?.alignment ?? portraitFaceWindowOf(candidate.jobName))
     )
 
-    return selectCandidate(services, best.candidate, nickname, 'portrait', choices)
+    return toMatchedIdentification(best.candidate, nickname, 'portrait', choices)
   }
 }
 
@@ -217,13 +214,10 @@ function toChoice(
   return { characterId, characterName, serverId, serverName, fame, adventureName, face }
 }
 
-/** 공대 식별에 필요한 후보 검색과 상세 조회 연산 */
-export type RaidIdentificationServices = Pick<
-  IdentificationServices,
-  'findCandidates' | 'getDetails'
->
+/** 공대 식별에 필요한 후보 검색 연산 */
+export type RaidIdentificationServices = Pick<IdentificationServices, 'findCandidates'>
 
-/** 공대 행의 첫 이름과 직업명, 명성으로 후보를 골라 상세를 조회한다. */
+/** 공대 행의 첫 이름과 직업명, 명성으로 후보를 고른다. 상세는 조회하지 않는다. */
 export function createRaidCharacterIdentifier(services: RaidIdentificationServices) {
   return async (input: {
     nicknames: readonly string[]
@@ -241,13 +235,13 @@ export function createRaidCharacterIdentifier(services: RaidIdentificationServic
     const { candidate, selectionMethod, choices } = selectRaidCandidate(plan)
     const raidChoices = choices?.map((choice) => toChoice(choice, null))
 
-    return selectCandidate(services, candidate, nickname, selectionMethod, raidChoices)
+    return toMatchedIdentification(candidate, nickname, selectionMethod, raidChoices)
   }
 }
 
 /** 사용자가 지정한 서버와 이름이 모두 일치하는 캐릭터만 선택한다. */
 export function createManualCharacterLookup(
-  services: Pick<IdentificationServices, 'findCandidates' | 'getDetails'>
+  services: Pick<IdentificationServices, 'findCandidates'>
 ) {
   return async (input: {
     nickname: string
@@ -265,33 +259,19 @@ export function createManualCharacterLookup(
       return { kind: 'unmatched' }
     }
 
-    return selectCandidate(services, candidate, input.nickname, 'manual')
+    return toMatchedIdentification(candidate, input.nickname, 'manual', undefined)
   }
-}
-
-async function selectCandidate(
-  services: Pick<IdentificationServices, 'getDetails'>,
-  candidate: CharacterCandidate,
-  nickname: string,
-  selectionMethod: CharacterSelectionMethod,
-  choices?: readonly CharacterChoice[]
-): Promise<CharacterIdentification> {
-  const identity = { serverId: candidate.serverId, characterId: candidate.characterId }
-  const details = await services.getDetails(identity)
-
-  return toMatchedIdentification(candidate, details, nickname, selectionMethod, choices)
 }
 
 function toMatchedIdentification(
   candidate: CharacterCandidate,
-  details: CharacterDetails,
   nickname: string,
   selectionMethod: CharacterSelectionMethod,
   choices: readonly CharacterChoice[] | undefined
 ): CharacterIdentification {
   if (choices === undefined) {
-    return { kind: 'matched', candidate, details, nickname, selectionMethod }
+    return { kind: 'matched', candidate, nickname, selectionMethod }
   }
 
-  return { kind: 'matched', candidate, details, nickname, selectionMethod, choices }
+  return { kind: 'matched', candidate, nickname, selectionMethod, choices }
 }
