@@ -12,8 +12,7 @@ function workspace(name, ...args) {
   return pnpm('--filter', name, ...args)
 }
 
-// Code Quality workflow의 job과 그 run 명령을 같은 순서로 옮긴다. 의존성 설치는 먼저 끝냈다고 본다.
-// scripts/test/code-quality-workflow.test.mjs가 workflow와 이 목록이 어긋나면 실패한다.
+// 저장소 검사 job과 그 run 명령을 차례로 실행한다. 의존성 설치는 먼저 끝냈다고 본다.
 export const checkJobs = [
   {
     job: 'static',
