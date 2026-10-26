@@ -20,10 +20,10 @@ const seatKeys: Readonly<Record<string, SeatDirection>> = {
 }
 
 /**
- * 공대 12인 화면(DFragon 디자인 캔버스 공대 보드). 화면이 조립한 머리 아래에 파티 라벨 열과 축약 카드 네 열,
- * 세 줄을 놓고, 카드를 끌거나 Alt와 방향키로 자리를 맞바꾼다. 자리 배치는 화면 밖이 소유하며, 이 화면은
- * `seatOrder`로 자리마다 놓인 공대 검색 슬롯을 그리고 조회는 그 슬롯 번호로 알린다. 카드는
- * 1280×800 보드의 크기로 고정이라 창이 작으면 보드 영역이 가로와 세로로 스크롤한다.
+ * 공대 12인 화면(DFragon 디자인 캔버스 공대 보드). 화면이 조립한 머리 아래에 축약 카드 네 열, 세 줄을
+ * 놓고(한 줄이 한 파티), 카드를 끌거나 Alt와 방향키로 자리를 맞바꾼다. 자리 배치는 화면 밖이 소유하며,
+ * 이 화면은 `seatOrder`로 자리마다 놓인 공대 검색 슬롯을 그리고 조회는 그 슬롯 번호로 알린다. 카드 폭은
+ * 창 폭을 네 등분하고, 창이 작아 넘치면 보드 영역이 스크롤한다.
  */
 export function RaidPage({
   id,
@@ -209,16 +209,16 @@ export function RaidPage({
     <section aria-label="공대" hidden={hidden} {...stylex.props(styles.page)}>
       {header}
       <div id={id} {...stylex.props(styles.scroller)}>
-        <div {...stylex.props(styles.board, collapsed && styles.boardCollapsed)}>
+        <div {...stylex.props(styles.board)}>
           {parties.flatMap((seats, party) => {
-            // 라벨과 카드를 한 배열로 펼쳐 모든 카드가 같은 부모 아래에서 옮겨 다니게 한다.
+            // 파티 이름과 카드를 한 배열로 펼쳐 모든 카드가 같은 부모 아래에서 옮겨 다니게 한다. 파티 이름은
+            // 화면에 그리지 않고 자리의 설명으로만 전한다.
             const partyLabelId = `${id}-party-${party + 1}`
 
             return [
-              <div key={partyLabelId} id={partyLabelId} {...stylex.props(styles.partyLabel)}>
-                <span {...stylex.props(styles.partyNumber)}>{party + 1}</span>
-                <span {...stylex.props(styles.partyName)}>파티</span>
-              </div>,
+              <span key={partyLabelId} id={partyLabelId} {...stylex.props(shapes.srOnly)}>
+                {party + 1}파티
+              </span>,
               ...seats.map((seat) => renderSeat(seat, partyLabelId))
             ]
           })}
