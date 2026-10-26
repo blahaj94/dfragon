@@ -62,7 +62,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 production 환경 변수 대신 사용할 공개 API 주소이며 비우면 환경 변수를 사용합니다. 이 실행도 main branch나 `v*` tag에서 시작한 경우에만 production 환경을 쓸 수 있습니다. Release 게시와 같은 main 포함 확인을 적용합니다. 같은 이름의 exe나 checksum 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 `v<버전>` 형식이 아닌 태그도 빌드를 중단합니다. 로컬 `build:win:portable` 명령은 `package.json`의 기본 버전을 사용합니다.
 
-PR 제목 scope가 `(build)`인 관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 DFragon Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 검색, 캡처, OCR을 확인하는 용도입니다. API는 **Settings → Environments → test**의 변수 `DFRAGON_TEST_API_ORIGIN`이 있으면 그 값, 비우면 `https://api.dfragon.com`입니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 DFragon과 profile이 겹치지 않습니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
+PR 제목 scope가 `(build)`인 관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 DFragon Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 검색, 캡처, OCR을 확인하는 용도입니다. API는 항상 운영 API `https://api.dfragon.com`이며 빌드 변수로 바꾸지 않습니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 DFragon과 profile이 겹치지 않습니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
 
 ```powershell
 gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test -D "$HOME\Downloads\dfragon-test-<실행 ID>"
@@ -88,7 +88,7 @@ NSIS는 protocol을 등록하지 않으며 다른 앱의 scheme 소유를 이유
 
 ### 배포 API와 설치본 확인
 
-배포 앱은 다른 PC가 접근할 수 있는 HTTPS API를 사용합니다. 운영 API는 `https://api.dfragon.com`이며 test 채널도 변수가 없으면 이 주소를 씁니다(`build/channels.json`). 서버 설정은 [API 설정](../../docs/reference/api-start-development.md)을 따릅니다. localhost 개발 API나 예시 주소를 배포 서버로 취급하지 않습니다.
+배포 앱은 다른 PC가 접근할 수 있는 HTTPS API를 사용합니다. 운영 API는 `https://api.dfragon.com`이며 test 채널도 항상 이 주소를 씁니다(`build/channels.json`). 서버 설정은 [API 설정](../../docs/reference/api-start-development.md)을 따릅니다. localhost 개발 API나 예시 주소를 배포 서버로 취급하지 않습니다.
 
 실제 배포 origin으로 빌드한 설치 앱에서 **직접 검색 → 지정한 게임 창 캡처 → OCR → 결과**를 확인합니다. 닉네임 수정 유지, OCR 복귀, 중지 후 정리도 같은 흐름에서 확인합니다. 빌드, unit test, 합성 데이터 UI 확인은 이 실제 확인을 대신하지 않습니다.
 
@@ -102,9 +102,9 @@ cp apps/desktop/.env.example apps/desktop/.env
 pnpm --filter @dfragon/desktop dev
 ```
 
-`dev`, `dev:app`은 Electron 실행 파일이 없으면 먼저 내려받고, Node의 `--env-file-if-exists=.env`로 앱 폴더의 설정을 읽은 뒤 기존 Electron 개발 실행을 시작합니다. `.env`가 없어도 카드 화면을 실행할 수 있으며, 이미 설정된 process 환경변수가 우선합니다. 설정을 바꾸면 개발 명령을 종료하고 다시 실행합니다.
+`dev`는 Electron 실행 파일이 없으면 먼저 내려받고, Node의 `--env-file-if-exists=.env`로 앱 폴더의 설정을 읽은 뒤 기존 Electron 개발 실행을 시작합니다. `.env`가 없어도 카드 화면을 실행할 수 있으며, 이미 설정된 process 환경변수가 우선합니다. 설정을 바꾸면 개발 명령을 종료하고 다시 실행합니다.
 
-`pnpm --filter @dfragon/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. `dev:app`도 같은 화면을 엽니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 상단 바의 게임 연결 상태 칩을 눌러 창을 선택하면 main에 등록만 합니다. **Alt+R**이나 파티 머리의 캡처 버튼을 누르면 Windows GDI 모듈로 프레임 한 장을 읽고, 이 회차 프레임으로 닉네임, 얼굴 크롭, OCR과 검색을 처리합니다. OCR은 연속 관측을 기다리지 않고 첫 후보의 앞뒤 공백만 제거해 확정하며 두 번째 후보로 보정하지 않습니다. 처리를 마치면 추가 프레임을 읽지 않고 회차 결과를 유지하며 반복 인식과 인식 간격 설정은 제공하지 않습니다. 다른 창에 가려진 픽셀은 인식에서 제외합니다. 창 전체가 가려졌거나 최소화됐거나 파티 프레임을 검출하지 못하면 안내 후 회차 인식을 끝냅니다. 화면이 돌아와도 자동 재개하지 않으며 **Alt+R**이나 캡처 버튼을 다시 눌러야 합니다. 최소화된 창의 백그라운드 캡처는 지원하지 않습니다. OCR 식별 상태와 선택된 캐릭터의 기본 정보를 슬롯별로 표시하며, 같은 회차 프레임의 얼굴 크롭을 동명 후보의 네오플 캐릭터 이미지와 색으로 비교합니다. 비교로 한 명을 가르지 못하면 최고 명성 후보를 얼굴 확정과 구분해 표시합니다. 연결중 팝업 등으로 일부 슬롯만 검출되지 않으면 그 슬롯은 비워 두고 검색하지 않으며 다른 슬롯은 같은 프레임으로 처리합니다. 화면 캡처 창을 닫아도 캡처는 유지되며 별도 중지 버튼으로 정리합니다. 합성 데이터의 자동 식별 상태는 `pnpm --filter @dfragon/desktop dev:preview`로 확인합니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
+`pnpm --filter @dfragon/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 상단 바의 게임 연결 상태 칩을 눌러 창을 선택하면 main에 등록만 합니다. **Alt+R**이나 파티 머리의 캡처 버튼을 누르면 Windows GDI 모듈로 프레임 한 장을 읽고, 이 회차 프레임으로 닉네임, 얼굴 크롭, OCR과 검색을 처리합니다. OCR은 연속 관측을 기다리지 않고 첫 후보의 앞뒤 공백만 제거해 확정하며 두 번째 후보로 보정하지 않습니다. 처리를 마치면 추가 프레임을 읽지 않고 회차 결과를 유지하며 반복 인식과 인식 간격 설정은 제공하지 않습니다. 다른 창에 가려진 픽셀은 인식에서 제외합니다. 창 전체가 가려졌거나 최소화됐거나 파티 프레임을 검출하지 못하면 안내 후 회차 인식을 끝냅니다. 화면이 돌아와도 자동 재개하지 않으며 **Alt+R**이나 캡처 버튼을 다시 눌러야 합니다. 최소화된 창의 백그라운드 캡처는 지원하지 않습니다. OCR 식별 상태와 선택된 캐릭터의 기본 정보를 슬롯별로 표시하며, 같은 회차 프레임의 얼굴 크롭을 동명 후보의 네오플 캐릭터 이미지와 색으로 비교합니다. 비교로 한 명을 가르지 못하면 최고 명성 후보를 얼굴 확정과 구분해 표시합니다. 연결중 팝업 등으로 일부 슬롯만 검출되지 않으면 그 슬롯은 비워 두고 검색하지 않으며 다른 슬롯은 같은 프레임으로 처리합니다. 화면 캡처 창을 닫아도 캡처는 유지되며 별도 중지 버튼으로 정리합니다. 합성 데이터의 자동 식별 상태는 `pnpm --filter @dfragon/desktop dev:preview`로 확인합니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
 
 ## 장비 점수 엔진
 
@@ -181,7 +181,7 @@ pnpm --filter @dfragon/desktop format:check
 pnpm --filter @dfragon/desktop build
 ```
 
-`build`에는 node/web typecheck가 포함됩니다. Electron은 설치 단계에서 실행 파일을 내려받지 않으므로 `test`, `dev`, `start`가 먼저 `install-electron`으로 Electron runtime을 준비하며, 이미 받은 runtime은 다시 내려받지 않습니다. 의존성을 새로 설치한 뒤 `exec vitest run`으로 파일을 직접 실행하거나 VS Code 디버그 설정을 쓰려면 `pnpm --filter @dfragon/desktop exec install-electron`을 한 번 실행합니다.
+`build`에는 node/web typecheck가 포함됩니다. Electron은 설치 단계에서 실행 파일을 내려받지 않으므로 `test`, `dev`가 먼저 `install-electron`으로 Electron runtime을 준비하며, 이미 받은 runtime은 다시 내려받지 않습니다. 의존성을 새로 설치한 뒤 `exec vitest run`으로 파일을 직접 실행하거나 VS Code 디버그 설정을 쓰려면 `pnpm --filter @dfragon/desktop exec install-electron`을 한 번 실행합니다.
 
 GitHub Actions에는 Windows에서 Desktop 테스트를 실행하는 workflow가 없습니다.
 
@@ -190,8 +190,7 @@ Vitest의 HTTP, media, OCR worker mock과 합성 Electron fixture는 실제 Wind
 ## 개발 빌드
 
 ```sh
-pnpm --filter @dfragon/desktop dev:app
 pnpm --filter @dfragon/desktop build:win:development
 ```
 
-개발 설치본도 새 카드 화면을 사용하며 `dist/development`에 생성됩니다. `dfragon.dev` identity와 로컬 HTTPS API(`https://localhost:3443`)를 씁니다. macOS, Linux용 기존 명령은 Windows MVP 배포 지원이나 검증 완료를 뜻하지 않습니다.
+개발 설치본도 새 카드 화면을 사용하며 `dist/development`에 생성됩니다. `dfragon.dev` identity와 로컬 HTTPS API(`https://localhost:3443`)를 씁니다.

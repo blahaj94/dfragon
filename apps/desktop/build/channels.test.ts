@@ -156,22 +156,20 @@ it('main bundle에 넣는 채널 tuple은 identity와 빌드 시점에 읽은 or
   expect(() => readDesktopChannel('distribution', {})).toThrow(DISTRIBUTION_API_ORIGIN_FAILURE)
 })
 
-it('test 채널의 tuple은 운영 API를 기본으로 쓰고 API만 환경변수로 바꾼다', () => {
-  expect(readDesktopChannel('test', {})).toEqual({
+it('test 채널의 tuple은 빌드 변수와 관계없이 항상 운영 API를 쓴다', () => {
+  const expected = {
     name: 'test',
     identity: channels.test.identity,
     origins: { api: 'https://api.dfragon.com' }
-  })
+  }
+  expect(readDesktopChannel('test', {})).toEqual(expected)
   expect(
-    readDesktopChannel('test', { DFRAGON_TEST_API_ORIGIN: 'https://api.example.test' })
-  ).toEqual({
-    name: 'test',
-    identity: channels.test.identity,
-    origins: { api: 'https://api.example.test' }
-  })
-  expect(() =>
-    readDesktopChannel('test', { DFRAGON_TEST_API_ORIGIN: 'https://localhost:3443' })
-  ).toThrow(/^Set DFRAGON_TEST_API_ORIGIN to a non-loopback canonical HTTPS origin\.$/)
+    readDesktopChannel('test', {
+      DFRAGON_TEST_API_ORIGIN: 'https://api.example.test',
+      DFRAGON_DISTRIBUTION_API_ORIGIN: 'https://api.example.test',
+      DFRAGON_API_ORIGIN: 'https://localhost:3443'
+    })
+  ).toEqual(expected)
 })
 
 it('electron-builder 기본 진입 파일은 DFRAGON_CHANNEL로 채널을 고르고 비우면 배포 채널을 만든다', () => {
