@@ -71,6 +71,8 @@ export type SelectPopupProps = PublicProps<typeof BaseSelect.Popup> &
   Pick<BaseSelect.Positioner.Props, 'side' | 'align' | 'sideOffset'> & {
     /** 캐릭터 카드에서 연 목록은 `card`. @default 'default' */
     surface?: ControlSurface
+    /** 항목을 이 수만큼의 열로 늘어놓는다. 없으면 한 줄 목록이다. */
+    columns?: number
   }
 
 // Portal, Positioner, Popup, List를 묶은 목록. trigger 바로 아래에서 위쪽을 기준으로 펼친다.
@@ -80,6 +82,7 @@ function SelectPopupImpl({
   align = 'start',
   sideOffset = 4,
   surface = 'default',
+  columns,
   children,
   className,
   style,
@@ -105,7 +108,11 @@ function SelectPopupImpl({
           )}
         >
           {/* Popup은 presentation이고 listbox 역할은 List가 가지므로 이름은 List에 붙인다. */}
-          <BaseSelect.List aria-label={label} aria-labelledby={labelledBy}>
+          <BaseSelect.List
+            aria-label={label}
+            aria-labelledby={labelledBy}
+            {...stylex.props(columns !== undefined && styles.grid(columns))}
+          >
             <SelectSurfaceContext value={surface}>{children}</SelectSurfaceContext>
           </BaseSelect.List>
         </BaseSelect.Popup>

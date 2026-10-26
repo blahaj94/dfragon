@@ -33,7 +33,8 @@ export function ServerSelect({
       <Select.Trigger size={variant === 'field' ? '2xs' : 'xs'} surface="card" aria-label={label}>
         <Select.Value placeholder="서버" />
       </Select.Trigger>
-      <Select.Popup surface="card" aria-label={label}>
+      {/* 이름 칸 안 칩은 낮은 창(파티 163)에서 열리므로 서버 8개를 4열 2줄로 늘어놓아 다 보이게 한다. */}
+      <Select.Popup surface="card" aria-label={label} columns={variant === 'field' ? 4 : undefined}>
         {options.map((option) => (
           <Select.Item key={option.id} value={option.id}>
             <Select.ItemText>{option.label}</Select.ItemText>

@@ -692,10 +692,12 @@ const servers = [
 
 function ServerSelect({
   onValueChange,
-  surface
+  surface,
+  columns
 }: {
   onValueChange: (value: string | null) => void
   surface?: ControlSurface
+  columns?: number
 }) {
   const [value, setValue] = useState<string | null>('siroco')
 
@@ -711,7 +713,7 @@ function ServerSelect({
       <Select.Trigger size="xs" aria-label="서버" surface={surface}>
         <Select.Value />
       </Select.Trigger>
-      <Select.Popup aria-label="서버 목록" surface={surface}>
+      <Select.Popup aria-label="서버 목록" surface={surface} columns={columns}>
         {servers.map((server) => (
           <Select.Item key={server.id} value={server.id}>
             <Select.ItemText>{server.label}</Select.ItemText>
@@ -800,6 +802,34 @@ describe('Select의 키보드 선택과 포커스 복귀', () => {
     const cardOption = getByRole('option', '카인', cardList)
     expect(cardOption.dataset.surface).toBe('card')
     expect(cardOption.className).not.toBe(plainOptionClass)
+  })
+
+  it('columns를 주면 목록을 그 수의 열로 늘어놓고 화살표로 읽는 순서대로 옮긴다', async () => {
+    const onValueChange = vi.fn<(value: string | null) => void>()
+    // 2열이면 카인, 디레지에가 첫 줄이고 시로코가 둘째 줄이다. 시로코에서 위로 가면 바로 위 카인이 아니라 앞 항목인 디레지에다.
+    await render(<ServerSelect onValueChange={onValueChange} columns={2} />)
+    const trigger = getByRole('combobox', '서버')
+    trigger.focus()
+
+    await press(trigger, 'ArrowDown')
+    const listbox = await vi.waitFor(() => getByRole('listbox', '서버 목록'))
+    expect(listbox.getAttribute('style')).toContain('repeat(2, auto)')
+    const current = getByRole('option', '시로코', listbox)
+    await vi.waitFor(() => expect(document.activeElement).toBe(current))
+    await press(current, 'ArrowUp')
+    const previous = getByRole('option', '디레지에', listbox)
+    await vi.waitFor(() => expect(document.activeElement).toBe(previous))
+    await press(previous, 'Enter')
+
+    expect(onValueChange).toHaveBeenLastCalledWith('diregie')
+  })
+
+  it('columns가 없으면 한 줄 목록이다', async () => {
+    await render(<ServerSelect onValueChange={vi.fn()} />)
+    const trigger = getByRole('combobox', '서버')
+    await click(trigger)
+    const listbox = await vi.waitFor(() => getByRole('listbox', '서버 목록'))
+    expect(listbox.getAttribute('style') ?? '').not.toContain('repeat(')
   })
 
   it('Escape로 닫으면 값을 바꾸지 않고 trigger로 focus를 돌려준다', async () => {

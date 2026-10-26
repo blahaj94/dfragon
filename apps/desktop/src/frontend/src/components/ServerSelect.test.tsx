@@ -199,3 +199,45 @@ it('파티 카드의 서버 목록은 카인, 디레지에, 시로코, 프레이
     '바칼'
   ])
 })
+
+it('이름 칸 안 칩은 서버 8개를 4열 목록으로 열고, 카드 머리 칩은 한 줄 목록으로 연다', async () => {
+  const options = [
+    { id: 'anton', label: '안톤' },
+    { id: 'bakal', label: '바칼' },
+    { id: 'cain', label: '카인' },
+    { id: 'casillas', label: '카시야스' },
+    { id: 'diregie', label: '디레지에' },
+    { id: 'hilder', label: '힐더' },
+    { id: 'prey', label: '프레이' },
+    { id: 'siroco', label: '시로코' }
+  ]
+  await act(async () =>
+    root.render(
+      <>
+        <ServerSelect
+          variant="field"
+          label="칸 안 서버"
+          value="siroco"
+          options={options}
+          onValueChange={vi.fn()}
+        />
+        <ServerSelect label="머리 서버" value="siroco" options={options} onValueChange={vi.fn()} />
+      </>
+    )
+  )
+  const field = document.querySelector<HTMLButtonElement>('[aria-label="칸 안 서버"]')!
+  await act(async () => field.click())
+  const fieldList = document.querySelector('[role="listbox"][aria-label="칸 안 서버"]')!
+  expect(fieldList.getAttribute('style')).toContain('repeat(4, auto)')
+  expect(fieldList.querySelectorAll('[role="option"]')).toHaveLength(8)
+  await act(async () =>
+    document.activeElement!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
+    )
+  )
+
+  const chip = document.querySelector<HTMLButtonElement>('[aria-label="머리 서버"]')!
+  await act(async () => chip.click())
+  const chipList = document.querySelector('[role="listbox"][aria-label="머리 서버"]')!
+  expect(chipList.getAttribute('style') ?? '').not.toContain('repeat(')
+})

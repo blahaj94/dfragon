@@ -47,6 +47,11 @@ export const styles = stylex.create({
     transitionTimingFunction: motion.ease
   },
   item: { height: 28, fontSize: 13 },
+  // 낮은 창에서 목록이 잘리지 않도록 항목을 여러 열로 늘어놓는 목록. 항목은 읽는 순서로 채운다.
+  grid: (columns: number) => ({
+    display: 'grid',
+    gridTemplateColumns: `repeat(${columns}, auto)`
+  }),
   // 캐릭터 카드 위의 칩. 라이트 모드에서도 카드가 다크이므로 card* 토큰으로 그린다.
   cardTrigger: {
     color: {
