@@ -58,13 +58,14 @@ function createWindow(): void {
     throw new Error('Main window already exists.')
   }
   const window = new BrowserWindow({
+    // 크기는 renderer가 보이는 화면에 맞춰 바꾸는 내용 높이와 같은 기준인 내용 크기다. 창은 파티 화면으로 연다.
+    useContentSize: true,
     width: MAIN_WINDOW_SIZE.width,
-    height: MAIN_WINDOW_SIZE.height,
-    // dfragon-design layout.md의 최소 창이다. 이 폭에서 상단 바는 제품 이름만 숨기면 Windows 창 버튼(138)과
+    height: MAIN_WINDOW_SIZE.partyHeight,
+    // dfragon-design layout.md의 최소 창 폭이다. 이 폭에서 상단 바는 제품 이름만 숨기면 Windows 창 버튼(138)과
     // 내비, 상태 칩, 도구 묶음이 겹치지 않고, 파티 카드 네 장이 한 줄에 들어간다.
-    // 접은 창은 renderer 요청으로 최소 높이를 낮춘다.
     minWidth: MAIN_WINDOW_SIZE.minWidth,
-    minHeight: MAIN_WINDOW_SIZE.minHeight,
+    minHeight: MAIN_WINDOW_SIZE.partyHeight,
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',
