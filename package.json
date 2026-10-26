@@ -9,7 +9,6 @@
     "start-task": "node scripts/start-task.mjs",
     "test": "pnpm verify",
     "verify": "node scripts/verify.mjs",
-    "verify:database": "node scripts/verify.mjs --database",
     "test:product-images": "node --test scripts/test/product-image-plan.test.mjs",
     "lint": "biome lint",
     "lint:fix": "biome lint --write",
@@ -42,7 +41,6 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "husky": "catalog:",
-    "playwright": "catalog:",
     "sharp": "catalog:",
     "tar": "catalog:",
     "typescript": "catalog:parser"

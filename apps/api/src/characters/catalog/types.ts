@@ -15,15 +15,10 @@ export interface CatalogValue {
   payload: CharacterPayload
 }
 
-export interface CatalogEntry extends CatalogValue {
-  fetchedAt: Date
-  expiresAt: Date
-}
-
 export interface CatalogDetail {
   data: CharacterPayload | null
   fetchedAt: string | null
-  status: 'fresh' | 'stale' | 'unavailable'
+  status: 'fresh' | 'unavailable'
 }
 
 export interface CatalogResult {

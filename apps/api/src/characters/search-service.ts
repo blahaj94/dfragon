@@ -16,24 +16,6 @@ export function createCharacterSearchService(
   const adapter = deps.searchCharacters
   let closed = false
 
-  // 모험단명은 후보 식별에 필요하지 않은 보조 값이라 DB 실패가 후보 응답을 막지 않는다.
-  const findAdventureNames = async (
-    characterIds: readonly string[],
-    requestSignal?: AbortSignal
-  ): Promise<ReadonlyMap<string, string>> => {
-    const find = deps.findAdventureNames
-    if (find === undefined) {
-      return new Map()
-    }
-    try {
-      const signal = requestSignal ?? new AbortController().signal
-
-      return await find(characterIds, signal)
-    } catch {
-      return new Map()
-    }
-  }
-
   const search = async (
     peerAddress: string | undefined,
     input: NeopleCharacterSearchInput,
@@ -76,17 +58,13 @@ export function createCharacterSearchService(
     async candidates(peerAddress, originalUrl, requestSignal) {
       const input = parseCharacterCandidatesQuery(originalUrl)
       const result = await search(peerAddress, input, requestSignal)
-      const adventureNames = await findAdventureNames(
-        result.rows.map((candidate) => candidate.characterId),
-        requestSignal
-      )
       const rows = result.rows.map((candidate): CharacterImageCandidate => {
         const serverId = encodeURIComponent(candidate.serverId)
         const characterId = encodeURIComponent(candidate.characterId)
         const imageUrl = `https://img-api.neople.co.kr/df/servers/${serverId}/characters/${characterId}?zoom=1`
-        const adventureName = adventureNames.get(candidate.characterId) ?? null
+        // 모험단명은 저장한 상세에서 찾던 값이다. 기존 Desktop이 읽는 필드라 null로 남긴다.
 
-        return { ...candidate, imageUrl, adventureName }
+        return { ...candidate, imageUrl, adventureName: null }
       })
       rows.sort((left, right) => {
         if (left.fame === null && right.fame === null) {

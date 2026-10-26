@@ -1,84 +1,33 @@
-import { createAdventureSearchStore } from '../adventures/store.js'
-import { createCharacterAdventureNameStore } from '../characters/adventure-names.js'
-import type { INestApplication } from '@nestjs/common'
-import { createCharacterDetailStore } from '../characters/details/store.js'
-import { createCatalogStore } from '../characters/catalog/store.js'
 import { createCatalogService } from '../characters/catalog/service.js'
 import { createNeopleCatalog } from '../characters/catalog/neople.js'
 import { createNeopleCharacterSearch } from '../characters/neople-character-search.js'
 import { createNeopleCharacterDetails } from '../characters/details/neople.js'
 import { createApiHttpApp } from '../http.js'
-import { createDatabaseDataSource } from '../database/index.js'
 import type { readRuntimeConfiguration } from './configuration.js'
 
 type RuntimeConfiguration = Awaited<ReturnType<typeof readRuntimeConfiguration>>
 
-/** 이번 실행이 소유한 앱과 DataSource의 종료 책임을 함께 관리한다. */
+/** 이번 실행이 소유한 앱의 종료 책임을 관리한다. */
 export async function createApiRuntime(configuration: RuntimeConfiguration) {
-  const dataSource = createDatabaseDataSource(configuration.database)
-  let app: INestApplication | undefined
+  const app = await createApiHttpApp(
+    {
+      searchCharacters: createNeopleCharacterSearch(configuration.apiKey),
+      trustedProxyHops: configuration.trustedProxyHops
+    },
+    {
+      fetchDetails: createNeopleCharacterDetails(configuration.apiKey),
+      catalog: createCatalogService(createNeopleCatalog(configuration.apiKey))
+    },
+    configuration.localHttps
+  )
   let closing: Promise<void> | undefined
   const close = (): Promise<void> => {
-    const pendingClose = closing
-    const isClosing = pendingClose !== undefined
-    if (isClosing) {
-      return pendingClose
-    }
-    const ownedApp = app
-    closing = (async () => {
-      let failed = false
-      const hasApp = ownedApp !== undefined
-      if (hasApp) {
-        try {
-          await ownedApp.close()
-        } catch {
-          failed = true
-        }
-      }
-      try {
-        const isInitialized = dataSource.isInitialized
-        if (isInitialized) {
-          await dataSource.destroy()
-        }
-        // Driver connect 중 실패하면 isInitialized=false여도 pool이 남을 수 있다.
-        else {
-          await dataSource.driver.disconnect()
-        }
-      } catch {
-        failed = true
-      }
-      if (failed) {
-        throw new Error('API runtime cleanup failed')
-      }
-    })()
+    closing ??= app.close().catch(() => {
+      throw new Error('API runtime cleanup failed')
+    })
 
     return closing
   }
 
-  try {
-    await dataSource.initialize()
-    app = await createApiHttpApp(
-      {
-        searchCharacters: createNeopleCharacterSearch(configuration.apiKey),
-        trustedProxyHops: configuration.trustedProxyHops,
-        findAdventureNames: createCharacterAdventureNameStore(dataSource).find
-      },
-      {
-        fetchDetails: createNeopleCharacterDetails(configuration.apiKey),
-        store: createCharacterDetailStore(dataSource),
-        catalog: createCatalogService(
-          createCatalogStore(dataSource),
-          createNeopleCatalog(configuration.apiKey)
-        )
-      },
-      createAdventureSearchStore(dataSource),
-      configuration.localHttps
-    )
-
-    return { app, close }
-  } catch (error) {
-    // 초기화 실패를 보존하며 앱을 얻지 못했거나 close가 실패해도 DB 정리를 시도한다.
-    await close().catch(() => undefined)
-    throw error
-  }
+  return { app, close }
 }

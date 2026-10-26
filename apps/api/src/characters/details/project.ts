@@ -1,10 +1,9 @@
 import { fromEntries, fromKeys } from 'remeda'
 import { NEOPLE_SERVER_NAMES } from '../../constants/neople-character-search.js'
-import type { CharacterApiResponse } from '../../database/schemas/character-api-responses.js'
 import { CharacterDetailFailure } from './errors.js'
 import { isObject } from './neople.js'
 import { characterDetailSections } from './sections.js'
-import type { CharacterIdentity, CharacterPayload } from './sections.js'
+import type { CharacterIdentity, CharacterPayload, CharacterSectionResponse } from './sections.js'
 
 const basicFields = [
   'characterName',
@@ -35,7 +34,7 @@ function projectCharacter(
 }
 
 function projectSectionMetadata(
-  rows: ReadonlyMap<CharacterApiResponse['section'], CharacterApiResponse>
+  rows: ReadonlyMap<CharacterSectionResponse['section'], CharacterSectionResponse>
 ): Record<string, { revision: number; contentUpdatedAt: string; lastSuccessfulFetchAt: string }> {
   const entries = characterDetailSections.map((section) => {
     const row = rows.get(section)!
@@ -51,17 +50,20 @@ function projectSectionMetadata(
   return metadata
 }
 
-export function projectCharacterDetails(identity: CharacterIdentity, rows: CharacterApiResponse[]) {
+export function projectCharacterDetails(
+  identity: CharacterIdentity,
+  rows: CharacterSectionResponse[]
+) {
   const bySection = new Map(rows.map((row) => [row.section, row]))
   for (const section of characterDetailSections) {
     if (!bySection.has(section)) {
       throw new CharacterDetailFailure('internal')
     }
   }
-  const body = (section: CharacterApiResponse['section']) => bySection.get(section)!.payload
+  const body = (section: CharacterSectionResponse['section']) => bySection.get(section)!.payload
   const basic = body('basic')
   const character = projectCharacter(identity, basic)
-  const sectionBuff = (section: CharacterApiResponse['section']) => {
+  const sectionBuff = (section: CharacterSectionResponse['section']) => {
     const skill = body(section).skill
     const value = isObject(skill) ? (skill.buff ?? null) : null
 

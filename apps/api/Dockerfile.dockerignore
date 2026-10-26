@@ -5,10 +5,6 @@
 !pnpm-workspace.yaml
 !scripts/
 !scripts/server-build-info.mjs
-!scripts/test-support/
-!scripts/test-support/docker-postgres.mjs
-!scripts/test/
-!scripts/test/docker-postgres.test.mjs
 !packages/
 !packages/lib/
 !packages/lib/package.json

@@ -39,7 +39,7 @@ async function main(): Promise<void> {
     stopping = true
     if (shouldLimitStartup) {
       startupShutdownTimer = setTimeout(() => {
-        // Pending handshake는 driver에 취소 경로가 없다. Async 정리 완료와 구분한다.
+        // 시작 중인 앱 생성에는 취소 경로가 없다. Async 정리 완료와 구분한다.
         try {
           writeSync(2, `${closeApp.startupError}\n`)
         } finally {

@@ -1,10 +1,9 @@
-import type { CharacterApiResponse } from '../../database/schemas/character-api-responses.js'
 import { characterDetailSections } from './sections.js'
+import type { CharacterSectionResponse } from './sections.js'
 
 export const CHARACTER_FRESHNESS_MS = 5 * 60_000
-export const CHARACTER_REFRESH_COOLDOWN_MS = 30_000
 
-export function characterFreshness(rows: CharacterApiResponse[]) {
+export function characterFreshness(rows: CharacterSectionResponse[]) {
   const sections = new Set(rows.map((row) => row.section))
   if (
     rows.length !== characterDetailSections.length ||

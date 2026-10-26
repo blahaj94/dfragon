@@ -4,16 +4,13 @@ import type { ArgumentsHost, ExceptionFilter, INestApplication } from '@nestjs/c
 import { NestFactory } from '@nestjs/core'
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { Request, Response } from 'express'
-import { ADVENTURE_SEARCH_SERVICE, AdventureSearchController } from './adventures/http.js'
-import { createAdventureSearchService } from './adventures/service.js'
-import type { AdventureSearchStore } from './adventures/store.js'
 import { CHARACTER_SEARCH_SERVICE, CharacterSearchController } from './characters/http.js'
 import { createCharacterSearchService } from './characters/search-service.js'
 import type { CharacterSearchDependencies } from './characters/types.js'
 import { CHARACTER_DETAIL_SERVICE, CharacterDetailController } from './characters/details/http.js'
 import { createCharacterDetailService } from './characters/details/service.js'
 import type { CharacterDetailDependencies } from './characters/details/service.js'
-import { CharacterDetailFailure, characterDetailFailure } from './characters/details/errors.js'
+import { characterDetailFailure } from './characters/details/errors.js'
 import { NeopleSearchFailure, neopleSearchFailure } from './errors/neople-search.js'
 import { setupSwagger } from './swagger/setup.js'
 import { API_BUILD_INFO, ApiVersionController, readApiBuildInfo } from './build-info.js'
@@ -52,9 +49,6 @@ class ApiHttpFilter implements ExceptionFilter {
       failure = characterDetailFailure(error)
     }
 
-    if (failure instanceof CharacterDetailFailure && failure.retryAfter != null) {
-      response.setHeader('Retry-After', String(failure.retryAfter))
-    }
     recordAccessLogErrorCode(response, failure.body.error.code)
     recordAccessLogErrorChain(response, error)
     response.status(failure.status).json(failure.body)
@@ -69,11 +63,10 @@ class HealthController {
   }
 }
 
-/** Public game data runs without authentication credentials or an accounts database connection. */
+/** Public game data runs without authentication credentials or a database connection. */
 export async function createApiHttpApp(
   search: CharacterSearchDependencies,
   details?: CharacterDetailDependencies,
-  adventures?: AdventureSearchStore,
   httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
   buildInfoPath = '/app/build-info.json',
   writeAccessLog: AccessLogSink = writeAccessLogToStdout
@@ -84,22 +77,13 @@ export async function createApiHttpApp(
       HealthController,
       ApiVersionController,
       CharacterSearchController,
-      ...(details ? [CharacterDetailController] : []),
-      ...(adventures ? [AdventureSearchController] : [])
+      ...(details ? [CharacterDetailController] : [])
     ],
     providers: [
       { provide: API_BUILD_INFO, useValue: buildInfo },
       { provide: CHARACTER_SEARCH_SERVICE, useValue: createCharacterSearchService(search) },
       ...(details
         ? [{ provide: CHARACTER_DETAIL_SERVICE, useValue: createCharacterDetailService(details) }]
-        : []),
-      ...(adventures
-        ? [
-            {
-              provide: ADVENTURE_SEARCH_SERVICE,
-              useValue: createAdventureSearchService(adventures)
-            }
-          ]
         : [])
     ]
   })
