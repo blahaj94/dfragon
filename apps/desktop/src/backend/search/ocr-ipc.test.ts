@@ -272,11 +272,18 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     expect(new URL(new Request(...fixture.fetchSearch.mock.calls[4]).url).pathname).toBe(
       '/characters'
     )
-    await fixture.invoke('notifyOcrCandidatesDetected', {
+    const restarted = await fixture.invoke('notifyOcrCandidatesDetected', {
       ...observation(fixture, 3),
       portrait: null
     })
-    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
+    const restartedSlot = (
+      restarted as { snapshot: { slots: { state: string; selected?: unknown }[] } }
+    ).snapshot.slots[0]
+    expect(restartedSlot.state).toBe('pending')
+    expect(restartedSlot.selected).toBeUndefined()
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
+    expect((await fixture.read()).slots[0].requestId).not.toBe(selected.requestId)
+    expect(fixture.fetchSearch).toHaveBeenCalledTimes(5)
   })
 
   it('같은 후보와 보이는 얼굴의 revision은 요청을 유지하고 15초를 연장하지 않는다', async () => {

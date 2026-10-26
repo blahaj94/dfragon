@@ -336,7 +336,7 @@ it.each([
     // 3번 자리는 회차의 OCR 이름으로 후보를 찾는 중이다.
     const response = deferred<Response>()
     fixture.fetchSearch.mockReturnValueOnce(response.promise)
-    await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 3))
+    await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 3, 1, '다라'))
     await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(3))
     const request = new Request(...fixture.fetchSearch.mock.calls[2])
 
@@ -361,9 +361,9 @@ it.each([
     expect(fixture.fetchSearch).toHaveBeenCalledTimes(3)
 
     // 직접 조회는 창과 무관해 같은 수명에서 계속 쓸 수 있다.
-    respondFound(fixture)
     await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 6))
     await vi.waitFor(async () => expect((await fixture.read()).slots[6].state).toBe('success'))
+    expect(fixture.fetchSearch).toHaveBeenCalledTimes(3)
   }
 )
 
