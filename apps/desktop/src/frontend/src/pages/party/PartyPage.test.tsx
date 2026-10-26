@@ -141,8 +141,9 @@ it('네 슬롯의 서로 다른 선택과 대기 상태를 독립적으로 표�
     '다른이름'
   )
   expect(statText(slots[1], '명성')).toBe('-')
-  expect(slots[2].querySelector('[role="img"][aria-label="얼굴 인식 대기"]')).not.toBeNull()
-  expect(slots[3].querySelector('[role="img"][aria-label="자동 식별 준비 중"]')).not.toBeNull()
+  // 파티 카드는 대기 모래시계 없이 상태 이름을 보조 기술 알림으로만 전한다.
+  expect(slots[2].querySelector('[role="img"][aria-label="얼굴 인식 대기"]')).toBeNull()
+  expect(slots[3].querySelector('[role="img"][aria-label="자동 식별 준비 중"]')).toBeNull()
   expect(slots[2].textContent).toContain('얼굴 인식 대기')
   expect(slots[3].textContent).toContain('자동 식별 준비 중')
   expect([...slots].map((slot) => slot.getAttribute('data-state'))).toEqual([
