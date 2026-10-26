@@ -49,19 +49,21 @@ function App(): React.JSX.Element {
     <main {...stylex.props(styles.app)}>
       <TopBar
         nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
+        notice={
+          updateNotice.notice != null && (
+            <UpdateNotice
+              tag={updateNotice.notice.tag}
+              onOpenRelease={updateNotice.openRelease}
+              onDismiss={updateNotice.dismiss}
+            />
+          )
+        }
         capture={
           <CaptureControls capture={capture} phase={screenCapture.phase} status={captureNotice} />
         }
       />
       <div {...stylex.props(styles.content)}>
         <div {...stylex.props(styles.page)}>
-          {updateNotice.notice != null && (
-            <UpdateNotice
-              tag={updateNotice.notice.tag}
-              onOpenRelease={updateNotice.openRelease}
-              onDismiss={updateNotice.dismiss}
-            />
-          )}
           {/* 파티 카드는 공대를 보는 동안에도 상태를 유지하도록 숨기기만 한다. */}
           <PartyScreen capture={capture} hidden={searchMode !== 'party'} collapse={party} />
           {/* 공대 카드도 파티를 보는 동안 자리별 입력과 검색 상태를 유지하도록 숨기기만 한다. */}

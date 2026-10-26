@@ -1,8 +1,13 @@
+import { Menu, StatusChip } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
-import { Button, Typo } from '@dfragon/ui'
+import { windowChromeStyles } from '../constants/window-chrome.style'
 import { ExternalLinkIcon } from './ExternalLinkIcon'
 import { styles } from './UpdateNotice.style'
 
+/**
+ * 상단 바의 새 버전 알림 칩. 누르면 `Release 열기`와 `닫기`가 있는 메뉴를 연다. 칩이 나타나면 보조 기술에
+ * 새 버전을 알린다.
+ */
 export function UpdateNotice({
   tag,
   onOpenRelease,
@@ -13,25 +18,23 @@ export function UpdateNotice({
   onDismiss: () => void
 }): React.JSX.Element {
   return (
-    <section aria-label="새 버전 알림" {...stylex.props(styles.notice)}>
-      <div role="status" {...stylex.props(styles.message)}>
-        <Typo.txtS as="p" weight={700}>
-          새 버전 {tag}
-        </Typo.txtS>
-      </div>
-      <div {...stylex.props(styles.actions)}>
-        <Button size="sm" onClick={onOpenRelease}>
-          <Typo.txtS as="span" weight={700}>
-            Release 열기
-          </Typo.txtS>
-          <ExternalLinkIcon width="16" height="16" />
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onDismiss}>
-          <Typo.txtS as="span" weight={700}>
-            닫기
-          </Typo.txtS>
-        </Button>
-      </div>
-    </section>
+    <span role="status" {...stylex.props(windowChromeStyles.noDrag)}>
+      <Menu.Root>
+        <Menu.Trigger render={<button type="button" {...stylex.props(styles.trigger)} />}>
+          <StatusChip tone="signal" size="md">
+            새 버전 {tag}
+          </StatusChip>
+        </Menu.Trigger>
+        <Menu.Popup aria-label="새 버전" align="end">
+          <Menu.Item onClick={onOpenRelease}>
+            <span {...stylex.props(styles.item)}>
+              Release 열기
+              <ExternalLinkIcon width={14} height={14} />
+            </span>
+          </Menu.Item>
+          <Menu.Item onClick={onDismiss}>닫기</Menu.Item>
+        </Menu.Popup>
+      </Menu.Root>
+    </span>
   )
 }

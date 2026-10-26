@@ -1,22 +1,22 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, space } from '@dfragon/ui/tokens.stylex'
 
+// 칩을 감싼 버튼은 면을 두지 않고, 포커스 선은 칩의 자른 모서리에 가리지 않도록 바깥 2px에 그린다.
+// 게임 연결 상태 칩의 버튼과 같은 모양이다.
 export const styles = stylex.create({
-  notice: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    padding: '8px 16px',
-    marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftStyle: 'solid',
-    borderLeftColor: colors.signal,
-    borderRadius: 8,
-    backgroundColor: colors.bgSurface,
-    color: colors.fgDefault
+  trigger: {
+    display: 'inline-flex',
+    padding: 0,
+    margin: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    color: 'inherit',
+    font: 'inherit',
+    cursor: 'pointer',
+    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
+    outlineWidth: 2,
+    outlineColor: colors.signal,
+    outlineOffset: 2
   },
-  message: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 },
-  actions: { display: 'flex', alignItems: 'center', gap: 8 }
+  item: { display: 'inline-flex', alignItems: 'center', gap: space.s8 }
 })
