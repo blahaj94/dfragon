@@ -25,7 +25,7 @@ Dependabot은 catalog 값의 갱신을 제안한다. 기본 catalog와 named cat
 
 Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-spacing.mjs`와 직접 devDependency를 모든 프로젝트가 공유한다. 외부 의존성 버전은 `pnpm-workspace.yaml`의 catalog에서만 정한다. 모든 app과 package의 `tsc`는 기본 catalog의 TypeScript 7.0.2(Go로 다시 쓴 native compiler)이다. TypeScript 7 패키지는 compiler API를 제공하지 않으므로 root TypeScript 6.0.2는 `catalog:parser`로 참조하며 문장 간격 도구의 parser 전용이다. Lib, UI의 테스트와 검증 스크립트는 기본 catalog의 `typescript-compiler-api` 별칭(`npm:typescript@6.0.2`)으로 compiler API를 사용한다.
 
-- `pnpm lint`, `pnpm lint:fix`: root 설정, scripts, API, Desktop, Web, UI 등 저장소 전체의 Biome lint 비수정 검사와 안전한 자동수정.
+- `pnpm lint`, `pnpm lint:fix`: root 설정, scripts, API, Desktop, UI 등 저장소 전체의 Biome lint 비수정 검사와 안전한 자동수정.
 - `pnpm format`, `pnpm format:check`: 같은 범위의 JS/TS, JSON/JSONC, CSS, HTML을 Biome로 정렬하고 JS/TS에 문장 간격 정책을 적용하거나 비수정 검사한다. YAML, Markdown과 SVG 자산은 자동 정렬 대상에 포함하지 않는다.
 - `pnpm test:format-policy`: Biome 포맷 뒤 문장 간격 도구의 블록 첫 `return` 처리, 이후 `return` 빈 줄, 연속된 블록 `if` 사이 빈 줄, `else if` 연결, ASI, 확장자별 결과와 CLI 범위, 수렴을 검사한다.
 - 각 workspace에서도 `pnpm --filter @dfragon/api lint`처럼 같은 네 명령을 사용한다. Workspace에 등록하지 않은 scripts는 `pnpm --dir scripts lint`와 `format:check` 등으로 직접 실행한다.
@@ -62,7 +62,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 ## License tooling
 
 - Package: `@dfragon/licenses`, 위치: `packages/licenses`. 빌드용 수집기, 정적 원문, 버전별 upstream 보완을 관리한다. 제품 runtime은 이 패키지를 import하지 않는다.
-- 기존 UI, Web, Desktop, lib 빌드의 고지 원문 배포 경로를 유지하며 중앙 원본을 소비한다.
+- 기존 UI, Desktop, lib 빌드의 고지 원문 배포 경로를 유지하며 중앙 원본을 소비한다.
 - `pnpm --filter @dfragon/licenses test`: typecheck와 수집 테스트. [원문 공백과 사용법](../../packages/licenses/README.md)을 함께 확인한다.
 
 ## Applications
@@ -74,18 +74,6 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 - 필수 입력: `PORT`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정, JWT를 사용하지 않는다.
 - `test`는 build, 타입, 단위, HTTP 검증이다.
 - 개발: [API 개발](api-start-development.md). 이미지 실행, 운영 책임: [제품 안내](api-start-development.md#서버-이미지).
-
-### `apps/web`
-
-- Package: `@dfragon/web`
-- Stack: React, TypeScript, Vite
-- Command:
-  - `pnpm --filter @dfragon/web dev`
-  - `pnpm --filter @dfragon/web test`
-  - `pnpm --filter @dfragon/web typecheck`
-  - `pnpm --filter @dfragon/web build`
-  - `pnpm --filter @dfragon/web lint`
-  - `pnpm --filter @dfragon/web preview`
 
 ### `apps/desktop`
 
@@ -119,15 +107,15 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 
 ## Shared UI
 
-- Desktop, Web은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치, 작성, 검증 범위를 정리한다.
+- Desktop은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치, 작성, 검증 범위를 정리한다.
 <DEL>
 
 - `packages/ui`: `@dfragon/ui`, DFragon 디자인 토큰(`tokens.css`, `tokens.stylex`), Base UI 기반 공용 Component, Typo와 중립 Example. Package/peer/CSS 소유, 고지, 명령은 `packages/ui/README.md`를 따른다.
 - Library: `pnpm --filter @dfragon/ui test`, `typecheck`, `lint`, `build`.
 - 독립 Example: `pnpm --filter @dfragon/ui dev:examples`, `build:examples`, `preview:examples`. 별도 app workspace는 만들지 않는다.
-- Web/Desktop renderer/Example의 source resolution과 cold regression: `packages/ui/README.md`, `packages/ui/test/consumer-resolution.md`. 소비 command는 사전 library build를 요구하지 않는다.
+- Desktop renderer/Example의 source resolution과 cold regression: `packages/ui/README.md`, `packages/ui/test/consumer-resolution.md`. 소비 command는 사전 library build를 요구하지 않는다.
 - 각 consumer는 공용 `tokens.css`와 `foundation.css`를 browser entry에서 한 번 import한다. Library JS는 CSS를 import하지 않고 Base UI, React/JSX runtime과 StyleX를 external 처리한다. 공용 Component의 `stylex.create`는 각 consumer의 StyleX compiler가 정적 CSS로 바꾼다.
-- 산출물 검증: `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`, `consumer` mode로 Example, Web, Desktop renderer 산출물을 검사한다. 입력 graph의 미사용 dependency도 보수적으로 고지에 포함한다.
+- 산출물 검증: `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`, `consumer` mode로 Example, Desktop renderer 산출물을 검사한다. 입력 graph의 미사용 dependency도 보수적으로 고지에 포함한다.
 - Test-only Electron UI: `apps/desktop/scripts/ui-fixture.mjs`와 `ui-fixture-preload.cts`. `pnpm --filter @dfragon/desktop ui:fixture desktop light` 또는 `example dark`로 실제 production renderer/Example을 연다. 제품 main/preload 대신 synthetic source/선택 bridge와 media 거절 stub을 사용하며 capture/OCR 성공을 검증하지 않는다.
 
 ## Repository tooling

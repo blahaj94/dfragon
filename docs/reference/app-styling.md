@@ -6,7 +6,7 @@ scope: all application browser surfaces
 
 # 앱 공통 StyleX
 
-Desktop renderer와 Web은 화면 스타일을 StyleX로 작성한다. 공통 UI 책임은 [Design System](../rules/design-system.md)을 따른다. 공용 색, 간격, 반지름, 모션은 `@dfragon/ui`의 자체 토큰을, 공용 Component는 Base UI 기반 `@dfragon/ui` Component를 쓴다.
+Desktop renderer는 화면 스타일을 StyleX로 작성한다. 공통 UI 책임은 [Design System](../rules/design-system.md)을 따른다. 공용 색, 간격, 반지름, 모션은 `@dfragon/ui`의 자체 토큰을, 공용 Component는 Base UI 기반 `@dfragon/ui` Component를 쓴다.
 
 ## 공통 설정과 소비 경로
 
@@ -23,7 +23,6 @@ StyleX runtime과 compiler 버전은 `pnpm-workspace.yaml`의 catalog에서 관�
 | 소비자 | 연결 위치 |
 | --- | --- |
 | Desktop 제품, test, fixture | `apps/desktop/build/renderer-transforms.ts` |
-| Web | `apps/web/vite.config.ts`, `vitest.config.ts` |
 | 공용 UI Example, test | `packages/ui/examples/vite.config.ts`, `packages/ui/vitest.config.ts` |
 | 공용 UI 산출물 소비 검사 | `packages/ui/test/build-consumer/vite.config.ts` |
 
@@ -33,7 +32,7 @@ StyleX runtime과 compiler 버전은 `pnpm-workspace.yaml`의 catalog에서 관�
 
 파일 배치, named export, 테마, 스타일 합성의 기준은 [화면별 스타일 계약](../rules/design-system.md#화면별-스타일-조정)을 따른다. 이 문서는 compiler 연결과 현재 구현 예시를 설명한다.
 
-`apps/web/src/App.style.ts`와 `theme.stylex.ts`는 반응형 배치, 시스템 색상 테마의 예다. Desktop 테마 상태와 컴포넌트 작성 세부사항은 [Desktop 스타일](desktop-styling.md)을 참고한다.
+Desktop 테마 상태와 컴포넌트 작성 세부사항은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 
 ## 검증
 

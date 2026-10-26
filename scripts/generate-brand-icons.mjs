@@ -24,8 +24,7 @@ try {
     ['icns/icon.icns', 'apps/desktop/build/icon.icns'],
     ['set/512x512.png', 'apps/desktop/build/icon.png'],
     ['set/512x512.png', 'apps/desktop/resources/icon.png'],
-    ['set/128x128.png', 'apps/desktop/resources/brand.png'],
-    ['set/64x64.png', 'apps/web/public/favicon.png']
+    ['set/128x128.png', 'apps/desktop/resources/brand.png']
   ]
   for (const [source, target] of assets) {
     await copyFile(join(output, source), join(root, target))

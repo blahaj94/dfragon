@@ -243,14 +243,7 @@
       }
     },
     {
-      "includes": [
-        "apps/desktop/**/*.ts",
-        "apps/desktop/**/*.tsx",
-        "apps/web/**/*.js",
-        "apps/web/**/*.jsx",
-        "apps/web/**/*.ts",
-        "apps/web/**/*.tsx"
-      ],
+      "includes": ["apps/desktop/**/*.ts", "apps/desktop/**/*.tsx"],
       "linter": {
         "rules": {
           "correctness": {
@@ -282,30 +275,6 @@
           "style": {
             "useComponentExportOnlyModules": {
               "level": "error",
-              "options": {
-                "allowConstantExport": true
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "includes": [
-        "apps/web/**/*.js",
-        "apps/web/**/*.jsx",
-        "apps/web/**/*.ts",
-        "apps/web/**/*.tsx",
-        "!**/*.test.*",
-        "!**/*.spec.*",
-        "!**/*.cy.*",
-        "!**/*.stories.*"
-      ],
-      "linter": {
-        "rules": {
-          "style": {
-            "useComponentExportOnlyModules": {
-              "level": "warn",
               "options": {
                 "allowConstantExport": true
               }

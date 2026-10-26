@@ -62,7 +62,7 @@ Desktop은 OS 인증서 신뢰를 사용하며 인증서 오류를 무시하지 
 `apps/api/**`, `packages/lib/**`, `packages/licenses/**`와 root package, lockfile, workspace 설정,
 이미지 workflow, 선택 도구, 커밋 정보 생성기(`scripts/server-build-info.mjs`) 변경이 해당합니다.
 지운 accounts, OCR 이미지는 더 빌드하지 않습니다.
-서버 이미지 입력이 없는 문서, Desktop, Web 전용 변경은 이미지 빌드, 발행을 건너뜁니다.
+서버 이미지 입력이 없는 문서, Desktop 전용 변경은 이미지 빌드, 발행을 건너뜁니다.
 PR 제목 scope가 `(build)`가 아닌 PR과 그 main push도 이미지를 빌드, 발행하지 않으며, 그 변경은 다음
 `(build)` main push가 함께 발행합니다. 규칙은 [Repository Map의 배포 workflow 설명](repository-map.md)에 있습니다.
 
