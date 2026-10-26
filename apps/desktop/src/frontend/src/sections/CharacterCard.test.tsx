@@ -242,9 +242,11 @@ it('검색 상태를 꺾쇠 상태와 오른쪽 위 표시로 보이고 상태 �
   expect(card().getAttribute('data-state')).toBe('failure')
   expect(visibleText()).toContain('검색 결과가 없습니다')
 
+  // 대기 모래시계는 두지 않고 상태 이름은 보조 기술에만 전한다.
   await render({ state: 'waiting-portrait', character: undefined })
   expect(card().getAttribute('data-state')).toBe('waiting')
-  expect(card().querySelector('[role="img"][aria-label="얼굴 인식 대기"] svg')).not.toBeNull()
+  expect(statusMark()).toBeNull()
+  expect(card().textContent).toContain('얼굴 인식 대기')
 
   await render({ state: 'idle', character: undefined })
   expect(card().getAttribute('data-state')).toBe('waiting')
@@ -256,7 +258,35 @@ function decorationCount(): number {
   return card().querySelectorAll(':scope > span[aria-hidden="true"]').length
 }
 
-it('스냅샷과 자리가 다른 카드는 서버 칩 뒤에 스냅샷 순번 칩을 보이고 카드 조작은 그대로 쓴다', async () => {
+it('머리 줄은 서버 선택을 품은 이름 칸, 상태 표시, 스냅샷 칩 순서이고 자리 번호는 없다', async () => {
+  await render({
+    state: 'failure',
+    character: undefined,
+    nickname: '실패이름',
+    snapshotMark: { kind: 'moved', seat: 2 }
+  })
+  const input = card().querySelector('input')!
+  const selects = card().querySelectorAll('select')
+  const mark = card().querySelector('[role="img"][aria-label="검색 실패"]')!
+  const chip = card().querySelector('[role="img"][aria-label="스냅샷 순번 2"]')!
+  expect(selects).toHaveLength(1)
+  expect(input.parentElement!.contains(selects[0])).toBe(true)
+  expect(input.compareDocumentPosition(mark) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(mark.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(visibleText()).not.toMatch(/0[1-4]/)
+
+  // 입력할 수 없고 캐릭터도 찾지 못한 자리는 서버 선택을 숨긴다.
+  await render({ state: 'idle', character: undefined, inputEnabled: false })
+  expect(card().querySelector('select')).toBeNull()
+  expect(card().querySelector('input')!.disabled).toBe(true)
+
+  // 빈 자리의 이름 칸은 얼굴 인식을 기다리는 자리와 다른 테두리다.
+  const vacantField = card().querySelector('input')!.parentElement!.className
+  await render({ state: 'waiting-portrait', character: undefined, inputEnabled: false })
+  expect(card().querySelector('input')!.parentElement!.className).not.toBe(vacantField)
+})
+
+it('스냅샷과 자리가 다른 카드는 이름 칸 뒤에 스냅샷 순번 칩을 보이고 카드 조작은 그대로 쓴다', async () => {
   const lookup = vi.fn()
   await render({ state: 'success', character: found, onLookup: lookup })
   const decorations = decorationCount()
@@ -564,22 +594,6 @@ it('접힌 카드는 작은 후보 타일로 고르고, 모험단을 모르는 �
   expect(candidateTile('시로코').textContent).toBe('—시로코')
   await act(async () => candidateTile('시로코').click())
   expect(pick).toHaveBeenCalledExactlyOnceWith('siroco')
-})
-
-it('후보 타일이 있는 접힌 카드는 이름 위에 흐르는 글자를 겹치고, 고치는 동안과 펼친 카드에는 겹치지 않는다', async () => {
-  const picker = { choices, shownServerId: 'cain', previewServerId: null }
-  await render({ state: 'success', character: found, picker, collapsed: true })
-  const input = container.querySelector<HTMLInputElement>('input')!
-  const overlay = (): Element | null =>
-    input.parentElement!.querySelector('span[aria-hidden="true"]')
-
-  expect(overlay()?.textContent).toBe('찾은이름')
-
-  await act(async () => input.focus())
-  expect(overlay()).toBeNull()
-
-  await render({ state: 'success', character: found, picker })
-  expect(container.querySelector('input')!.parentElement!.querySelector('span')).toBeNull()
 })
 
 it('미리보기 조회가 실패해도 후보 줄은 남는다', async () => {

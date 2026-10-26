@@ -1,19 +1,12 @@
+import { Button, CardFrame, NumericText, ProgressCircle, Typo, shapes } from '@dfragon/ui'
 import {
-  Button,
-  CardFrame,
-  NumericText,
-  ProgressCircle,
-  Typo,
-  shapes,
-  typographyVariants
-} from '@dfragon/ui'
-import { HourglassIcon } from '../components/HourglassIcon'
-import {
+  type CharacterCardFrameState,
   getCharacterCardFrameState,
   getCharacterCardStatus,
   isVacantSlot
 } from '../lib/card-presentation'
 import * as stylex from '@stylexjs/stylex'
+import { NameField, type NameFieldTone } from '../components/NameField'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
@@ -26,7 +19,9 @@ import { serverNames } from '../constants/servers'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import type { SlotCard } from '../lib/slot-cards'
 import { type ScoreView, formatApproximateScore, toScoreView } from '../lib/card-score'
-import type { CharacterTier } from '../types/cards'
+import type { CharacterTier, SlotState } from '../types/cards'
+
+const serverOptions = Object.entries(serverNames).map(([id, label]) => ({ id, label }))
 
 export function CharacterCard({
   card,
@@ -66,9 +61,7 @@ export function CharacterCard({
   // 찾은 자리는 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
   const nickname = characterFound ? undefined : card.nickname
   const draft = useLookupDraft({ character, nickname, onLookup })
-  const { name, serverId, inputNotice, editing } = draft
-  // 고치는 동안에는 입력 칸의 글자를 그대로 보이고, 그 밖에는 칸보다 긴 이름을 흐르게 한다.
-  const nameMarquee = compactPicker && !draft.active && name !== ''
+  const { inputNotice, editing } = draft
   const hasCharacter = state === 'success' && character != null && !editing
   const score = toScoreView(characterFound ? character.card : null)
   const vacant = isVacantSlot(state)
@@ -85,6 +78,7 @@ export function CharacterCard({
     tier: characterFound ? character.tier : undefined
   })
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
+  const nameTone = toNameFieldTone(frameState, state)
   // 모험단과 길드. 접힌 카드에서 후보 타일과 함께 놓이면 흐르는 상자에 담는다.
   const affiliation = characterFound && (
     <>
@@ -103,35 +97,37 @@ export function CharacterCard({
     <div {...stylex.props(styles.slot)}>
       <CardFrame as="article" state={frameState} aria-label={`${slot}번 슬롯`} aria-busy={busy}>
         <div {...stylex.props(styles.header)}>
-          <span
-            aria-hidden="true"
-            {...stylex.props(
-              styles.number,
-              shapes.cutTopRight,
-              frameState === 'selected' && styles.numberSelected,
-              frameState === 'waiting' && styles.numberWaiting,
-              tier === 'top' && styles.numberTop,
-              tier === 'ranker' && styles.numberRanker
-            )}
-          >
-            {String(slot).padStart(2, '0')}
-          </span>
+          <div {...stylex.props(styles.nameField)}>
+            <NameField
+              tone={nameTone}
+              aria-label={`${slot}번 캐릭터 이름`}
+              value={draft.name}
+              disabled={!inputEnabled}
+              onFocus={draft.focusName}
+              onBlur={draft.blurName}
+              onChange={(event) => draft.changeName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                  draft.submit()
+                }
+              }}
+              right={
+                (inputEnabled || characterFound) && (
+                  <ServerSelect
+                    variant="field"
+                    label={`${slot}번 서버`}
+                    value={draft.serverId}
+                    disabled={!inputEnabled}
+                    options={serverOptions}
+                    onValueChange={draft.changeServer}
+                  />
+                )
+              }
+            />
+          </div>
           {tier !== undefined && (
             <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
           )}
-          {(inputEnabled || characterFound) && (
-            <div {...stylex.props(styles.server)}>
-              <ServerSelect
-                label={`${slot}번 서버`}
-                value={serverId}
-                disabled={!inputEnabled}
-                options={Object.entries(serverNames).map(([id, label]) => ({ id, label }))}
-                onValueChange={draft.changeServer}
-              />
-            </div>
-          )}
-          {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="party" />}
-          <span {...stylex.props(styles.spacer)} />
           {frameState === 'selected' && (
             <span
               role="img"
@@ -152,15 +148,7 @@ export function CharacterCard({
               !
             </span>
           )}
-          {frameState === 'waiting' && cardStatus !== '' && (
-            <span
-              role="img"
-              aria-label={cardStatus}
-              {...stylex.props(styles.mark, shapes.cutTopRight, styles.waitingMark)}
-            >
-              <HourglassIcon width="14" height="14" />
-            </span>
-          )}
+          {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="party" />}
         </div>
         <div {...stylex.props(styles.body)}>
           <div {...stylex.props(styles.characterFace)}>
@@ -247,39 +235,6 @@ export function CharacterCard({
                       </Typo.caption>
                     )}
                   </div>
-                  <div {...stylex.props(styles.nameBox)}>
-                    <Typo.h5
-                      as="input"
-                      weight={700}
-                      aria-label={`${slot}번 캐릭터 이름`}
-                      value={name}
-                      disabled={!inputEnabled}
-                      placeholder="캐릭터명 입력"
-                      style={name ? undefined : typographyVariants.h6}
-                      onFocus={draft.focusName}
-                      onBlur={draft.blurName}
-                      onChange={(event) => draft.changeName(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                          draft.submit()
-                        }
-                      }}
-                      {...stylex.props(
-                        styles.name,
-                        nameMarquee && styles.nameUnderMarquee,
-                        frameState === 'waiting' && styles.nameWaiting,
-                        frameState === 'failure' && styles.nameFailure,
-                        draft.active && styles.nameSelected
-                      )}
-                    />
-                    {nameMarquee && (
-                      <span aria-hidden="true" {...stylex.props(styles.nameMarquee)}>
-                        <Typo.h5 as="span" weight={700} {...stylex.props(styles.marqueeText)}>
-                          {name}
-                        </Typo.h5>
-                      </span>
-                    )}
-                  </div>
                 </div>
                 {compactPicker && (
                   <CandidateStrip slot={slot} picker={picker} onPick={onPickCandidate} compact />
@@ -337,6 +292,24 @@ export function CharacterCard({
       </CardFrame>
     </div>
   )
+}
+
+// 이름 칸 테두리. 수정 중, 실패는 카드 상태를 따르고, 대기 카드는 얼굴, 식별을 기다리는 자리면 회색,
+// 아직 아무 회차도 채우지 않은 빈 자리면 점선이다.
+function toNameFieldTone(frameState: CharacterCardFrameState, state: SlotState): NameFieldTone {
+  if (frameState === 'selected' || frameState === 'failure') {
+    return frameState
+  }
+
+  if (frameState !== 'waiting') {
+    return 'default'
+  }
+
+  if (state === 'idle') {
+    return 'vacant'
+  }
+
+  return 'waiting'
 }
 
 // 명성과 점수 값. 0과 알 수 없음을 구분하고 알 수 없으면 같은 크기의 `-`를 흐리게 둔다.
