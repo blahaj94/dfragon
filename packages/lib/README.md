@@ -27,7 +27,7 @@ listOf(isRow)([{ slotId: 'WEAPON', grade: null }]) // true
 isRow({ slotId: 'WEAPON', grade: null, extra: 1 }) // 정하지 않은 키가 있어 false
 ```
 
-신뢰 경계를 넘어온 값이 정한 모양인지 스키마 라이브러리 없이 확인합니다. 모든 검사는 순수 함수이며 값을 바꾸거나 형 변환하지 않고 `true`, `false`만 돌려줍니다. Desktop의 상세 창 preload처럼 zod 같은 의존성을 같이 묶을 수 없는 곳에서 씁니다.
+신뢰 경계를 넘어온 값이 정한 모양인지 스키마 라이브러리 없이 확인합니다. 모든 검사는 순수 함수이며 값을 바꾸거나 형 변환하지 않고 `true`, `false`만 돌려줍니다. zod 같은 의존성을 같이 묶을 수 없는 곳에서 씁니다.
 
 - `exactObject`, `hasExactKeys`는 배열이 아닌 객체의 own key(symbol 포함)가 정확히 정한 키인지 봅니다.
 - `isFiniteNumber`는 NaN과 무한대를 거절하고, `isNonNegativeSafeInteger`, `isPositiveSafeInteger`는 안전 정수만 받습니다.
@@ -53,7 +53,7 @@ getIpQuotaKey('invalid-address') // 'unknown'
 - 비어 있거나 해석할 수 없는 주소는 모두 `unknown`을 사용합니다. 잘못된 문자열마다 새 한도를 만들지 않습니다.
 - 반환값은 요청 횟수 기록을 위한 내부 키입니다. IP 주소로 다시 해석하거나 이 함수에 재입력하지 않습니다.
 
-앱은 신뢰할 수 있는 접속 IP를 선택한 뒤 이 함수를 한 번 호출합니다. 프록시 신뢰 설정, HTTP 헤더 해석, 제한 횟수, 시간, 카운터 저장은 각 앱이 담당합니다. 이 함수는 주소 문자열만 받아 키를 반환하며 요청이나 전역 상태에 접근하지 않습니다. 기존 요청 한도와 accounts의 `GET /me` 예외는 유지합니다.
+앱은 신뢰할 수 있는 접속 IP를 선택한 뒤 이 함수를 한 번 호출합니다. 프록시 신뢰 설정, HTTP 헤더 해석, 제한 횟수, 시간, 카운터 저장은 각 앱이 담당합니다. 이 함수는 주소 문자열만 받아 키를 반환하며 요청이나 전역 상태에 접근하지 않습니다.
 
 `./package.json`도 export하므로 빌드의 라이선스 수집기가 패키지 위치와 runtime 의존성을 찾을 수 있습니다. 기존 CP949 원문은 `dist/notices`에 유지하고 패키지 루트 `LICENSES`에도 복사해 배포합니다. `ipaddr.js` 원문은 설치된 의존성에서 수집합니다.
 
@@ -153,7 +153,7 @@ if (result.status === 'found') {
 
 `window`와 각 행의 `nickname`은 입력 게임 client 기준의 정수 `{ x, y, width, height }`입니다. `rows`는 항상 위에서부터 네 개이며 각 행은 `{ slot, occupied, nickname }`입니다. 빈 행, 자물쇠 행도 남고, 네 행 모두 비어 있어도 창이 검출되면 `found`입니다. 크롭 함수는 각 행에 `crop`을 추가합니다. 참가자가 있으면 독립 RGBA 복사본, 없으면 `null`이며 입력 버퍼를 변경하거나 공유하지 않습니다. 크기 변경, 선명화, OCR는 하지 않습니다.
 
-`scale`은 헤더로 추정한 래스터 배율이며 게임 UI 설정 퍼센트가 아닙니다. `matchScore`는 평균을 뺀 정규화 상관 점수로, 식별 성공 확률이나 닉네임 판독 신뢰도가 아닙니다. 동기 CPU 계산이므로 반복 캡처에 연결할 때 실행 위치와 주기는 호출자가 정합니다. [탐지 순서, 측정값, 검증 범위](../../docs/reference/desktop-party-participants.md)를 참고합니다.
+`scale`은 헤더로 추정한 래스터 배율이며 게임 UI 설정 퍼센트가 아닙니다. `matchScore`는 평균을 뺀 정규화 상관 점수로, 식별 성공 확률이나 닉네임 판독 신뢰도가 아닙니다. 동기 CPU 계산이므로 반복 캡처에 연결할 때 실행 위치와 주기는 호출자가 정합니다.
 
 ## 12인 공대창 검출, 크롭
 
