@@ -160,7 +160,58 @@ it('새 버전 알림은 카드 위가 아닌 상단 바 칩으로 보이고 메
   await act(async () => dismiss.click())
   expect(dismissUpdateNotice).toHaveBeenCalledExactlyOnceWith('v1.2.0')
   expect(header.textContent).not.toContain('새 버전')
-  expect(setContentHeight).not.toHaveBeenCalled()
+  // 처음 그릴 때 파티 화면 높이로 맞춘 요청 뒤로 알림이 창 높이를 다시 바꾸지 않는다.
+  expect(setContentHeight.mock.calls).toEqual([[163]])
+})
+
+it('창 내용 높이를 파티 화면에서 163, 공대 화면에서 300으로 바꾼다', async () => {
+  const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {})
+  vi.stubGlobal('windowChrome', { setContentHeight })
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
+  expect(setContentHeight.mock.calls).toEqual([[163]])
+  const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
+  const chooseScreen = async (name: string): Promise<void> => {
+    await act(async () => trigger.click())
+    const item = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+      (candidate) => candidate.textContent === name
+    )!
+    await act(async () => item.click())
+  }
+
+  await chooseScreen('공대')
+  expect(setContentHeight.mock.calls).toEqual([[163], [300]])
+
+  await chooseScreen('파티')
+  expect(setContentHeight.mock.calls).toEqual([[163], [300], [163]])
+})
+
+it('창 높이를 바꾸지 못해도 화면을 바꿀 수 있다', async () => {
+  const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {
+    throw new Error('Synthetic window height failure')
+  })
+  vi.stubGlobal('windowChrome', { setContentHeight })
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
+  const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
+  await act(async () => trigger.click())
+  const raid = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+    (item) => item.textContent === '공대'
+  )!
+  await act(async () => raid.click())
+
+  expect(setContentHeight.mock.calls).toEqual([[163], [300]])
+  expect(container.querySelector<HTMLElement>('section[aria-label="공대"]')!.hidden).toBe(false)
 })
 
 it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 자리별 조회는 파티 검색과 따로 보낸다', async () => {
