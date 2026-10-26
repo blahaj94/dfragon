@@ -25,6 +25,20 @@ let listeners: Set<(snapshot: UpdateNoticeSnapshot) => void>
 
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe(): void {
+        return
+      }
+      unobserve(): void {
+        return
+      }
+      disconnect(): void {
+        return
+      }
+    }
+  )
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -55,15 +69,21 @@ function installApi(overrides: Partial<UpdateNoticeApi>): UpdateNoticeApi {
   return api
 }
 
-async function click(label: string): Promise<void> {
-  const button = [...container.querySelectorAll('button')].find(
+// 상단 바의 새 버전 칩을 눌러 메뉴를 열고 이름이 같은 메뉴 항목을 누른다.
+async function choose(label: string): Promise<void> {
+  const chip = container.querySelector('button')
+  if (chip == null) {
+    throw new Error('Missing update notice chip')
+  }
+  await act(async () => chip.click())
+  const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
     (element) => element.textContent === label
   )
-  if (button == null) {
-    throw new Error(`Missing ${label} control`)
+  if (item == null) {
+    throw new Error(`Missing ${label} menu item`)
   }
 
-  await act(async () => button.click())
+  await act(async () => item.click())
 }
 
 it('새 버전을 보이고 열기, 닫기에 같은 tag를 보낸다', async () => {
@@ -77,9 +97,9 @@ it('새 버전을 보이고 열기, 닫기에 같은 tag를 보낸다', async ()
   await act(async () => root.render(<Harness />))
 
   expect(container.textContent).toContain('새 버전 v0.0.4-beta.1')
-  await click('Release 열기')
+  await choose('Release 열기')
   expect(api.openUpdateRelease).toHaveBeenCalledExactlyOnceWith('v0.0.4-beta.1')
-  await click('닫기')
+  await choose('닫기')
   expect(api.dismissUpdateNotice).toHaveBeenCalledExactlyOnceWith('v0.0.4-beta.1')
   expect(container.textContent).toBe('')
 })
