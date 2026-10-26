@@ -1,48 +1,11 @@
 import assert from 'node:assert/strict'
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { writeFileSync, existsSync } from 'node:fs'
 import { setTimeout } from 'node:timers/promises'
-import pg from 'pg'
 assert.equal(process.getuid(), 1000)
 assert.equal(process.getgid(), 1000)
 assert.throws(() => writeFileSync('/app/write-probe', ''), { code: 'EROFS' })
-for (const path of [
-  '/app/src',
-  '/app/test-support',
-  '/run/secrets/postgres_password',
-  '/run/secrets/dfragon_migrator_password'
-]) {
+for (const path of ['/app/src', '/app/test-support', '/run/secrets/db_password']) {
   assert.equal(existsSync(path), false)
-}
-const db = new pg.Client({
-  host: 'database',
-  database: process.env.DB_NAME,
-  user: 'dfragon_api',
-  password:
-    process.env.DB_PASSWORD ??
-    readFileSync(process.env.DB_PASSWORD_FILE ?? '/run/secrets/db_password', 'utf8')
-})
-try {
-  await db.connect()
-  for (const table of ['characters', 'character_api_responses']) {
-    await db.query(`SELECT count(*) FROM ${table}`)
-    for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) {
-      assert.equal(
-        (
-          await db.query('SELECT has_table_privilege(current_user, $1, $2) AS allowed', [
-            table,
-            privilege
-          ])
-        ).rows[0].allowed,
-        true,
-        `${table}: ${privilege}`
-      )
-    }
-  }
-  await assert.rejects(db.query('CREATE TABLE denied_probe (id integer)'), { code: '42501' })
-  await assert.rejects(db.query('SELECT * FROM typeorm_migrations'), { code: '42501' })
-  await assert.rejects(db.query('SET ROLE dfragon_migrator'), { code: '42501' })
-} finally {
-  await db.end()
 }
 let response
 for (let attempt = 0; attempt < 30; attempt++) {

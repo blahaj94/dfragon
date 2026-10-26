@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { checkJobs as verifyCheckJobs, databaseJobs } from '../verify.mjs'
+import { checkJobs as verifyJobs } from '../verify.mjs'
 import { createToolingFixture } from './fixtures/code-quality/repository.mjs'
 
 const run = promisify(execFile)
@@ -68,11 +68,6 @@ assert.ok(aggregateJob, 'main ruleset의 required check인 lint-and-format job�
 const nonCheckJobs = new Set(['scope', 'image-plan', 'lint-and-format'])
 // Pre-push runs pnpm verify locally, so only these cheap checks run on every PR and main push.
 const alwaysRunJobs = new Set(['static', 'tooling'])
-// CI prepares a fresh runner with these commands. Local verify expects the developer to have done
-// the same setup once, as scripts/README.md describes, instead of installing system packages.
-const runnerPreparation = new Map([
-  ['accounts-database', ['pnpm exec playwright install --with-deps chromium']]
-])
 
 const suites = (await readdir(join(root, 'scripts/test'))).filter((name) => {
   return name.endsWith('.test.mjs')
@@ -185,10 +180,9 @@ test('lint-and-format은 scope, static, tooling 성공과 나머지 job의 성�
   }
 })
 
-test('verify, verify:database의 명령 목록은 Code Quality 검사 job의 run 명령과 순서까지 같다', () => {
+test('verify의 명령 목록은 Code Quality 검사 job의 run 명령과 순서까지 같다', () => {
   const ciJobs = jobs.filter((job) => !nonCheckJobs.has(jobIdOf(job)))
   const ciJobIds = ciJobs.map(jobIdOf)
-  const verifyJobs = [...verifyCheckJobs, ...databaseJobs]
 
   assert.deepEqual(
     verifyJobs.map(({ job }) => job).sort(),
@@ -196,48 +190,22 @@ test('verify, verify:database의 명령 목록은 Code Quality 검사 job의 run
     'Code Quality에 검사 job을 추가하거나 지우면 scripts/verify.mjs도 같이 고쳐야 한다'
   )
 
-  // verify와 verify:database는 각자 맡은 job을 workflow에 적힌 순서대로 실행한다.
-  for (const modeJobs of [verifyCheckJobs, databaseJobs]) {
-    const modeJobIds = modeJobs.map(({ job }) => job)
-
-    assert.deepEqual(
-      modeJobIds,
-      ciJobIds.filter((id) => modeJobIds.includes(id)),
-      'scripts/verify.mjs의 job 순서는 Code Quality workflow와 같다'
-    )
-  }
+  assert.deepEqual(
+    verifyJobs.map(({ job }) => job),
+    ciJobIds,
+    'scripts/verify.mjs의 job 순서는 Code Quality workflow와 같다'
+  )
 
   for (const job of ciJobs) {
     const id = jobIdOf(job)
     const runCommands = stepsOf(job).filter(hasRunCommand).map(runCommandOf)
-    const preparation = runnerPreparation.get(id) ?? []
     const verifyJob = verifyJobs.find((candidate) => candidate.job === id)
-
-    for (const command of preparation) {
-      assert.ok(runCommands.includes(command), `${id}에 없는 준비 명령 예외: ${command}`)
-    }
 
     assert.deepEqual(
       verifyJob.commands.map((command) => command.join(' ')),
-      runCommands.filter((command) => !preparation.includes(command)),
+      runCommands,
       id
     )
-  }
-})
-
-test('Docker PostgreSQL을 쓰는 test:database와 Desktop 검색 통합은 verify:database에서만 실행한다', () => {
-  const usesDockerPostgres = (command) => {
-    const text = command.join(' ')
-
-    return text.includes('test:database') || text.includes('search-server-integration')
-  }
-
-  for (const { job, commands } of verifyCheckJobs) {
-    assert.ok(!commands.some(usesDockerPostgres), job)
-  }
-
-  for (const { job, commands } of databaseJobs) {
-    assert.ok(commands.some(usesDockerPostgres), job)
   }
 })
 

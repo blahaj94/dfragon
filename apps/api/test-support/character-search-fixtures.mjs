@@ -1,17 +1,8 @@
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { URL } from 'node:url'
-import { setTimeout as delay } from 'node:timers/promises'
 import { createApiHttpApp } from '../dist/http.js'
 import { createNeopleCharacterSearchForTest } from '../dist/characters/neople-character-search.js'
-export async function searchFixture() {
-  return {}
-}
-export async function snapshot(source) {
-  return source.query(
-    'SELECT server_id, character_id, adventure_name FROM characters ORDER BY server_id, character_id'
-  )
-}
 
 export async function isolatedNeople() {
   const calls = []
@@ -72,7 +63,7 @@ export async function isolatedNeople() {
   }
 }
 
-export async function withSearchApp(f, operation, overrides = {}) {
+export async function withSearchApp(operation, overrides = {}) {
   const neople = await isolatedNeople()
   const { calls, upstream } = neople
   const adapter = createNeopleCharacterSearchForTest('synthetic-search-key', {
@@ -101,13 +92,6 @@ export async function withSearchApp(f, operation, overrides = {}) {
   }
 }
 
-export function searchRequest(base, f, query = 'characterName=ab', options = {}) {
-  return fetch(`${base}/characters?${query}`, {
-    headers: { authorization: `Bearer ${f.token?.accessToken ?? 'synthetic-unused-token'}` },
-    ...options
-  })
-}
-
 export async function expectSearchError(response, status, code) {
   assert.equal(response.status, status)
   assert.equal(response.headers.get('cache-control'), 'no-store')
@@ -125,42 +109,4 @@ export async function expectSearchError(response, status, code) {
   assert.deepEqual(body, { error: { code, message } })
 
   return body
-}
-
-export function barrier() {
-  let resolve
-  const promise = new Promise((complete) => {
-    resolve = complete
-  })
-
-  return { promise, resolve }
-}
-
-export async function waitFor(check, message = 'search observation did not arrive') {
-  const deadline = Date.now() + 5000
-  while (true) {
-    const isBeforeDeadline = Date.now() < deadline
-    if (!isBeforeDeadline) {
-      break
-    }
-
-    const ready = await check()
-    if (ready) {
-      return
-    }
-    await delay(10)
-  }
-  assert.fail(message)
-}
-
-export async function assertBackendGone(source, pid) {
-  await waitFor(async () => {
-    const [row] = await source.query(
-      'SELECT count(*)::int AS count FROM pg_stat_activity WHERE pid=$1',
-      [pid]
-    )
-    const isBackendGone = row.count === 0
-
-    return isBackendGone
-  }, 'search backend remained after cancellation')
 }

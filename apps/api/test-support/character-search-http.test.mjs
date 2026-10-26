@@ -138,7 +138,7 @@ test('검색 HTTP는 raw 구조와 UTF-8 오류를 공급자 호출 전에 거�
 })
 
 test('HEAD와 잘못된 검색 query는 공급자를 호출하지 않고 같은 IP의 정상 GET은 IP별 한도 없이 처리한다', async () => {
-  await withSearchApp({}, async ({ base, calls }) => {
+  await withSearchApp(async ({ base, calls }) => {
     const head = await fetch(`${base}/characters?characterName=ab`, { method: 'HEAD' })
     assert.equal(head.status, 400)
     assert.equal(head.headers.get('cache-control'), 'no-store')
@@ -158,7 +158,7 @@ test('HEAD와 잘못된 검색 query는 공급자를 호출하지 않고 같은 
 })
 
 test('공개 검색은 Authorization 형식과 전달 IP와 무관하게 IP별 한도 없이 성공한다', async () => {
-  await withSearchApp({}, async ({ base, calls }) => {
+  await withSearchApp(async ({ base, calls }) => {
     for (const [index, { name, headers }] of authorizationCases.entries()) {
       const response = await rawGet(base, '/characters?characterName=ab', {
         'x-forwarded-for': `192.0.2.${index + 1}`,

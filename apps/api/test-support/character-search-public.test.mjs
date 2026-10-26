@@ -1,16 +1,9 @@
 import assert from 'node:assert/strict'
-import {
-  searchFixture,
-  withSearchApp,
-  searchRequest,
-  expectSearchError,
-  snapshot
-} from './character-search-fixtures.mjs'
+import test from 'node:test'
+import { withSearchApp, expectSearchError } from './character-search-fixtures.mjs'
 
-async function publicSearch(source) {
-  const f = await searchFixture(source)
-  const before = await snapshot(source, f)
-  await withSearchApp(f, async ({ base, calls, upstream }) => {
+test('공개 검색은 loopback 공급자의 후보를 정제한다', async () => {
+  await withSearchApp(async ({ base, calls, upstream }) => {
     upstream.body = {
       rows: [
         {
@@ -51,48 +44,25 @@ async function publicSearch(source) {
       }
     ])
   })
-  assert.deepEqual(await snapshot(source, f), before)
-}
+})
 
-async function initialRejections(source) {
-  const f = await searchFixture(source)
-  const before = await snapshot(source, f)
-  await withSearchApp(f, async ({ base, calls }) => {
+test('잘못된 공개 검색 query는 공급자를 호출하지 않는다', async () => {
+  await withSearchApp(async ({ base, calls }) => {
     await expectSearchError(
       await fetch(`${base}/characters?unknown=%FF`),
       400,
       'INVALID_SEARCH_QUERY'
     )
     await expectSearchError(
-      await searchRequest(base, f, 'characterName=ab&limit=1&%6Cimit=2'),
+      await fetch(`${base}/characters?characterName=ab&limit=1&%6Cimit=2`),
       400,
       'INVALID_SEARCH_QUERY'
     )
     await expectSearchError(
-      await searchRequest(base, f, 'characterName=%FF'),
+      await fetch(`${base}/characters?characterName=%FF`),
       400,
       'INVALID_SEARCH_QUERY'
     )
     assert.deepEqual(calls, [])
   })
-  assert.deepEqual(await snapshot(source, f), before)
-}
-
-export async function assertCharacterSearchHttpIntegration(source, mark) {
-  const cases = [
-    [
-      '공개 검색은 loopback 공급자의 후보를 정제하고 저장된 캐릭터 목록을 유지한다',
-      () => publicSearch(source)
-    ],
-    [
-      '잘못된 공개 검색 query는 공급자를 호출하지 않고 저장된 캐릭터 목록을 유지한다',
-      () => initialRejections(source)
-    ]
-  ]
-  for (const [name, run] of cases) {
-    mark(name)
-    await run()
-  }
-
-  return cases.length
-}
+})

@@ -27,31 +27,24 @@ igXI5oIs9Mb/ut6mqGYyyIBPz/DuoNinNKFEm5+eJO5OG86X+uC6CwrR
 
 const environment = {
   PORT: '3000',
-  DB_HOST: 'localhost',
-  DB_PORT: '5432',
-  DB_NAME: 'synthetic',
-  DB_USERNAME: 'synthetic',
-  DB_PASSWORD: 'synthetic',
   NEOPLE_API_KEY: 'synthetic'
 }
 
-test('API runtime 설정은 인증 secret 없이 읽고 이전 인증 입력을 무시한다', async () => {
+test('API runtime 설정은 인증 secret, DB 입력 없이 읽고 이전 입력을 무시한다', async () => {
   const baseline = await readRuntimeConfiguration(environment)
   assert.deepEqual(baseline, {
     port: 3000,
-    database: {
-      host: 'localhost',
-      port: 5432,
-      database: 'synthetic',
-      username: 'synthetic',
-      password: 'synthetic'
-    },
     apiKey: 'synthetic',
     trustedProxyHops: undefined,
     localHttps: undefined
   })
   assert.deepEqual(
-    await readRuntimeConfiguration({ ...environment, AUTH_CONFIG_FILE: '/missing/auth.json' }),
+    await readRuntimeConfiguration({
+      ...environment,
+      AUTH_CONFIG_FILE: '/missing/auth.json',
+      DB_HOST: 'localhost',
+      DB_PORT: '5.432'
+    }),
     baseline
   )
   assert.equal(Object.hasOwn(baseline, 'issueAccessJwt'), false)
@@ -66,17 +59,14 @@ test('runtime secret 파일은 원문을 유지하며 모호하거나 읽을 수
   try {
     const file = join(directory, 'secret')
     await writeFile(file, '\uFEFFsynthetic-file-secret \r\n\n')
-    for (const name of ['DB_PASSWORD', 'NEOPLE_API_KEY']) {
+    for (const name of ['NEOPLE_API_KEY']) {
       const fileName = `${name}_FILE`
       const configuration = await readRuntimeConfiguration({
         ...environment,
         [name]: undefined,
         [fileName]: file
       })
-      assert.equal(
-        name === 'DB_PASSWORD' ? configuration.database.password : configuration.apiKey,
-        '\uFEFFsynthetic-file-secret \r'
-      )
+      assert.equal(configuration.apiKey, '\uFEFFsynthetic-file-secret \r')
       for (const candidate of [
         { [name]: 'synthetic-secret', [fileName]: file },
         { [name]: '', [fileName]: file },
@@ -92,7 +82,7 @@ test('runtime secret 파일은 원문을 유지하며 모호하거나 읽을 수
         )
       }
     }
-    for (const name of ['DB_PASSWORD', 'NEOPLE_API_KEY']) {
+    for (const name of ['NEOPLE_API_KEY']) {
       for (const contents of ['', ' \n', Buffer.from([0xff])]) {
         await writeFile(file, contents)
         await assert.rejects(
@@ -115,8 +105,6 @@ test('runtime 필수 설정과 프록시 모드 오류는 secret과 원인 없�
     { name: 'PORT 누락', change: { PORT: undefined } },
     { name: 'PORT 빈 값', change: { PORT: '' } },
     { name: 'PORT 범위 초과', change: { PORT: '65536' } },
-    { name: 'DB 입력 누락', change: { DB_HOST: undefined } },
-    { name: 'DB 포트 비십진', change: { DB_PORT: '5.432' } },
     { name: 'Neople key 누락', change: { NEOPLE_API_KEY: undefined } },
     { name: 'Neople key 공백', change: { NEOPLE_API_KEY: ' \n' } },
     { name: '프록시 모드 빈 값', change: { SEARCH_TRUST_PROXY: '' } },
@@ -128,7 +116,6 @@ test('runtime 필수 설정과 프록시 모드 오류는 secret과 원인 없�
       await assert.rejects(
         readRuntimeConfiguration({
           ...environment,
-          DB_PASSWORD: 'database-private-marker',
           NEOPLE_API_KEY: 'neople-private-marker',
           ...change
         }),

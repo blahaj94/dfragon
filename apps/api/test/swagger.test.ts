@@ -3,18 +3,11 @@ import test from 'node:test'
 import type { OpenAPIObject } from '@nestjs/swagger'
 import { createApiHttpApp } from '../src/http.js'
 
-test('Swagger는 공개 API 경로만 문서화하고 DB, provider를 호출하지 않는다', async (t) => {
+test('Swagger는 공개 API 경로만 문서화하고 provider를 호출하지 않는다', async (t) => {
   const unused = t.mock.fn(async (): Promise<never> => {
     throw new Error('documentation must not call services')
   })
-  const app = await createApiHttpApp(
-    { searchCharacters: unused },
-    {
-      store: { read: unused, beginFetch: unused, saveAndRead: unused, readServerRank: unused },
-      fetchDetails: unused
-    },
-    { search: unused }
-  )
+  const app = await createApiHttpApp({ searchCharacters: unused }, { fetchDetails: unused })
   try {
     await app.listen(0, '127.0.0.1')
     const origin = await app.getUrl()
@@ -33,9 +26,7 @@ test('Swagger는 공개 API 경로만 문서화하고 DB, provider를 호출하�
         'get /version',
         'get /characters',
         'get /characters/candidates',
-        'get /adventures/characters',
-        'get /characters/{serverId}/{characterId}',
-        'post /characters/{serverId}/{characterId}/refresh'
+        'get /characters/{serverId}/{characterId}'
       ].sort()
     )
     assert.equal(document.paths['/me'], undefined)
@@ -68,10 +59,15 @@ test('Swagger는 공개 API 경로만 문서화하고 DB, provider를 호출하�
       const response = await fetch(`${origin}${path}`)
       assert.equal(response.status, 404)
     }
-    // 제거된 외형 endpoint를 부르는 구 Desktop은 일반 404를 받는다.
-    const removed = await fetch(`${origin}/characters/cain/character-id/appearance`)
-    assert.equal(removed.status, 404)
-    assert.deepEqual(await removed.json(), { statusCode: 404, message: 'Not Found' })
+    // 제거된 외형, 모험단 검색 endpoint를 부르는 구 Desktop은 일반 404를 받는다.
+    for (const path of [
+      '/characters/cain/character-id/appearance',
+      '/adventures/characters?adventureName=fixture'
+    ]) {
+      const removed = await fetch(`${origin}${path}`)
+      assert.equal(removed.status, 404, path)
+      assert.deepEqual(await removed.json(), { statusCode: 404, message: 'Not Found' })
+    }
     assert.equal(unused.mock.callCount(), 0)
   } finally {
     await app.close()

@@ -114,10 +114,10 @@ test('pnpm script로 시작하면 PATH 대신 실행 중인 pnpm으로 pnpm 명�
   assert.deepEqual((await readFile(trace, 'utf8')).trim().split('\n'), ['lint', 'docs'])
 })
 
-test('알 수 없는 인자는 검사를 실행하지 않고 사용법과 함께 2로 끝난다', async () => {
-  await assert.rejects(run('node', [script, '--unknown']), (error) => {
+test('인자를 주면 검사를 실행하지 않고 사용법과 함께 2로 끝난다', async () => {
+  await assert.rejects(run('node', [script, '--database']), (error) => {
     assert.equal(error.code, 2)
-    assert.match(error.stderr, /Usage: node scripts\/verify\.mjs \[--database\]/u)
+    assert.match(error.stderr, /Usage: node scripts\/verify\.mjs$/mu)
     assert.doesNotMatch(error.stdout, /\[verify\]/u)
 
     return true

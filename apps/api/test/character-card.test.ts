@@ -11,8 +11,10 @@ import { projectCharacterCard } from '../src/characters/card/project.js'
 import type { CharacterCardSource } from '../src/characters/card/project.js'
 import type { CharacterCard, CharacterServerRank } from '../src/characters/card/types.js'
 import { projectCharacterDetails } from '../src/characters/details/project.js'
-import type { CharacterDetailSection } from '../src/characters/details/sections.js'
-import type { CharacterApiResponse } from '../src/database/schemas/character-api-responses.js'
+import type {
+  CharacterDetailSection,
+  CharacterSectionResponse
+} from '../src/characters/details/sections.js'
 
 const titles = {
   fixture: '실응답 fixture의 딜러와 버퍼는 세 면의 값을 모두 채우고 섹션 원문에서 읽은 값과 맞는다',
@@ -75,14 +77,12 @@ test(titles.fixture, () => {
     const identity = { serverId: serverId!, characterId: characterId! }
     const at = new Date('2026-10-19T00:00:00.000Z')
     const rows = Object.entries(fixture.sections).map(
-      ([section, payload]): CharacterApiResponse => ({
-        characterId: identity.characterId,
+      ([section, payload]): CharacterSectionResponse => ({
         section: section as CharacterDetailSection,
         payload,
         revision: 1,
         contentUpdatedAt: at,
-        lastSuccessfulFetchAt: at,
-        requestStartedAt: at
+        lastSuccessfulFetchAt: at
       })
     )
 
