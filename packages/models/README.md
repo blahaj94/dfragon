@@ -9,7 +9,7 @@
 
 ## 받기
 
-처음 checkout할 때 한 번 실행합니다. CI의 Desktop job도 고정된 submodule 커밋을 가져옵니다.
+처음 checkout할 때 한 번 실행합니다. Windows Test Build와 Windows Portable workflow도 고정된 submodule 커밋을 가져옵니다.
 
 ```sh
 git submodule update --init --recursive packages/models/ocr-finetuned

@@ -148,7 +148,7 @@ GHCR의 공개 범위, 접근 정책은 workflow가 변경하지 않습니다. �
 제품은 테스트, 빌드, 이미지 발행과 Dockerfile, 앱 실행 진입점, schema/migration/cleanup 구현을 소유합니다.
 이미지 선택, 비밀값 관리와 전달, Compose, SSH, 서버 권한, 배포, 백업, 복구 절차의 원본은
 [인프라 운영 안내](https://github.com/blahaj94/dfragon-infra/blob/main/deploy/linux/README.md)입니다.
-제품 main merge는 운영 배포를 실행하지 않으며 제품 CI는 인프라 checkout, 운영 credential에 의존하지 않습니다.
+제품 main merge는 운영 배포를 실행하지 않으며 Product Images는 인프라 checkout, 운영 credential에 의존하지 않습니다.
 
 Dockerfile과 전용 ignore 파일은 `apps/<service>/`에 있습니다. 빌드 context는 제품 저장소 root이며
 API/accounts의 `docker-entrypoint.sh`도 해당 앱 옆에서 관리합니다. 의존성 설치에는 registry 토큰이나 BuildKit secret이 필요하지 않습니다. 로컬 빌드는 다음과 같습니다.
