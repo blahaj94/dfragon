@@ -45,7 +45,7 @@ last-reviewed: 2026-10-27
 | --- | --- |
 | 간격 | 4, 8, 12, 16, 24px |
 | 반지름 | 패널, 카드 0, 입력, 칩, 보조 버튼 2px, 자른 모서리 8px |
-| 크기 | 상단 바 56px, 컨트롤 sm 32px, md 40px, lg 48px |
+| 크기 | 상단 바 44px, 컨트롤 sm 32px, md 40px, lg 48px |
 | 모션 | 감속 곡선 `cubic-bezier(.2,0,0,1)`, hover 120ms, 상태 전환 180ms, 숫자 증가 400ms, 반복 4s |
 
 토큰 값의 원본은 dfragon-design `tokens.json`이다. 두 저장소 사이에 자동 동기화는 없으므로 `tokens.css`를 바꿀 때 기준이 된 디자인 저장소 commit을 함께 기록한다.

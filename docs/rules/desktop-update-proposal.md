@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: apps/desktop new version notice for the Windows distribution channel; automatic update remains a proposal
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-27
 rationale: 코드 서명 없이 운영하는 동안 사용자가 새 버전을 놓치지 않게 하되, 서명 없는 자동 설치가 배포 경로 침해를 모든 사용자에게 퍼뜨리는 위험은 피한다.
 evidence: "Issue #632 결정 항목(https://github.com/blahaj94/dfragon/issues/632)과 1단계 구현 결정 ; electron-updater 6.8.9 npm package, 저장소의 electron-builder 26.15.3, electron-builder 저장소 master branch(미배포) source와 SignPath Foundation 약관 확인(2026-10-10) ; GitHub releases.atom 응답 확인(2026-10-10)"
 review-after: 설치형 배포 시작, 코드 서명 방식 결정, Release tag 규칙이나 GitHub feed 형식 변경, electron-updater나 electron-builder major 갱신 전
@@ -64,7 +64,7 @@ D는 SignPath Foundation 약관의 다음 조건을 모두 맞춰야 하며, 게
 - 방법: main process가 `https://github.com/blahaj94/dfragon/releases.atom`을 받아 각 항목의 tag를 semver로 해석한다. 토큰과 GitHub REST API를 쓰지 않는다. Release의 Pre-release 표시는 보지 않고 tag의 semver로 판단한다. 지금은 모든 Release가 Pre-release라 `/releases/latest`를 쓸 수 없다.
 - 범위: feed에 없는 오래된 Release는 후보가 되지 않는다. 새 정식 Release 뒤에 다른 Release가 10개 넘게 게시되면 정식 버전 사용자는 그 정식 Release를 알림으로 받지 못한다.
 - 후보: 현재 버전이 정식이면 정식, beta면 beta와 정식, alpha면 alpha, beta, 정식 중에서 현재보다 높고 semver로 가장 높은 버전 하나를 알린다. alpha, beta 사용자의 후보를 고르는 방식은 electron-updater 6.8.9의 게시 순서 규칙이 아니라 master의 semver 규칙과 같다. 정식 버전 사용자에게는 electron-updater가 Pre-release 표시를 기준으로 `/releases/latest`를 보는 것과 달리, 1단계 알림은 Pre-release 표시를 보지 않고 tag의 semver로 판단한다. `v<semver>` 형식이 아닌 tag와 alpha, beta가 아닌 suffix는 무시한다.
-- 표시: 카드 화면 상단에 새 버전 한 줄과 **Release 열기** 버튼을 보인다. 버튼은 지금 알리는 tag의 `https://github.com/blahaj94/dfragon/releases/tag/<tag>` 주소만 `shell.openExternal`로 연다. 알림을 닫으면 앱을 다시 시작할 때까지 같은 버전을 다시 알리지 않는다. 알림 상태는 main process가 보관하므로 창을 다시 만들어도 유지된다.
+- 표시: 상단 바의 게임 연결 상태 칩 왼쪽에 `새 버전 v1.2.0`처럼 버전을 단 칩을 보이고, 칩을 누르면 **Release 열기**와 **닫기**가 있는 메뉴를 연다(2026-10-27, [Issue #819](https://github.com/blahaj94/dfragon/issues/819)). 알림이 있어도 창 높이는 바뀌지 않는다. **Release 열기**는 지금 알리는 tag의 `https://github.com/blahaj94/dfragon/releases/tag/<tag>` 주소만 `shell.openExternal`로 연다. 알림을 닫으면 앱을 다시 시작할 때까지 같은 버전을 다시 알리지 않는다. 알림 상태는 main process가 보관하므로 창을 다시 만들어도 유지된다.
 - 실패 처리: 네트워크, 파싱 실패는 화면에 보이지 않고 기존 진단 기록에 `UPDATE_CHECK_FAILED`만 남긴다. 확인에 실패해도 이전 알림은 유지한다. Release 페이지를 열지 못하면 `UPDATE_RELEASE_OPEN_FAILED`를 남긴다. 응답 크기와 대기 시간에 상한을 둔다.
 - 개인정보: github.com에 IP와 User-Agent가 전달된다. 그 밖의 정보는 보내지 않는다. 언어 header는 사용자 설정 대신 고정값 `en-US`를 보내고, 나머지 header도 사용자와 관계없는 고정값이다(2026-10-10, Electron 44.7.0 session fetch의 요청 header 확인).
 - 검증: atom 파싱, 후보 규칙, 주소 allowlist의 단위 테스트와 실제 Release 목록으로 확인한다.
