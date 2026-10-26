@@ -25,8 +25,8 @@ catalog:
   '@vitejs/plugin-react': 6.1.2
   '@xstate/react': 6.1.0
   dotenv-cli: 11.0.0
-  electron: 44.7.2
-  electron-builder: 26.15.3
+  electron: 44.9.0
+  electron-builder: 26.17.0
   electron-vite: 5.0.0
   husky: 9.1.7
   iconv-lite: 0.7.3
@@ -50,7 +50,7 @@ catalog:
   zod: 4.6.7
 
 catalogs:
-  # Desktop main, preload는 Electron 44.7.2 내장 Node 24.21.0에서 실행되므로 Node 타입도 24에 맞춘다.
+  # Desktop main, preload는 Electron 44.9.0 내장 Node 24.22.0에서 실행되므로 Node 타입도 24에 맞춘다.
   electron:
     '@types/node': 24.19.2
     '@vitejs/plugin-react': 5.2.0
