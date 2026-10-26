@@ -13,9 +13,8 @@
  * (rgba(8, 8, 10, .72))을 들였고, tokens.json의 다크 값(#00000074)과 다르다.
  * tokens.json의 hazard(검색 실패 그림 칸의 사선 색)는 제품에서 쓰지 않아 옮기지 않았다.
  *
- * :root가 다크 기본값이고 :root[data-theme='light']가 라이트 값이다. color-scheme도 같은 모드로 정해
- * 스크롤 막대, 폼 컨트롤 같은 브라우저 기본 부품이 모드를 따른다.
- * 라이트 값 중 provisional 표시는 디자인 저장소가 라이트 값을 정하기 전의 임시 값이다.
+ * 테마는 다크 하나이고 :root에 값을 둔다. color-scheme도 다크로 정해 스크롤 막대, 폼 컨트롤 같은 브라우저
+ * 기본 부품이 다크로 그려진다. tokens.json의 라이트 값(semantic-light)은 쓰는 앱이 없어 옮기지 않았다.
  * StyleX에서는 같은 이름의 문자열 상수를 @dfragon/ui/tokens.stylex에서 가져온다.
  */
 :root {
@@ -142,43 +141,6 @@
   --df-font-num:
     'Barlow Condensed', 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
     system-ui, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-}
-
-/*
- * 라이트 모드(semantic-light). 여기 없는 색은 다크 값을 그대로 쓴다.
- * 카드 위에서만 쓰는 card.*, bracket.*, hatchAlert, gridLine, tier.ranker{Surface,Well,Outline}, score.*와
- * bg.well, brand.logo는 라이트 모드에서도 다크 값이며 provisional이 아니다.
- */
-:root[data-theme='light'] {
-  color-scheme: light;
-
-  --df-bg-canvas: #f3f4f5; /* provisional */
-  --df-bg-bar: #ffffff; /* provisional */
-  --df-bg-surface: #ffffff; /* provisional */
-  --df-bg-inset: #f7f8f9; /* provisional */
-  --df-bg-stripe: #f3f4f5; /* provisional */
-  --df-bg-control: #eeeff1; /* provisional */
-  --df-bg-control-hover: #dcdee3; /* provisional */
-  --df-bg-success-weak: #edfaf6; /* provisional */
-  --df-bg-danger-weak: #fdf0f0; /* provisional */
-  --df-bg-warning-weak: #fff5dc; /* provisional */
-  --df-bg-overlay: #00000074; /* provisional */
-  --df-signal: #2a2520; /* provisional */
-  --df-on-signal: #f8e8c8; /* provisional */
-  --df-fg-default: #1a1c20; /* provisional */
-  --df-fg-muted: #555d6d; /* provisional */
-  --df-fg-subtle: #868b94; /* provisional */
-  --df-fg-placeholder: #b0b3ba; /* provisional */
-  --df-fg-disabled: #d1d3d8; /* provisional */
-  --df-fg-success: #079171; /* provisional */
-  --df-fg-danger: #fa342c; /* provisional */
-  --df-fg-warning: #b36b00; /* provisional */
-  --df-fg-adventure: #00745f; /* provisional */
-  --df-border-default: #dcdee3; /* provisional */
-  --df-border-strong: #d1d3d8; /* provisional */
-  --df-border-danger: #fa342c; /* provisional */
-  --df-tier-top: #ffb400; /* provisional */
-  --df-tier-ranker: #50e3c2; /* provisional */
 }
 
 @media (prefers-reduced-motion: reduce) {

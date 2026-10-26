@@ -1,10 +1,10 @@
 import { useId, useMemo, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
+import { createPortal } from 'react-dom'
 import { CaptureControls } from '../../components/CaptureControls'
 import { MainNav, type SearchMode } from '../../components/MainNav'
 import { BoardHeader } from '../../components/BoardHeader'
 import { TopBar } from '../../components/TopBar'
-import { usePartyCollapse } from '../../hooks/usePartyCollapse'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { RaidPage } from '../../pages/raid/RaidPage'
 import { scenarios } from './scenarios'
@@ -30,22 +30,24 @@ import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
 import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
 
 export function Preview(): React.JSX.Element {
+  // 상단 바의 화면 머리 자리. 보이는 화면의 머리를 이 요소에 그린다.
+  const [boardSlot, setBoardSlot] = useState<HTMLDivElement | null>(null)
   const [scenario, setScenario] = useState('states')
   const [captureState, setCaptureState] = useState('idle')
   const [source, setSource] = useState('')
   // 합성 인식 완료 시각. 미리보기에서 인식 완료를 고르면 12초 전으로, 캡처 버튼을 누르면 지금으로 둔다.
   const [completedAt, setCompletedAt] = useState<number | null>(null)
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
-  const party = usePartyCollapse(
-    searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidCollapsedHeight : MAIN_WINDOW_SIZE.collapsedHeight
-  )
   // 합성 공대 보드의 자리 배치. 카드를 끌거나 Alt와 방향키로 맞바꿔 본다.
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
   // 모험단 순번 스냅샷 미리보기의 회차. 파티와 공대 모두 캡처 버튼을 누를 때마다 다른 회차로 바뀐다.
   const [partyRound, setPartyRound] = useState(0)
   const [raidRound, setRaidRound] = useState(0)
-  const partyCardsId = useId()
   const raidCardsId = useId()
+  // 제품 창처럼 보이는 화면의 창 내용 높이(파티 163, 공대 300) 안에 상단 바와 카드를 그리고,
+  // 미리보기 조작부는 그 아래에 둔다.
+  const windowHeight =
+    searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidHeight : MAIN_WINDOW_SIZE.partyHeight
   // 후보 줄 미리보기에서 슬롯마다 미리보기 중이거나 확정한 후보의 서버
   const [candidatePicks, setCandidatePicks] = useState<
     readonly ({ serverId: string; confirmed: boolean } | null)[]
@@ -156,71 +158,42 @@ export function Preview(): React.JSX.Element {
   })
 
   return (
-    <main {...stylex.props(styles.app)}>
-      <TopBar
-        nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
-        capture={
-          <CaptureControls
-            capture={{
-              sources,
-              selectedSourceId: source,
-              sourcesLoading: false,
-              sourcesFailed: false,
-              selectSource: (id) => {
-                setSource(id)
-                setCaptureState(id ? 'selected' : 'idle')
-              },
-              refreshSources: () => {},
-              stopCapture: () => {
-                setSource('')
-                setCaptureState('idle')
-              },
-              search: { ready: true }
-            }}
-            phase={phase}
-            status={getCapturePreviewStatus(captureState)}
-          />
-        }
-      />
-      <div {...stylex.props(styles.content)}>
-        <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
-          <BoardHeader
-            target="파티"
-            filledCount={partySlots.filter((state) => state === 'success').length}
-            notice=""
-            capture={{
-              lastCompletedAt: captureState === 'complete' ? completedAt : null,
-              canStartCapture: canCapture,
-              startRound: () => {
-                setCaptureState('complete')
-                setCompletedAt(Date.now())
-                setPartyRound((round) => round + 1)
-              }
-            }}
-            snapshot={partySnapshot}
-            collapse={party}
-            controls={partyCardsId}
-          />
-          <PartyPage
-            id={partyCardsId}
-            collapsed={party.collapsed}
-            slots={partyCards}
-            resetKey={scenario}
-            inputEnabled
-            actions={{
-              retrySlot: identification ? () => setScenario('pending') : undefined,
-              pickCandidate: candidates ? pickCandidate : undefined
-            }}
-          />
-        </div>
-        {searchMode === 'raid' && (
-          <div {...stylex.props(styles.page)}>
-            <RaidPage
-              id={raidCardsId}
-              header={
+    <>
+      <main {...stylex.props(styles.app, styles.windowHeight(windowHeight))}>
+        <TopBar
+          nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
+          boardRef={setBoardSlot}
+          capture={
+            <CaptureControls
+              capture={{
+                sources,
+                selectedSourceId: source,
+                sourcesLoading: false,
+                sourcesFailed: false,
+                selectSource: (id) => {
+                  setSource(id)
+                  setCaptureState(id ? 'selected' : 'idle')
+                },
+                refreshSources: () => {},
+                stopCapture: () => {
+                  setSource('')
+                  setCaptureState('idle')
+                },
+                search: { ready: true }
+              }}
+              phase={phase}
+              status={getCapturePreviewStatus(captureState)}
+            />
+          }
+        />
+        <div {...stylex.props(styles.content)}>
+          <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
+            {searchMode === 'party' &&
+              boardSlot != null &&
+              createPortal(
                 <BoardHeader
-                  target="공대"
-                  filledCount={filledSlotCount(raidCards)}
+                  target="파티"
+                  filledCount={partySlots.filter((state) => state === 'success').length}
                   notice=""
                   capture={{
                     lastCompletedAt: captureState === 'complete' ? completedAt : null,
@@ -228,86 +201,120 @@ export function Preview(): React.JSX.Element {
                     startRound: () => {
                       setCaptureState('complete')
                       setCompletedAt(Date.now())
-                      setRaidRound((round) => round + 1)
+                      setPartyRound((round) => round + 1)
                     }
                   }}
-                  snapshot={raidSnapshot}
-                  collapse={party}
-                  controls={raidCardsId}
-                />
-              }
-              slots={raidCards}
-              seats={{
-                seatOrder,
-                canMoveSeats: phase !== 'recognizing',
-                swapSeats: (from, to) => {
-                  const next = swapSeats(seatOrder, from, to)
-                  if (phase === 'recognizing' || next === seatOrder) {
-                    return false
-                  }
-                  setSeatOrder(next)
-
-                  return true
-                }
+                  snapshot={partySnapshot}
+                />,
+                boardSlot
+              )}
+            <PartyPage
+              slots={partyCards}
+              resetKey={scenario}
+              inputEnabled
+              actions={{
+                retrySlot: identification ? () => setScenario('pending') : undefined,
+                pickCandidate: candidates ? pickCandidate : undefined
               }}
-              collapsed={party.collapsed}
             />
           </div>
-        )}
-        <footer {...stylex.props(styles.footer)}>
-          <span>DFragon Desktop</span>
-          <select
-            aria-label="캡처 미리보기 상태"
-            value={captureState}
-            onChange={(event) => {
-              const state = event.target.value
-              setCaptureState(state)
-              setCompletedAt(state === 'complete' ? Date.now() - 12_000 : null)
-              const hasSource =
-                state === 'selecting' ||
-                state === 'selected' ||
-                state === 'complete' ||
-                state === 'recognizing' ||
-                state === 'unavailable'
-              setSource(hasSource ? 'preview-game' : '')
-            }}
-            {...stylex.props(styles.select)}
-          >
-            <option value="idle">캡처, 대기</option>
-            <option value="selecting">캡처, 준비 중</option>
-            <option value="selected">캡처, 창 선택됨</option>
-            <option value="recognizing">캡처, 인식 중</option>
-            <option value="complete">캡처, 인식 완료</option>
-            <option value="unavailable">캡처, 확인 필요</option>
-            <option value="missing">캡처, 창 미감지</option>
-            <option value="failure">캡처, 실패</option>
-          </select>
-          <select
-            aria-label="미리보기 상태"
-            value={scenario}
-            onChange={(event) => {
-              setScenario(event.target.value)
-              setCandidatePicks([null, null, null, null])
-            }}
-            {...stylex.props(styles.select)}
-          >
-            <option value="states">기본, 상태 비교</option>
-            <option value="pending">검색 중, 결과 없음</option>
-            <option value="missing">누락, 이미지 실패</option>
-            <option value="identification">자동 식별 상태</option>
-            <option value="tiers">상위, 랭커 단계</option>
-            <option value="roles">점수 라벨, 역할 비교</option>
-            <option value="snapshot">모험단 순번 스냅샷</option>
-            <option value="candidates">후보 고르기</option>
-          </select>
-        </footer>
-        <p {...stylex.props(styles.notice)}>
-          합성 데이터 미리보기입니다.
-          <br />
-          캡처 모달은 합성 창으로 동작하며 실제 화면을 캡처하지 않습니다. 이름 입력, 서버 선택은
-          조작 확인용이며 검색되지 않습니다.
-        </p>
-      </div>
-    </main>
+          {searchMode === 'raid' && (
+            <div {...stylex.props(styles.page)}>
+              <RaidPage
+                id={raidCardsId}
+                header={
+                  boardSlot != null &&
+                  createPortal(
+                    <BoardHeader
+                      target="공대"
+                      filledCount={filledSlotCount(raidCards)}
+                      notice=""
+                      capture={{
+                        lastCompletedAt: captureState === 'complete' ? completedAt : null,
+                        canStartCapture: canCapture,
+                        startRound: () => {
+                          setCaptureState('complete')
+                          setCompletedAt(Date.now())
+                          setRaidRound((round) => round + 1)
+                        }
+                      }}
+                      snapshot={raidSnapshot}
+                    />,
+                    boardSlot
+                  )
+                }
+                slots={raidCards}
+                seats={{
+                  seatOrder,
+                  canMoveSeats: phase !== 'recognizing',
+                  swapSeats: (from, to) => {
+                    const next = swapSeats(seatOrder, from, to)
+                    if (phase === 'recognizing' || next === seatOrder) {
+                      return false
+                    }
+                    setSeatOrder(next)
+
+                    return true
+                  }
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </main>
+      <footer {...stylex.props(styles.footer)}>
+        <span>DFragon Desktop</span>
+        <select
+          aria-label="캡처 미리보기 상태"
+          value={captureState}
+          onChange={(event) => {
+            const state = event.target.value
+            setCaptureState(state)
+            setCompletedAt(state === 'complete' ? Date.now() - 12_000 : null)
+            const hasSource =
+              state === 'selecting' ||
+              state === 'selected' ||
+              state === 'complete' ||
+              state === 'recognizing' ||
+              state === 'unavailable'
+            setSource(hasSource ? 'preview-game' : '')
+          }}
+          {...stylex.props(styles.select)}
+        >
+          <option value="idle">캡처, 대기</option>
+          <option value="selecting">캡처, 준비 중</option>
+          <option value="selected">캡처, 창 선택됨</option>
+          <option value="recognizing">캡처, 인식 중</option>
+          <option value="complete">캡처, 인식 완료</option>
+          <option value="unavailable">캡처, 확인 필요</option>
+          <option value="missing">캡처, 창 미감지</option>
+          <option value="failure">캡처, 실패</option>
+        </select>
+        <select
+          aria-label="미리보기 상태"
+          value={scenario}
+          onChange={(event) => {
+            setScenario(event.target.value)
+            setCandidatePicks([null, null, null, null])
+          }}
+          {...stylex.props(styles.select)}
+        >
+          <option value="states">기본, 상태 비교</option>
+          <option value="pending">검색 중, 결과 없음</option>
+          <option value="missing">누락, 이미지 실패</option>
+          <option value="identification">자동 식별 상태</option>
+          <option value="tiers">상위, 랭커 단계</option>
+          <option value="roles">점수 라벨, 역할 비교</option>
+          <option value="snapshot">모험단 순번 스냅샷</option>
+          <option value="candidates">후보 고르기</option>
+        </select>
+      </footer>
+      <p {...stylex.props(styles.notice)}>
+        합성 데이터 미리보기입니다.
+        <br />
+        캡처 모달은 합성 창으로 동작하며 실제 화면을 캡처하지 않습니다. 이름 입력, 서버 선택은 조작
+        확인용이며 검색되지 않습니다.
+      </p>
+    </>
   )
 }

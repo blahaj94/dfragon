@@ -7,6 +7,7 @@ import { CAPTURE_ID, searchSnapshot } from '../../preload/api/search-test-fixtur
 import type { SearchApi } from '../../preload/common/types/search'
 import { emptySearchSlots } from './lib/slots'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
+import type { UpdateNoticeApi } from '../../preload/common/types/update-notice'
 import type { WindowChromeApi } from '../../preload/common/types/window-chrome'
 
 let root: Root
@@ -72,17 +73,21 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(container.querySelector('footer')).toBeNull()
   expect(container.querySelector('main')?.firstElementChild?.tagName).toBe('HEADER')
   expect(container.querySelector('header')?.textContent).toContain('창 미감지')
-  // 상단 바의 live region은 화면 밖 캡처 안내 하나뿐이고 칩 자체는 알리지 않는다.
-  expect(
-    [...container.querySelectorAll('header [role="status"]')].map((region) =>
-      region.hasAttribute('data-capture-announcer')
-    )
-  ).toEqual([true])
   expect(container.querySelector('[aria-label="미리보기 상태"]')).toBeNull()
   expect(container.textContent).not.toContain('닉네임 수정')
+  // 파티 머리는 상단 바 안 한 줄에 제목, 인원수와 접기 버튼 없는 컨트롤을 둔다.
   const partyHeading = container.querySelector('h1')!
   expect(partyHeading.textContent).toBe('파티')
-  expect(partyHeading.parentElement?.querySelector('[role="status"]')?.textContent).toBe('')
+  expect(partyHeading.closest('main > header')).not.toBeNull()
+  expect(partyHeading.nextElementSibling?.textContent).toBe('0/4')
+  expect(container.querySelector('[aria-label="카드 접기"]')).toBeNull()
+  const partyNotice = partyHeading.parentElement!.querySelector('[role="status"]')!
+  expect(partyNotice.textContent).toBe('')
+  // 상단 바의 live region은 화면 밖 캡처 안내와 파티 머리의 안내 영역뿐이고 칩 자체는 알리지 않는다.
+  expect([...container.querySelectorAll('header [role="status"]')]).toEqual([
+    partyNotice,
+    container.querySelector('header [data-capture-announcer]')
+  ])
   const chip = container.querySelector<HTMLButtonElement>('header button[aria-label^="화면 캡처"]')!
   expect(chip.getAttribute('aria-label')).toBe('화면 캡처, 창 미감지')
   expect(chip.disabled).toBe(false)
@@ -92,34 +97,121 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(container.querySelector('header [aria-label="설정"]')).toBeNull()
 })
 
-it('새 기본 화면에서 다크, 라이트 테마를 전환하고 창 버튼 색도 함께 바꾼다', async () => {
-  const setTheme = vi.fn<WindowChromeApi['setTheme']>(async () => {})
-  Object.defineProperty(window, 'windowChrome', { configurable: true, value: { setTheme } })
-  try {
-    await act(async () =>
-      root.render(
-        <ColorThemeProvider>
-          <App />
-        </ColorThemeProvider>
-      )
+it('시스템 설정이 라이트여도 새 기본 화면은 다크 테마로 시작한다', async () => {
+  vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as MediaQueryList)
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
     )
-    expect(document.documentElement.dataset.theme).toBe('dark')
-    expect(setTheme.mock.calls).toEqual([['dark']])
+  )
+  expect(document.documentElement.dataset.theme).toBe('dark')
+  expect(container.querySelector('header [aria-label$="테마"]')).toBeNull()
+})
 
-    await act(async () =>
-      container.querySelector<HTMLButtonElement>('[aria-label="라이트 테마"]')!.click()
+it('새 버전 알림은 카드 위가 아닌 상단 바 칩으로 보이고 메뉴의 닫기로 사라지며 창 높이는 그대로다', async () => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe(): void {
+        return
+      }
+      unobserve(): void {
+        return
+      }
+      disconnect(): void {
+        return
+      }
+    }
+  )
+  const dismissUpdateNotice = vi.fn<UpdateNoticeApi['dismissUpdateNotice']>(async () => ({
+    revision: 2,
+    notice: null
+  }))
+  vi.stubGlobal('updateNotice', {
+    getUpdateNotice: vi.fn(async () => ({ revision: 1, notice: { tag: 'v1.2.0' } })),
+    dismissUpdateNotice,
+    openUpdateRelease: vi.fn(async () => {}),
+    onUpdateNoticeChanged: vi.fn(() => () => {})
+  } satisfies UpdateNoticeApi)
+  const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {})
+  vi.stubGlobal('windowChrome', { setContentHeight })
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
     )
-    expect(document.documentElement.dataset.theme).toBe('light')
-    expect(setTheme.mock.calls).toEqual([['dark'], ['light']])
+  )
+  const header = container.querySelector('header')!
+  const chip = [...header.querySelectorAll('button')].find(
+    (button) => button.textContent === '새 버전 v1.2.0'
+  )!
+  const captureChip = header.querySelector('button[aria-label^="화면 캡처"]')!
+  expect(chip.compareDocumentPosition(captureChip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(container.querySelector('[aria-label="새 버전 알림"]')).toBeNull()
+  expect(container.textContent?.match(/새 버전/g)).toHaveLength(1)
 
-    await act(async () =>
-      container.querySelector<HTMLButtonElement>('[aria-label="다크 테마"]')!.click()
+  await act(async () => chip.click())
+  const dismiss = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+    (item) => item.textContent === '닫기'
+  )!
+  await act(async () => dismiss.click())
+  expect(dismissUpdateNotice).toHaveBeenCalledExactlyOnceWith('v1.2.0')
+  expect(header.textContent).not.toContain('새 버전')
+  // 처음 그릴 때 파티 화면 높이로 맞춘 요청 뒤로 알림이 창 높이를 다시 바꾸지 않는다.
+  expect(setContentHeight.mock.calls).toEqual([[163]])
+})
+
+it('창 내용 높이를 파티 화면에서 163, 공대 화면에서 300으로 바꾼다', async () => {
+  const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {})
+  vi.stubGlobal('windowChrome', { setContentHeight })
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
     )
-    expect(document.documentElement.dataset.theme).toBe('dark')
-    expect(setTheme.mock.calls).toEqual([['dark'], ['light'], ['dark']])
-  } finally {
-    Reflect.deleteProperty(window, 'windowChrome')
+  )
+  expect(setContentHeight.mock.calls).toEqual([[163]])
+  const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
+  const chooseScreen = async (name: string): Promise<void> => {
+    await act(async () => trigger.click())
+    const item = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+      (candidate) => candidate.textContent === name
+    )!
+    await act(async () => item.click())
   }
+
+  await chooseScreen('공대')
+  expect(setContentHeight.mock.calls).toEqual([[163], [300]])
+
+  await chooseScreen('파티')
+  expect(setContentHeight.mock.calls).toEqual([[163], [300], [163]])
+})
+
+it('창 높이를 바꾸지 못해도 화면을 바꿀 수 있다', async () => {
+  const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {
+    throw new Error('Synthetic window height failure')
+  })
+  vi.stubGlobal('windowChrome', { setContentHeight })
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
+  const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
+  await act(async () => trigger.click())
+  const raid = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+    (item) => item.textContent === '공대'
+  )!
+  await act(async () => raid.click())
+
+  expect(setContentHeight.mock.calls).toEqual([[163], [300]])
+  expect(container.querySelector<HTMLElement>('section[aria-label="공대"]')!.hidden).toBe(false)
 })
 
 it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 자리별 조회는 파티 검색과 따로 보낸다', async () => {
@@ -157,6 +249,10 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
   expect(trigger.getAttribute('aria-current')).toBe('page')
   expect(trigger.textContent).toBe('검색파티')
+  // 파티 스냅샷을 켜 두면 공대를 보고 돌아와도 파티 화면이 스냅샷을 가지고 있다.
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="파티 모험단 순번 스냅샷"]')!.click()
+  )
 
   await act(async () => trigger.click())
   const raid = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
@@ -165,6 +261,9 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   await act(async () => raid.click())
   expect(trigger.textContent).toBe('검색공대')
   expect(raidSection.hidden).toBe(false)
+  // 상단 바에는 보이는 공대 머리만 그린다.
+  expect([...container.querySelectorAll('header h1')].map((h1) => h1.textContent)).toEqual(['공대'])
+  expect(container.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')).toBeNull()
   const raidCards = [...raidSection.querySelectorAll('article')]
   expect(raidCards).toHaveLength(12)
   expect(raidCards.every((card) => card.getAttribute('data-state') === 'waiting')).toBe(true)
@@ -218,35 +317,10 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   expect(raidSection.hidden).toBe(true)
   expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).toBeNull()
   expect([...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]).toEqual(cards)
+  expect([...container.querySelectorAll('header h1')].map((h1) => h1.textContent)).toEqual(['파티'])
+  expect(
+    container.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')!.getAttribute('aria-pressed')
+  ).toBe('true')
   // 숨긴 공대 카드도 자리별 입력을 유지한다.
   expect(input.value).toBe('열번째')
-})
-
-it('파티 머리의 접기 버튼은 카드 영역을 가리키고 접은 뒤 창 높이를 400으로 요청한다', async () => {
-  const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {})
-  Object.defineProperty(window, 'windowChrome', {
-    configurable: true,
-    value: { setTheme: vi.fn(async () => {}), setContentHeight }
-  })
-  try {
-    await act(async () =>
-      root.render(
-        <ColorThemeProvider>
-          <App />
-        </ColorThemeProvider>
-      )
-    )
-    const fold = container.querySelector<HTMLButtonElement>('[aria-label="카드 접기"]')!
-    const cards = container.querySelector('[aria-label="파티 캐릭터"]')!
-    expect(fold.getAttribute('aria-expanded')).toBe('true')
-    expect(fold.getAttribute('aria-controls')).toBe(cards.id)
-
-    await act(async () => fold.click())
-    expect(fold.getAttribute('aria-label')).toBe('카드 펼치기')
-    expect(fold.getAttribute('aria-expanded')).toBe('false')
-    await vi.waitFor(() => expect(setContentHeight).toHaveBeenCalledExactlyOnceWith(400))
-    expect(container.querySelectorAll('[aria-label="파티 캐릭터"] article')).toHaveLength(4)
-  } finally {
-    Reflect.deleteProperty(window, 'windowChrome')
-  }
 })

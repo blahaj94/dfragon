@@ -242,9 +242,11 @@ it('검색 상태를 꺾쇠 상태와 오른쪽 위 표시로 보이고 상태 �
   expect(card().getAttribute('data-state')).toBe('failure')
   expect(visibleText()).toContain('검색 결과가 없습니다')
 
+  // 대기 모래시계는 두지 않고 상태 이름은 보조 기술에만 전한다.
   await render({ state: 'waiting-portrait', character: undefined })
   expect(card().getAttribute('data-state')).toBe('waiting')
-  expect(card().querySelector('[role="img"][aria-label="얼굴 인식 대기"] svg')).not.toBeNull()
+  expect(statusMark()).toBeNull()
+  expect(card().textContent).toContain('얼굴 인식 대기')
 
   await render({ state: 'idle', character: undefined })
   expect(card().getAttribute('data-state')).toBe('waiting')
@@ -256,7 +258,35 @@ function decorationCount(): number {
   return card().querySelectorAll(':scope > span[aria-hidden="true"]').length
 }
 
-it('스냅샷과 자리가 다른 카드는 서버 칩 뒤에 스냅샷 순번 칩을 보이고 카드 조작은 그대로 쓴다', async () => {
+it('머리 줄은 서버 선택을 품은 이름 칸, 상태 표시, 스냅샷 칩 순서이고 자리 번호는 없다', async () => {
+  await render({
+    state: 'failure',
+    character: undefined,
+    nickname: '실패이름',
+    snapshotMark: { kind: 'moved', seat: 2 }
+  })
+  const input = card().querySelector('input')!
+  const selects = card().querySelectorAll('select')
+  const mark = card().querySelector('[role="img"][aria-label="검색 실패"]')!
+  const chip = card().querySelector('[role="img"][aria-label="스냅샷 순번 2"]')!
+  expect(selects).toHaveLength(1)
+  expect(input.parentElement!.contains(selects[0])).toBe(true)
+  expect(input.compareDocumentPosition(mark) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(mark.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(visibleText()).not.toMatch(/0[1-4]/)
+
+  // 입력할 수 없고 캐릭터도 찾지 못한 자리는 서버 선택을 숨긴다.
+  await render({ state: 'idle', character: undefined, inputEnabled: false })
+  expect(card().querySelector('select')).toBeNull()
+  expect(card().querySelector('input')!.disabled).toBe(true)
+
+  // 빈 자리의 이름 칸은 얼굴 인식을 기다리는 자리와 다른 테두리다.
+  const vacantField = card().querySelector('input')!.parentElement!.className
+  await render({ state: 'waiting-portrait', character: undefined, inputEnabled: false })
+  expect(card().querySelector('input')!.parentElement!.className).not.toBe(vacantField)
+})
+
+it('스냅샷과 자리가 다른 카드는 이름 칸 뒤에 스냅샷 순번 칩을 보이고 카드 조작은 그대로 쓴다', async () => {
   const lookup = vi.fn()
   await render({ state: 'success', character: found, onLookup: lookup })
   const decorations = decorationCount()
@@ -324,14 +354,69 @@ it('이름에 들어가거나 고치는 동안 선택 상태와 수정 중 표�
   expect(statusMark()).toBeNull()
 })
 
+// 오른쪽 열의 줄. 머리 줄, 소속, 명성과 점수, 넷째 줄 순서다.
+function columnLines(): HTMLElement[] {
+  const header = card().querySelector('input')!.closest('div:has(> div > div > input)')
+  const column = header!.parentElement!
+
+  return [...column.children] as HTMLElement[]
+}
+
+it('찾은 카드는 이름 칸, 모험단과 길드, 명성과 점수, 각성 표시를 뺀 직업을 차례로 둔다', async () => {
+  await render({ state: 'success', character: { ...found, job: '眞 웨펀마스터' } })
+  const lines = columnLines()
+  expect(lines).toHaveLength(4)
+  expect(lines[0].querySelector('input')?.value).toBe('찾은이름')
+  expect(lines[1].textContent).toBe('찾은모험단찾은길드')
+  expect(lines[2].querySelectorAll('dt')).toHaveLength(2)
+  expect(lines[3].textContent).toBe('웨펀마스터')
+  expect(card().querySelector('[aria-label="캐릭터 이미지 없음"]')).not.toBeNull()
+})
+
+it('찾은 카드의 안내는 직업 뒤에 두고, 고치는 동안에는 Enter 조회 안내를 둔다', async () => {
+  await render({ state: 'success', character: found, notice: '외형 미확인, 최고 명성 후보입니다.' })
+  const note = columnLines()[3].querySelector('p')!
+  expect(columnLines()[3].textContent).toBe('찾은직업외형 미확인, 최고 명성 후보입니다.')
+  expect(note.title).toBe('외형 미확인, 최고 명성 후보입니다.')
+
+  await render({ state: 'success', character: found })
+  await enterName('고친이름')
+  expect(columnLines()[3].textContent).toBe('찾은직업Enter로 조회')
+})
+
+it('찾지 못한 자리는 소속 줄에 안내를, 안내가 없으면 흐린 모험단을 두고 실패면 넷째 줄에 다시 시도를 둔다', async () => {
+  const retry = vi.fn()
+  await render({
+    state: 'failure',
+    nickname: '없는이름',
+    notice: '캐릭터를 찾지 못했습니다.',
+    retryEnabled: true,
+    onRetry: retry
+  })
+  const lines = columnLines()
+  expect(lines).toHaveLength(4)
+  expect(lines[1].textContent).toBe('캐릭터를 찾지 못했습니다.')
+  expect(lines[1].querySelector('p')?.title).toBe('캐릭터를 찾지 못했습니다.')
+  const button = lines[3].querySelector('button')!
+  expect(button.textContent).toBe('다시 시도')
+  await act(async () => button.click())
+  expect(retry).toHaveBeenCalledOnce()
+
+  await render({ state: 'idle', nickname: '인식이름' })
+  expect(columnLines()).toHaveLength(3)
+  const placeholder = columnLines()[1].firstElementChild!
+  expect(placeholder.textContent).toBe('모험단')
+  expect(placeholder.getAttribute('aria-hidden')).toBe('true')
+})
+
 it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을 구분하며 소속을 보인다', async () => {
   await render({
     state: 'success',
     character: { ...found, fame: 0, card: { ...dealerCard, score: null } }
   })
   const fame = statValue('명성')
-  const score = statValue('장비 점수')
-  expect(fame.querySelector('[aria-hidden="true"]')?.textContent).toBe('0')
+  const score = statValue('장비')
+  expect(fame.firstChild?.textContent).toBe('0')
   expect(score.textContent).toBe('-')
   expect(card().textContent).toContain('찾은모험단')
   expect(card().textContent).toContain('찾은길드')
@@ -339,8 +424,8 @@ it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을
   expect(card().textContent).not.toContain('서버 순위')
 
   await render({ state: 'success', character: found })
-  const scoreValue = statValue('장비 점수')
-  expect(scoreValue.querySelector('[aria-hidden="true"]')?.textContent).toBe('330,556')
+  const scoreValue = statValue('장비')
+  expect(scoreValue.firstChild?.textContent).toBe('330,556')
   expect(scoreValue.textContent).toContain('DFragon 계산값')
 })
 
@@ -349,9 +434,8 @@ it('검색 응답에 없는 길드, 명성, 장비 점수는 0이나 빈칸 대�
     state: 'success',
     character: { ...found, guild: null, fame: null, card: null }
   })
-  const values = [statValue('명성'), statValue('장비 점수')]
+  const values = [statValue('명성'), statValue('장비')]
   expect(values.map((value) => value.textContent)).toEqual(['-', '-'])
-  expect(values.some((value) => value.querySelector('[aria-hidden="true"]') != null)).toBe(false)
   expect(card().textContent).toContain('찾은모험단-')
 })
 
@@ -380,32 +464,32 @@ it('상위, 랭커 단계를 꺾쇠 상태와 단계 색 숫자로 보이고 단
   expect(card().getAttribute('data-state')).toBe('selected')
 })
 
-it('캐릭터 면 하나만 두어 면 탭, 스탯 한 줄, 상세 열기 버튼이 없다', async () => {
+it('캐릭터 면 하나만 두어 면 탭과 상세 열기 버튼이 없고 명성과 짧은 점수 라벨을 한 줄에 둔다', async () => {
   await render({ state: 'success', character: found })
   expect(container.querySelector('[role="tab"]')).toBeNull()
   expect(container.querySelector('[aria-label="1번 캐릭터 상세 열기"]')).toBeNull()
   expect([...card().querySelectorAll('dt')].map((term) => term.textContent)).toEqual([
     '명성',
-    '장비 점수'
+    '장비'
   ])
   expect(card().textContent).toContain('찾은직업')
 
   await render({ state: 'success', character: { ...found, card: bufferCard } })
   expect([...card().querySelectorAll('dt')].map((term) => term.textContent)).toEqual([
     '명성',
-    '버프 점수'
+    '버프'
   ])
-  expect(statValue('버프 점수').querySelector('[aria-hidden="true"]')?.textContent).toBe('55,358')
-  expect(statValue('버프 점수').textContent).toContain('게임 버프 점수')
+  expect(statValue('버프').firstChild?.textContent).toBe('55,358')
+  expect(statValue('버프').textContent).toContain('게임 버프 점수')
 })
 
 it('점수 숫자는 딜러 파랑, 버퍼 초록으로 칠하고 역할을 모르거나 값이 없으면 기본색이다', async () => {
   await render({ state: 'success', character: found })
-  expect(toneClassesOf(statValue('장비 점수'))).toEqual(['dealer'])
+  expect(toneClassesOf(statValue('장비'))).toEqual(['dealer'])
   expect(toneClassesOf(statValue('명성'))).toEqual([])
 
   await render({ state: 'success', character: { ...found, card: bufferCard } })
-  expect(toneClassesOf(statValue('버프 점수'))).toEqual(['buffer'])
+  expect(toneClassesOf(statValue('버프'))).toEqual(['buffer'])
   expect(toneClassesOf(statValue('명성'))).toEqual([])
 
   // 역할을 모르면 라벨은 장비 점수이고 색은 기본색이다.
@@ -413,25 +497,25 @@ it('점수 숫자는 딜러 파랑, 버퍼 초록으로 칠하고 역할을 모�
     state: 'success',
     character: { ...found, card: { ...dealerCard, role: null } }
   })
-  expect(statValue('장비 점수').querySelector('[aria-hidden="true"]')?.textContent).toBe('330,556')
-  expect(toneClassesOf(statValue('장비 점수'))).toEqual([])
+  expect(statValue('장비').firstChild?.textContent).toBe('330,556')
+  expect(toneClassesOf(statValue('장비'))).toEqual([])
 
   // 값이 없어 -로 보이는 점수는 역할과 상관없이 같은 기본 색이다.
   await render({ state: 'success', character: { ...found, card: { ...dealerCard, score: null } } })
-  const dealerMissing = statValue('장비 점수')
+  const dealerMissing = statValue('장비')
   expect(dealerMissing.textContent).toBe('-')
   expect(toneClassesOf(dealerMissing)).toEqual([])
   const missingClass = dealerMissing.className
   await render({ state: 'success', character: { ...found, card: { ...bufferCard, score: null } } })
-  expect(statValue('버프 점수').textContent).toBe('-')
-  expect(statValue('버프 점수').className).toBe(missingClass)
+  expect(statValue('버프').textContent).toBe('-')
+  expect(statValue('버프').className).toBe(missingClass)
 })
 
 it('상위, 랭커 카드의 점수 숫자는 역할 색 대신 단계 색을 유지한다', async () => {
   await render({ state: 'success', character: { ...found, tier: 'top', card: bufferCard } })
-  expect(toneClassesOf(statValue('버프 점수'))).toEqual(['top'])
+  expect(toneClassesOf(statValue('버프'))).toEqual(['top'])
   await render({ state: 'success', character: { ...found, tier: 'ranker' } })
-  expect(toneClassesOf(statValue('장비 점수'))).toEqual(['ranker'])
+  expect(toneClassesOf(statValue('장비'))).toEqual(['ranker'])
 })
 
 it('계산하지 못한 장비 점수는 -에 사유 종류를 보조 기술로 전한다', async () => {
@@ -446,7 +530,7 @@ it('계산하지 못한 장비 점수는 -에 사유 종류를 보조 기술로 
     }
   }
   await render({ state: 'success', character: { ...found, card: skipped } })
-  const score = statValue('장비 점수')
+  const score = statValue('장비')
   expect(score.firstChild?.textContent).toBe('-')
   expect(score.textContent).toBe('-계산하지 못함, 아이템을 판별하지 못함')
   expect(card().textContent).not.toContain('ValueError')
@@ -468,10 +552,10 @@ it('엔진이 근사값을 낸 장비 점수는 ≈를 붙여 역할 색으로 �
     }
   }
   await render({ state: 'success', character: { ...found, card: approximate } })
-  const score = statValue('장비 점수')
+  const score = statValue('장비')
   const description =
     '근사값, 아이템을 판별하지 못함. 입력값 차이를 무시하고 계산한 값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
-  expect(score.querySelector('[aria-hidden="true"]')?.textContent).toBe('≈321,000')
+  expect(score.firstChild?.textContent).toBe('≈321,000')
   expect(score.getAttribute('title')).toBe(description)
   expect(score.textContent).toContain(description)
   expect(toneClassesOf(score)).toEqual(['dealer'])
@@ -499,13 +583,28 @@ const choices = [
   }
 ]
 
+function candidateWindow(): Element | null {
+  return container.querySelector('[role="group"][aria-label="1번 후보 고르기"]')
+}
+
 function candidateTile(server: string): HTMLButtonElement {
-  return [...card().querySelectorAll<HTMLButtonElement>('[role="group"] button')].find((button) =>
+  return [...candidateWindow()!.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
     button.getAttribute('aria-label')?.startsWith(server)
   )!
 }
 
-it('후보 줄은 후보마다 얼굴 창, 모험단, 서버를 보이고 지금 보이는 후보를 눌린 상태로 둔다', async () => {
+function candidateChip(): HTMLButtonElement | null {
+  const chip = [...card().querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+    button.textContent?.startsWith('후보')
+  )
+  if (chip === undefined) {
+    return null
+  }
+
+  return chip
+}
+
+it('후보가 있으면 후보 창을 띄워 초상화로 고르고 지금 보이는 후보를 눌린 상태로 둔다', async () => {
   const pick = vi.fn()
   await render({
     state: 'success',
@@ -514,15 +613,9 @@ it('후보 줄은 후보마다 얼굴 창, 모험단, 서버를 보이고 지금
     onPickCandidate: pick
   })
 
-  expect(card().querySelector('[role="group"]')?.getAttribute('aria-label')).toBe('1번 후보 고르기')
   expect(candidateTile('카인').getAttribute('aria-label')).toBe('카인, 찾은모험단')
   expect(candidateTile('카인').getAttribute('aria-pressed')).toBe('true')
-  expect(candidateTile('시로코').getAttribute('aria-label')).toBe('시로코, 모험단 정보 없음')
   expect(candidateTile('시로코').getAttribute('aria-pressed')).toBe('false')
-  expect(candidateTile('카인').querySelector('img')?.getAttribute('src')).toBe(
-    'https://img-api.neople.co.kr/df/servers/cain/characters/cain-character?zoom=1'
-  )
-  expect(candidateTile('시로코').querySelector('img')).toBeNull()
   expect(card().getAttribute('data-state')).toBe('default')
 
   await act(async () => candidateTile('시로코').click())
@@ -544,48 +637,72 @@ it('미리보기 중이면 카드를 선택 상태로 보이고 그 후보에 �
   )
 })
 
-it('접힌 카드는 작은 후보 타일로 고르고, 모험단을 모르는 후보는 서버를 대신 보인다', async () => {
-  const pick = vi.fn()
+it('닫기 X로 닫으면 스냅샷 칩 앞에 후보 수 칩이 남고, 칩을 누르면 창을 다시 연다', async () => {
   const picker = { choices, shownServerId: 'cain', previewServerId: null }
   await render({
     state: 'success',
     character: found,
     picker,
-    collapsed: true,
-    onPickCandidate: pick
+    snapshotMark: { kind: 'moved', seat: 3 },
+    onPickCandidate: vi.fn()
   })
+  const chip = candidateChip()!
+  expect(chip.textContent).toBe('후보 2')
+  expect(chip.getAttribute('aria-expanded')).toBe('true')
+  expect(chip.getAttribute('aria-controls')).toBe(candidateWindow()!.id)
+  const snapshot = card().querySelector('[aria-label="스냅샷 순번 3"]')!
+  expect(chip.compareDocumentPosition(snapshot) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
 
-  const groups = card().querySelectorAll('[role="group"]')
-  expect(groups).toHaveLength(1)
-  expect(groups[0].getAttribute('aria-label')).toBe('1번 후보 고르기')
-  expect(card().querySelector('[aria-label^="외형으로 확정하지 못함"]')).toBeNull()
-  expect(candidateTile('카인').getAttribute('aria-pressed')).toBe('true')
-  expect(candidateTile('카인').textContent).toBe('찾은모험단')
-  expect(candidateTile('시로코').textContent).toBe('—시로코')
-  await act(async () => candidateTile('시로코').click())
-  expect(pick).toHaveBeenCalledExactlyOnceWith('siroco')
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="1번 후보 창 닫기"]')!.click()
+  )
+  expect(candidateWindow()).toBeNull()
+  expect(candidateChip()?.getAttribute('aria-expanded')).toBe('false')
+
+  // 닫혀 있는 동안 캡처 쪽 후보 값이 바뀌어도 닫힌 채로 둔다.
+  await render({
+    state: 'success',
+    character: found,
+    picker: { ...picker, previewServerId: 'siroco', shownServerId: 'siroco' }
+  })
+  expect(candidateWindow()).toBeNull()
+
+  await act(async () => candidateChip()!.click())
+  expect(candidateWindow()).not.toBeNull()
+  expect(candidateChip()?.getAttribute('aria-expanded')).toBe('true')
 })
 
-it('후보 타일이 있는 접힌 카드는 이름 위에 흐르는 글자를 겹치고, 고치는 동안과 펼친 카드에는 겹치지 않는다', async () => {
+it('확정해 후보가 사라지면 후보 창과 칩이 함께 사라지고, 다음 후보는 열린 창으로 보인다', async () => {
   const picker = { choices, shownServerId: 'cain', previewServerId: null }
-  await render({ state: 'success', character: found, picker, collapsed: true })
-  const input = container.querySelector<HTMLInputElement>('input')!
-  const overlay = (): Element | null =>
-    input.parentElement!.querySelector('span[aria-hidden="true"]')
-
-  expect(overlay()?.textContent).toBe('찾은이름')
-
-  await act(async () => input.focus())
-  expect(overlay()).toBeNull()
+  await render({ state: 'success', character: found, picker })
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="1번 후보 창 닫기"]')!.click()
+  )
+  await render({ state: 'success', character: found })
+  expect(candidateWindow()).toBeNull()
+  expect(candidateChip()).toBeNull()
 
   await render({ state: 'success', character: found, picker })
-  expect(container.querySelector('input')!.parentElement!.querySelector('span')).toBeNull()
+  expect(candidateWindow()).not.toBeNull()
 })
 
-it('미리보기 조회가 실패해도 후보 줄은 남는다', async () => {
+it('다음 회차에 새로 그린 카드는 닫았던 후보 창을 다시 연 채로 시작한다', async () => {
+  const picker = { choices, shownServerId: 'cain', previewServerId: null }
+  const card = { state: 'success' as const, character: found, picker }
+  await act(async () => root.render(<CharacterCard key="round-1" card={card} slot={1} />))
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="1번 후보 창 닫기"]')!.click()
+  )
+  expect(candidateWindow()).toBeNull()
+
+  await act(async () => root.render(<CharacterCard key="round-2" card={card} slot={1} />))
+  expect(candidateWindow()).not.toBeNull()
+})
+
+it('미리보기 조회가 실패해도 후보 창은 남는다', async () => {
   const picker = { choices, shownServerId: 'cain', previewServerId: null }
   await render({ state: 'failure', character: undefined, picker, onPickCandidate: vi.fn() })
 
-  expect(card().querySelector('[role="group"]')).not.toBeNull()
+  expect(candidateWindow()).not.toBeNull()
   expect(card().getAttribute('data-state')).toBe('failure')
 })

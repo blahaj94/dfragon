@@ -2,7 +2,6 @@
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { ColorThemeProvider } from './ColorThemeProvider'
 import { TopBar } from './TopBar'
 
 let root: Root
@@ -24,17 +23,16 @@ afterEach(async () => {
 async function render(props: Partial<ComponentProps<typeof TopBar>> = {}): Promise<void> {
   await act(async () =>
     root.render(
-      <ColorThemeProvider initialTheme="dark">
-        <TopBar
-          nav={<nav aria-label="주 메뉴">내비</nav>}
-          capture={
-            <button aria-label="화면 캡처, 창 감지됨">
-              <span data-tone="success">창 감지됨</span>
-            </button>
-          }
-          {...props}
-        />
-      </ColorThemeProvider>
+      <TopBar
+        nav={<nav aria-label="주 메뉴">내비</nav>}
+        boardRef={() => {}}
+        capture={
+          <button aria-label="화면 캡처, 창 감지됨">
+            <span data-tone="success">창 감지됨</span>
+          </button>
+        }
+        {...props}
+      />
     )
   )
 }
@@ -48,7 +46,7 @@ function textOrLabel(element: Element): string | null {
   return element.textContent
 }
 
-it('상단 바는 로고, 내비, 게임 연결 상태, 테마 순서로 표시하고 카메라, 설정, 로그인 버튼은 없다', async () => {
+it('상단 바는 로고, 내비, 게임 연결 상태 순서로 표시하고 테마, 카메라, 설정, 로그인 버튼은 없다', async () => {
   await render()
   const header = container.querySelector('header')!
   expect(container.querySelectorAll('header')).toHaveLength(1)
@@ -58,11 +56,12 @@ it('상단 바는 로고, 내비, 게임 연결 상태, 테마 순서로 표시�
   const nav = header.querySelector('nav')!
   const status = header.querySelector('[data-tone]')!
   const buttons = [...header.querySelectorAll('button')]
-  expect(buttons.map(textOrLabel)).toEqual(['화면 캡처, 창 감지됨', '라이트 테마'])
+  expect(buttons.map(textOrLabel)).toEqual(['화면 캡처, 창 감지됨'])
+  expect(header.querySelector('[aria-label$="테마"]')).toBeNull()
   expect(header.textContent).not.toContain('로그인')
   expect(header.querySelector('[aria-label="설정"]')).toBeNull()
   expect(header.querySelector('kbd')).toBeNull()
-  const items = [name, nav, status, ...buttons.slice(1)]
+  const items = [name, nav, status]
   for (let index = 1; index < items.length; index++) {
     expect(
       items[index - 1].compareDocumentPosition(items[index]) & Node.DOCUMENT_POSITION_FOLLOWING
@@ -70,18 +69,27 @@ it('상단 바는 로고, 내비, 게임 연결 상태, 테마 순서로 표시�
   }
 })
 
-it('테마를 전환하면 다음 테마의 버튼 이름이 바뀐다', async () => {
-  await render()
-  await act(async () =>
-    container.querySelector<HTMLButtonElement>('[aria-label="라이트 테마"]')!.click()
-  )
-  expect(container.querySelector('[aria-label="라이트 테마"]')).toBeNull()
-  expect(container.querySelector('[aria-label="다크 테마"]')).not.toBeNull()
-  expect(document.documentElement.dataset.theme).toBe('light')
-  await act(async () =>
-    container.querySelector<HTMLButtonElement>('[aria-label="다크 테마"]')!.click()
-  )
-  expect(container.querySelector('[aria-label="다크 테마"]')).toBeNull()
-  expect(container.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
-  expect(document.documentElement.dataset.theme).toBe('dark')
+it('내비와 게임 연결 상태 사이의 화면 머리 자리 요소를 boardRef로 넘긴다', async () => {
+  let slot: HTMLDivElement | null = null
+  await render({
+    boardRef: (element) => {
+      slot = element
+    }
+  })
+  const header = container.querySelector('header')!
+  const nav = header.querySelector('nav')!
+  const chip = header.querySelector('[aria-label="화면 캡처, 창 감지됨"]')!
+  expect(slot).not.toBeNull()
+  expect(header.contains(slot)).toBe(true)
+  expect(nav.compareDocumentPosition(slot!) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(slot!.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+})
+
+it('새 버전 알림은 내비 뒤, 게임 연결 상태 칩 바로 왼쪽에 둔다', async () => {
+  await render({ notice: <button type="button">새 버전 v1.2.0</button> })
+  const header = container.querySelector('header')!
+  const nav = header.querySelector('nav')!
+  const buttons = [...header.querySelectorAll('button')]
+  expect(buttons.map(textOrLabel)).toEqual(['새 버전 v1.2.0', '화면 캡처, 창 감지됨'])
+  expect(nav.compareDocumentPosition(buttons[0]) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
 })

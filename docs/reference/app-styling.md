@@ -18,7 +18,7 @@ StyleX runtime과 compiler 버전은 `pnpm-workspace.yaml`의 catalog에서 관�
 - `useCSSLayers: false`: 공용 토큰 CSS, foundation, 앱 전역 글꼴 CSS 같은 전역 기반 스타일과 같은 cascade에서 조합한다.
 - Vite에서는 StyleX를 React plugin보다 먼저 실행한다. Vitest는 HTTP/HMR timer가 없는 Rollup adapter를 사용한다.
 - 모든 browser entry는 `@dfragon/ui/tokens.css`, 공용 `foundation.css`, 앱 전역 글꼴 CSS(Desktop) 순서로 한 번 import한다. 글꼴, reset 같은 전역 기반 CSS와 vendor CSS는 StyleX로 복제하지 않는다.
-- 각 앱은 첫 페인트 전에 `document.documentElement.dataset.theme`에 `light` 또는 `dark`를 넣는다. `tokens.css`는 이 값으로 색 변수와 `color-scheme`을 함께 바꾸며, 값이 없으면 다크다.
+- 테마는 다크 하나다. `tokens.css`가 `:root`에 다크 색 변수와 `color-scheme`을 두므로 앱은 테마 값을 따로 넣지 않아도 첫 페인트부터 다크다.
 
 | 소비자 | 연결 위치 |
 | --- | --- |

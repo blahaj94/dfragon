@@ -1,10 +1,7 @@
-import { Menu, StepDots } from '@dfragon/ui'
+import { StepDots } from '@dfragon/ui'
 import { CAPTURE_SOURCE_RETRY_INTERVAL_MS } from '../constants/capture'
-import { RefreshIcon } from './RefreshIcon'
 import { CheckIcon } from './CheckIcon'
-import { ChevronDownIcon } from './ChevronDownIcon'
-import { MonitorIcon } from './MonitorIcon'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './CaptureSourceSelect.style'
 
@@ -23,7 +20,6 @@ type CaptureSourceSelectProps = {
    */
   retryStartedAt: number
   onSelect: (id: string) => void
-  onRefresh: () => void
 }
 
 export function CaptureSourceSelect({
@@ -34,114 +30,116 @@ export function CaptureSourceSelect({
   failed,
   ready,
   retryStartedAt,
-  onSelect,
-  onRefresh
+  onSelect
 }: CaptureSourceSelectProps): React.JSX.Element {
-  const [open, setOpen] = useState(false)
-  const selected = [...detected, ...others].find((source) => source.id === value)
-  let label = '게임 창 선택'
-  if (value) {
-    label = selected?.name ?? '선택한 창, 목록에서 사라짐'
-  } else if (!failed && detected.length === 1) {
-    label = `${detected[0].name}, 감지됨`
-  } else if (!failed && detected.length > 1) {
-    label = `던파 창 ${detected.length}개 감지됨`
-  }
-  const hasSourceLabel = value.length > 0 || (!failed && detected.length > 0)
+  const groupName = useId()
+  const sources = [
+    ...detected.map((source) => ({ ...source, group: '감지된 게임' })),
+    ...others.map((source) => ({ ...source, group: '다른 창' }))
+  ]
+  const hasSelected = sources.some((source) => source.id === value)
   const searching = !failed && detected.length === 0
   const disabled = loading || failed || !ready
 
-  // 창 선택과 새로고침 명령이 함께 있으므로 radio menu 항목으로 선택 상태를 알린다.
+  // 창을 한 줄의 radio 타일로 고른다. 안내 타일(찾는 중, 조회 실패)은 radio가 아니라 그 앞에 둔다.
 
   return (
-    <Menu.Root open={open} onOpenChange={setOpen}>
-      <Menu.Trigger
-        disabled={loading || !ready}
-        aria-label={`게임 창 선택${hasSourceLabel ? `: ${label}` : ''}`}
-        {...stylex.props(styles.trigger, open && styles.open)}
-      >
-        <MonitorIcon {...stylex.props(styles.icon, open && styles.openIcon)} />
-        <span title={label} {...stylex.props(styles.value, !hasSourceLabel && styles.placeholder)}>
-          {loading ? '창 목록 확인 중…' : label}
-        </span>
-        <ChevronDownIcon {...stylex.props(styles.chevron, open && styles.rotated)} />
-      </Menu.Trigger>
-      <Menu.Popup sideOffset={8} aria-label="캡처할 창" {...stylex.props(styles.popup)}>
-        {failed && (
-          <div role="status" {...stylex.props(styles.notice)}>
-            <span {...stylex.props(styles.failureTitle)}>창 목록을 불러오지 못했습니다</span>
-            <span {...stylex.props(styles.failureDescription)}>
-              15초마다 다시 확인합니다. 직접 새로고침할 수도 있습니다.
-            </span>
-          </div>
+    <div {...stylex.props(styles.row)}>
+      {failed && (
+        <div role="status" {...stylex.props(styles.tile, styles.failureTile)}>
+          <span {...stylex.props(styles.failureTitle)}>창 목록을 불러오지 못했습니다</span>
+          <span {...stylex.props(styles.line)}>15초마다 다시 확인합니다</span>
+        </div>
+      )}
+      {searching && (
+        <div {...stylex.props(styles.tile, styles.searchingTile)}>
+          <span role="status" {...stylex.props(styles.searching)}>
+            던전앤파이터 찾는 중
+            <StepDots size={5} />
+          </span>
+          <RetryProgress key={retryStartedAt} startedAt={retryStartedAt} />
+        </div>
+      )}
+      <div role="radiogroup" aria-label="캡처할 창" {...stylex.props(styles.group)}>
+        {value.length > 0 && !hasSelected && (
+          // 선택한 창이 새 목록에서 사라졌다. 어느 창이었는지 알 수 없으므로 선택만 알린다.
+          <SourceTile
+            groupName={groupName}
+            id={value}
+            name="선택한 창"
+            group="목록에서 사라짐"
+            checked
+            disabled={disabled}
+            onSelect={onSelect}
+          />
         )}
-        {searching && (
-          <div {...stylex.props(styles.notice)}>
-            <span role="status" {...stylex.props(styles.searching)}>
-              던전앤파이터 찾는 중
-              <StepDots size={5} />
-            </span>
-            <RetryProgress key={retryStartedAt} startedAt={retryStartedAt} />
-          </div>
-        )}
-        <Menu.RadioGroup value={value} onValueChange={(id: string) => onSelect(id)}>
-          {[
-            { label: '감지된 게임', sources: detected },
-            { label: '다른 창 직접 선택', sources: others }
-          ].map((group) => {
-            const hasSources = group.sources.length > 0
-            if (!hasSources) {
-              return false
-            }
-
-            return (
-              <Menu.Group key={group.label}>
-                <Menu.GroupLabel {...stylex.props(styles.groupLabel)}>
-                  <span {...stylex.props(styles.groupLabelText)}>{group.label}</span>
-                </Menu.GroupLabel>
-                {group.sources.map((source) => (
-                  <Menu.RadioItem
-                    key={source.id}
-                    value={source.id}
-                    aria-label={source.name}
-                    label={source.name}
-                    disabled={disabled}
-                    closeOnClick
-                    {...stylex.props(styles.option, source.id === value && styles.currentOption)}
-                  >
-                    <span
-                      {...stylex.props(styles.iconTile, source.id === value && styles.selectedTile)}
-                    >
-                      <MonitorIcon {...stylex.props(styles.itemIcon)} />
-                    </span>
-                    <span
-                      title={source.name}
-                      {...stylex.props(
-                        styles.itemLabel,
-                        source.id === value && styles.currentLabel,
-                        disabled && styles.disabledLabel
-                      )}
-                    >
-                      {source.name}
-                    </span>
-                    {source.id === value && <CheckIcon {...stylex.props(styles.check)} />}
-                  </Menu.RadioItem>
-                ))}
-              </Menu.Group>
-            )
-          })}
-        </Menu.RadioGroup>
-        <Menu.Separator />
-        <Menu.Item disabled={loading} onClick={onRefresh} {...stylex.props(styles.refresh)}>
-          <RefreshIcon {...stylex.props(styles.refreshIcon)} />
-          <span {...stylex.props(styles.refreshLabel)}>창 목록 새로고침</span>
-        </Menu.Item>
-      </Menu.Popup>
-    </Menu.Root>
+        {sources.map((source) => (
+          <SourceTile
+            key={source.id}
+            groupName={groupName}
+            id={source.id}
+            name={source.name}
+            group={source.group}
+            checked={source.id === value}
+            disabled={disabled}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    </div>
   )
 }
 
-// 다음 자동 조회까지 남은 시간을 채워 가는 2px 막대. 목록을 연 순간 이미 지난 시간만큼 음수 지연으로
+type SourceTileProps = {
+  groupName: string
+  id: string
+  name: string
+  group: string
+  checked: boolean
+  disabled: boolean
+  onSelect: (id: string) => void
+}
+
+// 이름과 그룹을 두 줄로 쓰는 radio 타일. radio 입력이 타일 전체를 덮어 누르기와 방향키, 포커스를 받는다.
+function SourceTile({
+  groupName,
+  id,
+  name,
+  group,
+  checked,
+  disabled,
+  onSelect
+}: SourceTileProps): React.JSX.Element {
+  return (
+    <div
+      title={name}
+      {...stylex.props(
+        styles.tile,
+        styles.sourceTile,
+        checked && styles.selectedTile,
+        disabled && styles.disabledTile
+      )}
+    >
+      <input
+        type="radio"
+        name={groupName}
+        value={id}
+        checked={checked}
+        disabled={disabled}
+        aria-label={name}
+        onChange={() => onSelect(id)}
+        {...stylex.props(styles.radio)}
+      />
+      <span {...stylex.props(styles.text)}>
+        <span {...stylex.props(styles.name, checked && styles.selectedName)}>{name}</span>
+        <span {...stylex.props(styles.line)}>{group}</span>
+      </span>
+      {checked && <CheckIcon {...stylex.props(styles.check)} />}
+    </div>
+  )
+}
+
+// 다음 자동 조회까지 남은 시간을 채워 가는 2px 막대. 대화상자를 연 순간 이미 지난 시간만큼 음수 지연으로
 // 앞당겨 시작하므로 실제 재조회 타이머와 같은 순간에 찬다. 조회가 끝나 시작 시각이 바뀌면 key로 새로
 // 그려 처음부터 다시 찬다. 동작 줄이기에서는 연 순간의 위치에서 멈춘다.
 function RetryProgress({ startedAt }: { startedAt: number }): React.JSX.Element {

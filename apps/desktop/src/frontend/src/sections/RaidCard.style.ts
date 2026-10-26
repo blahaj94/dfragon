@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, font, motion, radius, space } from '@dfragon/ui/tokens.stylex'
+import { colors, motion, space } from '@dfragon/ui/tokens.stylex'
 
 // 이름 수정 중의 네모 점 3개. 파티 카드와 같은 박자다(motion.md).
 const dotBlink = stylex.keyframes({
@@ -7,16 +7,8 @@ const dotBlink = stylex.keyframes({
   '33.333%, 100%': { opacity: 0.25 }
 })
 
-// 숫자 단계(dfragon-design typography.md). 행간은 1이고 자릿수 폭을 고정한다.
-const numeric = {
-  fontFamily: font.num,
-  fontVariantNumeric: 'tabular-nums',
-  lineHeight: 1,
-  letterSpacing: 0
-} as const
-
-// 값은 DFragon 디자인 캔버스 공대 보드의 축약 카드다. 파티 카드보다 작은 머리 36, 그림 칸 72, 안내 줄과
-// 명성, 점수 바닥으로 1280×800에 12장이 스크롤 없이 들어간다.
+// 값은 DFragon 디자인 캔버스 공대 보드의 축약 카드다. 안쪽 여백 위 8, 좌우 8, 아래 6에 그림 칸 40과 오른쪽
+// 열(이름 칸 20, 소속 줄 14, 명성과 점수 한 줄 14, 줄 사이 4)을 둔다. 글자는 12px 하나이고 행간은 14px다.
 export const styles = stylex.create({
   // 자리. 카드 한 장을 담아 끌고 포커스를 받는다. 카드 면이 자리를 채운다.
   seat: {
@@ -46,71 +38,18 @@ export const styles = stylex.create({
       pointerEvents: 'none'
     }
   },
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    height: 36,
-    flexShrink: 0,
-    minWidth: 0,
-    paddingInline: 10
-  },
-  // 카드 번호 칩(14 700). 오른쪽 위를 자른다.
-  number: {
-    ...numeric,
-    display: 'inline-flex',
-    alignItems: 'center',
-    flexShrink: 0,
-    height: 20,
-    paddingInlineStart: 6,
-    paddingInlineEnd: space.s8,
-    fontSize: 14,
-    fontWeight: 700,
-    backgroundColor: colors.cardControl,
-    color: colors.cardFgMuted,
-    transitionProperty: 'background-color, color',
-    transitionDuration: motion.durState,
-    transitionTimingFunction: motion.ease
-  },
-  numberSelected: { backgroundColor: colors.cardSignal, color: colors.cardOnSignal },
-  numberTop: { backgroundColor: colors.tierTop, color: colors.cardOnSignal },
-  numberRanker: { backgroundColor: colors.tierRanker, color: colors.cardOnSignal },
-  server: { display: 'flex', flexShrink: 1, minWidth: 0, maxWidth: '50%' },
-  spacer: { flex: 1, minWidth: 0 },
-  dots: { display: 'flex', flexShrink: 0, gap: space.s4, paddingInlineEnd: 2 },
-  dot: {
-    width: 5,
-    height: 5,
-    backgroundColor: colors.cardSignal,
-    opacity: { default: 0.25, '@media (prefers-reduced-motion: reduce)': 1 },
-    animationName: { default: dotBlink, '@media (prefers-reduced-motion: reduce)': 'none' },
-    animationDuration: motion.beat,
-    animationTimingFunction: 'steps(1, end)',
-    animationIterationCount: 'infinite'
-  },
-  dotSecond: { animationDelay: `calc(${motion.beat} * -2 / 3)` },
-  dotThird: { animationDelay: `calc(${motion.beat} / -3)` },
-  mark: { display: 'inline-grid', placeItems: 'center', flexShrink: 0, width: 20, height: 20 },
-  // 검색 실패 `!` 칸(15 700).
-  alert: {
-    ...numeric,
-    fontSize: 15,
-    fontWeight: 700,
-    backgroundColor: colors.cardFailureWeak,
-    color: colors.cardFailure
-  },
-  waitingMark: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
-  // 그림 칸 72와 소속, 이름, 직업. 접으면 그림 칸이 빠지고 한 칸이 된다.
   body: {
     display: 'grid',
-    gridTemplateColumns: '72px minmax(0, 1fr)',
-    gap: space.s12,
+    gridTemplateColumns: '40px minmax(0, 1fr)',
+    alignItems: 'start',
+    gap: space.s8,
     flexShrink: 0,
     minHeight: 0,
-    paddingInline: space.s12
+    paddingBlockStart: space.s8,
+    paddingBlockEnd: 6,
+    paddingInline: space.s8
   },
-  bodyCollapsed: { gridTemplateColumns: 'minmax(0, 1fr)' },
-  well: { position: 'relative', height: 72, overflow: 'hidden' },
+  well: { position: 'relative', height: 40, overflow: 'hidden' },
   // 상위, 랭커 카드의 그림 칸 아래 2px 단계 색 선. 캐릭터 그림 위에 그린다. 랭커는 그림 칸 면도 단계 면이다.
   wellTop: {
     '::after': {
@@ -135,21 +74,61 @@ export const styles = stylex.create({
   },
   portrait: { position: 'absolute', inset: 0 },
   progress: { position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' },
-  identity: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 3,
-    minWidth: 0,
-    paddingTop: 6
+  column: { display: 'flex', flexDirection: 'column', gap: space.s4, minWidth: 0 },
+  // 이름 칸과 오른쪽 끝의 상태, 스냅샷 순번, 자리 번호. 이름 칸이 남는 폭을 채운다.
+  header: { display: 'flex', alignItems: 'center', gap: space.s4, minWidth: 0, height: 20 },
+  nameField: { flex: '1 1 0', minWidth: 0 },
+  // 자리 번호 칩(12). 오른쪽 위를 자른다.
+  number: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    flexShrink: 0,
+    height: 20,
+    paddingInlineStart: 6,
+    paddingInlineEnd: space.s8,
+    fontSize: 12,
+    lineHeight: '14px',
+    fontVariantNumeric: 'tabular-nums',
+    backgroundColor: colors.cardControl,
+    color: colors.cardFgMuted,
+    transitionProperty: 'background-color, color',
+    transitionDuration: motion.durState,
+    transitionTimingFunction: motion.ease
   },
+  numberSelected: { backgroundColor: colors.cardSignal, color: colors.cardOnSignal },
+  numberTop: { backgroundColor: colors.tierTop, color: colors.cardOnSignal },
+  numberRanker: { backgroundColor: colors.tierRanker, color: colors.cardOnSignal },
+  dots: { display: 'flex', flexShrink: 0, gap: space.s4, paddingInlineEnd: 2 },
+  dot: {
+    width: 5,
+    height: 5,
+    backgroundColor: colors.cardSignal,
+    opacity: { default: 0.25, '@media (prefers-reduced-motion: reduce)': 1 },
+    animationName: { default: dotBlink, '@media (prefers-reduced-motion: reduce)': 'none' },
+    animationDuration: motion.beat,
+    animationTimingFunction: 'steps(1, end)',
+    animationIterationCount: 'infinite'
+  },
+  dotSecond: { animationDelay: `calc(${motion.beat} * -2 / 3)` },
+  dotThird: { animationDelay: `calc(${motion.beat} / -3)` },
+  mark: { display: 'inline-grid', placeItems: 'center', flexShrink: 0, width: 20, height: 20 },
+  // 검색 실패 `!` 칸(12).
+  alert: {
+    fontSize: 12,
+    lineHeight: '14px',
+    backgroundColor: colors.cardFailureWeak,
+    color: colors.cardFailure
+  },
+  waitingMark: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
+  // 모험단과 길드. 찾지 못한 카드는 같은 줄에 안내나 흐린 `모험단`을 둔다.
   affiliation: {
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
+    gap: space.s8,
     minWidth: 0,
-    fontSize: 11,
-    fontWeight: 600,
-    lineHeight: '13px',
+    height: 14,
+    fontSize: 12,
+    lineHeight: '14px',
     whiteSpace: 'nowrap'
   },
   adventure: {
@@ -163,114 +142,16 @@ export const styles = stylex.create({
   affiliationDivider: {
     flexShrink: 0,
     width: 1,
-    height: 9,
+    height: 10,
     backgroundColor: colors.cardBorderStrong
   },
   affiliationPlaceholder: { color: colors.cardBorderStrong },
-  // 이름은 평소 테두리 없는 18 700 글자이고, 고치는 동안 신호색 상자가 된다. 글자가 모험단과 같은 세로줄에
-  // 오도록 상자 안쪽 여백과 테두리만큼 왼쪽으로 내민다.
-  name: {
-    boxSizing: 'border-box',
-    width: 'calc(100% + 8px)',
-    minWidth: 0,
-    height: 26,
-    marginBlock: -1,
-    marginInlineStart: -8,
-    paddingBlock: 0,
-    paddingInline: 6,
-    borderWidth: 2,
-    borderStyle: 'solid',
-    borderColor: { default: 'transparent', ':hover:not(:disabled)': colors.cardBorder },
-    borderRadius: radius.control,
-    backgroundColor: 'transparent',
-    color: colors.cardFg,
-    fontFamily: 'inherit',
-    fontSize: 18,
-    fontWeight: 700,
-    lineHeight: '22px',
-    textOverflow: 'ellipsis',
-    outlineStyle: 'none',
-    transitionProperty: 'border-color, background-color',
-    transitionDuration: motion.durState,
-    transitionTimingFunction: motion.ease,
-    '::placeholder': { color: colors.cardFgSubtle }
-  },
-  // 빈 이름 칸은 14 600 자리 표시 글자다.
-  nameEmpty: { fontSize: 14, fontWeight: 600 },
-  nameWaiting: { borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.bgWell },
-  nameFailure: { fontSize: 17, borderColor: colors.cardFailure, backgroundColor: colors.bgWell },
-  nameSelected: { fontSize: 17, borderColor: colors.cardSignal, backgroundColor: colors.bgWell },
-  job: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    fontSize: 12,
-    lineHeight: '16px',
-    color: colors.cardFgMuted
-  },
-  // 실패, 결과 0건, 입력 안내. 이름 아래 안내 줄에 세 줄까지 두고 넘치면 줄임표로 끝낸다.
+  // 실패, 결과 0건, 입력 안내. 한 줄에 두고 넘치면 줄임표로 끝낸다. 전체 문구는 `title`과 보조 기술에 전한다.
   notice: {
-    display: '-webkit-box',
-    WebkitBoxOrient: 'vertical',
-    WebkitLineClamp: 3,
-    overflow: 'hidden',
-    margin: 0,
-    marginTop: 'auto',
-    paddingTop: space.s4,
-    paddingInline: space.s12,
-    paddingBottom: space.s4,
-    fontSize: 12,
-    lineHeight: '16px',
-    color: colors.cardFgMuted
-  },
-  hidden: { display: 'none' },
-  // 명성과 점수. 라벨은 왼쪽 11, 값은 오른쪽 22 700이다.
-  footer: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-    gap: 14,
-    flexShrink: 0,
-    margin: 0,
-    marginTop: 'auto',
-    paddingTop: space.s8,
-    paddingInline: space.s12,
-    paddingBottom: 10,
-    borderTopWidth: 1,
-    borderTopStyle: 'solid',
-    borderTopColor: colors.cardBorder
-  },
-  // 안내 줄이 바닥 바로 위에 붙도록, 그 위의 남는 높이는 그쪽이 차지한다.
-  footerAfterRow: { marginTop: 0 },
-  footerVacant: { borderTopStyle: 'dashed' },
-  footerRanker: { borderTopColor: colors.tierRankerOutline },
-  footerItem: {
-    display: 'flex',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 6,
-    minWidth: 0
-  },
-  footerLabel: {
-    margin: 0,
-    whiteSpace: 'nowrap',
-    fontSize: 11,
-    lineHeight: '14px',
-    color: colors.cardFgSubtle
-  },
-  footerValue: {
-    ...numeric,
     minWidth: 0,
     margin: 0,
-    fontSize: 22,
-    fontWeight: 700,
-    lineHeight: '22px',
-    whiteSpace: 'nowrap',
-    color: colors.cardFg
-  },
-  footerMissing: { color: colors.cardBorderStrong },
-  footerVacantValue: { color: colors.cardBorder },
-  scoreDealer: { color: colors.scoreDealer },
-  scoreBuffer: { color: colors.scoreBuffer },
-  fameTop: { color: colors.tierTop },
-  fameRanker: { color: colors.tierRanker }
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    color: colors.cardFgMuted
+  }
 })

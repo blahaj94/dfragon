@@ -17,7 +17,6 @@ const mocks = vi.hoisted(() => {
   const registerWindowChromeWindow = vi.fn<
     typeof import('./window-chrome/ipc-handler').registerWindowChromeWindow
   >(() => vi.fn())
-  const nativeTheme = { shouldUseDarkColors: false }
   const disposeMainDiagnostics = vi.fn()
   const registerMainDiagnosticErrors = vi.fn(() => disposeMainDiagnostics)
   const reportDiagnostic = vi.fn()
@@ -58,7 +57,6 @@ const mocks = vi.hoisted(() => {
     disposeCapture,
     registerDiagnosticsWindow,
     registerWindowChromeWindow,
-    nativeTheme,
     registerMainDiagnosticErrors,
     disposeMainDiagnostics,
     reportDiagnostic,
@@ -130,7 +128,7 @@ vi.mock('electron', () => {
     destroy = vi.fn()
   }
 
-  return { session, app, BrowserWindow, nativeTheme: mocks.nativeTheme }
+  return { session, app, BrowserWindow }
 })
 vi.mock('@electron-toolkit/utils', () => {
   const optimizer = { watchWindowShortcuts: vi.fn() }
@@ -184,7 +182,6 @@ beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
   mocks.windows = []
-  mocks.nativeTheme.shouldUseDarkColors = false
   mocks.requestSingleInstanceLock.mockReturnValue(true)
   mocks.getPath.mockImplementation(() => join(process.cwd(), 'synthetic-app-data'))
   mocks.loadFile.mockResolvedValue(undefined)
@@ -383,31 +380,28 @@ it.each([
 })
 
 it.each([
-  ['win32', false, { color: '#ffffff', symbolColor: '#1a1c20', height: 56 }, '#ffffff'],
-  ['win32', true, { color: '#121214', symbolColor: '#f1ede6', height: 56 }, '#121214'],
-  ['linux', false, { color: '#ffffff', symbolColor: '#1a1c20', height: 56 }, '#ffffff'],
-  ['linux', true, { color: '#121214', symbolColor: '#f1ede6', height: 56 }, '#121214'],
-  ['darwin', false, { height: 56 }, '#ffffff'],
-  ['darwin', true, { height: 56 }, '#121214']
+  ['win32', { color: '#121214', symbolColor: '#f1ede6', height: 44 }],
+  ['linux', { color: '#121214', symbolColor: '#f1ede6', height: 44 }],
+  ['darwin', { height: 44 }]
 ] as const)(
-  '%s의 시스템 다크 모드 %s에 맞춰 제목 표시줄과 초기 창 색상을 설정한다',
-  async (platform, shouldUseDarkColors, titleBarOverlay, backgroundColor) => {
+  '%s에서 시스템 테마와 관계없이 다크 상단 바 색과 높이 44로 제목 표시줄을 두고 파티 화면 크기로 창을 연다',
+  async (platform, titleBarOverlay) => {
     const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!
     Object.defineProperty(process, 'platform', { value: platform })
-    mocks.nativeTheme.shouldUseDarkColors = shouldUseDarkColors
     try {
       await import('./main')
       await mocks.bootstrap
 
       expect(mocks.constructWindow).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining({
+          useContentSize: true,
           width: 1280,
-          height: 800,
+          height: 163,
           minWidth: 1024,
-          minHeight: 640,
+          minHeight: 163,
           titleBarStyle: 'hidden',
           titleBarOverlay,
-          backgroundColor
+          backgroundColor: '#121214'
         })
       )
     } finally {

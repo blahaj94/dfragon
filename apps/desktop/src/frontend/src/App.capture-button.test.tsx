@@ -79,17 +79,11 @@ async function chooseSource(name: string): Promise<void> {
     'main > header button[aria-label^="화면 캡처, "]'
   )!
   await act(async () => chip.click())
-  const trigger = document.querySelector<HTMLButtonElement>(
-    '[role="dialog"] button[aria-haspopup="menu"]'
-  )!
-  await act(async () => trigger.click())
-  const option = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
-    (item) => item.getAttribute('aria-label') === name
-  )!
+  const option = [
+    ...document.querySelectorAll<HTMLInputElement>('[role="dialog"] input[type="radio"]')
+  ].find((item) => item.getAttribute('aria-label') === name)!
   await act(async () => option.click())
-  const close = [...document.querySelectorAll('button')].find(
-    (button) => button.textContent === '닫기'
-  )!
+  const close = document.querySelector<HTMLButtonElement>('[role="dialog"] [aria-label="닫기"]')!
   await act(async () => close.click())
 }
 
@@ -109,17 +103,22 @@ async function mount(f: Fixture): Promise<void> {
   )
 }
 
-it('캡처 버튼은 상단 바가 아니라 파티 머리에만 있고 대화상자를 열지 않는다', async () => {
+it('캡처 버튼은 상단 바에 그린 파티 머리에만 있고 대화상자를 열지 않는다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
   await mount(f)
   const button = captureButton()
   expect(document.querySelectorAll('button[aria-label="파티 캡처, 단축키 Alt R"]')).toHaveLength(1)
-  expect(button.closest('header')).toBeNull()
+  expect(button.closest('main > header')).not.toBeNull()
+  // 상단 바에는 보이는 파티 화면의 머리만 그리고 숨긴 공대 머리는 그리지 않는다.
+  expect(document.querySelector('button[aria-label="공대 캡처, 단축키 Alt R"]')).toBeNull()
   expect(button.closest('section[aria-label="공대"]')).toBeNull()
   expect(button.getAttribute('aria-haspopup')).toBeNull()
   expect(button.getAttribute('aria-keyshortcuts')).toBe('Alt+R')
-  expect([...button.querySelectorAll('kbd')].map((kbd) => kbd.textContent)).toEqual(['Alt', 'R'])
+  // 카메라 아이콘과 `Alt R` 글자만 두고 `캡처` 글자와 키 테두리는 없다.
+  expect(button.querySelector('kbd')).toBeNull()
+  expect(button.querySelector('svg')).not.toBeNull()
+  expect(button.textContent).toBe('Alt R')
   await press(f, '캡처 버튼')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(beginCount(f)).toBe(1)

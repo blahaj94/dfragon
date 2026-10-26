@@ -331,7 +331,7 @@ export const invalidDesignExamples = (
     <IconButton variant="ghost" aria-label="설정" icon={<svg />} />
     {/* @ts-expect-error CardFrame state는 정해진 카드 상태 중 하나여야 한다. */}
     <CardFrame state="warning" />
-    {/* @ts-expect-error Select trigger 크기는 xs, sm, md 중 하나다. */}
+    {/* @ts-expect-error Select trigger 크기는 2xs, xs, sm, md 중 하나다. */}
     <Select.Trigger size="lg" />
   </>
 )

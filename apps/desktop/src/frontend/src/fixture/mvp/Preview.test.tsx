@@ -15,7 +15,7 @@ beforeEach(async () => {
   root = createRoot(container)
   await act(async () =>
     root.render(
-      <ColorThemeProvider initialTheme="dark">
+      <ColorThemeProvider>
         <Preview />
       </ColorThemeProvider>
     )
@@ -35,7 +35,7 @@ it('미리보기는 앱 첫 줄의 상단 바와 그 아래 파티 콘텐츠를 
   expect(header.textContent).toContain('DFragon')
   expect(header.textContent).toContain('창 감지됨')
   expect(header.querySelector('[aria-label^="화면 캡처"]')).not.toBeNull()
-  expect(header.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
+  expect(header.querySelector('[aria-label$="테마"]')).toBeNull()
   expect(header.querySelector('[aria-label="설정"]')).toBeNull()
   expect(header.textContent).not.toContain('로그인')
   const party = main.querySelector('[aria-label="파티 캐릭터"]')!
@@ -58,7 +58,9 @@ it.each([
   })
   const header = container.querySelector('header')!
   expect(header.querySelector(`[data-tone="${tone}"]`)?.textContent).toBe(label)
-  expect(header.querySelector('[role="status"]:not([data-capture-announcer])')).toBeNull()
+  // 상태 칩 자체는 알리지 않고, 상단 바의 live region은 화면 밖 캡처 안내와 파티 머리 안내뿐이다.
+  expect(header.querySelector('[data-tone][role="status"]')).toBeNull()
+  expect(header.querySelectorAll('[role="status"]:not([data-capture-announcer])')).toHaveLength(1)
   await act(async () =>
     header.querySelector<HTMLButtonElement>('[aria-label^="화면 캡처"]')!.click()
   )
@@ -71,11 +73,8 @@ it('모달에서 창을 고르면 미리보기 목록과 안내도 창 선택됨
     container.querySelector<HTMLButtonElement>('[aria-label^="화면 캡처"]')!.click()
   )
   const dialog = document.querySelector('[role="dialog"]')!
-  await act(async () =>
-    dialog.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click()
-  )
-  const option = document.querySelector<HTMLElement>(
-    '[role="menuitemradio"][aria-label="던전앤파이터"]'
+  const option = dialog.querySelector<HTMLInputElement>(
+    'input[type="radio"][aria-label="던전앤파이터"]'
   )!
   expect(option).not.toBeNull()
   await act(async () => option.click())
@@ -84,7 +83,15 @@ it('모달에서 창을 고르면 미리보기 목록과 안내도 창 선택됨
   expect(selector.value).toBe('selected')
   expect(selector.selectedOptions[0].textContent).toBe('캡처, 창 선택됨')
   expect(dialog.textContent).toContain('Alt+R을 눌러 파티를 인식해 주세요.')
-  expect(dialog.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
+  expect(dialog.querySelector('input[type="radio"]:checked')?.getAttribute('aria-label')).toBe(
     '던전앤파이터'
   )
+})
+
+it('미리보기 조작부는 제품 창 영역 밖, 창 아래에 둔다', () => {
+  const main = container.querySelector('main')!
+  const controls = container.querySelector('[aria-label="미리보기 상태"]')!
+  expect(main.contains(controls)).toBe(false)
+  expect(main.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(main.querySelector('[aria-label="파티 캐릭터"]')).not.toBeNull()
 })

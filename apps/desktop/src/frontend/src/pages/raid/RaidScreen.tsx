@@ -1,7 +1,7 @@
 import { useId } from 'react'
+import { createPortal } from 'react-dom'
 import { BoardHeader } from '../../components/BoardHeader'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
-import type { PartyCollapse } from '../../hooks/usePartyCollapse'
 import type { RaidCapture } from '../../hooks/useRaidCapture'
 import { slotAdventureName } from '../../lib/adventure-snapshot'
 import { seatValuesToSlotOrder } from '../../lib/raid-seats'
@@ -28,17 +28,17 @@ export type RaidScreenCapture = Pick<
 /**
  * 공대 화면. 공대 캡처 결과로 머리 안내와 자리별 카드가 그릴 값을 계산해 `RaidPage`에 넘긴다. 모험단 순번
  * 스냅샷은 이 화면이 가진다. 파티를 보는 동안에도 자리별 입력과 검색 상태를 유지하도록 숨기기만 하고 그린 채
- * 둔다.
+ * 둔다. 머리는 보이는 동안만 상단 바의 머리 자리에 그린다.
  */
 export function RaidScreen({
   capture,
   hidden,
-  collapse
+  headerSlot
 }: {
   capture: RaidScreenCapture
   hidden: boolean
-  /** 파티와 공대가 함께 쓰는 카드 접기 */
-  collapse: PartyCollapse
+  /** 상단 바의 화면 머리 자리. 아직 그려지지 않았으면 null이다. */
+  headerSlot: HTMLElement | null
 }): React.JSX.Element {
   const cardsId = useId()
   const { search, seatOrder } = capture
@@ -67,20 +67,22 @@ export function RaidScreen({
       id={cardsId}
       hidden={hidden}
       header={
-        <BoardHeader
-          target="공대"
-          filledCount={filledSlotCount(cards)}
-          notice={notice}
-          capture={capture}
-          snapshot={snapshot}
-          collapse={collapse}
-          controls={cardsId}
-        />
+        !hidden &&
+        headerSlot != null &&
+        createPortal(
+          <BoardHeader
+            target="공대"
+            filledCount={filledSlotCount(cards)}
+            notice={notice}
+            capture={capture}
+            snapshot={snapshot}
+          />,
+          headerSlot
+        )
       }
       resetKey={String(capture.round)}
       slots={cards}
       seats={capture}
-      collapsed={collapse.collapsed}
       actions={search}
     />
   )

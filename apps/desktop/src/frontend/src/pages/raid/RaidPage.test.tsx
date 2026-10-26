@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { space } from '@dfragon/ui/tokens.stylex'
 import * as stylex from '@stylexjs/stylex'
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -29,13 +30,11 @@ vi.mock('../../components/ServerSelect', () => ({
 }))
 
 // StyleX의 atomic class 이름은 속성과 값에서 정해지므로, 같은 선언을 여기서 만들면 같은 class가 나온다.
-// jsdom은 배치를 계산하지 않으므로 보드가 창 크기와 상관없는 고정 트랙을 쓰는지 class로 확인한다.
+// jsdom은 배치를 계산하지 않으므로 보드가 창 폭을 네 등분하는 트랙과 간격 8을 쓰는지 class로 확인한다.
 const expectedLayout = stylex.create({
-  columns: { gridTemplateColumns: '32px repeat(4, 288px)' },
-  rows: { gridTemplateRows: 'repeat(3, calc(616px / 3))' },
-  collapsedRows: { gridTemplateRows: 'repeat(3, calc(376px / 3))' },
-  scroll: { overflow: 'auto' },
-  hidden: { display: 'none' }
+  columns: { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' },
+  gap: { gap: space.s8 },
+  scroll: { overflow: 'auto' }
 })
 
 let root: Root
@@ -104,7 +103,6 @@ async function render({
       <RaidPage
         id="raid-cards"
         header={null}
-        collapsed={false}
         {...props}
         seats={{ seatOrder, canMoveSeats, swapSeats: swap }}
         actions={{ lookupSlot }}
@@ -165,7 +163,7 @@ function classesOf(style: stylex.StyleXStyles): string[] {
   return (stylex.props(style).className ?? '').split(' ').filter(Boolean)
 }
 
-it('파티 라벨 열 옆에 세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () => {
+it('세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () => {
   await render({ characters: [member, { ...member, name: '둘째' }] })
 
   expect(seats().map((seat) => seat.getAttribute('aria-label'))).toEqual(
@@ -189,7 +187,8 @@ it('파티 라벨 열 옆에 세 파티 네 자리씩 12자리를 번호 순서�
   expect(first.textContent).toContain('01')
   expect(first.textContent).toContain('공대모험단')
   expect(first.textContent).toContain('공대길드')
-  expect(first.textContent).toContain('공대직업')
+  // 직업은 카드에 두지 않는다.
+  expect(first.textContent).not.toContain('공대직업')
   // 서버 순위, 상세 열기, 면 탭 없는 축약 카드다.
   expect(first.textContent).not.toContain('서버 순위')
   expect(first.querySelector('[aria-label="1번 캐릭터 상세 열기"]')).toBeNull()
@@ -396,7 +395,7 @@ it('같은 두 자리를 연달아 맞바꿔도 알림 영역을 번갈아 채�
   expect(second.indexOf(text)).not.toBe(first.indexOf(text))
 })
 
-it('조회 중, 실패, 결과 0건은 자리마다 따로 보이고 실패 안내는 스탯 한 줄 자리에 보인다', async () => {
+it('조회 중, 실패, 결과 0건은 자리마다 따로 보이고 실패 안내는 소속 줄 자리에 보인다', async () => {
   const slots = [...idle]
   slots[0] = 'success'
   slots[4] = 'pending'
@@ -417,7 +416,7 @@ it('조회 중, 실패, 결과 0건은 자리마다 따로 보이고 실패 안�
   expect(card(0).getAttribute('aria-busy')).toBe('false')
 })
 
-it('찾은 카드에 추정 안내가 있으면 안내 줄을 보이고 확정한 카드는 명성과 장비 점수 줄만 보인다', async () => {
+it('찾은 카드의 안내는 소속 줄을 지키며 보조 기술에만 전하고 명성과 장비 점수 라벨을 둔다', async () => {
   const notices: (string | undefined)[] = Array.from({ length: 12 }, () => undefined)
   notices[1] = '장비 점수로 추정한 후보입니다.'
   await render({
@@ -427,10 +426,20 @@ it('찾은 카드에 추정 안내가 있으면 안내 줄을 보이고 확정�
   })
 
   const card = (index: number): HTMLElement => seats()[index].querySelector('article')!
-  expect(card(0).querySelector('p')).toBeNull()
-  expect(card(0).querySelectorAll('dl')).toHaveLength(1)
-  expect(card(1).querySelector('p')?.textContent).toBe('장비 점수로 추정한 후보입니다.')
-  expect(card(1).querySelectorAll('dl')).toHaveLength(1)
+  expect(card(0).textContent).not.toContain('추정한 후보')
+  // 소속 줄에는 모험단과 길드가 그대로 보이고, 안내는 줄 위 `title`과 보조 기술 문구로만 전한다.
+  const affiliation = card(1).querySelector<HTMLElement>(
+    '[title="장비 점수로 추정한 후보입니다."]'
+  )!
+  expect(affiliation.title).toBe('장비 점수로 추정한 후보입니다.')
+  expect(affiliation.textContent).toContain('공대모험단')
+  expect(card(1).querySelector('p')).toBeNull()
+  for (const index of [0, 1]) {
+    expect([...card(index).querySelectorAll('dt')].map((term) => term.textContent)).toEqual([
+      '명성',
+      '장비'
+    ])
+  }
 })
 
 it('공대 카드의 장비 점수는 카드 값에서 오고 계산값이나 계산하지 못한 사유를 보조 기술에 전한다', async () => {
@@ -451,10 +460,10 @@ it('공대 카드의 장비 점수는 카드 값에서 오고 계산값이나 �
     ]
   })
   const scoreOf = (seat: HTMLElement): Element =>
-    [...seat.querySelectorAll('dt')].find((term) => term.textContent === '장비 점수')!
+    [...seat.querySelectorAll('dt')].find((term) => term.textContent === '장비')!
       .nextElementSibling!
 
-  expect(scoreOf(seats()[0]).querySelector('[aria-hidden="true"]')?.textContent).toBe('330,556')
+  expect(scoreOf(seats()[0]).textContent).toContain('330,556')
   expect(scoreOf(seats()[0]).textContent).toContain('DFragon 계산값')
   expect(scoreOf(seats()[1]).textContent).toBe('-계산하지 못함, 장비 정보 부족')
 })
@@ -471,18 +480,17 @@ it('공대 카드는 엔진이 낸 근사값을 ≈를 붙여 보이고 근사�
     }
   }
   await render({ characters: [{ ...member, card: { ...member.card!, score: approximateScore } }] })
-  const score = [...seats()[0].querySelectorAll('dt')].find(
-    (term) => term.textContent === '장비 점수'
-  )!.nextElementSibling!
+  const score = [...seats()[0].querySelectorAll('dt')].find((term) => term.textContent === '장비')!
+    .nextElementSibling!
 
-  expect(score.querySelector('[aria-hidden="true"]')?.textContent).toBe('≈321,000')
+  expect(score.textContent).toContain('≈321,000')
   expect(score.getAttribute('title')).toBe(
     '근사값, 장비 정보 부족. 이전 시즌 융합석을 빼고 계산한 값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
   )
   expect(seats()[0].textContent).not.toContain('TITLE')
 })
 
-it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 단계는 명성에만 단계 색을 칠한다', async () => {
+it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 단계 카드는 명성과 점수에 단계 색을 칠한다', async () => {
   const termValue = (seat: HTMLElement, label: string): Element | undefined => {
     const term = [...seat.querySelectorAll('dt')].find((item) => item.textContent === label)
     if (term == null) {
@@ -504,20 +512,20 @@ it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 
   })
   const [dealerSeat, bufferSeat, unknownSeat, topSeat, rankerSeat, missingSeat] = seats()
 
-  expect(toneClassesOf(termValue(dealerSeat, '장비 점수')!)).toEqual(['dealer'])
-  expect(termValue(bufferSeat, '장비 점수')).toBeUndefined()
-  expect(termValue(bufferSeat, '버프 점수')!.textContent).toContain('게임 버프 점수')
-  expect(toneClassesOf(termValue(bufferSeat, '버프 점수')!)).toEqual(['buffer'])
-  // 역할을 모르면 라벨은 장비 점수이고 색은 기본색이다.
-  expect(toneClassesOf(termValue(unknownSeat, '장비 점수')!)).toEqual([])
-  // 단계 색은 명성만 칠하고 점수는 역할 색을 유지한다.
+  expect(toneClassesOf(termValue(dealerSeat, '장비')!)).toEqual(['dealer'])
+  expect(termValue(bufferSeat, '장비')).toBeUndefined()
+  expect(termValue(bufferSeat, '버프')!.textContent).toContain('게임 버프 점수')
+  expect(toneClassesOf(termValue(bufferSeat, '버프')!)).toEqual(['buffer'])
+  // 역할을 모르면 라벨은 장비이고 색은 기본색이다.
+  expect(toneClassesOf(termValue(unknownSeat, '장비')!)).toEqual([])
+  // 단계 카드는 명성과 점수를 모두 단계 색으로 칠한다.
   expect(toneClassesOf(termValue(topSeat, '명성')!)).toEqual(['top'])
-  expect(toneClassesOf(termValue(topSeat, '버프 점수')!)).toEqual(['buffer'])
+  expect(toneClassesOf(termValue(topSeat, '버프')!)).toEqual(['top'])
   expect(toneClassesOf(termValue(rankerSeat, '명성')!)).toEqual(['ranker'])
-  expect(toneClassesOf(termValue(rankerSeat, '장비 점수')!)).toEqual(['dealer'])
+  expect(toneClassesOf(termValue(rankerSeat, '장비')!)).toEqual(['ranker'])
   // 값이 없어 -로 보이는 점수는 역할 색 없이 기본 색이다.
-  expect(termValue(missingSeat, '버프 점수')!.textContent).toBe('-')
-  expect(toneClassesOf(termValue(missingSeat, '버프 점수')!)).toEqual([])
+  expect(termValue(missingSeat, '버프')!.textContent).toBe('-')
+  expect(toneClassesOf(termValue(missingSeat, '버프')!)).toEqual([])
 })
 
 it('검색 응답에 없는 길드, 명성, 장비 점수는 -로 보인다', async () => {
@@ -525,8 +533,7 @@ it('검색 응답에 없는 길드, 명성, 장비 점수는 -로 보인다', as
     characters: [{ ...member, guild: null, card: null, fame: null }]
   })
   const first = seats()[0]
-  const footer = [...first.querySelectorAll('dl')].at(-1)!
-  expect([...footer.querySelectorAll('dd')].map((value) => value.textContent)).toEqual(['-', '-'])
+  expect([...first.querySelectorAll('dd')].map((value) => value.textContent)).toEqual(['-', '-'])
   expect(first.textContent).toContain('공대모험단-')
 })
 
@@ -543,7 +550,7 @@ it('화면이 넘긴 머리를 보드 위에 두고 숨기면 머리와 보드�
   expect(container.querySelector('section')?.contains(header)).toBe(true)
 })
 
-it('보드는 창 크기와 상관없이 1280×800 배치의 카드 크기로 고정하고 넘치면 보드 영역이 스크롤한다', async () => {
+it('보드는 창 폭을 네 등분한 열에 간격 8로 카드를 놓고 넘치면 보드 영역이 스크롤한다', async () => {
   await render({ characters: [member] })
   const scroller = container.querySelector<HTMLElement>('#raid-cards')!
   const board = scroller.firstElementChild!
@@ -552,39 +559,13 @@ it('보드는 창 크기와 상관없이 1280×800 배치의 카드 크기로 �
   for (const name of classesOf(expectedLayout.scroll)) {
     expect(classes(scroller)).toContain(name)
   }
-  for (const name of [...classesOf(expectedLayout.columns), ...classesOf(expectedLayout.rows)]) {
+  for (const name of [...classesOf(expectedLayout.columns), ...classesOf(expectedLayout.gap)]) {
     expect(classes(board)).toContain(name)
   }
-
-  await render({ characters: [member], collapsed: true })
-  for (const name of [
-    ...classesOf(expectedLayout.columns),
-    ...classesOf(expectedLayout.collapsedRows)
-  ]) {
-    expect(classes(board)).toContain(name)
-  }
-})
-
-it('접힌 동안은 그림 칸과 직업을 숨기고 이름 입력과 명성, 장비 점수를 남긴다', async () => {
-  await render({ characters: [member] })
-  const first = (): HTMLElement => seats()[0]
-  const hiddenClasses = classesOf(expectedLayout.hidden)
-  const hiddenParts = (): Element[] =>
-    [...first().querySelectorAll('article *')].filter((element) =>
-      hiddenClasses.every((name) => element.classList.contains(name))
-    )
-  expect(hiddenParts()).toEqual([])
-  expect(first().querySelectorAll('dl')).toHaveLength(1)
-
-  await render({ characters: [member], collapsed: true })
-  expect(nameOf(first())).toBe('공대원')
-  expect(first().querySelectorAll('dl')).toHaveLength(1)
-  expect([...first().querySelectorAll('dt')].map((term) => term.textContent)).toEqual([
-    '명성',
-    '장비 점수'
-  ])
-  // 그림 칸(이미지가 없어 대체 표시 —)과 직업이 숨김 스타일을 받는다.
-  expect(hiddenParts().map((element) => element.textContent)).toEqual(['—', '공대직업'])
+  // 왼쪽 파티 번호 열은 그리지 않고, 파티 이름은 보조 기술에 자리 설명으로만 전한다.
+  expect(
+    [...board.querySelectorAll('[id^="raid-cards-party-"]')].map((label) => label.textContent)
+  ).toEqual(['1파티', '2파티', '3파티'])
 })
 
 it('슬롯에 붙은 스냅샷 표시는 그 슬롯이 놓인 자리 카드에 칩과 경고로 들어간다', async () => {
