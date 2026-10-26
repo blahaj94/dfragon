@@ -9,6 +9,7 @@ import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { StatLine } from '../components/StatLine'
 import { useLookupDraft } from '../hooks/useLookupDraft'
+import { useServerMenu } from '../hooks/useServerMenu'
 import {
   type CharacterCardFrameState,
   getCharacterCardFrameState,
@@ -80,6 +81,7 @@ export function RaidCard({
   // 찾은 자리는 공대 캡처가 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
   const nickname = characterFound ? undefined : card.nickname
   const draft = useLookupDraft({ character, nickname, onLookup })
+  const serverMenu = useServerMenu()
   const hasCharacter = characterFound && !draft.editing
   const vacant = isVacantSlot(state)
   const busy = loading || state === 'pending'
@@ -153,6 +155,8 @@ export function RaidCard({
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
                       draft.submit()
+                    } else {
+                      serverMenu.openOnTab(event)
                     }
                   }}
                   right={
@@ -161,6 +165,8 @@ export function RaidCard({
                       label={`${slot}번 서버`}
                       value={draft.serverId}
                       options={serverOptions}
+                      open={serverMenu.open}
+                      onOpenChange={serverMenu.setOpen}
                       onValueChange={draft.changeServer}
                     />
                   }
