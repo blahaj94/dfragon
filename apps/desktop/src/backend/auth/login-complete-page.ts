@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import dragonMark from '../../../resources/brand.png?inline'
-import denkiChip from '../../frontend/src/assets/fonts/x10y12pxDenkiChipHangul.woff2?inline'
+import maruMinya from '../../frontend/src/assets/fonts/x12y12pxMaruMinyaHangul.woff2?inline'
 
 // Inline assets keep the one-shot callback independent of any later HTTP request.
 export const LOGIN_COMPLETE_HTML = `<!doctype html>
@@ -12,8 +12,8 @@ export const LOGIN_COMPLETE_HTML = `<!doctype html>
     <link rel="icon" href="data:," />
     <style>
       @font-face {
-        font-family: 'DenkiChip Hangul';
-        src: url('${denkiChip}') format('woff2');
+        font-family: 'MaruMinya Hangul';
+        src: url('${maruMinya}') format('woff2');
         font-weight: 100 900;
         font-style: normal;
         font-display: swap;
@@ -26,7 +26,7 @@ export const LOGIN_COMPLETE_HTML = `<!doctype html>
         justify-content: center;
         background: #0f0f11;
         color: #f1ede6;
-        font-family: 'DenkiChip Hangul', 'Malgun Gothic', sans-serif;
+        font-family: 'MaruMinya Hangul', 'Malgun Gothic', sans-serif;
         word-break: keep-all;
         overflow-wrap: anywhere;
       }
