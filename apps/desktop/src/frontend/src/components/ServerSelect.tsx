@@ -7,6 +7,9 @@ type ServerSelectProps = {
   disabled?: boolean
   /** `field`는 이름 입력 칸 안에 넣는 높이 16의 작은 칩이다. @default 'chip' */
   variant?: 'chip' | 'field'
+  /** 목록 열림을 밖에서 정할 때 쓴다. 넘기지 않으면 칩을 눌러 열고 닫는다. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   onValueChange: (id: string) => void
 }
 
@@ -17,10 +20,14 @@ export function ServerSelect({
   options,
   disabled = false,
   variant = 'chip',
+  open,
+  onOpenChange,
   onValueChange
 }: ServerSelectProps): React.JSX.Element {
   return (
     <Select.Root
+      open={open}
+      onOpenChange={(next: boolean) => onOpenChange?.(next)}
       value={value || null}
       onValueChange={(next: string | null) => {
         if (next != null) {

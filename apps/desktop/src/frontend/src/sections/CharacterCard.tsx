@@ -12,6 +12,7 @@ import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { useLookupDraft } from '../hooks/useLookupDraft'
+import { useServerMenu } from '../hooks/useServerMenu'
 import { CardImage } from '../components/CardImage'
 import { CandidateWindow } from '../components/CandidateWindow'
 import { StatLine } from '../components/StatLine'
@@ -65,6 +66,7 @@ export function CharacterCard({
   // 찾은 자리는 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
   const nickname = characterFound ? undefined : card.nickname
   const draft = useLookupDraft({ character, nickname, onLookup })
+  const serverMenu = useServerMenu()
   const { inputNotice, editing } = draft
   const hasCharacter = state === 'success' && character != null && !editing
   const score = toScoreView(characterFound ? character.card : null)
@@ -128,6 +130,8 @@ export function CharacterCard({
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
                       draft.submit()
+                    } else if (inputEnabled) {
+                      serverMenu.openOnTab(event)
                     }
                   }}
                   right={
@@ -138,6 +142,8 @@ export function CharacterCard({
                         value={draft.serverId}
                         disabled={!inputEnabled}
                         options={serverOptions}
+                        open={serverMenu.open}
+                        onOpenChange={serverMenu.setOpen}
                         onValueChange={draft.changeServer}
                       />
                     )
