@@ -113,7 +113,7 @@ it('비동기 식별 성공은 OCR 첫 이름 대신 선택된 이름과 서버�
   )
   expect(slot.textContent).toContain('카인')
   expect(statText(slot, '명성')).toBe('0')
-  expect(statText(slot, '장비 점수')).toBe('-')
+  expect(statText(slot, '장비')).toBe('-')
   expect(slot.getAttribute('data-state')).toBe('default')
   expect(slot.querySelector('[aria-label="이름 수정 중"]')).toBeNull()
   expect(slot.querySelector('img')?.getAttribute('src')).toBe(character.image)
