@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, font, motion, radius, size, space } from '@dfragon/ui/tokens.stylex'
+import { colors, font, motion, space } from '@dfragon/ui/tokens.stylex'
 
 // 이름 수정 중의 네모 점 3개. 한 박자를 셋으로 나눠 차례로 켜고 끊어서 바꾼다(motion.md).
 const dotBlink = stylex.keyframes({
@@ -7,7 +7,7 @@ const dotBlink = stylex.keyframes({
   '33.333%, 100%': { opacity: 0.25 }
 })
 
-// 접힌 카드에서 칸보다 긴 소속과 이름은 일정한 속도로 3초 동안 끝까지 흐르고 1초 쉰 뒤 3초 동안 돌아와
+// 접힌 카드에서 칸보다 긴 소속은 일정한 속도로 3초 동안 끝까지 흐르고 1초 쉰 뒤 3초 동안 돌아와
 // 1초 쉰다. 이동 거리는 글자 폭에서 감싼 칸(container) 폭을 뺀 만큼이라 칸에 들어가면 움직이지 않는다.
 const marquee = stylex.keyframes({
   '0%': { transform: 'translateX(0)' },
@@ -50,29 +50,8 @@ export const styles = stylex.create({
     paddingInline: space.s12,
     containerType: 'inline-size'
   },
-  // 카드 번호 칩(numeric.chip 16 700). 오른쪽 위를 자른다.
-  number: {
-    ...numeric,
-    display: 'inline-flex',
-    alignItems: 'center',
-    flexShrink: 0,
-    height: 24,
-    paddingInlineStart: space.s8,
-    paddingInlineEnd: 10,
-    fontSize: 16,
-    fontWeight: 700,
-    backgroundColor: colors.cardControl,
-    color: colors.cardFgMuted,
-    transitionProperty: 'background-color, color',
-    transitionDuration: motion.durState,
-    transitionTimingFunction: motion.ease
-  },
-  numberSelected: { backgroundColor: colors.cardSignal, color: colors.cardOnSignal },
-  numberWaiting: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
-  // 상위, 랭커 카드의 번호 칩은 단계 색 면이다(dfragon-design colors.md의 카드 상태와 꺾쇠).
-  numberTop: { backgroundColor: colors.tierTop, color: colors.cardOnSignal },
-  numberRanker: { backgroundColor: colors.tierRanker, color: colors.cardOnSignal },
-  server: { display: 'flex', flexShrink: 0, minWidth: 0, maxWidth: '50%' },
+  // 이름 칸은 머리 줄의 남는 폭을 채운다.
+  nameField: { display: 'grid', flex: '1 1 0', minWidth: 0 },
   spacer: { flex: 1, minWidth: 0 },
   dots: { display: 'flex', flexShrink: 0, gap: space.s4, paddingInlineEnd: space.s4 },
   dot: {
@@ -97,7 +76,6 @@ export const styles = stylex.create({
     backgroundColor: colors.cardFailureWeak,
     color: colors.cardFailure
   },
-  waitingMark: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
   body: { display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 },
   characterFace: { display: 'flex', flexDirection: 'column', flex: '0 1 auto', minHeight: 0 },
   // 그림 칸. 펼친 창에서는 280이고 창이 낮으면 먼저 줄어든다.
@@ -219,53 +197,6 @@ export const styles = stylex.create({
     animationTimingFunction: 'linear',
     animationIterationCount: 'infinite'
   },
-  // 접힌 카드의 이름 칸 위에 흐르는 이름을 겹쳐 그린다. 누르면 아래 입력 칸이 포커스를 받는다. 좌우 10은
-  // 아래 `name`의 테두리 2와 안쪽 여백 8을 더한 값이라, 둘이 바뀌면 함께 맞춘다.
-  nameMarquee: {
-    position: 'absolute',
-    insetBlock: 0,
-    insetInline: 10,
-    display: 'flex',
-    alignItems: 'center',
-    overflow: 'hidden',
-    containerType: 'inline-size',
-    pointerEvents: 'none',
-    color: colors.cardFg
-  },
-  nameUnderMarquee: { color: 'transparent' },
-  // 이름은 평소 테두리 없는 글자로 보이고, 고치는 동안 카드 신호색 상자가 된다. 글자가 모험단과 같은
-  // 세로줄에 오도록 상자 안쪽 여백과 테두리만큼 왼쪽으로 내민다.
-  // Typo가 요소 margin을 0으로 두므로 내미는 여백은 감싼 상자에 준다.
-  nameBox: {
-    position: 'relative',
-    minWidth: 0,
-    marginTop: 3,
-    marginBottom: -1,
-    marginInlineStart: -10
-  },
-  name: {
-    boxSizing: 'border-box',
-    width: '100%',
-    minWidth: 0,
-    height: size.controlSm,
-    paddingBlock: 0,
-    paddingInline: space.s8,
-    borderWidth: 2,
-    borderStyle: 'solid',
-    borderColor: { default: 'transparent', ':hover:not(:disabled)': colors.cardBorder },
-    borderRadius: radius.control,
-    backgroundColor: 'transparent',
-    color: { default: colors.cardFg, ':disabled': colors.cardFgMuted },
-    fontFamily: 'inherit',
-    outlineStyle: 'none',
-    transitionProperty: 'border-color, background-color',
-    transitionDuration: motion.durState,
-    transitionTimingFunction: motion.ease,
-    '::placeholder': { color: colors.cardFgSubtle }
-  },
-  nameWaiting: { borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.bgWell },
-  nameFailure: { borderColor: colors.cardFailure },
-  nameSelected: { borderWidth: 2, borderColor: colors.cardSignal, backgroundColor: colors.bgWell },
   collapsible: {
     ...collapseTransition,
     display: 'flex',
