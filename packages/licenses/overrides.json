@@ -61,10 +61,10 @@
       "sha256": "4072f7ac49dd39f61e83af60c0bbea0350d3a40b93217a97829acb6d872881d8"
     }
   ],
-  "remeda@2.51.0": [
+  "remeda@2.52.0": [
     {
-      "file": "upstream/remeda-2.51.0-LICENSE.txt",
-      "source": "https://raw.githubusercontent.com/remeda/remeda/8e6e78f6eaf66eaf0b4797d72cc3691823c91335/LICENSE",
+      "file": "upstream/remeda-2.52.0-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/remeda/remeda/34fec07e3b96c3ec320ec34b6223900dcc4cb54b/LICENSE",
       "sha256": "acf30083045d768ce20640237313ee31a45d548d66ef76df5bb5fb0745479535"
     }
   ]
