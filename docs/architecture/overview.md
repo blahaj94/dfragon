@@ -14,11 +14,9 @@ DFragon은 pnpm workspace monorepo다.
 
 ```text
 apps/
-  accounts/
   api/
   web/
   desktop/
-  ocr/
 packages/
   ui/
   lib/
@@ -29,10 +27,8 @@ packages/
 scripts/
 ```
 
-- `apps/accounts`: NestJS 인증 서비스와 패스키 UI. accounts.dfragon.com과 별도 PostgreSQL container, volume, 역할을 소유한다.
-- `apps/api`: 캐릭터, 모험단 공개 NestJS API workspace. 승인된 ESM runtime, dependency, build/test 계약은 [`../rules/api-runtime.md`](../rules/api-runtime.md)를 따른다. 구현 현황은 Reference에서 확인한다.
+- `apps/api`: 캐릭터 공개 NestJS API workspace. DB 없이 요청마다 Neople API를 조회한다. 승인된 ESM runtime, dependency, build/test 계약은 [`../rules/api-runtime.md`](../rules/api-runtime.md)를 따른다. 구현 현황은 Reference에서 확인한다.
 - `apps/web`: React, TypeScript, Vite 기반 web application.
-- `apps/ocr`: 개인 OCR 자료의 Node 26, NestJS 서버와 React 관리 SPA. 원본, 좌표, 정답은 서버의 SQLite에 보관하고 accounts의 패스키로 인증한다. 저장, 배포 경계는 [OCR 계약](../rules/ocr-workspace.md)을 따른다.
 - `apps/desktop`: Electron, React, TypeScript, electron-vite 기반 desktop application.
 - `packages/ui`: 현재 tracked shared UI package `@dfragon/ui`. 실제 구현, 명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
 - `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@dfragon/lib`. 아래 Shared library boundary를 따른다.
@@ -46,27 +42,15 @@ scripts/
 
 ## Approved boundary
 
-현재 workspace, app boundary와 API runtime, 검증 기반이 승인됐다. 검색의 입력, 응답, 오류, 계정 제한은 [`../rules/character-search.md`](../rules/character-search.md)를 따른다. 인증, 핵심 DB, 서버 통신의 범위는 아래 Authentication boundary contract를 따른다.
+현재 workspace, app boundary와 API runtime, 검증 기반이 승인됐다. 검색의 입력, 응답, 오류는 [`../rules/character-search.md`](../rules/character-search.md)를 따른다. 회원 인증 서비스와 DB는 두지 않는다(2026-10-26 결정, [Issue #796](https://github.com/blahaj94/dfragon/issues/796)). API는 상태를 저장하지 않으며 여러 노드로 띄울 수 있다. 응답 캐시를 도입하면 노드가 공유하는 저장소(Redis)를 쓴다. 다음 사항은 구체 결정, 확보 또는 검증이 남아 있다.
 
-PostgreSQL의 갱신, 검증 기준은 [`auth-runtime.md`](../rules/auth-runtime.md)를 따른다. 실제 고정 image는 검증 도구에서 확인하며 일반 패치마다 Rule 승인을 반복하지 않는다. 로컬 검증 성공을 운영 환경의 성공으로 확대하지 않는다. 다음 사항은 구체 결정, 확보 또는 검증이 남아 있다.
-
-- 선택한 인증 운영 환경의 권한, 저장과 기능 검증. 공개 복원은 선택했을 때만 확인
 - Web/mobile client
 - 아래 Shared UI, Shared library boundary 이외의 shared package 종류와 dependency direction
-- 승인된 탈퇴, 삭제/재가입, 백업 복원 정책의 실제 저장소, 권한, 실행 검증 gate
 - 현재 요청과 MVP 운영 기준을 벗어나는 새로운 deployment boundary
 
 미정 사항을 구현해야 하면 AI는 임의로 architecture를 확정하지 않고 사용자에게 대안과 trade-off를 제시한다.
 
-## Authentication boundary contract
-
-accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 회원, 공개키, session을 저장한다. 인증 UI, 패스키 로그인, 키 관리는 accounts.dfragon.com의 단일 origin과 RP를 사용한다. Desktop public client는 시스템 기본 브라우저에서 인증하고 loopback 수신기로 받은 앱 복귀 code를 S256으로 보호해 교환한다. 계약은 [패스키](../rules/auth-passkeys.md), [HTTP 경계](../rules/auth-api.md), [세션](../rules/auth-session.md), [DB](../rules/auth-database.md), [활동](../rules/auth-activity.md), [runtime](../rules/auth-runtime.md)을 따른다.
-
-Desktop main/IPC/화면, 인증 lifecycle, OS 저장의 canonical contract는 [`../rules/desktop-auth.md`](../rules/desktop-auth.md), [`../rules/desktop-auth-lifecycle.md`](../rules/desktop-auth-lifecycle.md), [`../rules/desktop-auth-platform.md`](../rules/desktop-auth-platform.md)다.
-
-탈퇴 D1–D5와 공개 복원의 삭제 보존, 최신성, 옛 자격 폐기 조건은 [탈퇴 계약](../rules/auth-withdrawal-proposal.md)을 따른다. 한 운영자, 단일 서버를 허용하고 공개 복원은 선택 기능으로 유지한다. API/accounts와 각각의 PostgreSQL, volume, 역할 분리는 유지하며 같은 host의 분리를 물리 장애 격리로, 같은 운영자의 계정 분리를 독립 관리자에 의한 침해 방지로 설명하지 않는다. 서버 배치, 배포, 백업, 복구 실행은 [저장소 책임 경계](../reference/api-start-development.md#서버-이미지)의 인프라 담당 범위다.
-
-설계와 실제 구현, 환경 검증을 구분한다. 미제공 복원 기능이 독립 작업을 막지 않으며, 실제 credential, 인증 도메인 설정, 운영 DB, 배포 권한과 유효한 명시적 금지는 유지한다.
+Desktop에 남은 로그인 코드와 그 계약([`../rules/desktop-auth.md`](../rules/desktop-auth.md), [`../rules/desktop-auth-lifecycle.md`](../rules/desktop-auth-lifecycle.md), [`../rules/desktop-auth-platform.md`](../rules/desktop-auth-platform.md))은 Desktop을 줄이는 변경에서 함께 지운다.
 
 ## 점수 엔진 경계
 
@@ -77,7 +61,7 @@ Desktop main/IPC/화면, 인증 lifecycle, OS 저장의 canonical contract는 [`
 | 비공개 엔진 저장소 | 엔진의 소스, 계산 데이터, 빌드, Release를 소유한다. |
 | 이 저장소 | 엔진을 불러 쓰는 로더와 바이너리 입수 script만 둔다. 엔진의 소스, 데이터, 바이너리를 commit하지 않는다. |
 | `apps/desktop` main | 엔진을 `koffi`로 로드하고 호출하는 유일한 실행 위치다. |
-| renderer, preload, `apps/api`, `apps/accounts`, `apps/ocr`, `apps/web` | 엔진을 로드하거나 import하지 않는다. renderer는 main이 계산해 전달한 결과만 받는다. |
+| renderer, preload, `apps/api`, `apps/web` | 엔진을 로드하거나 import하지 않는다. renderer는 main이 계산해 전달한 결과만 받는다. |
 
 - **빌드 조건**: 엔진 바이너리는 CI secret으로 입수한다. 엔진 없는 빌드를 허용한다.
 - **코드 노출 한계**: 컴파일된 코드도 역공학으로 해석할 수 있다. 이 경계는 소스와 데이터를 공개 저장소 밖에 두는 소유 분리이며, Desktop에 실린 바이너리의 로직이 끝까지 숨겨진다고 보장하지 않는다.
@@ -90,8 +74,6 @@ Desktop main/IPC/화면, 인증 lifecycle, OS 저장의 canonical contract는 [`
 | --- | --- |
 | `packages/ui`의 `@dfragon/ui` | Browser React shared package 하나로 자체 토큰(`tokens.css`, `tokens.stylex`), Base UI 기반 공용 Component, 공용 형태와 실제로 공유하는 Layout, composition, 디자인 컴포넌트, Typo를 제공한다. `@dfragon/ui` → Base UI/React, StyleX runtime 방향으로 연결하며 app source, 앱 테마, API client, backend, Electron main/preload, IPC, 인증, domain을 import하지 않는다. |
 | `apps/web`, `apps/desktop` renderer | `@dfragon/ui`를 소비하고 제품 data, event, behavior와 app별 platform 연결을 맡는다. 서로의 source를 import하지 않는다. Desktop main/preload는 UI package를 소비하지 않는다. |
-| `apps/ocr/browser` | 관리 React 화면에서 `@dfragon/ui/tokens.css`, `@dfragon/ui/tokens.stylex`와 `@dfragon/ui/typo`를 소비한다. 서버 runtime은 UI를 import하지 않는다. |
-| `apps/accounts/browser` | 인증 React 화면에서 `@dfragon/ui/tokens.css`, `@dfragon/ui/tokens.stylex`와 `@dfragon/ui/typo`를 소비한다. API server runtime은 UI를 import하지 않으며, browser build는 해당 public source entry를 해석한다. |
 | 독립 Vite Example entry | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@dfragon/ui` public API와 합성 content로 확인한다. 새 화면마다 Component, Pattern, Template 예제를 갖출 의무는 없다. |
 
 공용 Component는 Base UI 부품의 semantic API와 접근성 동작을 유지하고 외형만 StyleX로 그린다. 같은 역할의 Component를 이름만 바꿔 다시 감싸지 않는다. 화면별 스타일 허용 범위와 필요한 Example, 토큰, version, 영향 검증은 [`design-system.md`](../rules/design-system.md)가 canonical Rule이다.
@@ -109,7 +91,7 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web, Ele
 
 ## Shared library boundary
 
-`packages/lib`의 `@dfragon/lib`는 앱 → library 방향으로 소비하는 순수 함수를 제공하며 앱 source, UI, Node/Electron 전용 runtime, 네트워크, 저장소에 의존하지 않는다. 제공하는 함수의 범위는 [공용 함수 안내](../../packages/lib/README.md)를 따른다. IP 키 변환은 API, accounts, OCR의 동일한 IPv4 정규화, IPv6 /64 묶기, 잘못된 주소 공유 규칙을 모은다. 신뢰할 접속 IP 선택, 프록시 설정, 요청 한도와 카운터는 각 서버 앱이 소유한다. 이미지 디코딩, 게임 캡처, OCR, 저장과 화면 연결은 소비 앱이 소유한다.
+`packages/lib`의 `@dfragon/lib`는 앱 → library 방향으로 소비하는 순수 함수를 제공하며 앱 source, UI, Node/Electron 전용 runtime, 네트워크, 저장소에 의존하지 않는다. 제공하는 함수의 범위는 [공용 함수 안내](../../packages/lib/README.md)를 따른다. 이미지 디코딩, 게임 캡처, OCR, 저장과 화면 연결은 소비 앱이 소유한다.
 
 ## License tooling boundary
 

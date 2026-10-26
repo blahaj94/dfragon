@@ -8,7 +8,7 @@
 
 원본 PNG, 닉네임 좌표와 얼굴을 포함한 전체 슬롯 좌표를 `ocr.dfragon.com`의 테스트 수집 경로로 보냅니다. OCR 예측은 미검수 메타데이터이며 정답을 자동 입력하지 않습니다. 수동 서버, 닉네임 조회는 업로드를 늘리지 않습니다. 전송은 백그라운드에서 처리하며 실패나 대기열 초과가 캐릭터 조회를 막지 않습니다. 자동 재전송은 하지 않습니다.
 
-로그인은 필요 없지만 서버의 **`OCR_TEST_UPLOAD_ENABLED=true`** 설정이 필요합니다. 기본값은 꺼짐이며 기존 자료 조회와 수정에는 계속 소유자 인증이 필요합니다. 안정 버전은 테스트 수집을 켜지 않습니다. [서버 한도와 데이터 계약](../ocr/README.md)을 확인한 뒤 서버를 먼저 배포하고 설정을 활성화합니다. 코드 변경만으로 운영 설정이나 자료를 변경하지 않습니다.
+로그인은 필요 없지만 서버의 **`OCR_TEST_UPLOAD_ENABLED=true`** 설정이 필요합니다. 기본값은 꺼짐이며 기존 자료 조회와 수정에는 계속 소유자 인증이 필요합니다. 안정 버전은 테스트 수집을 켜지 않습니다. 서버 한도와 데이터 계약을 확인한 뒤 서버를 먼저 배포하고 설정을 활성화합니다. 코드 변경만으로 운영 설정이나 자료를 변경하지 않습니다.
 
 ## 실행 중 오류 확인
 
@@ -100,7 +100,7 @@ gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test
 
 배포 앱, 개발 앱, PR용 test 채널의 공개 값은 `build/channels.json`에 채널별로 모아 둡니다. 앱 이름, 실행 파일 이름, package 이름, 출력 폴더, NSIS include, identity, 로그인 설정(환경, provider)과 API, accounts origin의 출처가 여기에 있으며 `build/channels.ts`가 빌드 시 형식과 공개 origin 조건을 검증합니다. 로그인 설정이 없는 채널은 로그인 없이 실행하고 Electron 기본 profile 경로를 씁니다. 빌드가 이 파일에서 채널 하나의 identity와 origin을 main bundle에 넣고, packaging 설정은 `build/electron-builder-config.ts`가 이 파일로 만듭니다. 기본 진입 파일 `electron-builder.ts`는 `DFRAGON_CHANNEL` 환경변수로 채널을 고르고 비우면 배포 채널이며, `electron-builder.development.ts`와 `electron-builder.test-channel.ts`는 각각 개발, test 채널로 고정되어 Windows PowerShell에서 환경변수 없이 쓸 수 있습니다. `scripts/desktop-package-fuses.test.mjs`와 `build/electron-builder-config.test.ts`가 electron-builder가 읽는 설정과 이 파일의 일치를 검사합니다. Secret, credential은 이 파일에 넣지 않습니다.
 
-NSIS는 protocol을 등록하지 않으며 다른 앱의 scheme 소유를 이유로 설치를 중단하지 않습니다. 설치와 제거 때 `build/legacy-protocol-cleanup.nsh`가 HKCU의 기존 채널 scheme 키를 확인하고, `shell\open\command`가 정확히 이 앱 실행 파일과 인자를 가리킬 때만 지웁니다. 다른 앱의 키는 보존합니다. 패스키 로그인에는 API의 HTTPS origin과 RP ID가 맞아야 하며, 서버와 앱이 같은 loopback 복귀 형식을 사용해야 합니다. [패스키 설정](../../docs/reference/passkey-authentication.md)을 참고합니다.
+NSIS는 protocol을 등록하지 않으며 다른 앱의 scheme 소유를 이유로 설치를 중단하지 않습니다. 설치와 제거 때 `build/legacy-protocol-cleanup.nsh`가 HKCU의 기존 채널 scheme 키를 확인하고, `shell\open\command`가 정확히 이 앱 실행 파일과 인자를 가리킬 때만 지웁니다. 다른 앱의 키는 보존합니다. 패스키 로그인에는 API의 HTTPS origin과 RP ID가 맞아야 하며, 서버와 앱이 같은 loopback 복귀 형식을 사용해야 합니다. 패스키 설정을 참고합니다.
 
 ### 배포 API와 설치본 확인
 

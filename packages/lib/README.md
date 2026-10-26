@@ -2,7 +2,7 @@
 
 API, Web, Desktop에서 입력 규칙, 요청 제한용 IP 키, DNF UI 좌표, 픽셀 계산을 재사용하는 공용 TypeScript 패키지입니다. 앱 source, React, Electron, Node 전용 runtime에 의존하지 않는 ESM과 선언 파일을 제공합니다.
 
-소비 workspace의 `dependencies`에 `"@dfragon/lib": "workspace:*"`를 추가하고 `pnpm --filter @dfragon/lib build` 후 사용합니다. API, accounts, OCR의 build와 typecheck는 공용 패키지를 먼저 빌드합니다. 요청 제한용 IP 키는 세 서버 앱에서 이 패키지를 사용하며, 캐릭터명 검사와 DNF 계산 함수의 적용 범위는 아래 안내를 따릅니다.
+소비 workspace의 `dependencies`에 `"@dfragon/lib": "workspace:*"`를 추가하고 `pnpm --filter @dfragon/lib build` 후 사용합니다. API의 build와 typecheck는 공용 패키지를 먼저 빌드합니다. 캐릭터명 검사와 DNF 계산 함수의 적용 범위는 아래 안내를 따릅니다.
 
 ## 배열 페이지 나누기
 
@@ -61,7 +61,7 @@ getIpQuotaKey('invalid-address') // 'unknown'
 
 `matchesDNFSearchNicknamePolicy(nickname)`는 검색어의 Unicode 코드 포인트 수 2~12와 앞뒤 공백 금지를 함께 검사합니다. `DNF_SEARCH_NICKNAME_LIMITS`가 두 길이 경계의 원본입니다. 문자열을 trim, 정규화하지 않고 내부 공백과 분해 문자, 이모지 sequence의 기존 의미를 유지합니다.
 
-API 검색 query, Desktop main 검색 관측, 수동 입력 화면이 이 함수를 공유합니다. 함수의 보장은 길이, 공백 정책에 한정됩니다. API의 엄격한 URL/UTF-8 decode와 Desktop의 `isWellFormed()` 검사는 각 입력 경계에 남아 있습니다. 아래 CP949 기반 캐릭터명 생성 검사나 accounts의 계정 닉네임 검사를 대체하지 않습니다.
+API 검색 query, Desktop main 검색 관측, 수동 입력 화면이 이 함수를 공유합니다. 함수의 보장은 길이, 공백 정책에 한정됩니다. API의 엄격한 URL/UTF-8 decode와 Desktop의 `isWellFormed()` 검사는 각 입력 경계에 남아 있습니다. 아래 CP949 기반 캐릭터명 생성 검사를 대체하지 않습니다.
 
 ## 던파 캐릭터명 검사
 
@@ -92,7 +92,7 @@ validateDFNickname('MyGM', { bannedWords: ['gm'] })
 
 ## 도메인 근거와 한계
 
-[네오플의 2018년 검색 API 공지](https://developers.neople.co.kr/contents/notice/view/106)는 `wordType=full` 검색의 2~12자를 안내합니다. 검색어 길이는 캐릭터명 생성의 인코딩, 바이트 상한과 다른 계약입니다. [DFragon 검색 규칙](../../docs/rules/character-search.md)은 Unicode code point 기준 2~12자이며, [DFragon 계정 닉네임](../../docs/rules/auth-api.md#닉네임)은 grapheme 기준 1~20자와 이모지를 허용합니다. 이 함수로 두 validator를 대체하면 기존 동작을 깨뜨립니다.
+[네오플의 2018년 검색 API 공지](https://developers.neople.co.kr/contents/notice/view/106)는 `wordType=full` 검색의 2~12자를 안내합니다. 검색어 길이는 캐릭터명 생성의 인코딩, 바이트 상한과 다른 계약입니다. [DFragon 검색 규칙](../../docs/rules/character-search.md)은 Unicode code point 기준 2~12자입니다. 이 함수로 검색 validator를 대체하면 기존 동작을 깨뜨립니다.
 
 [과거 던파 공식 생성 안내](https://df.nexon.com/community/news/notice/118741)는 일부 ASCII 기호, 완성형 한글, 한문, 히라가나를 열거합니다. 이는 CP949 전체와 동일한 목록이 아니며, 오래된 공지만으로 현재 허용 문자 전체를 확정할 수 없습니다. 이 함수는 요청한 고전 특수문자 지원을 위해 인쇄 가능한 ASCII 및 CP949 문자 집합을 채택한 근사 검사입니다. 실제 생성, 검색 성공을 보장하지 않습니다.
 

@@ -187,7 +187,7 @@ Single-instance의 범위는 동일 app profile이며 서로 다른 dev/prod app
 ### 입력 검증
 
 - Browser launch URL은 string, 2,048 byte 이하이며 exact trusted API HTTPS origin, `/auth/login/authorize` path, **ticket 하나**의 canonical 32-byte base64url query만 허용한다. Username/password, fragment, 추가 query, path/port alias, redirect를 허용하지 않는다. URL parser 뒤 canonical 재구성한 값과 원문이 동일해야 하며 allowlist prefix 비교로 대체하지 않는다.
-- 복귀 URL은 loopback 수신기가 받은 요청의 URL이며 2,048 byte 이하, control/공백/backslash 없음, 등록 `returnUrl` `http://127.0.0.1:<port>/auth/callback`과 정확히 일치해야 한다(RFC 8252 7.3, 포트만 가변). 서버 `apps/accounts/browser/return-target.ts`와 앱 `apps/desktop/src/backend/auth/protocol.ts`가 같은 형식을 검증한다. Userinfo/fragment, 추가 path, encoded 구분자, dot segment, unknown/duplicate query key를 거절한다. Canonical raw 값은 `<returnUrl>?code=<canonical-code>`와 정확히 같아야 한다.
+- 복귀 URL은 loopback 수신기가 받은 요청의 URL이며 2,048 byte 이하, control/공백/backslash 없음, 등록 `returnUrl` `http://127.0.0.1:<port>/auth/callback`과 정확히 일치해야 한다(RFC 8252 7.3, 포트만 가변). 지운 accounts 서버와 앱 `apps/desktop/src/backend/auth/protocol.ts`가 같은 형식을 검증했다. Userinfo/fragment, 추가 path, encoded 구분자, dot segment, unknown/duplicate query key를 거절한다. Canonical raw 값은 `<returnUrl>?code=<canonical-code>`와 정확히 같아야 한다.
 - Code는 auth-passkeys의 **43자 canonical unpadded base64url, decode 32byte, re-encode 동일**만 허용한다. Code를 URL decode 반복/coercion/trim으로 보정하지 않는다. 입력 code만으로 request/provider/user를 선택하지 않는다.
 - URL을 network로 따라가거나 renderer로 전달하지 않는다. Validation 실패는 기존 pending/session, window navigation에 side effect가 없다. 정상 URL도 현재 pending이 없으면 교환 0이다. 수신기는 요청 하나만 받으므로 같은 pending에 두 번째 code가 오지 않으며, expired handling은 lifecycle을 따른다.
 

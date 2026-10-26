@@ -81,7 +81,7 @@ Renderer에 Neople API key나 임의 URL 호출을 추가하지 않고, 기존 m
 
 화면에서는 직접 fontSize, lineHeight를 반복하지 않는다. 카드 이름은 32px input 외곽 높이를 쓴다. 명성, 장비 점수, 서버 순위, 카드 번호 같은 숫자 값은 Typo 대신 Barlow Condensed 숫자 단계(dfragon-design typography.md의 `numeric.*`)를 따른다. 숫자 단계는 아직 토큰이 없어 카드 스타일에 크기를 적는다. h4–h6의 계약은 weight=600이며 Desktop이 번들한 Pretendard 가변 글꼴에서 실제 SemiBold로 표시된다. 인증 browser의 기존 글꼴 상속은 유지한다.
 
-현재 적용은 제품 App이 사용하는 화면과 같은 컴포넌트를 쓰는 상세 미리보기까지다. `fixture/legacy`와 연결되지 않은 예전 화면의 일괄 교체는 포함하지 않는다. 실제 인증 UI는 Desktop의 예전 LoginPage가 아닌 `apps/accounts/browser/passkeys.tsx`이며, 이 entry에서도 같은 Typo를 소비한다.
+현재 적용은 제품 App이 사용하는 화면과 같은 컴포넌트를 쓰는 상세 미리보기까지다. `fixture/legacy`와 연결되지 않은 예전 화면의 일괄 교체는 포함하지 않는다.
 
 ## Renderer 미리보기
 

@@ -15,7 +15,7 @@ review-after: 인증 IPC 또는 packaged platform 조건 변경 시
 
 2026-09-15 사용자 요구에 따라 로그인은 선택 사항이다. 게임 창 선택, 캡처, OCR, 캐릭터 검색, 결과 표시는 인증 여부와 독립적이다. 계정 자체의 인증, credential, 저장 계약은 유지한다.
 
-서버의 [API](auth-api.md), [패스키](auth-passkeys.md), [session](auth-session.md), [활동](auth-activity.md), [runtime gate](auth-runtime.md)를 전제로 한다. Endpoint, TTL, JWT/refresh/session 정책, 패스키 설정과 DB는 서버 계약을 따른다. `clientId:"desktop"`은 public 등록 선택값이다. 실제 운영 URL, app identity와 loopback 수신기 조건은 platform 문서를 따른다.
+서버의 API, 패스키, session, 활동, runtime gate를 전제로 한다. Endpoint, TTL, JWT/refresh/session 정책, 패스키 설정과 DB는 서버 계약을 따른다. `clientId:"desktop"`은 public 등록 선택값이다. 실제 운영 URL, app identity와 loopback 수신기 조건은 platform 문서를 따른다.
 
 ## Process 책임과 권한
 
@@ -109,7 +109,7 @@ review-after: 초기 restore, paused retry의 저장 지연, clock 회귀와 화
 
 선택한 구조는 main 단독 소유 + feature IPC + memory-only pending/access + 암호화 refresh 보관 + 시스템 브라우저와 loopback 복귀 + 최소 welcome/home이다. Renderer token 보관은 bridge 노출면을 늘리고, 시스템 브라우저 인증은 제품 renderer와 session, 권한을 분리하면서 브라우저가 제공하는 패스키 hybrid QR을 그대로 쓴다. 등록 private protocol과 인증 BrowserWindow를 loopback으로 바꾼 것은 2026-10-10 사용자 결정에 따른다. 저장/복귀의 실질 대안 비교는 platform 문서에 둔다.
 
-휴대폰 로그인은 [패스키 계약](auth-passkeys.md)의 브라우저 hybrid QR만 사용하며 DFragon 자체 QR의 상태 조회, 서버 취소는 제공하지 않는다. Main의 login pending은 메모리에만 유지하며 재시작 복구, code/refresh 응답 유실의 idempotent 재전달, error URL parameter, refresh grace, 계정 연결은 추가하지 않는다. [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 withdrawal 전용 status/resume, main-owned receipt, 재시작 1회/사용자 gesture 조회는 별도로 승인된 확장이다. 기존 login pending의 memory-only/재시작 복구 없음과 혼합하지 않으며 구체적 feature IPC, UI/OS 구현과 검증은 후속 범위다.
+휴대폰 로그인은 패스키 계약의 브라우저 hybrid QR만 사용하며 DFragon 자체 QR의 상태 조회, 서버 취소는 제공하지 않는다. Main의 login pending은 메모리에만 유지하며 재시작 복구, code/refresh 응답 유실의 idempotent 재전달, error URL parameter, refresh grace, 계정 연결은 추가하지 않는다. 승인된 탈퇴 contract의 withdrawal 전용 status/resume, main-owned receipt, 재시작 1회/사용자 gesture 조회는 별도로 승인된 확장이다. 기존 login pending의 memory-only/재시작 복구 없음과 혼합하지 않으며 구체적 feature IPC, UI/OS 구현과 검증은 후속 범위다.
 
 ## OCR 검색 연결
 
