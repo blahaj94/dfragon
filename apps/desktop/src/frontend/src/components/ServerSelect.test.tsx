@@ -171,3 +171,31 @@ it('제품의 입력 미연결 상태에서는 서버 선택도 비활성으로 
   await act(async () => trigger.click())
   expect(trigger.getAttribute('aria-expanded')).toBe('false')
 })
+
+it('파티 카드의 서버 목록은 카인, 디레지에, 시로코, 프레이, 카시야스, 힐더, 안톤, 바칼 순서다', async () => {
+  await act(async () =>
+    root.render(
+      <CharacterCard
+        card={{ state: 'success', character: previewCharacter }}
+        slot={1}
+        inputEnabled
+      />
+    )
+  )
+  const trigger = document.querySelector<HTMLButtonElement>('[aria-label="1번 서버"]')!
+  await act(async () => trigger.click())
+
+  const labels = [...document.querySelectorAll('[role="listbox"] [role="option"]')].map(
+    (option) => option.textContent
+  )
+  expect(labels).toEqual([
+    '카인',
+    '디레지에',
+    '시로코',
+    '프레이',
+    '카시야스',
+    '힐더',
+    '안톤',
+    '바칼'
+  ])
+})
