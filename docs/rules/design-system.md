@@ -83,7 +83,7 @@ Desktop 화면은 아래 규칙으로 그린다. OCR, Accounts, Web은 공용 �
 
 - 색: 무채색 바탕 위에 신호색 하나를 쓴다. 신호색 `signal`(`#F8E8C8`)은 선택, 주 버튼, 포커스와 진행 중인 캡처 회차에 쓴다. 희귀도 색은 유지하고, 로고 빨강 `brandLogo`(`#E83830`)는 로고 마크에만 쓴다.
 - 주의 상태: 확인 필요, 창 미감지처럼 사용자가 살펴야 하는 상태는 주의 색 `fgWarning`(`#FFB400`) 글자와 사각 점, 옅은 면 `bgWarningWeak`으로 표현한다. 카드의 인식 대기는 계속 중립색 점선과 각진 모래시계다.
-- 글자: 라벨은 12px로 작게, 값은 Barlow Condensed `tabular-nums`로 크게 쓴다. 한글은 Desktop이 전기칩 한글, OCR browser가 Pretendard를 쓴다.
+- 글자: 라벨은 12px로 작게, 값은 Barlow Condensed `tabular-nums`로 크게 쓴다. 한글은 Desktop이 마루미냐 한글, OCR browser가 Pretendard를 쓴다.
 - 형태: 패널과 카드는 반지름 0이며 테두리 없이 면으로 구분한다. 입력, 칩, 보조 버튼은 반지름 2px이다. 누를 수 있는 주 행동에만 오른쪽 위 모서리를 8px 자른다.
 - 카드 상태: 테두리 전체를 칠하지 않고 네 모서리 꺾쇠로 표시한다. 기본, 선택, 실패(노란 꺾쇠), 대기(dashed)를 구분한다. 스냅샷에 없는 모험단만 카드를 덮는 빨간 빗금(`alertHatch`)을 쓴다.
 - 모션: hover 120ms, 상태 전환 180ms, 숫자 증가 400ms와 감속 곡선 하나만 쓴다. 튕김, 흔들림, 빛 번짐은 쓰지 않으며 `prefers-reduced-motion: reduce`에서 모두 끈다.
@@ -96,7 +96,7 @@ Desktop 화면은 아래 규칙으로 그린다. OCR, Accounts, Web은 공용 �
 
 ## 글꼴과 한국어 타이포그래피
 
-Desktop renderer와 Desktop 로그인 완료 페이지는 앱에 번들한 전기칩 한글(DenkiChip Hangul, x10y12pxDenkiChipHangul) 1.213 비트맵 글꼴을, OCR browser UI는 Pretendard 1.3.9 가변 글꼴을 사용하며 CDN에서 받지 않는다. 글꼴 이름과 대체 순서는 각 앱 전역 글꼴 CSS의 `body` 한 곳에서 정하고 화면 스타일에 반복하지 않는다. 화면은 상속을 사용하며, 기본 글꼴이 따로 정해진 `pre` 같은 요소만 `inherit`로 연결한다. 굵기는 400, 500, 600, 700만 쓴다. 전기칩 한글은 굵기가 하나라 Desktop의 500 이상은 브라우저가 합성한다. Typo의 크기, 행간, 굵기, 자간은 `typographyVariants`가 소유한다.
+Desktop renderer와 Desktop 로그인 완료 페이지는 앱에 번들한 마루미냐 한글(MaruMinya Hangul, x12y12pxMaruMinyaHangul) 비트맵 글꼴을, OCR browser UI는 Pretendard 1.3.9 가변 글꼴을 사용하며 CDN에서 받지 않는다. 글꼴 이름과 대체 순서는 각 앱 전역 글꼴 CSS의 `body` 한 곳에서 정하고 화면 스타일에 반복하지 않는다. 화면은 상속을 사용하며, 기본 글꼴이 따로 정해진 `pre` 같은 요소만 `inherit`로 연결한다. 굵기는 400, 500, 600, 700만 쓴다. 마루미냐 한글은 굵기가 하나라 Desktop의 500 이상은 브라우저가 합성한다. Typo의 크기, 행간, 굵기, 자간은 `typographyVariants`가 소유한다.
 
 Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들하고 CDN에서 받지 않는다. 600, 700 굵기를 숫자와 기본 라틴 문자로 줄여 담고, `@font-face`는 Desktop 전역 글꼴 CSS에, 글꼴 이름은 `font` 토큰에 둔다. 숫자 값은 `NumericText`나 같은 토큰으로 이 글꼴을 쓴다. OCR은 Barlow Condensed를 번들하지 않는다.
 
@@ -105,7 +105,7 @@ Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들
 - 수치, 표, 타이머는 `font-variant-numeric: tabular-nums`를 쓴다. 기존 사용처는 유지하며 기존 코드의 일괄 정리는 이 기준의 선행 조건이 아니다.
 - Accounts 패스키 browser는 기존 글꼴 상속을 유지하고, Web은 이 글꼴 적용 범위가 아니다.
 
-값과 규칙의 디자인 기준은 디자인 인계 저장소의 [Typography](https://github.com/blahaj94/dfragon-design/blob/main/design/typography.md)다. Pretendard 기준은 사용자가 승인한 Pretendard 전환 요청으로 채택했고, Desktop의 전기칩 한글은 2026-10-26 요청(#795)으로 바꿨으며, Barlow Condensed 기준은 2026-10-18 결정으로 채택했다.
+값과 규칙의 디자인 기준은 디자인 인계 저장소의 [Typography](https://github.com/blahaj94/dfragon-design/blob/main/design/typography.md)다. Pretendard 기준은 사용자가 승인한 Pretendard 전환 요청으로 채택했고, Desktop의 마루미냐 한글은 2026-10-26 요청(#795)으로 바꿨으며, Barlow Condensed 기준은 2026-10-18 결정으로 채택했다.
 
 ## 공통 자산과 화면의 책임
 
