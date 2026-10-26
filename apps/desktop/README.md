@@ -181,7 +181,7 @@ pnpm --filter @dfragon/desktop format:check
 pnpm --filter @dfragon/desktop build
 ```
 
-`build`에는 node/web typecheck가 포함됩니다. Electron은 설치 단계에서 실행 파일을 내려받지 않으므로 `test`, `dev`, `start`가 먼저 `install-electron`으로 Electron runtime을 준비하며, 이미 받은 runtime은 다시 내려받지 않습니다. 의존성을 새로 설치한 뒤 `exec vitest run`으로 파일을 직접 실행하거나 VS Code 디버그 설정을 쓰려면 `pnpm --filter @dfragon/desktop exec install-electron`을 한 번 실행합니다.
+`build`에는 node/web typecheck가 포함됩니다. Electron은 설치 단계에서 실행 파일을 내려받지 않으므로 `test`, `dev`가 먼저 `install-electron`으로 Electron runtime을 준비하며, 이미 받은 runtime은 다시 내려받지 않습니다. 의존성을 새로 설치한 뒤 `exec vitest run`으로 파일을 직접 실행하거나 VS Code 디버그 설정을 쓰려면 `pnpm --filter @dfragon/desktop exec install-electron`을 한 번 실행합니다.
 
 GitHub Actions에는 Windows에서 Desktop 테스트를 실행하는 workflow가 없습니다.
 
