@@ -35,7 +35,7 @@ Node 26과 기존 workspace 의존성이 필요합니다. 명령은 먼저 API�
 전달할 수 있습니다. `NEOPLE_API_KEY` 직접 입력도 지원하나 `_FILE`과 동시에 지정하면 실패합니다.
 PORT, DB 설정, HTTP 서버, DB 연결은 사용하지 않습니다.
 
-정규 dependency와 lockfile에 비공개 패키지를 추가하지 않습니다. 기존 공개 CI와 Docker build에는
+정규 dependency와 lockfile에 비공개 패키지를 추가하지 않습니다. GitHub Actions의 배포 workflow와 Docker build에는
 패키지 권한이나 secret이 필요하지 않으며, 일반 `test`에는 합성 입력을 사용하는 회귀 검사만 포함됩니다.
 
 ## 입력과 결과의 의미
