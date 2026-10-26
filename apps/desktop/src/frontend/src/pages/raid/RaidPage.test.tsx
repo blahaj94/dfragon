@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { space } from '@dfragon/ui/tokens.stylex'
 import * as stylex from '@stylexjs/stylex'
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -29,11 +30,10 @@ vi.mock('../../components/ServerSelect', () => ({
 }))
 
 // StyleX의 atomic class 이름은 속성과 값에서 정해지므로, 같은 선언을 여기서 만들면 같은 class가 나온다.
-// jsdom은 배치를 계산하지 않으므로 보드가 창 크기와 상관없는 고정 트랙을 쓰는지 class로 확인한다.
+// jsdom은 배치를 계산하지 않으므로 보드가 창 폭을 네 등분하는 트랙과 간격 8을 쓰는지 class로 확인한다.
 const expectedLayout = stylex.create({
-  columns: { gridTemplateColumns: '32px repeat(4, 288px)' },
-  rows: { gridTemplateRows: 'repeat(3, calc(616px / 3))' },
-  collapsedRows: { gridTemplateRows: 'repeat(3, calc(376px / 3))' },
+  columns: { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' },
+  gap: { gap: space.s8 },
   scroll: { overflow: 'auto' },
   hidden: { display: 'none' }
 })
@@ -165,7 +165,7 @@ function classesOf(style: stylex.StyleXStyles): string[] {
   return (stylex.props(style).className ?? '').split(' ').filter(Boolean)
 }
 
-it('파티 라벨 열 옆에 세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () => {
+it('세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () => {
   await render({ characters: [member, { ...member, name: '둘째' }] })
 
   expect(seats().map((seat) => seat.getAttribute('aria-label'))).toEqual(
@@ -552,7 +552,7 @@ it('화면이 넘긴 머리를 보드 위에 두고 숨기면 머리와 보드�
   expect(container.querySelector('section')?.contains(header)).toBe(true)
 })
 
-it('보드는 창 크기와 상관없이 1280×800 배치의 카드 크기로 고정하고 넘치면 보드 영역이 스크롤한다', async () => {
+it('보드는 창 폭을 네 등분한 열에 간격 8로 카드를 놓고 넘치면 보드 영역이 스크롤한다', async () => {
   await render({ characters: [member] })
   const scroller = container.querySelector<HTMLElement>('#raid-cards')!
   const board = scroller.firstElementChild!
@@ -561,17 +561,13 @@ it('보드는 창 크기와 상관없이 1280×800 배치의 카드 크기로 �
   for (const name of classesOf(expectedLayout.scroll)) {
     expect(classes(scroller)).toContain(name)
   }
-  for (const name of [...classesOf(expectedLayout.columns), ...classesOf(expectedLayout.rows)]) {
+  for (const name of [...classesOf(expectedLayout.columns), ...classesOf(expectedLayout.gap)]) {
     expect(classes(board)).toContain(name)
   }
-
-  await render({ characters: [member], collapsed: true })
-  for (const name of [
-    ...classesOf(expectedLayout.columns),
-    ...classesOf(expectedLayout.collapsedRows)
-  ]) {
-    expect(classes(board)).toContain(name)
-  }
+  // 왼쪽 파티 번호 열은 그리지 않고, 파티 이름은 보조 기술에 자리 설명으로만 전한다.
+  expect(
+    [...board.querySelectorAll('[id^="raid-cards-party-"]')].map((label) => label.textContent)
+  ).toEqual(['1파티', '2파티', '3파티'])
 })
 
 it('접힌 동안은 그림 칸을 숨기고 이름 입력과 소속, 명성, 장비 점수를 남긴다', async () => {
