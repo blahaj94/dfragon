@@ -5,6 +5,7 @@ import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { CharacterCard } from '../sections/CharacterCard'
 import { RaidCard } from '../sections/RaidCard'
 import { previewCharacter } from '../fixture/mvp/fixture'
+import { serverNames } from '../constants/servers'
 import { ServerSelect } from './ServerSelect'
 
 let root: ReturnType<typeof createRoot>
@@ -263,7 +264,7 @@ async function renderCard(onLookup: (nickname: string, serverId: string) => void
   )
 }
 
-it('이름 칸에서 Tab을 누르면 서버 목록을 열고, 방향키로 고른 서버를 Enter로 바로 조회한다', async () => {
+it('이름 칸에서 Tab을 누르면 서버 목록을 열고, 방향키로 고른 서버를 Enter로 바로 조회한 뒤 서버 칩에 포커스를 둔다', async () => {
   const onLookup = vi.fn()
   await renderCard(onLookup)
   const name = document.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!
@@ -277,27 +278,33 @@ it('이름 칸에서 Tab을 누르면 서버 목록을 열고, 방향키로 고�
 
   expect(tab?.defaultPrevented).toBe(true)
   expect(trigger.getAttribute('aria-expanded')).toBe('true')
-  const listbox = document.querySelector('[role="listbox"]')!
-  const current = [...listbox.querySelectorAll<HTMLElement>('[role="option"]')].find(
-    (option) => option.textContent === '시로코'
-  )!
+  const options = [...document.querySelectorAll<HTMLElement>('[role="listbox"] [role="option"]')]
+  const currentIndex = options.findIndex(
+    (option) => option.getAttribute('aria-selected') === 'true'
+  )
+  const current = options[currentIndex]
+  // 서버 목록 순서와 상관없이 지금 서버의 바로 앞 서버를 고른다. 지금 서버가 맨 앞이 아니어야 한다.
+  expect(currentIndex).toBeGreaterThan(0)
+  const previous = options[currentIndex - 1]
   await vi.waitFor(() => expect(document.activeElement).toBe(current))
   await act(async () => {
     keydown(current, 'ArrowUp')
   })
-  const previous = [...listbox.querySelectorAll<HTMLElement>('[role="option"]')].find(
-    (option) => option.textContent === '프레이'
-  )!
   await vi.waitFor(() => expect(document.activeElement).toBe(previous))
   await act(async () => {
     keydown(previous, 'Enter')
   })
 
-  expect(onLookup).toHaveBeenCalledExactlyOnceWith(previewCharacter.name, 'prey')
+  const previousServer = Object.entries(serverNames).find(
+    ([, label]) => label === previous.textContent
+  )?.[0]
+  expect(onLookup).toHaveBeenCalledExactlyOnceWith(previewCharacter.name, previousServer)
   expect(trigger.getAttribute('aria-expanded')).toBe('false')
+  // 닫히면 포커스가 서버 칩으로 가서, 다음 Tab은 목록을 다시 열지 않고 다음 요소로 간다.
+  await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
 })
 
-it('지금 서버를 그대로 Enter로 골라도 바로 조회하고, Escape로 닫으면 조회하지 않는다', async () => {
+it('지금 서버를 그대로 Enter로 골라도 바로 조회하고, Escape로 닫으면 조회하지 않고 서버 칩에 포커스를 둔다', async () => {
   const onLookup = vi.fn()
   await renderCard(onLookup)
   const name = document.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!
@@ -314,6 +321,7 @@ it('지금 서버를 그대로 Enter로 골라도 바로 조회하고, Escape로
   })
   expect(trigger.getAttribute('aria-expanded')).toBe('false')
   expect(onLookup).not.toHaveBeenCalled()
+  await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
 
   name.focus()
   await act(async () => {
