@@ -1,22 +1,46 @@
-import { CardFrame, NumericText, ProgressCircle, shapes } from '@dfragon/ui'
+import { CardFrame, ProgressCircle, shapes } from '@dfragon/ui'
 import type { HTMLAttributes, Ref } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CardImage } from '../components/CardImage'
 import { HourglassIcon } from '../components/HourglassIcon'
+import { NameField, type NameFieldTone } from '../components/NameField'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
+import { StatLine } from '../components/StatLine'
 import { useLookupDraft } from '../hooks/useLookupDraft'
 import {
+  type CharacterCardFrameState,
   getCharacterCardFrameState,
   getCharacterCardStatus,
   isVacantSlot
 } from '../lib/card-presentation'
-import { type ScoreView, formatApproximateScore, toScoreView } from '../lib/card-score'
+import { toScoreView } from '../lib/card-score'
 import type { SlotCard } from '../lib/slot-cards'
+import type { SlotState } from '../types/cards'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import { serverNames } from '../constants/servers'
 import { styles } from './RaidCard.style'
+
+const serverOptions = Object.entries(serverNames).map(([id, label]) => ({ id, label }))
+
+// 이름 칸 테두리. 이름 수정 중은 다른 상태보다 앞서고, 아무것도 인식하지 못한 빈 자리는 점선, 인식 대기는
+// 회색, 검색 실패와 0건은 노랑이다. 찾은 카드는 상위, 랭커 단계도 테두리가 없다.
+function nameFieldTone(frameState: CharacterCardFrameState, state: SlotState): NameFieldTone {
+  if (frameState === 'selected' || frameState === 'failure') {
+    return frameState
+  }
+
+  if (state === 'idle') {
+    return 'vacant'
+  }
+
+  if (frameState === 'waiting') {
+    return 'waiting'
+  }
+
+  return 'default'
+}
 
 /** 카드를 끌거나 키보드로 옮기는 자리 조작. 공대 화면이 자리 배치를 소유하고 카드에 연결한다. */
 export type RaidCardMove = Pick<
@@ -34,8 +58,9 @@ export type RaidCardMove = Pick<
 
 /**
  * 공대 화면의 축약 캐릭터 카드(DFragon 디자인 캔버스 공대 보드). 파티 카드처럼 서버와 이름으로 그 자리를
- * 조회하고 상태를 꺾쇠로 보이지만, 그림 칸 72, 명성과 장비 점수만 둔다. 카드 자체가
- * 자리를 옮기는 손잡이라 끌거나 포커스한 뒤 Alt와 방향키로 이웃 자리와 맞바꾼다.
+ * 조회하고 상태를 꺾쇠로 보이지만, 그림 칸 40 오른쪽에 이름 칸, 소속 줄, 명성과 점수 한 줄만 둔다. 상태,
+ * 스냅샷 순번, 자리 번호는 이름 칸 오른쪽 끝에 둔다. 카드 자체가 자리를 옮기는 손잡이라 끌거나 포커스한
+ * 뒤 Alt와 방향키로 이웃 자리와 맞바꾼다.
  */
 export function RaidCard({
   card,
@@ -48,7 +73,7 @@ export function RaidCard({
   card: SlotCard
   /** 화면의 자리 번호(1~12) */
   slot: number
-  /** 그림 칸, 직업, 안내 줄을 접고 머리, 소속, 이름, 명성, 장비 점수만 남긴다. */
+  /** 그림 칸을 접고 이름 칸, 소속 줄, 명성과 점수 한 줄만 남긴다. */
   collapsed?: boolean
   onLookup?: (nickname: string, serverId: string) => void
   move: RaidCardMove
@@ -72,7 +97,6 @@ export function RaidCard({
   })
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
   const score = toScoreView(characterFound ? character.card : null)
-  const showRow = !collapsed && message !== ''
   const { movable, drag, describedBy, ref, ...handlers } = move
 
   return (
@@ -95,58 +119,6 @@ export function RaidCard({
       )}
     >
       <CardFrame as="article" state={frameState} aria-busy={busy}>
-        <div {...stylex.props(styles.header)}>
-          <span
-            aria-hidden="true"
-            {...stylex.props(
-              styles.number,
-              shapes.cutTopRight,
-              frameState === 'selected' && styles.numberSelected,
-              tier === 'top' && styles.numberTop,
-              tier === 'ranker' && styles.numberRanker
-            )}
-          >
-            {String(slot).padStart(2, '0')}
-          </span>
-          {tier !== undefined && (
-            <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
-          )}
-          <div {...stylex.props(styles.server)}>
-            <ServerSelect
-              label={`${slot}번 서버`}
-              value={draft.serverId}
-              options={Object.entries(serverNames).map(([id, label]) => ({ id, label }))}
-              onValueChange={draft.changeServer}
-            />
-          </div>
-          {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
-          <span {...stylex.props(styles.spacer)} />
-          {frameState === 'selected' && (
-            <span role="img" aria-label="이름 수정 중" {...stylex.props(styles.dots)}>
-              <span {...stylex.props(styles.dot)} />
-              <span {...stylex.props(styles.dot, styles.dotSecond)} />
-              <span {...stylex.props(styles.dot, styles.dotThird)} />
-            </span>
-          )}
-          {frameState === 'failure' && (
-            <span
-              role="img"
-              aria-label={cardStatus}
-              {...stylex.props(styles.mark, shapes.cutTopRight, styles.alert)}
-            >
-              !
-            </span>
-          )}
-          {frameState === 'waiting' && cardStatus !== '' && (
-            <span
-              role="img"
-              aria-label={cardStatus}
-              {...stylex.props(styles.mark, shapes.cutTopRight, styles.waitingMark)}
-            >
-              <HourglassIcon width="12" height="12" />
-            </span>
-          )}
-        </div>
         <div {...stylex.props(styles.body, collapsed && styles.bodyCollapsed)}>
           <div
             {...stylex.props(
@@ -172,135 +144,106 @@ export function RaidCard({
               </div>
             )}
           </div>
-          <div {...stylex.props(styles.identity)}>
-            <div {...stylex.props(styles.affiliation)}>
-              {characterFound ? (
+          <div {...stylex.props(styles.column)}>
+            <div {...stylex.props(styles.header)}>
+              <div {...stylex.props(styles.nameField)}>
+                <NameField
+                  aria-label={`${slot}번 캐릭터 이름`}
+                  tone={nameFieldTone(frameState, state)}
+                  value={draft.name}
+                  onFocus={draft.focusName}
+                  onBlur={draft.blurName}
+                  onChange={(event) => draft.changeName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      draft.submit()
+                    }
+                  }}
+                  right={
+                    <ServerSelect
+                      variant="field"
+                      label={`${slot}번 서버`}
+                      value={draft.serverId}
+                      options={serverOptions}
+                      onValueChange={draft.changeServer}
+                    />
+                  }
+                />
+              </div>
+              {tier !== undefined && (
+                <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
+              )}
+              {frameState === 'selected' && (
+                <span role="img" aria-label="이름 수정 중" {...stylex.props(styles.dots)}>
+                  <span {...stylex.props(styles.dot)} />
+                  <span {...stylex.props(styles.dot, styles.dotSecond)} />
+                  <span {...stylex.props(styles.dot, styles.dotThird)} />
+                </span>
+              )}
+              {frameState === 'failure' && (
+                <span
+                  role="img"
+                  aria-label={cardStatus}
+                  {...stylex.props(styles.mark, shapes.cutTopRight, styles.alert)}
+                >
+                  !
+                </span>
+              )}
+              {frameState === 'waiting' && cardStatus !== '' && (
+                <span
+                  role="img"
+                  aria-label={cardStatus}
+                  {...stylex.props(styles.mark, shapes.cutTopRight, styles.waitingMark)}
+                >
+                  <HourglassIcon width="12" height="12" />
+                </span>
+              )}
+              {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
+              <span
+                aria-hidden="true"
+                {...stylex.props(
+                  styles.number,
+                  shapes.cutTopRight,
+                  frameState === 'selected' && styles.numberSelected,
+                  tier === 'top' && styles.numberTop,
+                  tier === 'ranker' && styles.numberRanker
+                )}
+              >
+                {String(slot).padStart(2, '0')}
+              </span>
+            </div>
+            <div title={message || undefined} {...stylex.props(styles.affiliation)}>
+              {characterFound && (
                 <>
                   <span {...stylex.props(styles.adventure)}>{character.adventure}</span>
                   <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
                   <span {...stylex.props(styles.guild)}>{character.guild ?? MISSING_VALUE}</span>
+                  {/* 한 줄에는 소속만 보이므로 찾은 카드의 안내는 보조 기술에만 전한다. */}
+                  {message !== '' && <span {...stylex.props(shapes.srOnly)}>{message}</span>}
                 </>
-              ) : (
+              )}
+              {!characterFound && message !== '' && (
+                <p {...stylex.props(styles.notice)}>{message}</p>
+              )}
+              {!characterFound && message === '' && (
                 <span aria-hidden="true" {...stylex.props(styles.affiliationPlaceholder)}>
                   모험단
                 </span>
               )}
             </div>
-            <input
-              aria-label={`${slot}번 캐릭터 이름`}
-              value={draft.name}
-              placeholder="캐릭터명 입력"
-              onFocus={draft.focusName}
-              onBlur={draft.blurName}
-              onChange={(event) => draft.changeName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                  draft.submit()
-                }
-              }}
-              {...stylex.props(
-                styles.name,
-                draft.name === '' && styles.nameEmpty,
-                frameState === 'waiting' && styles.nameWaiting,
-                frameState === 'failure' && styles.nameFailure,
-                frameState === 'selected' && styles.nameSelected
-              )}
+            <StatLine
+              fame={characterFound ? character.fame : null}
+              score={score}
+              vacant={vacant}
+              tier={tier}
             />
-            {characterFound && (
-              <span {...stylex.props(styles.job, collapsed && styles.hidden)}>{character.job}</span>
-            )}
           </div>
         </div>
-        {showRow && (
-          <p title={message} {...stylex.props(styles.notice)}>
-            {message}
-          </p>
-        )}
-        <dl
-          {...stylex.props(
-            styles.footer,
-            showRow && styles.footerAfterRow,
-            vacant && styles.footerVacant,
-            tier === 'ranker' && styles.footerRanker
-          )}
-        >
-          <div {...stylex.props(styles.footerItem)}>
-            <dt {...stylex.props(styles.footerLabel)}>명성</dt>
-            <FooterValue
-              value={characterFound ? character.fame : null}
-              vacant={vacant}
-              tone={tier}
-            />
-          </div>
-          <div {...stylex.props(styles.footerItem)}>
-            <dt {...stylex.props(styles.footerLabel)}>{score.label}</dt>
-            <FooterValue
-              value={score.value}
-              vacant={vacant}
-              role={score.tone}
-              approximate={score.approximate}
-              description={score.description}
-            />
-          </div>
-        </dl>
         {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
         <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
           {hasCharacter ? character?.name : status}
         </span>
       </CardFrame>
     </div>
-  )
-}
-
-// 명성과 점수 값. 알 수 없으면 같은 크기의 `-`를 흐리게 두고, 값이 있을 때만 숫자를 세어 올린다.
-// 상위, 랭커 카드는 명성만 단계 색으로 그리고, 점수는 단계와 상관없이 역할 색(`role`)으로 그린다. 점수는
-// 계산값이라는 뜻이나 계산하지 못한 사유를 보조 기술에 덧붙이고, 근사값은 `≈`를 붙여 보인다.
-function FooterValue({
-  value,
-  vacant,
-  tone,
-  role,
-  approximate = false,
-  description
-}: {
-  value: number | null
-  vacant: boolean
-  tone?: 'top' | 'ranker'
-  role?: ScoreView['tone']
-  approximate?: boolean
-  description?: string
-}): React.JSX.Element {
-  const note = description !== undefined && (
-    <span {...stylex.props(shapes.srOnly)}>{description}</span>
-  )
-  if (value == null) {
-    return (
-      <dd
-        {...stylex.props(
-          styles.footerValue,
-          styles.footerMissing,
-          vacant && styles.footerVacantValue
-        )}
-      >
-        {MISSING_VALUE}
-        {note}
-      </dd>
-    )
-  }
-
-  return (
-    <dd
-      title={description}
-      {...stylex.props(
-        styles.footerValue,
-        role === 'dealer' && styles.scoreDealer,
-        role === 'buffer' && styles.scoreBuffer,
-        tone === 'top' && styles.fameTop,
-        tone === 'ranker' && styles.fameRanker
-      )}
-    >
-      <NumericText value={value} format={approximate ? formatApproximateScore : undefined} />
-      {note}
-    </dd>
   )
 }
