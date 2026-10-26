@@ -29,6 +29,8 @@ export const styles = stylex.create({
       ':is([data-popup-open])': colors.signal
     }
   },
+  // 입력 칸 안에 넣는 작은 칩. 안쪽 여백을 줄인다.
+  '2xs': { height: 16, fontSize: 12, paddingInlineStart: 6, paddingInlineEnd: space.s4 },
   xs: { height: 24, fontSize: 12 },
   sm: { height: size.controlSm, fontSize: 13 },
   md: { height: size.controlMd, fontSize: 14 },

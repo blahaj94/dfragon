@@ -6,14 +6,15 @@ import { ChevronDownIcon } from './icons'
 import { listboxStyles } from './listbox.style'
 import { type ForwardedStyle, type PublicProps, withForwardedStyle } from './public-props'
 import { styles } from './select.style'
+import { shapes } from './shapes'
 import type { ControlSurface } from './surface'
 
 // 목록은 body portal에 그리므로 Popup이 받은 면을 항목, 그룹 라벨, 구분선에 넘긴다.
 const SelectSurfaceContext = createContext<ControlSurface>('default')
 
 export type SelectTriggerProps = PublicProps<typeof BaseSelect.Trigger> & {
-  /** xs 24, sm 32, md 40px 높이. @default 'sm' */
-  size?: 'xs' | 'sm' | 'md'
+  /** 2xs 16(오른쪽 위를 자른 칩), xs 24, sm 32, md 40px 높이. @default 'sm' */
+  size?: '2xs' | 'xs' | 'sm' | 'md'
   /** 캐릭터 카드 위의 칩은 `card`. 같은 Select의 `Popup`에도 같은 값을 넘긴다. @default 'default' */
   surface?: ControlSurface
 }
@@ -36,6 +37,7 @@ function SelectTriggerImpl({
           controlStyles.focusRing,
           controlStyles.hoverTransition,
           styles[size],
+          size === '2xs' && shapes.cutTopRight,
           surface === 'card' && styles.cardTrigger
         ),
         { className, style }
