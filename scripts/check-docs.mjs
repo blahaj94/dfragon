@@ -342,7 +342,7 @@ function checkLink(source, link, repository) {
 function checkPath(source, mention, repository) {
   const { path } = mention
   const exists = repository.files.has(path) || repository.directories.has(path)
-  // submodule 안의 파일은 이 저장소의 Git 목록에 없고 CI도 submodule 없이 검사한다.
+  // submodule 안의 파일은 이 저장소의 Git 목록에 없고 submodule을 받지 않은 checkout에서도 검사한다.
   const insideSubmodule = [...repository.submodules].some((submodule) => {
     return path.startsWith(`${submodule}/`)
   })
