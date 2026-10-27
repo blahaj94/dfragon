@@ -18,7 +18,7 @@ const engineResult = {
   approximate_score: null,
   approximate_source: null,
   warning: null,
-  versions: { package: 'dnfscore-native 0.3.0', rules_rev: 'rev14', bundle_id: 'phase32-rev14' },
+  versions: { package: 'dnfscore-native 0.3.1', rules_rev: 'rev14', bundle_id: 'phase32-rev14b' },
   display: { role: 'dealer', switchingLevel: 3, buff30: null, buff50: null }
 }
 const skippedResult = {

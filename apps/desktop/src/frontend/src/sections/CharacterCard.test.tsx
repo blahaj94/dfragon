@@ -548,7 +548,7 @@ it('엔진이 근사값을 낸 장비 점수는 ≈를 붙여 역할 색으로 �
         source: 'input_gate_diagnostic',
         warning: '근사값, 1% 밖일 가능성 높음: ValueError: switching item has no candidate'
       },
-      versions: { package: 'dnfscore-native 0.3.0', rulesRev: 'rev14', bundleId: 'phase32-rev14' }
+      versions: { package: 'dnfscore-native 0.3.1', rulesRev: 'rev14', bundleId: 'phase32-rev14b' }
     }
   }
   await render({ state: 'success', character: { ...found, card: approximate } })

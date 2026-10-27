@@ -97,7 +97,7 @@ it('엔진이 건너뛴 점수에 낸 근사값은 근사값으로 보이고 사
         source,
         warning: '근사값, 1% 밖일 가능성 높음: unresolved: equipment TITLE missing'
       },
-      versions: { package: 'dnfscore-native 0.3.0', rulesRev: 'rev14', bundleId: 'phase32-rev14' }
+      versions: { package: 'dnfscore-native 0.3.1', rulesRev: 'rev14', bundleId: 'phase32-rev14b' }
     }
   })
   const legacy = toScoreView(approximate('legacy_fusion_policy_a'))
