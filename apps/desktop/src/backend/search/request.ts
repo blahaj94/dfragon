@@ -7,6 +7,7 @@ import type {
   OcrSearchInput
 } from '../../preload/common/types/search'
 import type {
+  CharacterCandidate,
   SelectedCharacterSummary,
   CharacterJsonValue
 } from '../../preload/common/types/character'
@@ -59,6 +60,8 @@ export type SearchOutcome =
         summary: SelectedCharacterSummary
         selectionMethod: CharacterSelectionMethod
         choices?: readonly CharacterChoice[]
+        /** 이름과 서버만 정했고 상세와 점수는 아직 채우지 않았다. */
+        details?: 'pending'
       }
     }
   | SearchOperationFailure
@@ -112,7 +115,11 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
   return { kind: 'success', rows: outcome.value }
 }
 
-/** OCR 입력은 일반 검색으로 대체하지 않고 선택된 한 캐릭터만 공개 요약으로 투영한다. */
+/**
+ * OCR 입력은 일반 검색으로 대체하지 않고 선택된 한 캐릭터만 공개 요약으로 투영한다. OCR 식별은 이름과 서버만
+ * 정하고 상세는 수명이 다른 슬롯의 식별을 마친 뒤 `runDetailsRequest`로 채운다. 사용자가 서버를 정한 조회는
+ * 같은 요청에서 상세까지 채운다.
+ */
 async function runIdentificationRequest(input: RequestInput): Promise<SearchOutcome> {
   const adapters = input.runtime.identification
   if (adapters === undefined) {
@@ -130,22 +137,21 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
       isCurrent: input.isCurrent
     },
     async (execution) => {
-      const score = input.runtime.score ?? null
       const services = bindIdentificationServices(adapters, execution)
       const identified = await identifyCharacter(input, services, adapters.selection)
-      if (identified.kind !== 'matched') {
-        return { identified, card: null }
+      if (identified.kind !== 'matched' || input.manualServerId === undefined) {
+        return { identified, summary: null }
       }
-      // 엔진 호출도 같은 예산과 취소 판정 안에서 실행해 늦은 결과를 버린다.
-      const card = await execution.run(async () => buildCharacterCard(identified.details, score))
+      const base = candidateSummary(identified.candidate)
+      const summary = await loadDetailsSummary(base, adapters, execution, input.runtime.score)
 
-      return { identified, card }
+      return { identified, summary }
     }
   )
   if (outcome === null || outcome.kind === 'failure') {
     return outcome
   }
-  const { identified, card } = outcome.value
+  const { identified, summary } = outcome.value
 
   if (identified.kind === 'invalid-input') {
     return {
@@ -158,18 +164,97 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
   if (identified.kind !== 'matched') {
     return { kind: 'success', rows: [] }
   }
-  const { candidate, details, selectionMethod, choices } = identified
+  const { candidate, selectionMethod, choices } = identified
   const { characterId, characterName, serverId, serverName, fame } = candidate
   const rows = [{ characterId, characterName, serverId, serverName, fame }]
+  const selected =
+    summary === null
+      ? { summary: candidateSummary(candidate), selectionMethod, details: 'pending' as const }
+      : { summary, selectionMethod }
+
+  if (choices === undefined) {
+    return { kind: 'success', rows, selected }
+  }
+
+  return { kind: 'success', rows, selected: { ...selected, choices } }
+}
+
+export type DetailsOutcome =
+  | { kind: 'success'; summary: SelectedCharacterSummary }
+  | SearchOperationFailure
+  | null
+
+/** 이름과 서버를 정한 요약에 그 캐릭터의 상세와 점수를 채운다. 요청마다 처음 접수부터 같은 예산을 쓴다. */
+export async function runDetailsRequest(input: {
+  runtime: SearchRuntime
+  summary: SelectedCharacterSummary
+  startedAt: number
+  signal: AbortSignal
+  isCurrent: () => boolean
+}): Promise<DetailsOutcome> {
+  const adapters = input.runtime.identification
+  if (adapters === undefined) {
+    return {
+      kind: 'failure',
+      error: { code: 'NEOPLE_UNAVAILABLE', retryAfterSeconds: null },
+      retryAfterReceivedAt: null
+    }
+  }
+  const outcome = await runSearchOperation(
+    {
+      clock: input.runtime.clock,
+      startedAt: input.startedAt,
+      signal: input.signal,
+      isCurrent: input.isCurrent
+    },
+    (execution) => loadDetailsSummary(input.summary, adapters, execution, input.runtime.score)
+  )
+  if (outcome === null || outcome.kind === 'failure') {
+    return outcome
+  }
+
+  return { kind: 'success', summary: outcome.value }
+}
+
+/** 후보 검색 응답만으로 만든 요약. 상세에만 있는 레벨, 길드와 카드는 아직 모른다. */
+function candidateSummary(candidate: CharacterCandidate): SelectedCharacterSummary {
+  return {
+    characterId: candidate.characterId,
+    characterName: candidate.characterName,
+    serverId: candidate.serverId,
+    serverName: candidate.serverName,
+    adventureName: candidate.adventureName,
+    jobName: candidate.jobName,
+    jobGrowName: candidate.jobGrowName,
+    level: null,
+    fame: candidate.fame,
+    imageUrl: candidate.imageUrl,
+    guildName: null,
+    equipmentScore: null,
+    card: null
+  }
+}
+
+async function loadDetailsSummary(
+  base: SelectedCharacterSummary,
+  adapters: IdentificationAdapters,
+  execution: SearchOperation,
+  score: ScoreEngine | undefined
+): Promise<SelectedCharacterSummary> {
+  const identity = { serverId: base.serverId, characterId: base.characterId }
+  const details = await execution.run((signal) => adapters.details({ ...identity, signal }))
+  // 엔진 호출도 같은 예산과 취소 판정 안에서 실행해 늦은 결과를 버린다.
+  const card = await execution.run(async () => buildCharacterCard(details, score ?? null))
   const character = details.character
   const adventureName = displayText(character.adventureName)
   const jobName = displayText(character.jobName)
   const jobGrowName = displayText(character.jobGrowName)
   const level = displayNumber(character.level)
-  const detailFame = displayNumber(character.fame)
+  const fame = displayNumber(character.fame)
   const guildName = displayText(character.guildName)
   const equipmentScore = card?.score?.value ?? null
-  const summary: SelectedCharacterSummary = {
+
+  return {
     characterId: character.characterId,
     characterName: character.characterName,
     serverId: character.serverId,
@@ -178,18 +263,12 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
     jobName,
     jobGrowName,
     level,
-    fame: detailFame,
-    imageUrl: candidate.imageUrl,
+    fame,
+    imageUrl: base.imageUrl,
     guildName,
     equipmentScore,
     card
   }
-
-  if (choices === undefined) {
-    return { kind: 'success', rows, selected: { summary, selectionMethod } }
-  }
-
-  return { kind: 'success', rows, selected: { summary, selectionMethod, choices } }
 }
 
 function identifyCharacter(
@@ -236,7 +315,6 @@ function bindIdentificationServices(
           return null
         }
       }),
-    getDetails: (identity) => execution.run((signal) => adapters.details({ ...identity, signal })),
     scorePortrait: (input) =>
       execution.run(async (signal) => {
         try {

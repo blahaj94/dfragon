@@ -39,12 +39,15 @@ const scoreNote = (label: ScoreView['label']): string =>
 /** 근사값 점수의 화면 글자. 정확한 점수와 구분되게 `≈`를 붙인다. */
 export const formatApproximateScore = (value: number): string => `≈${integer.format(value)}`
 
-export function toScoreView(card: CharacterCard | null | undefined): ScoreView {
+/** `pending`은 이름과 서버를 정했고 상세와 점수를 아직 채우는 중인 카드다. */
+export function toScoreView(card: CharacterCard | null | undefined, pending = false): ScoreView {
   const score = card?.score
   const label = card?.role === 'buffer' ? '버프 점수' : '장비 점수'
   const labelTone = { label, tone: card?.role ?? null } as const
   if (score == null) {
-    return { ...labelTone, value: null, approximate: false, description: undefined }
+    const description = pending ? '계산 중' : undefined
+
+    return { ...labelTone, value: null, approximate: false, description }
   }
 
   if (score.value != null) {

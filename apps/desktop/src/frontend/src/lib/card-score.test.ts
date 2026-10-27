@@ -124,3 +124,14 @@ it('엔진이 건너뛴 점수에 낸 근사값은 근사값으로 보이고 사
 it('근사값 점수의 화면 글자는 천 단위 구분 앞에 ≈를 붙인다', () => {
   expect(formatApproximateScore(321000)).toBe('≈321,000')
 })
+
+it('상세와 점수를 채우는 중인 카드는 값 없이 계산 중이라고 보조 기술에 전한다', () => {
+  expect(toScoreView(null, true)).toEqual({
+    label: '장비 점수',
+    tone: null,
+    value: null,
+    approximate: false,
+    description: '계산 중'
+  })
+  expect(toScoreView(null).description).toBeUndefined()
+})

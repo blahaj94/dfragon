@@ -69,7 +69,7 @@ export function CharacterCard({
   const serverMenu = useServerMenu()
   const { inputNotice, editing } = draft
   const hasCharacter = state === 'success' && character != null && !editing
-  const score = toScoreView(characterFound ? character.card : null)
+  const score = toScoreView(characterFound ? character.card : null, card.scorePending)
   const vacant = isVacantSlot(state)
   const busy = loading || state === 'pending'
   const cardStatus = getCharacterCardStatus(state)

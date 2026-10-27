@@ -21,6 +21,8 @@ export type SlotCard = {
   snapshotMark?: SnapshotMark
   /** 얼굴로 확정하지 못해 사용자가 고를 후보 줄. 없으면 undefined다. */
   picker?: CandidatePicker
+  /** 이름과 서버를 정했고 상세와 점수를 아직 채우는 중인 카드 */
+  scorePending?: boolean
   /** 합성 미리보기만 채운다. 제품 카드는 재시도 버튼을 두지 않는다. */
   retryEnabled?: boolean
   retryPending?: boolean
@@ -67,6 +69,7 @@ export function toSlotCards({
     const notice = searchSlotNotice(slot, NEXT_LOOKUP_STEP, screen)
     const loading = !manualSlots[index] && recognizing
     const picker = pickers[index] ?? undefined
+    const scorePending = slot.details === 'pending'
 
     return {
       state: slot.state,
@@ -75,7 +78,8 @@ export function toSlotCards({
       notice,
       loading,
       snapshotMark: snapshotMarks[index],
-      picker
+      picker,
+      scorePending
     }
   })
 }

@@ -76,6 +76,10 @@ export function characterSlotNotice(
   slot: SearchSlot,
   screen: SlotCardScreen = 'party'
 ): string | undefined {
+  if (slot.details === 'failed') {
+    return '상세 정보를 불러오지 못했습니다. 서버와 이름을 직접 조회하면 다시 불러옵니다.'
+  }
+
   if (screen === 'raid') {
     const notice = raidSelectionNotice(slot)
     if (notice !== undefined) {

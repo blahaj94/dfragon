@@ -95,7 +95,7 @@ export function RaidCard({
     tier: characterFound ? character.tier : undefined
   })
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
-  const score = toScoreView(characterFound ? character.card : null)
+  const score = toScoreView(characterFound ? character.card : null, card.scorePending)
   const { movable, drag, describedBy, ref, ...handlers } = move
 
   return (

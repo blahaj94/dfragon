@@ -3,7 +3,12 @@ import { matchesDNFSearchNicknamePolicy } from '@dfragon/lib'
 import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import { randomUUID } from 'node:crypto'
 import { createActor } from 'xstate'
-import type { SearchOutcome, SearchRuntime } from './request'
+import {
+  runDetailsRequest,
+  type DetailsOutcome,
+  type SearchOutcome,
+  type SearchRuntime
+} from './request'
 import {
   slotLifetimeMachine,
   type SearchRequest,
@@ -95,6 +100,9 @@ function retryAfterForFailure(
   return retryAfter
 }
 
+/** 이름과 서버를 정한 슬롯 하나의 상세 조회. 수명마다 한 번에 하나만 실행한다. */
+type DetailsJob = RequestIdentity & { controller: AbortController }
+
 export type CaptureSearchLifetime = {
   readonly current: CaptureBinding | null
   snapshot: () => SearchSnapshot
@@ -131,6 +139,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       input: { canComplete, complete, ready: finishRateWait }
     }).start()
   )
+  let detailsJob: DetailsJob | null = null
 
   function snapshot(): SearchSnapshot {
     const snapshotRevision = revision
@@ -200,6 +209,8 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     for (const slot of slotIndexes) {
       cancelSlot(slot)
     }
+    detailsJob?.controller.abort()
+    detailsJob = null
     slots = slotIndexes.map((slot) => idleSlot({ slot }))
     emit()
   }
@@ -274,10 +285,29 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
         changed = true
       }
     }
+    // 이전 창에서 정한 자리의 상세도 받지 않는다. 고른 이름과 서버는 남기고 점수만 비운다.
+    const failedDetails = failPendingDetails((slot) => ocrInputs[slot] !== null)
 
-    if (changed) {
+    if (changed || failedDetails) {
       emit()
     }
+  }
+
+  /** 아직 받지 않은 상세를 실패로 두고 받는 중이면 취소한다. 바뀐 슬롯이 있으면 true다. */
+  function failPendingDetails(matches: (slot: number) => boolean): boolean {
+    if (detailsJob !== null && matches(detailsJob.slot)) {
+      detailsJob.controller.abort()
+      detailsJob = null
+    }
+    let changed = false
+    for (const slot of slotIndexes) {
+      if (slots[slot].details === 'pending' && matches(slot)) {
+        slots[slot] = { ...slots[slot], details: 'failed' }
+        changed = true
+      }
+    }
+
+    return changed
   }
 
   function observeOcr(input: OcrSearchObservation): SearchCommandResult {
@@ -503,6 +533,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
 
   function cancelSlot(slot: number): void {
     actors[slot].send({ type: 'CANCEL' })
+    if (detailsJob?.slot === slot) {
+      detailsJob.controller.abort()
+      detailsJob = null
+    }
     ocrInputs[slot] = null
     manualServers[slot] = null
   }
@@ -547,6 +581,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     delete completedSlot.selected
     delete completedSlot.selectionMethod
     delete completedSlot.choices
+    delete completedSlot.details
     if (isSuccess) {
       const hasRows = result.rows.length > 0
       slots[request.slot] = {
@@ -564,6 +599,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
         if (result.selected.choices !== undefined) {
           slots[request.slot] = { ...slots[request.slot], choices: result.selected.choices }
         }
+
+        if (result.selected.details !== undefined) {
+          slots[request.slot] = { ...slots[request.slot], details: result.selected.details }
+        }
       }
     } else {
       slots[request.slot] = {
@@ -574,6 +613,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       }
     }
     actors[request.slot].send({ type: 'FINISH', request })
+    // 후보 검색이 호출 제한을 받아도 남은 상세를 받지 않는다.
+    if (!isSuccess && result.error.code === 'SEARCH_RATE_LIMITED') {
+      failPendingDetails(() => true)
+    }
     emit()
     if (!isSuccess) {
       const retryAfter = retryAfterForFailure(result)
@@ -612,6 +655,79 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     emit()
   }
 
+  /**
+   * 이름과 서버만 정한 슬롯의 상세와 점수를 슬롯 순서로 하나씩 채운다. 어느 슬롯이든 조회 중이면 시작하지
+   * 않아, 회차의 모든 자리가 이름과 서버를 먼저 정한 뒤 상세를 받는다.
+   */
+  function startNextDetails(): void {
+    const runtime = options.runtime
+    const captureId = binding?.captureId
+    if (detailsJob !== null || runtime === undefined || captureId === undefined) {
+      return
+    }
+
+    if (slots.some((slot) => slot.state === 'pending')) {
+      return
+    }
+    const next = slots.find((slot) => slot.details === 'pending')
+    if (next?.selected === undefined || next.requestId === null) {
+      return
+    }
+    const job: DetailsJob = {
+      slot: next.slot,
+      captureId,
+      requestId: next.requestId,
+      controller: new AbortController()
+    }
+    detailsJob = job
+    void runDetailsRequest({
+      runtime,
+      summary: next.selected,
+      startedAt: runtime.clock.read().monotonicMs,
+      signal: job.controller.signal,
+      isCurrent: () => isCurrentDetails(job)
+    })
+      .catch(
+        (): DetailsOutcome => ({
+          kind: 'failure',
+          error: { code: 'SEARCH_NETWORK_ERROR', retryAfterSeconds: null },
+          retryAfterReceivedAt: null
+        })
+      )
+      .then((outcome) => finishDetails(job, outcome))
+  }
+
+  function isCurrentDetails(job: DetailsJob): boolean {
+    return detailsJob === job && isCurrentSlot(job) && slots[job.slot].details === 'pending'
+  }
+
+  function finishDetails(job: DetailsJob, outcome: DetailsOutcome): void {
+    const isCurrent = isCurrentDetails(job)
+    if (detailsJob === job) {
+      detailsJob = null
+    }
+
+    if (!isCurrent || outcome === null) {
+      startNextDetails()
+
+      return
+    }
+
+    // 상세를 받지 못해도 이미 정한 이름과 서버는 그대로 두고 점수만 비운다.
+    if (outcome.kind === 'failure') {
+      slots[job.slot] = { ...slots[job.slot], details: 'failed' }
+      // 호출 제한을 받으면 남은 상세도 받지 않아 제한 중에 요청을 더 보내지 않는다.
+      if (outcome.error.code === 'SEARCH_RATE_LIMITED') {
+        failPendingDetails(() => true)
+      }
+    } else {
+      const completedSlot = { ...slots[job.slot], selected: outcome.summary }
+      delete completedSlot.details
+      slots[job.slot] = completedSlot
+    }
+    emit()
+  }
+
   function emit(): void {
     const currentBinding = binding
     const hasBinding = currentBinding != null
@@ -626,6 +742,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     }
     revision += 1
     options.publish(snapshot())
+    startNextDetails()
   }
 
   return {

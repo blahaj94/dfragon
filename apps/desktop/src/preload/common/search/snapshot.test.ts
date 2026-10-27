@@ -58,6 +58,28 @@ describe('선택된 캐릭터 요약과 대기 snapshot', () => {
     expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
   })
 
+  it.each(['pending', 'failed'] as const)(
+    '이름과 서버만 정한 선택의 상세 상태 %s를 전달하고 선택 없이는 받지 않는다',
+    (details) => {
+      const snapshot = withSearchSlot(
+        searchSlot({ state: 'success', rows: [searchRow], selected, details })
+      )
+      expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
+      expect(
+        parseSearchSnapshot(
+          withSearchSlot(searchSlot({ state: 'success', rows: [searchRow], details }))
+        )
+      ).toBeNull()
+      expect(
+        parseSearchSnapshot(
+          withSearchSlot(
+            searchSlot({ state: 'success', rows: [searchRow], selected, details: 'done' as never })
+          )
+        )
+      ).toBeNull()
+    }
+  )
+
   it.each(['waiting-portrait', 'waiting-policy'] as const)(
     '%s는 현재 요청의 빈 대기 상태만 허용한다',
     (state) => {

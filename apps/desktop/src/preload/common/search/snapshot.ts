@@ -5,6 +5,7 @@ import {
   SEARCH_COMMAND_ERRORS,
   SEARCH_ERRORS,
   SEARCH_SLOT_COUNTS,
+  SELECTED_DETAILS_STATES,
   type SearchCommandResult,
   type SearchSlotCount,
   type SearchSnapshot
@@ -69,10 +70,15 @@ const slot = z
     error: error.nullable(),
     selected: selectedCharacterSummarySchema.optional(),
     selectionMethod: z.enum(CHARACTER_SELECTION_METHODS).optional(),
-    choices: z.array(choice).min(2).optional()
+    choices: z.array(choice).min(2).optional(),
+    details: z.enum(SELECTED_DETAILS_STATES).optional()
   })
   .refine((value) => {
     if (Object.hasOwn(value, 'selectionMethod') && value.selected === undefined) {
+      return false
+    }
+
+    if (Object.hasOwn(value, 'details') && value.selected === undefined) {
       return false
     }
 

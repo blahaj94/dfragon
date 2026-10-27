@@ -122,7 +122,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 ## 크롭 결과 이후의 식별 처리
 
-`backend/search/identify.ts`의 `createCharacterIdentifier`는 후보 검색, 후보 이미지 한 장 확보, 얼굴 거리 계산, 상세 조회라는 업무 연산과 선택 기준(`maxDistance`, `minMargin`, `maxCandidates`)을 받는다. 전달된 OCR 이름 중 첫 번째만 사용하고 첫 이름이 비어 있거나 잘못돼도 두 번째를 승격하지 않는다. 식별 규칙은 HTTP 구현, clock, 취소 신호, 현재 요청 여부와 실행 제어에 의존하지 않는다.
+`backend/search/identify.ts`의 `createCharacterIdentifier`는 후보 검색, 후보 이미지 한 장 확보, 얼굴 거리 계산이라는 업무 연산과 선택 기준(`maxDistance`, `minMargin`, `maxCandidates`)을 받는다. 전달된 OCR 이름 중 첫 번째만 사용하고 첫 이름이 비어 있거나 잘못돼도 두 번째를 승격하지 않는다. 식별 규칙은 HTTP 구현, clock, 취소 신호, 현재 요청 여부와 실행 제어에 의존하지 않는다.
 
 `backend/search/request.ts`는 일반 검색, 지정 서버 수동 조회와 OCR 식별의 요청 경계다. 요청마다 업무 연산을 `operation.ts`의 실행 범위에 연결하고, 후보 이미지 다운로드와 거리 계산을 식별기에 이어 준다. 선택된 상세는 슬롯 요약으로 투영하며 `selectionMethod`의 `portrait`, `job`, `fame`, `highest-fame`, `manual`로 선택 근거를 전달한다. `job`, `fame`은 공대 식별에서만 나온다. 선택을 확정하지 못했으면 사용자가 고를 후보를 `choices`로 함께 전달한다. HTTP 클라이언트와 이미지 큐, 캐시는 요청마다 다시 생성하지 않는다.
 
@@ -133,7 +133,9 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 - **후보**: 확정하지 못하면 `choices`에 비교한 후보를 명성 순서로 담는다. 거리를 하나도 구하지 못했으면 동명 후보 전부다. 후보마다 서버, 캐릭터 ID, 이름, 명성, 저장된 모험단명과 얼굴 창을 담고 거리는 담지 않는다. 얼굴 창은 색 비교가 맞춘 창(`alignment`)이고, 비교하지 못한 후보는 직업별 얼굴 위치(`portraitFaceWindowOf`)이며, 직업 위치도 모르면 null이다.
 - **후보 한 명**: 2위와 비교할 수 없어 이미지를 받지 않고 `choices` 없이 `highest-fame`이다. 얼굴이 없으면 이미지를 받지 않고 동명 후보 전부를 `choices`로 둔 `highest-fame`이다.
 
-선택한 한 캐릭터의 실제 상세를 조회한다.
+식별기는 후보를 고르는 데까지만 하고 상세를 조회하지 않는다. `request.ts`는 OCR 식별의 결과를 후보 검색 응답으로 만든 요약(레벨, 길드, 카드 null)과 `details: 'pending'`으로 돌려준다. 지정 서버 수동 조회는 같은 요청에서 `runDetailsRequest`와 같은 상세 조회, 점수 계산을 이어 상세까지 채운다.
+
+`capture-lifetime.ts`는 `details: 'pending'`인 슬롯의 상세를 수명마다 한 번에 하나씩 `runDetailsRequest`로 받는다. 어느 슬롯이든 `pending` 상태면 시작하지 않아 회차의 모든 자리가 이름과 서버를 먼저 정한다. 다음 상세는 슬롯 번호 순서로 고르고, snapshot을 발행할 때마다 시작할 수 있는지 다시 본다. 상세 요청은 그 요청을 접수한 때부터 15초 예산을 쓰며, 같은 캡처, 같은 요청 ID이고 아직 `pending`일 때만 결과를 반영한다. 성공하면 상세로 만든 요약으로 바꾸고 `details`를 지운다. 실패와 시간 초과는 그 슬롯만 `details: 'failed'`로 두고 고른 이름과 서버를 유지한 채 다음 슬롯으로 넘어간다. 상세나 후보 검색의 429는 남은 `pending` 슬롯까지 모두 `failed`로 바꿔 제한 중에 요청을 더 보내지 않는다. 게임 창 변경의 `cancelOcrRequests`도 OCR로 시작한 슬롯의 받는 중인 상세를 취소하고 남은 상세를 `failed`로 둔다. 슬롯 취소와 수명 무효화는 받는 중인 상세의 신호를 취소한다. OCR 관측이 IPC로 따로 도착하므로, 앞 자리의 후보 검색이 캐시로 바로 끝나면 뒤 자리를 관측하기 전에 상세가 먼저 시작될 수 있다. 이때는 같은 회차의 다른 자리도 같은 캐시로 바로 끝나 이름과 서버 표시가 늦어지지 않고, 상세 동시 요청은 여전히 하나다. 회차의 관측이 모두 도착했다는 신호는 renderer가 보내지 않는다.
 
 거리를 하나도 구하지 못한 최고 명성 선택은 얼굴 일치와 구분해 진단 코드 `SEARCH_APPEARANCE_FALLBACK`을 남기고, 공대 수명의 최고 명성 선택은 `SEARCH_RAID_ROW_FALLBACK`을 남긴다. 실행 계층은 취소와 만료를 우선하므로 중단된 요청이 대체 선택을 발행하지 않는다. 후보나 상세 조회 실패는 기존 정제된 오류로 남고 상세의 호출 제한도 원래 헤더 수신 시각을 보존한다.
 
@@ -171,7 +173,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 `backend/score/engine.ts`는 라이브러리를 `koffi`로 열어 `dnfscore_version`, `dnfscore_score`, `dnfscore_free`를 묶는다. 패키지는 `app.asar.unpacked/resources/score/`의 플랫폼별 파일만 열고, 개발 실행만 `DFRAGON_SCORE_LIBRARY`의 절대 경로를 읽는다. 라이브러리는 첫 점수 계산 때 한 번 열며 열지 못한 결과도 기억해 다시 시도하지 않는다. 엔진이 출력으로 할당한 문자열은 반환값과 관계없이 같은 엔진의 `dnfscore_free`로 해제한다. 결과는 Desktop이 쓰는 `calculator`, `score`, `skipped`, `approximate_score`, `approximate_source`, `warning`, `versions`, `display`만 검사하고, 요청한 계산기와 다르거나 점수와 사유가 함께 있거나 둘 다 없으면 버린다. 규칙 rev14 엔진은 건너뛴 장비점수 결과에 근사값(`approximate_score`), 출처(`approximate_source`), 경고(`warning`)를 더할 수 있다. 세 칸은 함께 있거나 함께 없어야 하고 `score`가 null인 장비 점수(`equipment`) 결과에만 있을 수 있으며, 어기면 결과 전체를 버린다. 근사값 칸을 보내지 않는 rev14 이전 엔진의 결과는 근사값 없이 받는다. 출처는 엔진 문서에 네 값이 있지만 새 값이 와도 결과를 버리지 않도록 비어 있지 않은 문자열로 받는다. 파일이 없거나 열기, 호출, 결과 검증이 실패하면 점수만 null이고, 원문 오류는 경로를 담을 수 있어 진단 코드 `SCORE_ENGINE_UNAVAILABLE`, `SCORE_ENGINE_FAILED`만 남긴다.
 
-엔진 호출은 main에서 동기로 실행하며 상세 조회를 마친 같은 검색 operation의 `run` 안에서 한다. 호출 전후에 취소, 처음 접수부터 15초인 예산, 현재 요청 여부를 확인하므로 계산 중 캡처가 끝나거나 예산을 넘긴 카드는 발행하지 않는다. 동기 호출은 중간에 멈출 수 없어 걸린 시간이 50ms를 넘으면 `SCORE_ENGINE_SLOW`를 남긴다. Release `native-v0.3.0`(규칙 rev14)을 macOS arm64 host Node에서 golden 벡터 두 건으로 부른 로컬 측정에서는 첫 호출이 엔진 준비로 약 1.1초, 이후 딜러는 약 1.5ms, 버퍼는 약 30ms였다. Windows와 Electron 안의 시간은 측정하지 않았으며, 첫 호출 준비를 worker로 옮길지는 따로 검토한다. Renderer와 preload는 엔진을 부르지 못하고 main이 검증해 넘긴 카드만 받는다.
+엔진 호출은 main에서 동기로 실행하며 상세 조회를 마친 같은 상세 operation의 `run` 안에서 한다. 호출 전후에 취소, 상세 요청 접수부터 15초인 예산, 현재 요청 여부를 확인하므로 계산 중 캡처가 끝나거나 예산을 넘긴 카드는 발행하지 않는다. 동기 호출은 중간에 멈출 수 없어 걸린 시간이 50ms를 넘으면 `SCORE_ENGINE_SLOW`를 남긴다. Release `native-v0.3.0`(규칙 rev14)을 macOS arm64 host Node에서 golden 벡터 두 건으로 부른 로컬 측정에서는 첫 호출이 엔진 준비로 약 1.1초, 이후 딜러는 약 1.5ms, 버퍼는 약 30ms였다. Windows와 Electron 안의 시간은 측정하지 않았으며, 첫 호출 준비를 worker로 옮길지는 따로 검토한다. Renderer와 preload는 엔진을 부르지 못하고 main이 검증해 넘긴 카드만 받는다.
 
 엔진 바이너리는 OCR 모델과 같이 `@dfragon/models`의 `packages/models/score-engine` submodule이 고정한 커밋에 있다(현재 엔진 `native-v0.3.0`(규칙 rev14)의 Windows x64, macOS arm64 파일). 바이너리 저장소가 비공개라 `.gitmodules`의 `update = none`으로 기본 checkout에서 빠지고, 읽기 권한이 있는 로컬과 토큰 secret이 있는 CI만 따로 받는다. `apps/desktop/scripts/prepare-score-engine.mjs`가 플랫폼별 파일을 `resources/score/`에 복사하며, electron-builder의 `asarUnpack: resources/**`가 이를 asar 밖에 둔다. submodule을 받지 않았으면 엔진 없이 빌드하고, 패키지는 Windows만 만든다. 입수와 개발 설정은 [Desktop 안내](../../apps/desktop/README.md#장비-점수-엔진)에 있다.
 

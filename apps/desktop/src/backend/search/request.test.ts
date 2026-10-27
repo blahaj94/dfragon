@@ -4,11 +4,12 @@ import type {
   CharacterCandidate,
   CharacterDetails,
   CharacterImage,
-  CharacterPortrait
+  CharacterPortrait,
+  SelectedCharacterSummary
 } from '../../preload/common/types/character'
 import { deferred } from '../lib/async-test-fixture'
 import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
-import { runSearchRequest, type IdentificationAdapters } from './request'
+import { runDetailsRequest, runSearchRequest, type IdentificationAdapters } from './request'
 import type { CharacterIdentificationInput } from './identify'
 import type { SearchOperationContext } from './operation'
 import type {
@@ -168,15 +169,13 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(await f.identify(f.input)).toMatchObject({
       kind: 'success',
       rows: [expect.objectContaining({ characterId: 'low', characterName: '첫이름' })],
-      selected: { selectionMethod: 'portrait', summary: { characterId: 'low' } }
+      selected: {
+        selectionMethod: 'portrait',
+        details: 'pending',
+        summary: { characterId: 'low', level: null, card: null }
+      }
     })
-    expect(f.calls).toEqual([
-      'candidates:첫이름',
-      'image:high',
-      'image:low',
-      'image:null',
-      'details:low'
-    ])
+    expect(f.calls).toEqual(['candidates:첫이름', 'image:high', 'image:low', 'image:null'])
     await expect(f.scorePortrait.mock.results[1].value).resolves.toMatchObject({
       distance: 10,
       comparedCells: 64
@@ -184,8 +183,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     const signals = [
       ...f.candidates.mock.calls.map(([input]) => input.signal),
       ...f.image.mock.calls.map(([input]) => input.signal),
-      ...f.scorePortrait.mock.calls.map(([input]) => input.signal),
-      ...f.getDetails.mock.calls.map(([input]) => input.signal)
+      ...f.scorePortrait.mock.calls.map(([input]) => input.signal)
     ]
     expect(new Set(signals).size).toBe(1)
   })
@@ -206,14 +204,14 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(f.scorePortrait).toHaveBeenCalledTimes(3)
   })
 
-  it('크롭이 없으면 후보 조회와 상세만 실행한다', async () => {
+  it('크롭이 없으면 후보 조회만 실행한다', async () => {
     const f = fixture()
 
     expect(await f.identify({ ...f.input, portrait: null })).toMatchObject({
       kind: 'success',
       selected: { selectionMethod: 'highest-fame', summary: { characterId: 'high' } }
     })
-    expect(f.calls).toEqual(['candidates:첫이름', 'details:high'])
+    expect(f.calls).toEqual(['candidates:첫이름'])
     expect(f.scorePortrait).not.toHaveBeenCalled()
   })
 
@@ -253,10 +251,10 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
       compared?.kind === 'success' &&
         compared.selected?.choices?.find((choice) => choice.characterId === 'high')?.face
     ).toBeNull()
-    expect(comparing.getDetails).toHaveBeenCalledOnce()
+    expect(comparing.getDetails).not.toHaveBeenCalled()
   })
 
-  it.each(['후보', '이미지', '상세'] as const)(
+  it.each(['후보', '이미지'] as const)(
     '%s 호출 제한은 원래 수신 시각을 유지하고 명성 대체로 바꾸지 않는다',
     async (stage) => {
       const f = fixture()
@@ -266,7 +264,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
       })
       if (stage === '후보') {
         f.candidates.mockRejectedValueOnce(error)
-      } else if (stage === '이미지') {
+      } else {
         f.image.mockImplementation(async ({ characterId }) => {
           if (characterId === 'low') {
             throw error
@@ -274,8 +272,6 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
 
           return shadedImage()
         })
-      } else {
-        f.getDetails.mockRejectedValueOnce(error)
       }
 
       expect(await f.identify(f.input)).toEqual({
@@ -483,6 +479,23 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
     display: { role: 'dealer', switchingLevel: 3, buff30: null, buff50: null }
   }
 
+  // OCR 식별이 후보 검색 응답만으로 만든 요약
+  const identified: SelectedCharacterSummary = {
+    characterId: 'high',
+    characterName: '첫이름',
+    serverId: 'cain',
+    serverName: '카인',
+    adventureName: null,
+    jobName: null,
+    jobGrowName: null,
+    level: null,
+    fame: 100,
+    imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/high?zoom=1',
+    guildName: null,
+    equipmentScore: null,
+    card: null
+  }
+
   function cardRequest(
     f: ReturnType<typeof fixture>,
     score: ScoreEngine,
@@ -494,7 +507,7 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
     }))
 
     return (isCurrent: () => boolean = () => true) =>
-      runSearchRequest({
+      runDetailsRequest({
         runtime: {
           clock: f.clock,
           http: vi.fn(),
@@ -507,11 +520,10 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
           },
           score
         },
-        nickname: '첫이름',
+        summary: identified,
         startedAt: f.input.startedAt,
         signal: f.controller.signal,
-        isCurrent,
-        ocrInput: { candidateNicknames: ['첫이름'], portrait: null }
+        isCurrent
       })
   }
 
@@ -523,16 +535,19 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
 
     expect(outcome).toMatchObject({
       kind: 'success',
-      selected: {
-        summary: {
-          equipmentScore: 1741,
-          card: {
-            role: 'dealer',
-            score: { calculator: 'equipment', value: 1741, skipped: null }
-          }
+      summary: {
+        characterId: 'high',
+        imageUrl: identified.imageUrl,
+        equipmentScore: 1741,
+        card: {
+          role: 'dealer',
+          score: { calculator: 'equipment', value: 1741, skipped: null }
         }
       }
     })
+    expect(f.getDetails).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ serverId: 'cain', characterId: 'high' })
+    )
     expect(score).toHaveBeenCalledOnce()
   })
 
@@ -544,9 +559,26 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
 
     expect(outcome).toMatchObject({
       kind: 'success',
-      selected: {
-        summary: { characterId: 'high', equipmentScore: null, card: null }
-      }
+      summary: { characterId: 'high', equipmentScore: null, card: null }
+    })
+    expect(score).not.toHaveBeenCalled()
+  })
+
+  it('상세 호출 제한은 원래 수신 시각을 유지해 전달한다', async () => {
+    const f = fixture()
+    const score = vi.fn<ScoreEngine>(() => engineResult)
+    const request = cardRequest(f, score)
+    f.getDetails.mockRejectedValueOnce(
+      new SearchHttpFailure('SEARCH_RATE_LIMITED', {
+        retryAfterSeconds: 30,
+        retryAfterReceivedAt: 1000
+      })
+    )
+
+    expect(await request()).toEqual({
+      kind: 'failure',
+      error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 30 },
+      retryAfterReceivedAt: 1000
     })
     expect(score).not.toHaveBeenCalled()
   })

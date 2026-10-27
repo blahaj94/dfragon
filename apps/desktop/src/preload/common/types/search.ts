@@ -26,6 +26,13 @@ export const CHARACTER_SELECTION_METHODS = [
 ] as const
 export type CharacterSelectionMethod = (typeof CHARACTER_SELECTION_METHODS)[number]
 
+/**
+ * 이름과 서버만 정하고 상세와 점수를 아직 채우지 않은 선택의 상태. `pending`은 차례를 기다리거나 받는 중,
+ * `failed`는 받지 못한 상태다.
+ */
+export const SELECTED_DETAILS_STATES = ['pending', 'failed'] as const
+export type SelectedDetailsState = (typeof SELECTED_DETAILS_STATES)[number]
+
 export type ManualCharacterLookup = SearchObservation & Readonly<{ serverId: string }>
 
 export type SearchControl =
@@ -145,6 +152,8 @@ export type SearchSlot = Readonly<{
   selectionMethod?: CharacterSelectionMethod
   /** 선택이 애매할 때 사용자가 고를 후보. 선택한 캐릭터를 포함하며 확정한 선택에는 없다. */
   choices?: readonly CharacterChoice[]
+  /** 상세와 점수를 아직 채우지 않은 선택의 상태. 상세까지 채운 선택에는 없다. */
+  details?: SelectedDetailsState
 }>
 
 export type SearchSnapshot = Readonly<{
