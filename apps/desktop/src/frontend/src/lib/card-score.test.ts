@@ -121,6 +121,32 @@ it('엔진이 건너뛴 점수에 낸 근사값은 근사값으로 보이고 사
   })
 })
 
+it('엔진이 건너뛴 버프 점수에 낸 근사값도 버퍼 톤의 근사값으로 보인다', () => {
+  const buffApproximate: CharacterCard = {
+    ...bufferCard,
+    score: {
+      calculator: 'buff',
+      value: null,
+      skipped: { kind: 'resolution', message: 'avatar record missing' },
+      approximate: {
+        value: 136000,
+        source: 'missing_avatar_record',
+        warning: '아바타 레코드 없음'
+      },
+      versions: { package: 'dnfscore-native 0.3.1', rulesRev: 'rev14', bundleId: 'phase32-rev14b' }
+    }
+  }
+
+  expect(toScoreView(buffApproximate)).toEqual({
+    label: '버프 점수',
+    tone: 'buffer',
+    value: 136000,
+    approximate: true,
+    description:
+      '근사값, 아이템을 판별하지 못함. 정확히 계산하지 못한 추정값이라 게임 버프 점수와 1% 넘게 다를 수 있습니다.'
+  })
+})
+
 it('근사값 점수의 화면 글자는 천 단위 구분 앞에 ≈를 붙인다', () => {
   expect(formatApproximateScore(321000)).toBe('≈321,000')
 })
