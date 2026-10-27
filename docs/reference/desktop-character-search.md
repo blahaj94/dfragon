@@ -118,11 +118,13 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 이미지를 받지 못하거나 점수가 없는 후보는 거리 없이 남고, 나머지 후보의 비교는 계속한다. 그 후보를 얼굴 일치로 표시하거나 다음 OCR 이름으로 넘어가지 않는다. 후보 검색과 상세 조회의 HTTP 실패, 429는 기존 오류로 전달하며 실행 취소, 만료와 늦은 결과 차단을 유지한다. 명성이 같은 후보는 기존 순서, null 명성은 마지막 순서를 유지한다.
 
+후보 검색과 상세도 같은 main runtime의 메모리 LRU를 일반 캡처, 공대, 수동 조회가 공유한다. 이름별 후보는 최대 256개, JSON 크기 합계 8MiB, 서버와 캐릭터 ID별 상세는 최대 128개, 64MiB로 제한한다. 상세 한 응답의 HTTP 상한은 8MiB이며 여러 캐릭터를 담도록 총량을 정했다. 둘 다 성공 완료 후 5분 동안 보관하고 실패, 취소와 진행 중 요청은 공유하지 않는다. 반환값을 복제해 호출자의 변경이 캐시에 영향을 주지 않는다.
+
 ## 크롭 결과 이후의 식별 처리
 
 `backend/search/identify.ts`의 `createCharacterIdentifier`는 후보 검색, 후보 이미지 한 장 확보, 얼굴 거리 계산, 상세 조회라는 업무 연산과 선택 기준(`maxDistance`, `minMargin`, `maxCandidates`)을 받는다. 전달된 OCR 이름 중 첫 번째만 사용하고 첫 이름이 비어 있거나 잘못돼도 두 번째를 승격하지 않는다. 식별 규칙은 HTTP 구현, clock, 취소 신호, 현재 요청 여부와 실행 제어에 의존하지 않는다.
 
-`backend/search/request.ts`는 일반 검색, 지정 서버 수동 조회와 OCR 식별의 요청 경계다. 요청마다 업무 연산을 `operation.ts`의 실행 범위에 연결하고, 후보 이미지 다운로드와 거리 계산을 식별기에 이어 준다. 선택된 상세는 슬롯 요약으로 투영하며 `selectionMethod`의 `portrait`, `job`, `fame`, `equipment-score`, `highest-fame`, `manual`로 선택 근거를 전달한다. `job`, `fame`, `equipment-score`는 공대 식별에서만 나온다. 선택을 확정하지 못했으면 사용자가 고를 후보를 `choices`로 함께 전달한다. HTTP 클라이언트와 이미지 큐, 캐시는 요청마다 다시 생성하지 않는다.
+`backend/search/request.ts`는 일반 검색, 지정 서버 수동 조회와 OCR 식별의 요청 경계다. 요청마다 업무 연산을 `operation.ts`의 실행 범위에 연결하고, 후보 이미지 다운로드와 거리 계산을 식별기에 이어 준다. 선택된 상세는 슬롯 요약으로 투영하며 `selectionMethod`의 `portrait`, `job`, `fame`, `highest-fame`, `manual`로 선택 근거를 전달한다. `job`, `fame`은 공대 식별에서만 나온다. 선택을 확정하지 못했으면 사용자가 고를 후보를 `choices`로 함께 전달한다. HTTP 클라이언트와 이미지 큐, 캐시는 요청마다 다시 생성하지 않는다.
 
 첫 이름이 유효하면 한 번 검색한다. 후보가 없으면 조회 실패이며 두 번째 이름을 시도하지 않는다. 후보는 명성 내림차순, null 후순위로 정렬하고 상위 `maxCandidates`명 전원의 얼굴 거리를 구한 뒤에 고른다. 한 후보의 이미지나 점수가 없어도 나머지 후보를 계속 비교한다.
 
@@ -161,7 +163,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 ## 카드 전달과 점수 엔진
 
-상세 응답의 `card`는 API가 기본 정보의 전직명으로 정한 역할이다. Main의 `backend/search/card-assembler.ts`가 `apiCharacterCardSchema`로 역할만 읽고, 그 역할에 점수 엔진 결과를 채운 `{ role, score }`를 `SelectedCharacterSummary.card`로 보낸다. 이전 API가 함께 보내던 스탯, 서버 순위, 세트, 서약, 강화 값은 읽지 않는다. `card`가 없거나 역할을 읽지 못하면 엔진을 부르지 않고 `card`만 null로 두며 기본 요약은 그대로 보낸다. Renderer에 넘기기 전에는 `characterCardSchema`(모르는 키 거절, 유한한 숫자, 비어 있지 않은 문자열)로 다시 검사한다. 요약의 `equipmentScore`는 `card.score.value`를 옮긴 값이다. `card.score.value`에는 정확한 점수만 두므로 근사값(`card.score.approximate`)은 `equipmentScore`와 공대 식별의 장비 점수 비교에 들어가지 않는다. Renderer에는 숫자와 enum으로 된 카드만 건너가며 포맷한 문자열은 보내지 않는다.
+상세 응답의 `card`는 API가 기본 정보의 전직명으로 정한 역할이다. Main의 `backend/search/card-assembler.ts`가 `apiCharacterCardSchema`로 역할만 읽고, 그 역할에 점수 엔진 결과를 채운 `{ role, score }`를 `SelectedCharacterSummary.card`로 보낸다. 이전 API가 함께 보내던 스탯, 서버 순위, 세트, 서약, 강화 값은 읽지 않는다. `card`가 없거나 역할을 읽지 못하면 엔진을 부르지 않고 `card`만 null로 두며 기본 요약은 그대로 보낸다. Renderer에 넘기기 전에는 `characterCardSchema`(모르는 키 거절, 유한한 숫자, 비어 있지 않은 문자열)로 다시 검사한다. 요약의 `equipmentScore`는 `card.score.value`를 옮긴 값이다. `card.score.value`에는 정확한 점수만 두므로 근사값(`card.score.approximate`)은 `equipmentScore`에 들어가지 않는다. Renderer에는 숫자와 enum으로 된 카드만 건너가며 포맷한 문자열은 보내지 않는다.
 
 계산기는 API가 정한 `card.role`로 고른다. `buffer`는 `buff`, 그 밖(역할을 모르는 null 포함)은 `equipment`이며 엔진에 역할 판단을 맡기지 않는다. 엔진 결과가 없으면 API가 보낸 값과 관계없이 점수는 null이다. 계산하지 못한 결과는 `score.value`가 null이고 `skipped`에 사유 종류와 문구가 남는다. 엔진이 근사값을 냈으면 `score.approximate`에 값(`value`), 출처(`source`), 엔진의 원문 경고(`warning`)를 함께 두고, 근사값이 없거나 점수를 낸 결과는 null이다. Renderer의 `lib/card-score.ts`가 파티 카드와 공대 카드의 점수 칸을 같은 변환으로 정하며, 근사값은 `≈`를 붙여 보이고 사유 종류와 근사 방법만 보조 기술과 마우스 설명에 전한다.
 
@@ -233,9 +235,9 @@ git diff --check
 
 공대 캡처는 같은 공대 수명을 쓴다. `hooks/useRaidCapture.ts`가 `lib/raid-capture-machine.ts`의 회차를 소유하고, 파티 캡처의 창 등록 상태를 받아 등록이 바뀌면 진행 중 회차를 끝낸다. 회차는 `useManualCharacterLookup`의 `beginRound`로 공대 수명을 새로 시작한 뒤 `window.raidSearch.readCaptureFrame`(`readRaidCaptureFrame`)으로 12행의 닉네임, 직업명 크롭과 수치 표기, 수치 열 종류를 받는다. `lib/raid-recognition.ts`는 파티 캡처와 같은 반전 이진화와 OCR worker로 행마다 닉네임 첫 후보를 판정하고, 검색할 이름이면 직업명 칸도 같은 전처리로 읽는다. 직업명 인식 실패는 그 행의 직업명만 null로 둔다. 인식한 이름은 `notifyRaidOcrCandidatesDetected`로 얼굴 없이, 그 행의 `raidRow`(`jobText`, `valueColumn`, `valueText`)와 함께 알린다. `commands.ts`는 공대 관측에만 `raidRow`를 요구하고 파티 관측에는 받지 않는다. 수치 표기는 숫자, 쉼표, 마침표, `K`로 16자까지, 직업명은 32자까지다.
 
-Main의 공대 수명은 `SearchRuntime.ocrIdentification`을 `raid`로 두어 `identify.ts`의 `createRaidCharacterIdentifier`를 쓴다. 선택 규칙은 `raid-candidate.ts`의 두 순수 함수가 데이터만 받아 정한다. `planRaidComparison({ observed, candidates })`는 `raid-job-name.ts`의 `matchJobName`으로 후보의 `jobGrowName`과 비교해 직업명 그룹을 만들고, `job`, `fame`, `equipment-score`, `highest-fame` 중 할 비교를 정한다. 장비 점수 비교면 그룹의 명성 상위 3명을 대상으로 둔다. `selectRaidCandidate(plan, equipmentScores)`는 화면 표기 범위(`parseDNFRaidValueNotation`)와의 거리로 최선 후보와 확정 여부를 정하고, 확정하지 못하면 그룹 후보를 돌려준다. 정책값은 [공대 식별 흐름](../rules/character-search.md#desktop의-공대-식별-흐름)과 같다. 명성 정렬은 파티 식별과 같은 `candidate-order.ts`를 쓴다.
+Main의 공대 수명은 `SearchRuntime.ocrIdentification`을 `raid`로 두어 `identify.ts`의 `createRaidCharacterIdentifier`를 쓴다. `raid-candidate.ts`는 직업명 그룹을 만들고 `job`, `fame`, `highest-fame` 중 선택한다. 명성 비교에는 후보 검색 응답을 쓰며 장비 점수 열은 최고 명성 선택으로 처리한다. 그룹 후보는 얼굴 창 없는 `choices`로 전달한다. 정책값은 [공대 식별 흐름](../rules/character-search.md#desktop의-공대-식별-흐름)과 같다.
 
-식별기는 장비 점수 대상의 상세를 `findComparisonDetails`로 한 명씩 차례로 조회하고, `scoreEquipment`로 카드와 같은 엔진 값을 구한다. 두 연산은 `request.ts`가 같은 실행 범위(`execution.run`)에 묶으므로 기존 취소, 만료, 15초 예산과 늦은 결과 차단이 그대로 적용된다. 상세 429는 그 후보만 점수 없음으로 두고, 그 밖의 상세 실패는 요청 실패다. 고른 후보의 상세를 이미 받았으면 다시 조회하지 않는다. 그룹 후보는 얼굴 창 없는 `choices`로 전달하며, 공대 카드는 후보 창 없이 `lib/character-card.ts`의 공대 안내만 보조 기술과 마우스 설명으로 전한다. 이전 API가 `jobName`, `jobGrowName`을 보내지 않으면 `character-http.ts`가 null로 받아 직업명 단계를 건너뛴다.
+식별기는 고른 후보 한 명의 상세만 조회한다. 공대 카드는 후보 창 없이 `lib/character-card.ts`의 공대 안내만 보조 기술과 마우스 설명으로 전한다. 이전 API가 `jobName`, `jobGrowName`을 보내지 않으면 `character-http.ts`가 null로 받아 직업명 단계를 건너뛴다.
 
 공대 보드의 자리 맞바꾸기는 renderer 배치만 바꾼다. `useRaidCapture`의 `seatOrder[화면 자리]`가 그 자리에 놓인 공대 검색 슬롯이고, `RaidPage`는 조회를 그 슬롯 번호로 알린다. 그래서 main 공대 수명의 자리 번호와 요청, 취소, 늦은 응답 처리는 그대로이며 진행 중 조회와 늦은 응답은 옮겨 간 카드에 들어간다. 회차를 시작할 때(`beginRound`) 배치를 처음으로 되돌려 OCR 행 번호와 슬롯 번호, 화면 자리가 같아지고, 회차가 인식하는 동안은 `canMoveSeats`가 false라 맞바꾸지 않는다.
 

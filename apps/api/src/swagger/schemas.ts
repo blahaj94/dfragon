@@ -214,30 +214,12 @@ export const apiSchemas: Record<string, SchemaObject> = {
         crystal: { type: 'array', nullable: true, items: catalogItem },
         setInfo: {
           ...providerValue,
-          description: '현재 적용된 서약 세트 원본. 숫자 setId는 setDetails의 키가 아닙니다.'
+          description: '현재 적용된 서약 세트 원본.'
         }
       }
-    },
-    setDetails: {
-      type: 'object',
-      additionalProperties: catalogDetail,
-      description:
-        '장착 응답과 공용 아이템 상세가 직접 참조하는 setItemId별 세트 상세. 외형 참조의 세트도 포함할 수 있으며 적용 여부를 뜻하지 않습니다. 세트 구성품을 재귀 조회하지 않습니다.'
     },
     mistAssimilation: providerValue,
-    skillStyle: {
-      type: 'object',
-      nullable: true,
-      additionalProperties: true,
-      properties: {
-        skillDetails: {
-          type: 'object',
-          additionalProperties: catalogDetail,
-          description:
-            '캐릭터 직업의 skillId별 공용 상세. 습득, 진화, 강화, 체인, 버프 스킬 참조를 포함합니다.'
-        }
-      }
-    },
+    skillStyle: providerValue,
     buff: object({
       equipment: {
         type: 'object',

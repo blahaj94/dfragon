@@ -17,8 +17,6 @@ export type ManifestCandidate = Readonly<{
   fame: number | null
   jobName: string | null
   jobGrowName: string | null
-  /** 후보 상세로 점수 엔진이 계산한 값. 계산하지 못했으면 null이다. */
-  engineScore: number | null
 }>
 
 export type ManifestRow = Readonly<{
@@ -96,8 +94,7 @@ function parseCandidate(value: unknown, where: string): ManifestCandidate {
     correct,
     fame: readNullableNumber(value.fame, `${where}.fame`),
     jobName: readNullableText(value.jobName, `${where}.jobName`),
-    jobGrowName: readNullableText(value.jobGrowName, `${where}.jobGrowName`),
-    engineScore: readNullableNumber(value.engineScore, `${where}.engineScore`)
+    jobGrowName: readNullableText(value.jobGrowName, `${where}.jobGrowName`)
   }
 }
 

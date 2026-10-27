@@ -25,6 +25,10 @@ import {
   createCharacterImageHttp
 } from '../search/character-http'
 import { createCharacterImageSource } from '../search/character-image-source'
+import {
+  createCachedCharacterCandidates,
+  createCachedCharacterDetails
+} from '../search/character-response-cache'
 import { createPortraitColorScorer, type PortraitColorPolicy } from '../search/portrait-color'
 import { validateSelectionPolicy, type CharacterSelectionPolicy } from '../search/identify'
 import type { SearchRuntime } from '../search/request'
@@ -189,9 +193,9 @@ function registerCaptureIpc(configuration?: {
       validateSelectionPolicy(selection)
       // 캡처, 파티 카드, 공대 수명이 같은 runtime을 쓰므로 이미지 대기열과 캐시도 하나를 공유한다.
       runtime.identification = {
-        candidates: createCharacterCandidatesHttp(configuration),
+        candidates: createCachedCharacterCandidates(createCharacterCandidatesHttp(configuration)),
         image: createCharacterImageSource({ image: createCharacterImageHttp(configuration) }),
-        details: createCharacterDetailsHttp(configuration),
+        details: createCachedCharacterDetails(createCharacterDetailsHttp(configuration)),
         scorePortrait,
         selection
       }

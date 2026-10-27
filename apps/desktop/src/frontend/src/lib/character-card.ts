@@ -68,10 +68,6 @@ function raidSelectionNotice(slot: SearchSlot): string | undefined {
     return '명성으로 추정한 후보입니다.'
   }
 
-  if (slot.selectionMethod === 'equipment-score') {
-    return '장비 점수로 추정한 후보입니다.'
-  }
-
   return undefined
 }
 

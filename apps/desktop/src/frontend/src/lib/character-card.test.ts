@@ -153,19 +153,19 @@ describe('공대 카드의 선택 근거 안내', () => {
     })
   )
 
-  it.each(['job', 'fame', 'equipment-score'] as const)(
+  it.each(['job', 'fame'] as const)(
     '%s로 확정한 선택은 안내 없이 스탯 줄을 보인다',
     (selectionMethod) => {
       expect(characterSlotNotice({ ...base, selectionMethod }, 'raid')).toBeUndefined()
     }
   )
 
-  it.each([
-    ['fame', '명성으로 추정한 후보입니다.'],
-    ['equipment-score', '장비 점수로 추정한 후보입니다.']
-  ] as const)('%s로 확정하지 못한 선택은 추정 안내를 보인다', (selectionMethod, notice) => {
-    expect(characterSlotNotice({ ...base, selectionMethod, choices }, 'raid')).toBe(notice)
-  })
+  it.each([['fame', '명성으로 추정한 후보입니다.']] as const)(
+    '%s로 확정하지 못한 선택은 추정 안내를 보인다',
+    (selectionMethod, notice) => {
+      expect(characterSlotNotice({ ...base, selectionMethod, choices }, 'raid')).toBe(notice)
+    }
+  )
 
   it('최고 명성 선택은 후보 줄 여부와 무관하게 직업과 수치를 확인하지 못했다고 안내한다', () => {
     const notice = '직업과 수치 미확인, 최고 명성 후보입니다.'

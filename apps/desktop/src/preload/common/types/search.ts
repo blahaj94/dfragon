@@ -14,14 +14,13 @@ export const SEARCH_ACTIONS = {
 } as const
 
 /**
- * 고른 근거. `portrait`는 파티 얼굴, `job`, `fame`, `equipment-score`는 공대 행의 직업명, 명성, 장비 점수,
+ * 고른 근거. `portrait`는 파티 얼굴, `job`, `fame`은 공대 행의 직업명, 명성,
  * `highest-fame`은 비교 근거 없이 최고 명성 후보, `manual`은 사용자가 지정한 서버다.
  */
 export const CHARACTER_SELECTION_METHODS = [
   'portrait',
   'job',
   'fame',
-  'equipment-score',
   'highest-fame',
   'manual'
 ] as const

@@ -131,7 +131,7 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
     },
     async (execution) => {
       const score = input.runtime.score ?? null
-      const services = bindIdentificationServices(adapters, execution, score)
+      const services = bindIdentificationServices(adapters, execution)
       const identified = await identifyCharacter(input, services, adapters.selection)
       if (identified.kind !== 'matched') {
         return { identified, card: null }
@@ -218,8 +218,7 @@ function identifyCharacter(
 /** 요청의 실행 관리를 결합하고 식별 규칙에는 업무 연산만 전달한다. */
 function bindIdentificationServices(
   adapters: IdentificationAdapters,
-  execution: SearchOperation,
-  score: ScoreEngine | null
+  execution: SearchOperation
 ): IdentificationServices & RaidIdentificationServices {
   return {
     findCandidates: (nickname) =>
@@ -238,24 +237,6 @@ function bindIdentificationServices(
         }
       }),
     getDetails: (identity) => execution.run((signal) => adapters.details({ ...identity, signal })),
-    findComparisonDetails: (identity) =>
-      execution.run(async (signal) => {
-        try {
-          return await adapters.details({ ...identity, signal })
-        } catch (error) {
-          // 요청 한도는 그 후보만 점수 없음으로 두고 나머지 후보의 비교를 계속한다. 취소와 만료는 실행 계층이 판정한다.
-          if (error instanceof SearchHttpFailure && error.code === 'SEARCH_RATE_LIMITED') {
-            return null
-          }
-          throw error
-        }
-      }),
-    scoreEquipment: (details) =>
-      execution.run(async () => {
-        const equipmentScore = buildCharacterCard(details, score)?.score?.value ?? null
-
-        return equipmentScore
-      }),
     scorePortrait: (input) =>
       execution.run(async (signal) => {
         try {

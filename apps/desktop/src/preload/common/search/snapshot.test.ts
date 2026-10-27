@@ -173,7 +173,7 @@ describe('얼굴로 확정하지 못한 선택의 후보', () => {
     expect(parseSearchSnapshot(withChoices(choices))).toBeNull()
   })
 
-  it.each(['job', 'fame', 'equipment-score'] as const)(
+  it.each(['job', 'fame'] as const)(
     '공대 행 값의 선택 근거 %s를 후보와 함께 전달한다',
     (selectionMethod) => {
       const snapshot = withSearchSlot({

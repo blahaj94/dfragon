@@ -21,7 +21,7 @@ last-reviewed: 2026-10-26
 
 11개가 모두 성공해야 응답한다. 하나라도 실패하면 오류를 반환하며 부분 결과를 성공처럼 돌려주지 않는다. 여러 upstream 호출이 게임 서버의 같은 순간을 나타낸다고 보장하지는 않는다.
 
-응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`, `setDetails`, `freshness`, `card`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다. 저장하지 않으므로 revision은 항상 1이고 두 시각은 이번 조회 시각이다. 최상위 `freshness.lastSuccessfulFetchAt`은 조회 시각, `freshness.expiresAt`은 그 시각에 5분을 더한 ISO 시각이다. 기존 Desktop과의 호환을 위해 이 필드들의 형태를 유지한다.
+응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`, `freshness`, `card`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다. 저장하지 않으므로 revision은 항상 1이고 두 시각은 이번 조회 시각이다. 최상위 `freshness.lastSuccessfulFetchAt`은 조회 시각, `freshness.expiresAt`은 그 시각에 5분을 더한 ISO 시각이다. 기존 Desktop과의 호환을 위해 이 필드들의 형태를 유지한다.
 
 ## 카드 투영
 
@@ -33,22 +33,20 @@ last-reviewed: 2026-10-26
 
 모험단명으로 저장된 캐릭터를 찾던 `GET /adventures/characters`도 DB에만 있던 기능이라 지웠다. 이 경로는 일반 404다.
 
-## 공용 아이템, 스킬, 세트 상세
+## 공용 아이템 상세
 
-조회한 캐릭터 11개 섹션에 공용 상세를 연결한다. 원본 캐릭터 섹션에는 공용 상세를 섞지 않는다. 일반, 버프 장착 장비, 아바타, 엠블렘, 외형 clone, 크리쳐, 아티팩트, 외형 clone, 서약 info, 결정, 버프 아바타, 엠블렘, 외형 clone과 버프 크리쳐의 유효한 itemId가 있는 각 항목에 `itemDetail: { data, fetchedAt, status }`를 추가한다. `skillStyle` 객체에는 `skillDetails`를 추가하고 캐릭터 기본정보의 `jobId`와 습득, 진화, 강화, 체인, 버프 스킬 ID로 상세를 연결한다. `skillDetails`는 skillId를 key로 사용하는 객체이며 같은 상세를 여러 선택 항목에 복제하지 않는다. `itemDetail`과 `skillDetails`는 서버 응답용으로 예약한 필드다. ID가 없는 빈 슬롯, null, 빈 배열, 선택 옵션과 원본 배열 순서는 유지한다. 외형 clone의 상세를 장착 효과로 합산하지 않는다.
-
-응답 최상위 `setDetails`는 setItemId를 key로 사용하는 공용 상세 객체이며 참조가 없으면 빈 객체다. 장비 setItemInfo와 확인된 장착 아이템의 setItemId, 이번 요청에서 조회한 아이템 상세의 setItemId를 연결한다. 세트의 구성품 전체를 재귀 조회하지 않는다. 이 사전은 적용 중인 세트 목록이 아니며 외형 참조의 세트도 포함할 수 있다. 현재 적용 효과는 캐릭터 원본의 active를 유지한다. 서약 setInfo의 숫자 setId는 일반 setItemId와 구분하고 세트 상세 API에 전달하지 않는다.
+조회한 캐릭터 11개 섹션에 공용 상세를 연결한다. 원본 캐릭터 섹션에는 공용 상세를 섞지 않는다. 일반, 버프 장착 장비, 아바타, 엠블렘, 외형 clone, 크리쳐, 아티팩트, 외형 clone, 서약 info, 결정, 버프 아바타, 엠블렘, 외형 clone과 버프 크리쳐의 유효한 itemId가 있는 각 항목에 `itemDetail: { data, fetchedAt, status }`를 추가한다. `itemDetail`은 서버 응답용으로 예약한 필드다. ID가 없는 빈 슬롯, null, 빈 배열, 선택 옵션과 원본 배열 순서는 유지한다. 외형 clone의 상세를 장착 효과로 합산하지 않는다.
 
 공용 상세도 요청마다 조회하며 저장하지 않는다. `fresh`는 이번 요청에서 조회한 값, `unavailable`은 조회 실패나 처리 예산 종료로 data와 fetchedAt이 null인 상태다. 공용 조회 실패는 성공한 캐릭터 응답을 실패로 바꾸지 않는다. 클라이언트 연결 종료와 서버 종료는 전체 요청을 취소한다.
 
-아이템, 세트 다중 조회는 각각 최대 15개를 ID로 대응하고, 없는 항목이나 중복 응답 항목은 unavailable로 둔다. 스킬 상세는 응답에 skillId가 없을 수 있어 단일 조회의 요청 jobId, skillId로 대응한다. jobId 및 제공된 skillId가 다르면 쓰지 않는다.
+아이템 다중 조회는 최대 15개를 ID로 대응하고, 없는 항목이나 중복 응답 항목은 unavailable로 둔다. 스킬과 세트의 공용 상세는 조회하지 않으며 아이템 상세의 setItemId로 후속 조회하지 않는다.
 
-공용 참조는 최초 아이템, 스킬, 세트와 아이템 상세에서 후속 발견한 세트를 합쳐 요청마다 중복 제거 후 최대 128개를 처리하며 필요한 호출을 동시 실행 제한 없이 모두 동시에 시작한다([호출 제한 결정](character-search.md#공개-검색과-호출-제한)). 초과 참조는 unavailable로 전달하며 캐릭터 원본은 유지한다. 후속 세트 조회까지 추가 처리 전체에 하나의 10초 취소 신호, 개별 upstream에 5초 제한을 적용한다. 자동 재시도와 요청 간 단일 실행 보장은 없다.
+공용 아이템 참조는 요청마다 중복 제거 후 최대 128개를 처리하며 필요한 호출을 동시 실행 제한 없이 모두 동시에 시작한다([호출 제한 결정](character-search.md#공개-검색과-호출-제한)). 초과 참조는 unavailable로 전달하며 캐릭터 원본은 유지한다. 추가 처리 전체에 하나의 10초 취소 신호, 개별 upstream에 5초 제한을 적용한다. 자동 재시도와 요청 간 단일 실행 보장은 없다.
 
 장비 슬롯 수, 세트 개수, 마법부여의 직업별 스킬 증가, 숫자, 문자열 능력치, 스킬 필드 누락, 체인의 null과 배열 순서를 보존한다. 공용 tune 등의 값으로 캐릭터 장착 값을 덮어쓰지 않는다. 공용 상세는 실제 적용 능력치 계산 결과나 마법부여 평가가 아니다.
 
 ## 오류, 호출 제한
 
-상세 GET에는 클라이언트별 호출 제한과 서버 전체 Neople 호출 예산이 없다. 결정과 위험은 [공개 검색과 호출 제한](character-search.md#공개-검색과-호출-제한)에 있다. 저장하지 않으므로 상세 요청마다 Neople 11회와 공용 상세 수만큼의 호출을 소비한다. 연결 해제, 종료 신호를 확인해 취소된 요청의 후속 처리를 중단한다.
+상세 GET에는 클라이언트별 호출 제한과 서버 전체 Neople 호출 예산이 없다. 결정과 위험은 [공개 검색과 호출 제한](character-search.md#공개-검색과-호출-제한)에 있다. 저장하지 않으므로 상세 요청마다 Neople 11회와 공용 아이템 참조를 15개씩 묶은 호출을 소비한다. 연결 해제, 종료 신호를 확인해 취소된 요청의 후속 처리를 중단한다.
 
 오류 body는 `error.code`, `error.message`만 가진다. 입력 400 `INVALID_CHARACTER_QUERY`, 내부 오류 500 `INTERNAL_SERVER_ERROR`, 공급자 오류 502 `NEOPLE_API_ERROR`, 이용 불가 503 `NEOPLE_UNAVAILABLE`, Neople 제한 시간 504 `NEOPLE_TIMEOUT`이다. 공급자 code 분류는 기존 검색과 같고 상세 조회용 고정 문구로 반환한다. 키, 공급자 원문 오류, 요청 원문을 로그나 응답에 포함하지 않는다.

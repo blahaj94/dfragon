@@ -43,7 +43,7 @@ it('최고 명성 선택은 파티 얼굴과 공대 행 값 중 확인하지 못
 })
 
 it('공대 행 값으로 고른 선택은 대체 선택으로 기록하지 않는다', () => {
-  for (const selectionMethod of ['job', 'fame', 'equipment-score']) {
+  for (const selectionMethod of ['job', 'fame']) {
     reportSearchOutcome(
       {
         kind: 'success',

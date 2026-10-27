@@ -6,7 +6,6 @@ import { deferred } from '../lib/async-test-fixture'
 import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { runSearchRequest } from './request'
 import type { CharacterCandidatesHttp, CharacterDetailsHttp } from './character-http'
-import { SearchHttpFailure } from './http'
 import type { ScoreEngine, ScoreEngineResult } from '../score/engine'
 import { dealerCard } from '../../preload/common/search/card-test-fixture'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
@@ -124,93 +123,24 @@ function fixture(engineScores: Record<string, number | null> | null) {
   return { clock, controller, calls, candidates, getDetails, score, request }
 }
 
-describe('공대 장비 점수 비교의 상세 조회', () => {
-  it('직업명 그룹의 명성 상위 3명만 한 명씩 조회하고 고른 후보의 상세는 다시 조회하지 않는다', async () => {
-    const f = fixture({ first: 80_000, second: 50_100, third: 20_000 })
-    const firstDetails = deferred<CharacterDetails>()
-    f.getDetails.mockImplementationOnce(async ({ characterId }) => {
-      f.calls.push(`details:${characterId}`)
+describe('공대 장비 점수 열의 상세 조회', () => {
+  it('직업명 그룹의 최고 명성 후보만 조회하고 그룹 후보를 함께 반환한다', async () => {
+    const f = fixture({ first: 80_000, second: 50_000 })
+    const result = await f.request()
 
-      return firstDetails.promise
-    })
-
-    const pending = f.request()
-    await vi.waitFor(() => expect(f.calls).toEqual(['details:first']))
-    // 앞 후보의 상세가 끝나기 전에는 다음 후보를 조회하지 않는다.
-    await new Promise<void>((resolve) => setImmediate(resolve))
     expect(f.calls).toEqual(['details:first'])
-    firstDetails.resolve(details('first'))
-
-    expect(await pending).toMatchObject({
-      kind: 'success',
-      rows: [expect.objectContaining({ characterId: 'second' })],
-      selected: { selectionMethod: 'equipment-score', summary: { characterId: 'second' } }
-    })
-    expect(f.calls).toEqual(['details:first', 'details:second', 'details:third'])
-  })
-
-  it('상세 429와 엔진이 계산하지 못한 후보는 점수 없음으로 두고 나머지로 고른 뒤 추정으로 표시한다', async () => {
-    // first는 상세 429, third는 엔진이 계산하지 못한 후보다.
-    const f = fixture({ second: 50_000, third: null })
-    f.getDetails.mockImplementationOnce(async ({ characterId }) => {
-      f.calls.push(`details:${characterId}`)
-      throw new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 30,
-        retryAfterReceivedAt: 0
-      })
-    })
-
-    const outcome = await f.request()
-
-    expect(outcome).toMatchObject({
-      kind: 'success',
-      selected: { selectionMethod: 'equipment-score', summary: { characterId: 'second' } }
-    })
-    expect(
-      outcome?.kind === 'success' && outcome.selected?.choices?.map((choice) => choice.characterId)
-    ).toEqual(['first', 'second', 'third', 'fourth'])
-    expect(
-      outcome?.kind === 'success' &&
-        outcome.selected?.choices?.every((choice) => choice.face === null)
-    ).toBe(true)
-    expect(f.calls).toEqual(['details:first', 'details:second', 'details:third'])
-  })
-
-  it('점수를 하나도 얻지 못하면 그룹 안 최고 명성 후보를 고르고 이미 받은 상세를 쓴다', async () => {
-    const f = fixture(null)
-
-    expect(await f.request()).toMatchObject({
+    expect(result).toMatchObject({
       kind: 'success',
       selected: { selectionMethod: 'highest-fame', summary: { characterId: 'first' } }
     })
-    expect(f.calls).toEqual(['details:first', 'details:second', 'details:third'])
-  })
-
-  it('429로 상세를 받지 못한 후보를 고르면 그 후보의 상세를 한 번 더 조회한다', async () => {
-    const f = fixture(null)
-    f.getDetails.mockImplementationOnce(async () => {
-      throw new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 30,
-        retryAfterReceivedAt: 0
-      })
-    })
-
-    expect(await f.request()).toMatchObject({
-      kind: 'success',
-      selected: { selectionMethod: 'highest-fame', summary: { characterId: 'first' } }
-    })
-    expect(f.calls).toEqual(['details:second', 'details:third', 'details:first'])
-  })
-
-  it('429가 아닌 상세 실패는 그 요청을 실패로 끝낸다', async () => {
-    const f = fixture({ first: 50_000 })
-    f.getDetails.mockRejectedValueOnce(new SearchHttpFailure('NEOPLE_API_ERROR'))
-
-    expect(await f.request()).toMatchObject({
-      kind: 'failure',
-      error: { code: 'NEOPLE_API_ERROR' }
-    })
-    expect(f.getDetails).toHaveBeenCalledOnce()
+    if (result?.kind === 'success') {
+      expect(result.selected?.choices?.map((choice) => choice.characterId)).toEqual([
+        'first',
+        'second',
+        'third',
+        'fourth'
+      ])
+    }
   })
 })
 
@@ -269,7 +199,7 @@ describe('공대 식별의 비교 종류', () => {
 })
 
 describe('공대 식별의 취소, 만료, 늦은 결과', () => {
-  it('비교 대상 상세를 기다리는 중 캡처가 끝나면 다음 후보와 고른 후보를 조회하지 않는다', async () => {
+  it('고른 후보의 상세를 기다리는 중 캡처가 끝나면 늦은 결과를 반영하지 않는다', async () => {
     const f = fixture({ first: 50_000 })
     const pendingDetails = deferred<CharacterDetails>()
     f.getDetails.mockReturnValueOnce(pendingDetails.promise)
@@ -287,7 +217,7 @@ describe('공대 식별의 취소, 만료, 늦은 결과', () => {
     expect(f.score).not.toHaveBeenCalled()
   })
 
-  it('비교 대상 상세에서 15초 경계에 닿으면 점수를 계산하지 않고 다음 상세도 조회하지 않는다', async () => {
+  it('고른 후보의 상세에서 15초 경계에 닿으면 점수를 계산하지 않고 요청을 종료한다', async () => {
     const f = fixture({ first: 50_000 })
     f.getDetails.mockImplementationOnce(async ({ characterId }) => {
       f.clock.elapseWithoutTimers(15_000)
@@ -303,7 +233,7 @@ describe('공대 식별의 취소, 만료, 늦은 결과', () => {
     expect(f.score).not.toHaveBeenCalled()
   })
 
-  it('응답 없는 비교 대상 상세도 처음 접수한 시각의 15초에 종료한다', async () => {
+  it('응답 없는 고른 후보의 상세도 처음 접수한 시각의 15초에 종료한다', async () => {
     const f = fixture({ first: 50_000 })
     f.getDetails.mockReturnValueOnce(new Promise(() => undefined))
     const pending = f.request()
@@ -313,21 +243,6 @@ describe('공대 식별의 취소, 만료, 늦은 결과', () => {
 
     expect(await pending).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
     expect(f.getDetails.mock.calls[0][0].signal.aborted).toBe(true)
-  })
-
-  it('비교 중 이전 관측이 되면 429로 끝난 후보 뒤에도 비교를 이어 가지 않는다', async () => {
-    const f = fixture({ first: 50_000 })
-    let current = true
-    f.getDetails.mockImplementationOnce(async () => {
-      current = false
-      throw new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 30,
-        retryAfterReceivedAt: 0
-      })
-    })
-
-    expect(await f.request(SCORE_ROW, () => current)).toBeNull()
-    expect(f.getDetails).toHaveBeenCalledOnce()
   })
 })
 
