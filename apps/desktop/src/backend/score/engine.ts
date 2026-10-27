@@ -36,17 +36,18 @@ const resultSchema = z
   })
   // 점수와 건너뛴 사유는 둘 중 하나만 있다.
   .refine((result) => (result.score === null) !== (result.skipped === null))
-  // 근사값, 출처, 경고는 함께 있거나 함께 없고, 점수를 건너뛴 장비 점수 결과에만 있다.
+  // 근사값과 출처는 함께 있거나 함께 없고, 점수를 건너뛴 결과에만 경고와 함께 있다.
+  // 근사값이 없는 경고는 정확한 점수에 붙는 알림이라 점수를 낸 결과에만 있다.
   .refine((result) => {
-    const parts = [result.approximate_score, result.approximate_source, result.warning]
-    if (parts.every((part) => part === null)) {
-      return true
+    if (result.approximate_score === null && result.approximate_source === null) {
+      return result.warning === null || result.score !== null
     }
 
     return (
-      parts.every((part) => part !== null) &&
-      result.score === null &&
-      result.calculator === 'equipment'
+      result.approximate_score !== null &&
+      result.approximate_source !== null &&
+      result.warning !== null &&
+      result.score === null
     )
   })
 

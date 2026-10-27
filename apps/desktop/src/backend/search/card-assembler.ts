@@ -18,7 +18,7 @@ function scoreCalculator(role: CharacterCardRole | null): CharacterScoreCalculat
   return 'equipment'
 }
 
-// 엔진 검증이 세 칸을 함께 있거나 함께 없게 맞췄으므로 하나라도 없으면 근사값이 없다.
+// 엔진 검증이 근사값이 있으면 출처와 경고도 있게 맞췄다. 정확한 점수에 붙는 경고만 있는 결과는 근사값이 없다.
 function toApproximateScore(result: ScoreEngineResult): CharacterCardScore['approximate'] {
   const { approximate_score: value, approximate_source: source, warning } = result
   if (value === null || source === null || warning === null) {
