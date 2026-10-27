@@ -97,7 +97,7 @@ it('엔진이 건너뛴 점수에 낸 근사값은 근사값으로 보이고 사
         source,
         warning: '근사값, 1% 밖일 가능성 높음: unresolved: equipment TITLE missing'
       },
-      versions: { package: 'dnfscore-native 0.3.0', rulesRev: 'rev14', bundleId: 'phase32-rev14' }
+      versions: { package: 'dnfscore-native 0.3.1', rulesRev: 'rev14', bundleId: 'phase32-rev14b' }
     }
   })
   const legacy = toScoreView(approximate('legacy_fusion_policy_a'))
@@ -118,6 +118,32 @@ it('엔진이 건너뛴 점수에 낸 근사값은 근사값으로 보이고 사
     approximate: true,
     description:
       '근사값, 장비 정보 부족. 정확히 계산하지 못한 추정값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
+  })
+})
+
+it('엔진이 건너뛴 버프 점수에 낸 근사값도 버퍼 톤의 근사값으로 보인다', () => {
+  const buffApproximate: CharacterCard = {
+    ...bufferCard,
+    score: {
+      calculator: 'buff',
+      value: null,
+      skipped: { kind: 'resolution', message: 'avatar record missing' },
+      approximate: {
+        value: 136000,
+        source: 'missing_avatar_record',
+        warning: '아바타 레코드 없음'
+      },
+      versions: { package: 'dnfscore-native 0.3.1', rulesRev: 'rev14', bundleId: 'phase32-rev14b' }
+    }
+  }
+
+  expect(toScoreView(buffApproximate)).toEqual({
+    label: '버프 점수',
+    tone: 'buffer',
+    value: 136000,
+    approximate: true,
+    description:
+      '근사값, 아이템을 판별하지 못함. 정확히 계산하지 못한 추정값이라 게임 버프 점수와 1% 넘게 다를 수 있습니다.'
   })
 })
 

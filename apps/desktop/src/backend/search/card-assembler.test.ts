@@ -130,6 +130,16 @@ describe('API 카드와 엔진 결과 조립', () => {
     expect(characterCardSchema.safeParse(card).success).toBe(true)
   })
 
+  it('정확한 점수에 붙은 경고는 카드에 남기지 않고 점수만 채운다', () => {
+    const details = apiDetailsFromEngineInput(readEngineInput('buffer-muse'), bufferCard)
+    const score: ScoreEngine = () => ({ ...bufferResult, warning: '아바타가 번들에 없음' })
+
+    const card = buildCharacterCard(details, score)
+
+    expect(card?.score).toMatchObject({ value: 136617, skipped: null, approximate: null })
+    expect(characterCardSchema.safeParse(card).success).toBe(true)
+  })
+
   it.each([
     ['엔진 없음', null],
     ['엔진 실패', (() => null) satisfies ScoreEngine]

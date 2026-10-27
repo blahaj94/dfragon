@@ -112,9 +112,9 @@ pnpm --filter @dfragon/desktop dev
 
 - **위치**: 패키지는 `resources/score/`를 asar 밖으로 푼 `app.asar.unpacked/resources/score/dnfscore.dll`만 엽니다. 개발 실행은 `DFRAGON_SCORE_LIBRARY`에 라이브러리의 절대 경로가 있으면 그 파일을, 없으면 앱 폴더 `resources/score/`의 플랫폼별 파일(`dnfscore.dll`, `libdnfscore.dylib`, `libdnfscore.so`)을 엽니다. 패키지는 이 환경변수를 읽지 않습니다.
 - **개발 설정**: 엔진 저장소에서 직접 빌드한 라이브러리를 쓰려면 `apps/desktop/.env`에 `DFRAGON_SCORE_LIBRARY=<라이브러리 절대 경로>`를 두고 `dev`를 다시 시작합니다. 라이브러리는 첫 점수 계산 때 한 번만 엽니다.
-- **자산 입수**: 엔진 바이너리는 OCR 모델과 같이 `@dfragon/models`의 `packages/models/score-engine` submodule이 고정한 커밋에 있습니다(현재 엔진 `native-v0.3.0`, 규칙 rev14). 비공개 저장소라 기본 checkout에서 빠지므로, 읽기 권한이 있으면 [받기](../../packages/models/README.md#받기)의 명령으로 한 번 받습니다. 그다음 `pnpm --filter @dfragon/desktop prepare:score-engine`이 플랫폼별 파일(`dnfscore.dll`, `libdnfscore.dylib`)을 `resources/score/`에 복사합니다. submodule을 받지 않았으면 건너뛰고, 복사한 폴더는 스스로 Git에서 제외합니다. 패키지는 Windows만 만듭니다.
+- **자산 입수**: 엔진 바이너리는 OCR 모델과 같이 `@dfragon/models`의 `packages/models/score-engine` submodule이 고정한 커밋에 있습니다(현재 엔진 `native-v0.3.1`, 규칙 rev14). 비공개 저장소라 기본 checkout에서 빠지므로, 읽기 권한이 있으면 [받기](../../packages/models/README.md#받기)의 명령으로 한 번 받습니다. 그다음 `pnpm --filter @dfragon/desktop prepare:score-engine`이 플랫폼별 파일(`dnfscore.dll`, `libdnfscore.dylib`)을 `resources/score/`에 복사합니다. submodule을 받지 않았으면 건너뛰고, 복사한 폴더는 스스로 Git에서 제외합니다. 패키지는 Windows만 만듭니다.
 - **CI**: Windows Test Build와 Windows Portable workflow가 build 전에 secret `DFRAGON_SCORE_ENGINE_TOKEN`으로 submodule을 받고 이 명령을 실행합니다. 토큰은 엔진 바이너리 저장소의 읽기 권한이 필요하며 저장소 소유자가 설정합니다. 포크 PR은 secret을 받지 못해 엔진 없이 빌드합니다. Windows Portable은 `--require`로 실행해 엔진을 두지 못하면 실패합니다.
-- **근사값 표시**: 엔진이 장비 점수 계산을 건너뛰고 근사값을 내면 카드의 점수 칸에 `≈12,345`처럼 `≈`를 붙여 보이고, 보조 기술과 마우스 설명에 근사값이라는 뜻과 사유 종류, 근사 방법을 전합니다. 근사값은 공대 식별의 장비 점수 비교에 쓰지 않습니다.
+- **근사값 표시**: 엔진이 장비 점수나 버프 점수 계산을 건너뛰고 근사값을 내면 카드의 점수 칸에 `≈12,345`처럼 `≈`를 붙여 보이고, 보조 기술과 마우스 설명에 근사값이라는 뜻과 사유 종류, 근사 방법을 전합니다. 근사값은 공대 식별의 장비 점수 비교에 쓰지 않습니다.
 - **실패 표시**: 파일이 없거나 열 수 없거나 계산, 결과 검증이 실패하면 점수만 null이고 카드의 다른 값은 그대로입니다. 진단 창에 엔진을 불러오지 못했거나 계산하지 못했다는 문구가 남고, 계산이 50ms를 넘으면 느린 계산 문구가 남습니다.
 
 ## Windows PC에서 소스로 실행

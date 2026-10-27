@@ -18,7 +18,7 @@ const engineResult = {
   approximate_score: null,
   approximate_source: null,
   warning: null,
-  versions: { package: 'dnfscore-native 0.3.0', rules_rev: 'rev14', bundle_id: 'phase32-rev14' },
+  versions: { package: 'dnfscore-native 0.3.1', rules_rev: 'rev14', bundle_id: 'phase32-rev14b' },
   display: { role: 'dealer', switchingLevel: 3, buff30: null, buff50: null }
 }
 const skippedResult = {
@@ -229,6 +229,21 @@ describe('점수 엔진 호출과 결과 검증', () => {
       true
     ],
     [
+      '출처만 있고 근사값이 없음',
+      { output: JSON.stringify({ ...approximateResult, approximate_score: null }) },
+      true
+    ],
+    [
+      '근사값과 출처만 있고 경고가 없음',
+      { output: JSON.stringify({ ...approximateResult, warning: null }) },
+      true
+    ],
+    [
+      '건너뛴 결과에 근사값 없이 경고만 있음',
+      { output: JSON.stringify({ ...skippedResult, warning: '아바타 레코드 없음' }) },
+      true
+    ],
+    [
       '소수 근사값',
       { output: JSON.stringify({ ...approximateResult, approximate_score: 1650.5 }) },
       true
@@ -279,16 +294,28 @@ describe('점수 엔진 호출과 결과 검증', () => {
     expect(native.reports).toEqual([])
   })
 
-  it('엔진 계약상 근사값이 없는 버프 점수 결과에 근사값이 오면 점수 없이 진단을 남긴다', () => {
+  it('건너뛴 버프 점수 결과의 근사값, 출처, 경고도 점수와 따로 돌려준다', () => {
     const buffApproximate = {
       ...approximateResult,
       calculator: 'buff',
+      approximate_source: 'missing_avatar_record',
       display: { role: 'buffer', switchingLevel: 3, buff30: 1, buff50: 2 }
     }
     const native = nativeEngine({ output: JSON.stringify(buffApproximate) })
 
-    expect(loadScoreEngine(native.options)!(input, 'buff')).toBeNull()
-    expect(native.reports).toEqual(['SCORE_ENGINE_FAILED'])
+    expect(loadScoreEngine(native.options)!(input, 'buff')).toEqual(buffApproximate)
+    expect(native.reports).toEqual([])
+  })
+
+  it('정확한 점수에 붙은 경고는 근사값 없이 점수와 함께 받는다', () => {
+    const exactWithWarning = {
+      ...engineResult,
+      warning: '버프 효과에 닿지 않는 부위의 아바타가 번들에 없음'
+    }
+    const native = nativeEngine({ output: JSON.stringify(exactWithWarning) })
+
+    expect(loadScoreEngine(native.options)!(input, 'equipment')).toEqual(exactWithWarning)
+    expect(native.reports).toEqual([])
   })
 
   it('근사값 칸을 보내지 않는 rev14 이전 엔진의 결과는 근사값 없이 받는다', () => {
