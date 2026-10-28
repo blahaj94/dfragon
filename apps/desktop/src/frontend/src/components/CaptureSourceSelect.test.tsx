@@ -18,19 +18,20 @@ beforeEach(() => {
   document.body.append(container)
   root = createRoot(container)
   props = {
-    capture: {
+    source: {
       sources: [
         { id: 'other', name: '테스트 창' },
         { id: 'game', name: '던전앤파이터' }
       ],
-      selectedSourceId: 'game',
       sourcesLoading: false,
       sourcesFailed: false,
-      selectSource: vi.fn(),
       refreshSources: vi.fn(),
-      stopCapture: vi.fn(),
-      search: { ready: true }
+      selectedSourceId: 'game',
+      sourceReady: true,
+      selectSource: vi.fn()
     },
+    searchReady: true,
+    stopCapture: vi.fn(),
     phase: 'complete',
     status: ''
   }
@@ -100,8 +101,8 @@ it.each([
   '게임 연결 상태 칩이 %s 단계(목록 조회 중 %s, 실패 %s)에서 %s를 tone %s로 보이는 대화상자 버튼이다',
   async (phase, loading, failed, label, tone) => {
     props.phase = phase
-    props.capture.sourcesLoading = loading
-    props.capture.sourcesFailed = failed
+    props.source.sourcesLoading = loading
+    props.source.sourcesFailed = failed
     await render()
     const button = chip()
     expect(button.tagName).toBe('BUTTON')
@@ -121,32 +122,32 @@ it('게임 연결 상태 칩으로 연 대화상자를 닫으면 포커스가 �
   await click(button)
   const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!
   expect(dialog).not.toBeNull()
-  expect(props.capture.refreshSources).toHaveBeenCalledOnce()
+  expect(props.source.refreshSources).toHaveBeenCalledOnce()
   await act(async () => {
     dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
   })
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   await vi.waitFor(() => expect(document.activeElement).toBe(chip()))
-  expect(props.capture.stopCapture).not.toHaveBeenCalled()
+  expect(props.stopCapture).not.toHaveBeenCalled()
 })
 
 it('자동 감지한 창은 선택 전에 타일로 표시하고 사용자 클릭 전에는 캡처를 시작하지 않는다', async () => {
   props.phase = 'idle'
-  props.capture.selectedSourceId = ''
+  props.source.selectedSourceId = ''
   await openDialog()
   const statuses = [...document.querySelectorAll('[role="dialog"] [role="status"]')]
   expect(statuses.map((status) => status.textContent)).toContain('창 감지됨')
   expect(document.body.textContent).not.toContain('캡처 중지')
   expect(tiles().map((input) => input.checked)).toEqual([false, false])
-  expect(props.capture.selectSource).not.toHaveBeenCalled()
+  expect(props.source.selectSource).not.toHaveBeenCalled()
   await click(tile('던전앤파이터'))
-  expect(props.capture.selectSource).toHaveBeenCalledExactlyOnceWith('game')
+  expect(props.source.selectSource).toHaveBeenCalledExactlyOnceWith('game')
 })
 
 it('후보가 여러 개여도 임의로 선택하지 않고 모두 타일로 보인다', async () => {
   props.phase = 'idle'
-  props.capture.selectedSourceId = ''
-  props.capture.sources.push({ id: 'second-game', name: 'DNF' })
+  props.source.selectedSourceId = ''
+  props.source.sources.push({ id: 'second-game', name: 'DNF' })
   await openDialog()
   expect(tiles().map((input) => input.getAttribute('aria-label'))).toEqual([
     '던전앤파이터',
@@ -154,7 +155,7 @@ it('후보가 여러 개여도 임의로 선택하지 않고 모두 타일로 �
     '테스트 창'
   ])
   expect(tiles().some((input) => input.checked)).toBe(false)
-  expect(props.capture.selectSource).not.toHaveBeenCalled()
+  expect(props.source.selectSource).not.toHaveBeenCalled()
 })
 
 it('감지된 게임을 먼저 두고 그룹 이름과 선택 표시를 타일 한 줄로 보인다', async () => {
@@ -175,20 +176,20 @@ it('감지된 게임을 먼저 두고 그룹 이름과 선택 표시를 타일 �
     false
   ])
   await click(tile('테스트 창'))
-  expect(props.capture.selectSource).toHaveBeenCalledExactlyOnceWith('other')
+  expect(props.source.selectSource).toHaveBeenCalledExactlyOnceWith('other')
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
-  expect(props.capture.stopCapture).not.toHaveBeenCalled()
+  expect(props.stopCapture).not.toHaveBeenCalled()
 })
 
 it('긴 창 이름은 한 줄로 말줄임하고 전체 이름을 title로 전한다', async () => {
   const name = '아주 긴 이름을 가진 던전앤파이터 게임 창 제목 아주 긴 이름을 가진 던전앤파이터'
-  props.capture.sources = [{ id: 'long', name }]
+  props.source.sources = [{ id: 'long', name }]
   await openDialog()
   expect(tile(name).parentElement?.getAttribute('title')).toBe(name)
 })
 
 it('조회 실패 시 실패 타일을 두고 이전 목록 선택을 막는다', async () => {
-  props.capture.sourcesFailed = true
+  props.source.sourcesFailed = true
   await openDialog()
   const failure = [...dialog().querySelectorAll<HTMLElement>('[role="status"]')].find((status) =>
     status.textContent?.includes('창 목록을 불러오지 못했습니다')
@@ -196,30 +197,30 @@ it('조회 실패 시 실패 타일을 두고 이전 목록 선택을 막는다'
   expect(failure?.textContent).toContain('15초마다 다시 확인합니다')
   expect(tiles().every((input) => input.disabled)).toBe(true)
   await click(tile('테스트 창'))
-  expect(props.capture.selectSource).not.toHaveBeenCalled()
+  expect(props.source.selectSource).not.toHaveBeenCalled()
   expect(document.body.textContent).not.toContain('창 목록 새로고침')
 })
 
 it('빈 목록, 사라진 선택과 로딩, 연결 미준비 상태를 처리한다', async () => {
-  props.capture.sources = []
+  props.source.sources = []
   await openDialog()
   expect(tiles().map((input) => [input.getAttribute('aria-label'), input.checked])).toEqual([
     ['선택한 창', true]
   ])
   expect(searchingNotice()?.textContent).toBe('던전앤파이터 찾는 중')
   expect(searchingNotice()?.querySelector('[aria-hidden="true"]')?.children).toHaveLength(3)
-  props.capture.selectedSourceId = ''
+  props.source.selectedSourceId = ''
   await render()
   expect(tiles()).toHaveLength(0)
-  props.capture.sources = [{ id: 'game', name: '던전앤파이터' }]
-  props.capture.sourcesLoading = true
+  props.source.sources = [{ id: 'game', name: '던전앤파이터' }]
+  props.source.sourcesLoading = true
   await render()
   expect(tiles().every((input) => input.disabled)).toBe(true)
-  props.capture.sourcesLoading = false
-  props.capture.search.ready = false
+  props.source.sourcesLoading = false
+  props.searchReady = false
   await render()
   expect(tiles().every((input) => input.disabled)).toBe(true)
-  expect(props.capture.selectSource).not.toHaveBeenCalled()
+  expect(props.source.selectSource).not.toHaveBeenCalled()
 })
 
 it.each([
@@ -279,7 +280,7 @@ it('닫기 버튼은 캡처를 유지한 채 대화상자만 닫는다', async (
   await openDialog()
   await click(dialog().querySelector<HTMLButtonElement>('button[aria-label="닫기"]')!)
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
-  expect(props.capture.stopCapture).not.toHaveBeenCalled()
+  expect(props.stopCapture).not.toHaveBeenCalled()
 })
 
 it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에는 캡처 중지를 두지 않는다', async () => {
@@ -294,25 +295,25 @@ it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에
   await render()
   expect(dialog().querySelector('p[role="status"] [role="img"]')).toBeNull()
   props.phase = 'selected'
-  props.capture.sources = [{ id: 'other', name: '테스트 창' }]
-  props.capture.selectedSourceId = 'other'
+  props.source.sources = [{ id: 'other', name: '테스트 창' }]
+  props.source.selectedSourceId = 'other'
   props.status = 'Alt+R을 눌러 파티를 인식해 주세요.'
   await render()
   expect(dialog().querySelector('[role="status"][data-tone]')?.textContent).toBe('창 미감지')
   expect(dialog().querySelector('p[role="status"] [role="img"]')).toBeNull()
-  props.capture.sources = [
+  props.source.sources = [
     { id: 'other', name: '테스트 창' },
     { id: 'game', name: '던전앤파이터' }
   ]
-  props.capture.selectedSourceId = 'game'
+  props.source.selectedSourceId = 'game'
   const actions = () =>
     [...dialog().querySelectorAll('button')]
       .map((button) => button.getAttribute('aria-label') ?? button.textContent)
       .filter((name) => name === '닫기' || name === '캡처 중지' || name === '새로고침')
   expect(actions()).toEqual(['캡처 중지', '새로고침', '닫기'])
   props.phase = 'idle'
-  props.capture.selectedSourceId = ''
-  props.capture.sources = []
+  props.source.selectedSourceId = ''
+  props.source.sources = []
   await render()
   expect(actions()).toEqual(['새로고침', '닫기'])
 })
@@ -333,14 +334,14 @@ it('안내는 헤더 줄의 상태 칩 오른쪽 한 줄이고 전체 문구를 
 
 it('새로고침 버튼은 창 목록을 다시 조회하고 대화상자를 연 채로 둔다', async () => {
   await openDialog()
-  expect(props.capture.refreshSources).toHaveBeenCalledOnce()
+  expect(props.source.refreshSources).toHaveBeenCalledOnce()
   const refresh = [...dialog().querySelectorAll('button')].find(
     (button) => button.textContent === '새로고침'
   )!
   await click(refresh)
-  expect(props.capture.refreshSources).toHaveBeenCalledTimes(2)
+  expect(props.source.refreshSources).toHaveBeenCalledTimes(2)
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
-  props.capture.sourcesLoading = true
+  props.source.sourcesLoading = true
   await render()
   expect(refresh.disabled).toBe(true)
 })
@@ -349,8 +350,8 @@ it('창을 찾는 동안 재조회 진행 막대가 마지막 조회 완료부�
   const start = 120_000
   const now = vi.spyOn(performance, 'now').mockReturnValue(start)
   props.phase = 'idle'
-  props.capture.selectedSourceId = ''
-  props.capture.sources = []
+  props.source.selectedSourceId = ''
+  props.source.sources = []
   await render()
   now.mockReturnValue(start + 6_000)
   await click(chip())
@@ -360,7 +361,7 @@ it('창을 찾는 동안 재조회 진행 막대가 마지막 조회 완료부�
   now.mockReturnValue(start + 9_000)
   await render()
   expect(timing('animationDelay')).toBe('-6000ms')
-  props.capture.sources = []
+  props.source.sources = []
   await render()
   expect(timing('animationDelay')).toBe('0ms')
   now.mockRestore()
@@ -368,12 +369,12 @@ it('창을 찾는 동안 재조회 진행 막대가 마지막 조회 완료부�
 
 it('던파 창이 있거나 조회가 실패하면 찾는 중 안내와 진행 막대를 두지 않는다', async () => {
   props.phase = 'idle'
-  props.capture.selectedSourceId = ''
+  props.source.selectedSourceId = ''
   await openDialog()
   expect(retryProgress()).toBeNull()
   expect(document.body.textContent).not.toContain('던전앤파이터 찾는 중')
-  props.capture.sources = []
-  props.capture.sourcesFailed = true
+  props.source.sources = []
+  props.source.sourcesFailed = true
   await render()
   expect(retryProgress()).toBeNull()
   expect(searchingNotice()).toBeUndefined()

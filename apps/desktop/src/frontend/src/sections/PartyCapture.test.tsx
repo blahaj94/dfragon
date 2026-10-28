@@ -12,15 +12,13 @@ const capture = vi.hoisted(() => {
   const stopCapture = vi.fn()
 
   return {
-    sources: [],
-    selectedSourceId: '',
+    source: { sources: [], selectedSourceId: '', selectSource },
     canStartCapture: false,
     recognizing: false,
     search: { ready: true, slots: [], retryPending: [], connectionFailed: false },
     retrySearch,
     nicknames: [null, '', 'Alice', null],
     status: 'Capture ready.',
-    selectSource,
     startCapture,
     stopCapture
   }
