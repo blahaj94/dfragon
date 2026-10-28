@@ -1,5 +1,10 @@
 import * as stylex from '@stylexjs/stylex'
 import { BoardHeader } from '../../components/BoardHeader'
+import { BoardNotice } from '../../components/BoardNotice'
+import { BoardTitle } from '../../components/BoardTitle'
+import { CaptureButton } from '../../components/CaptureButton'
+import { LastCaptureTime } from '../../components/LastCaptureTime'
+import { SnapshotToggle } from '../../components/SnapshotToggle'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import { useBoardHeaderPortal } from '../../hooks/useBoardHeaderPortal'
 import { useScreenCaptureContext } from '../../hooks/useScreenCaptureContext'
@@ -27,11 +32,33 @@ export function PartyScreen({ hidden }: { hidden: boolean }): React.JSX.Element 
       {!hidden &&
         renderBoardHeader(
           <BoardHeader
-            target="파티"
-            filledCount={filledSlotCount(cards)}
-            notice=""
-            capture={capture}
-            snapshot={snapshot}
+            start={
+              <>
+                <BoardTitle
+                  label="파티"
+                  filled={filledSlotCount(cards)}
+                  total={cards.length}
+                  round={snapshot.round}
+                />
+                <BoardNotice />
+              </>
+            }
+            end={
+              <>
+                <LastCaptureTime at={capture.lastCompletedAt} />
+                <SnapshotToggle
+                  label="파티 모험단 순번 스냅샷"
+                  active={snapshot.active}
+                  onTake={snapshot.take}
+                  onClear={snapshot.clear}
+                />
+                <CaptureButton
+                  target="파티"
+                  disabled={!capture.canStartCapture}
+                  onClick={capture.startRound}
+                />
+              </>
+            }
           />
         )}
       <PartyPage resetKey={String(capture.round)} slots={cards} inputEnabled actions={search} />
