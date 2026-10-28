@@ -1,14 +1,15 @@
-import type { SearchMode } from '../components/MainNav'
 import { getTopBarCaptureControls } from '../lib/capture-presentation'
 import type { CapturePhase } from '../types/capture'
 import { usePartyCapture, type PartyCapture } from './usePartyCapture'
 import { useRaidCapture, type RaidCapture } from './useRaidCapture'
+import { useSearchModeStore } from './useSearchModeStore'
 
-export function useScreenCapture(searchMode: SearchMode): {
+export function useScreenCapture(): {
   partyCapture: PartyCapture
   raidCapture: RaidCapture
   controls: { phase: CapturePhase; status: string }
 } {
+  const searchMode = useSearchModeStore((state) => state.searchMode)
   const partyCapture = usePartyCapture({
     identifyCharacters: true,
     receivesShortcut: searchMode === 'party'

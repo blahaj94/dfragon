@@ -68,7 +68,10 @@ export default defineConfig({
     ]
   },
   test: {
-    setupFiles: ['../../packages/ui/test/setup.ts'],
+    setupFiles: [
+      '../../packages/ui/test/setup.ts',
+      './src/frontend/src/testing/setup/reset-zustand-stores.ts'
+    ],
     // 파일마다 child process를 새로 띄우는 forks보다 worker thread가 빠르고, 파일 격리는 유지한다.
     // isolate: false와 vmThreads는 이 suite의 테스트가 깨져 쓰지 않는다.
     pool: 'threads'

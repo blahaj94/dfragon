@@ -3,9 +3,8 @@ import { Menu, shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import { windowChromeStyles } from '../constants/window-chrome.style'
 import { ChevronDownIcon } from './ChevronDownIcon'
+import type { SearchMode } from '../types/search-mode'
 import { styles } from './MainNav.style'
-
-export type SearchMode = 'party' | 'raid'
 
 const SEARCH_MODES: readonly { value: SearchMode; label: string }[] = [
   { value: 'party', label: '파티' },
