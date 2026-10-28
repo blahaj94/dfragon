@@ -21,6 +21,42 @@ const bracketTones: Record<Exclude<CardFrameState, 'waiting'>, CornerBracketsTon
   ranker: 'ranker'
 }
 
+function TopEffects() {
+  return (
+    <span aria-hidden="true" {...stylex.props(styles.effects)}>
+      <span {...stylex.props(styles.sweep, styles.sweepTop)} />
+    </span>
+  )
+}
+
+function RankerEffects() {
+  return (
+    <span aria-hidden="true" {...stylex.props(styles.effects, shapes.scanlines)}>
+      <span {...stylex.props(styles.sweep, styles.sweepRanker)} />
+    </span>
+  )
+}
+
+function StateEffects({ state }: { state: CardFrameState }) {
+  if (state === 'top') {
+    return <TopEffects />
+  }
+
+  if (state === 'ranker') {
+    return <RankerEffects />
+  }
+
+  return null
+}
+
+function StateBrackets({ state }: { state: CardFrameState }) {
+  if (state === 'waiting') {
+    return null
+  }
+
+  return <CornerBrackets tone={bracketTones[state]} />
+}
+
 function CardFrameImpl({
   state = 'default',
   as = 'div',
@@ -30,7 +66,6 @@ function CardFrameImpl({
   ...props
 }: CardFrameProps & ForwardedStyle) {
   const isWaiting = state === 'waiting'
-  const isTop = state === 'top'
   const isRanker = state === 'ranker'
 
   return createElement(
@@ -39,17 +74,13 @@ function CardFrameImpl({
       'data-state': state,
       ...props,
       ...withForwardedStyle(
-        stylex.props(styles.root, isWaiting && styles.waiting, state === 'ranker' && styles.ranker),
+        stylex.props(styles.root, isWaiting && styles.waiting, isRanker && styles.ranker),
         { className, style }
       )
     },
     children,
-    (isTop || isRanker) && (
-      <span aria-hidden="true" {...stylex.props(styles.effects, isRanker && shapes.scanlines)}>
-        <span {...stylex.props(styles.sweep, isTop ? styles.sweepTop : styles.sweepRanker)} />
-      </span>
-    ),
-    !isWaiting && <CornerBrackets tone={bracketTones[state]} />
+    <StateEffects state={state} />,
+    <StateBrackets state={state} />
   )
 }
 
