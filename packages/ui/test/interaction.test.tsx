@@ -1,3 +1,4 @@
+import * as stylex from '@stylexjs/stylex'
 import { act, createRef, useState, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -34,6 +35,7 @@ import {
   type IconButtonProps,
   type TextFieldInputProps
 } from '../src/index'
+import { colors } from '../src/tokens.stylex'
 
 let container: HTMLDivElement
 let root: Root
@@ -581,6 +583,16 @@ function SettingsIcon() {
   return <svg data-testid="settings-icon" viewBox="0 0 24 24" />
 }
 
+// StyleX의 atomic class 이름은 속성, 값, 조건에서 정해지므로, 같은 선언을 여기서 만들면 같은 class가 나온다.
+// jsdom은 CSS를 계산하지 않으므로 눌림 테두리가 aria-pressed 조건으로 붙었는지를 class로 확인한다.
+const pressedRingClass = stylex.props(
+  stylex.create({
+    ring: {
+      boxShadow: { default: null, ':is([aria-pressed="true"])': `inset 0 0 0 2px ${colors.signal}` }
+    }
+  }).ring
+).className
+
 describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () => {
   it('아이콘만 보이는 버튼이 aria-label을 이름으로 갖고 클릭과 ref를 전달한다', async () => {
     const onClick = vi.fn<NonNullable<IconButtonProps['onClick']>>()
@@ -656,20 +668,28 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
     )
   })
 
-  it('pressed 값을 주면 aria-pressed로 켜짐을 전하고 켜진 버튼은 다른 외형을 쓴다', async () => {
+  it('pressed 값을 aria-pressed로 전하고 눌림 외형은 pressed 없이 받은 aria-pressed에도 같이 켜진다', async () => {
     await render(
       <>
         <IconButton aria-label="꺼짐" size="lg" pressed={false} icon={<SettingsIcon />} />
         <IconButton aria-label="켜짐" size="lg" pressed icon={<SettingsIcon />} />
+        <IconButton aria-label="직접 켜짐" size="lg" aria-pressed="true" icon={<SettingsIcon />} />
         <IconButton aria-label="토글 아님" size="lg" icon={<SettingsIcon />} />
       </>
     )
+    const off = getByRole('button', '꺼짐')
+    const on = getByRole('button', '켜짐')
+    const direct = getByRole('button', '직접 켜짐')
+    const plain = getByRole('button', '토글 아님')
 
-    expect(getByRole('button', '꺼짐').getAttribute('aria-pressed')).toBe('false')
-    expect(getByRole('button', '켜짐').getAttribute('aria-pressed')).toBe('true')
-    expect(getByRole('button', '토글 아님').hasAttribute('aria-pressed')).toBe(false)
-    expect(getByRole('button', '켜짐').className).not.toBe(getByRole('button', '꺼짐').className)
-    expect(getByRole('button', '꺼짐').className).toBe(getByRole('button', '토글 아님').className)
+    expect(off.getAttribute('aria-pressed')).toBe('false')
+    expect(on.getAttribute('aria-pressed')).toBe('true')
+    expect(direct.getAttribute('aria-pressed')).toBe('true')
+    expect(plain.hasAttribute('aria-pressed')).toBe(false)
+    expect(on.className.split(' ')).toContain(pressedRingClass)
+    for (const button of [off, direct, plain]) {
+      expect(button.className).toBe(on.className)
+    }
   })
 
   it('DialogContent lg는 기본 sm과 다른 외형을 쓴다', async () => {
@@ -697,6 +717,13 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
     expect(large.className).not.toBe(small.className)
   })
 })
+
+// 목록 항목과 탭의 면 스타일은 StyleX marker가 붙은 조상의 data-surface를 읽는다.
+const surfaceMarkerClass = stylex.props(stylex.defaultMarker()).className
+
+function surfaceOf(element: HTMLElement) {
+  return element.closest(`.${surfaceMarkerClass}[data-surface]`)?.getAttribute('data-surface')
+}
 
 const servers = [
   { id: 'cain', label: '카인' },
@@ -774,9 +801,8 @@ describe('Select의 키보드 선택과 포커스 복귀', () => {
     await press(trigger, 'ArrowDown')
     const listbox = await vi.waitFor(() => getByRole('listbox', '서버 목록'))
     expect(container.contains(listbox)).toBe(false)
-    expect(listbox.closest('[data-surface]')?.getAttribute('data-surface')).toBe('card')
     const options = allByRole('option', listbox)
-    expect(options.map((option) => option.dataset.surface)).toEqual(['card', 'card', 'card'])
+    expect(options.map(surfaceOf)).toEqual(['card', 'card', 'card'])
     const current = getByRole('option', '시로코', listbox)
     await vi.waitFor(() => expect(document.activeElement).toBe(current))
     await press(current, 'ArrowUp')
@@ -802,8 +828,7 @@ describe('Select의 키보드 선택과 포커스 복귀', () => {
     await click(plain)
     const plainList = await vi.waitFor(() => getByRole('listbox', '서버 목록'))
     const plainOption = getByRole('option', '카인', plainList)
-    expect(plainOption.dataset.surface).toBe('default')
-    const plainOptionClass = plainOption.className
+    expect(surfaceOf(plainOption)).toBe('default')
     await press(plainOption, 'Escape')
     await vi.waitFor(() => expect(plain.getAttribute('aria-expanded')).toBe('false'))
 
@@ -814,8 +839,7 @@ describe('Select의 키보드 선택과 포커스 복귀', () => {
       throw new Error('테스트 준비: 카드 목록이 없습니다.')
     }
     const cardOption = getByRole('option', '카인', cardList)
-    expect(cardOption.dataset.surface).toBe('card')
-    expect(cardOption.className).not.toBe(plainOptionClass)
+    expect(surfaceOf(cardOption)).toBe('card')
   })
 
   it('columns를 주면 목록을 그 수의 열로 늘어놓고 화살표로 읽는 순서대로 옮긴다', async () => {
@@ -975,8 +999,7 @@ describe('Tabs의 키보드 이동과 패널 연결', () => {
       </Tabs.Root>
     )
     expect(getByRole('tablist', '카드 면').dataset.surface).toBe('card')
-    const character = getByRole('tab', '캐릭터')
-    expect(character.dataset.surface).toBe('card')
+    expect(surfaceOf(getByRole('tab', '캐릭터'))).toBe('card')
     const equipment = getByRole('tab', '장비')
     expect(equipment.getAttribute('aria-disabled')).toBe('true')
 

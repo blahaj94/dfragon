@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import * as stylex from '@stylexjs/stylex'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
@@ -147,7 +148,13 @@ it('카드 위 칩과 목록을 카드 면으로 그리고 키보드로 열어 �
   )
   const listbox = await vi.waitFor(() => document.querySelector('[role="listbox"]')!)
   const options = [...listbox.querySelectorAll<HTMLElement>('[role="option"]')]
-  expect(options.map((option) => option.dataset.surface)).toEqual(['card', 'card', 'card'])
+  // 목록 항목의 카드 면 스타일은 StyleX marker가 붙은 조상의 data-surface를 읽는다.
+  const surfaceMarker = stylex.props(stylex.defaultMarker()).className
+  expect(
+    options.map((option) =>
+      option.closest(`.${surfaceMarker}[data-surface]`)?.getAttribute('data-surface')
+    )
+  ).toEqual(['card', 'card', 'card'])
   const current = options.find((option) => option.textContent === '시로코')!
   await vi.waitFor(() => expect(document.activeElement).toBe(current))
   await act(async () =>
