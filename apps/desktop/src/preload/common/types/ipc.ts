@@ -4,6 +4,9 @@ import type { DiagnosticIPCFunctions } from './diagnostics'
 import type { UpdateNoticeIPCFunctions } from './update-notice'
 import type { WindowChromeIPCFunctions } from './window-chrome'
 
+type SearchControlCommand = (control: SearchControl) => Promise<SearchCommandResult>
+type OcrCandidatesNotification = (observation: OcrSearchObservation) => Promise<SearchCommandResult>
+
 interface AsyncIPCFunctions
   extends DiagnosticIPCFunctions,
     UpdateNoticeIPCFunctions,
@@ -11,16 +14,12 @@ interface AsyncIPCFunctions
   listCaptureSources: () => Promise<CaptureSource[]>
   selectCaptureSource: (sourceId: string) => Promise<CaptureSource | null>
   readCaptureFrame: (captureId: string) => Promise<WindowFrameResult>
-  notifyOcrCandidatesDetected: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
-  controlManualSearch: (control: SearchControl) => Promise<SearchCommandResult>
-  controlRaidSearch: (control: SearchControl) => Promise<SearchCommandResult>
+  notifyOcrCandidatesDetected: OcrCandidatesNotification
+  controlManualSearch: SearchControlCommand
+  controlRaidSearch: SearchControlCommand
   readRaidCaptureFrame: (captureId: string) => Promise<RaidFrameResult>
-  notifyRaidOcrCandidatesDetected: (
-    observation: OcrSearchObservation
-  ) => Promise<SearchCommandResult>
-  controlCharacterSearch: (control: SearchControl) => Promise<SearchCommandResult>
-
-  message: (...params: unknown[]) => void
+  notifyRaidOcrCandidatesDetected: OcrCandidatesNotification
+  controlCharacterSearch: SearchControlCommand
 }
 
 export type { AsyncIPCFunctions }
