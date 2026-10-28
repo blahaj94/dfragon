@@ -58,7 +58,8 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
           details: vi.fn(),
           scorePortrait: vi.fn(),
           selection: INITIAL_PORTRAIT_COLOR_POLICY
-        }
+        },
+        score: () => null
       },
       isCurrent: () => true,
       publish: vi.fn()

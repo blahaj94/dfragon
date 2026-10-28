@@ -83,7 +83,7 @@ function details(characterId: string): CharacterDetails {
 function requestWith(adapters: IdentificationAdapters) {
   return (input: CharacterIdentificationInput & SearchOperationContext) =>
     runSearchRequest({
-      runtime: { clock: input.clock, identification: adapters },
+      runtime: { clock: input.clock, identification: adapters, score: () => null },
       nickname: input.nicknames[0] ?? '',
       startedAt: input.startedAt,
       signal: input.signal,

@@ -103,10 +103,8 @@ export function jsonResponse({
 
 export async function createSearchFixture(
   searchKind: 'capture' | 'manual' | 'raid' = 'capture',
-  // 앱은 식별 정책을 켠 채로 OCR 통지와 서버 지정 조회를 쓴다. null은 식별 서비스가 없는 설정이다.
-  portraitColorPolicy:
-    | (PortraitColorPolicy & CharacterSelectionPolicy)
-    | null = INITIAL_PORTRAIT_COLOR_POLICY
+  portraitColorPolicy: PortraitColorPolicy &
+    CharacterSelectionPolicy = INITIAL_PORTRAIT_COLOR_POLICY
 ): Promise<{
   event: IpcMainInvokeEvent
   getSources: typeof electron.getSources
@@ -153,7 +151,9 @@ export async function createSearchFixture(
     apiOrigin: API_ORIGIN,
     fetch: fetchSearch,
     clock,
-    portraitColorPolicy: portraitColorPolicy ?? undefined
+    portraitColorPolicy,
+    // 점수 엔진 submodule이 없는 빌드처럼 엔진이 점수를 내지 않는다.
+    score: () => null
   })
   disposeFixtures.push(dispose)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)

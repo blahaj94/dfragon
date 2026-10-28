@@ -140,10 +140,8 @@ describe('API 카드와 엔진 결과 조립', () => {
     expect(characterCardSchema.safeParse(card).success).toBe(true)
   })
 
-  it.each([
-    ['엔진 없음', null],
-    ['엔진 실패', (() => null) satisfies ScoreEngine]
-  ])('%s이면 API가 보낸 점수를 지운다', (_name, score) => {
+  it('엔진 실패이면 API가 보낸 점수를 지운다', () => {
+    const score: ScoreEngine = () => null
     const apiScore = {
       calculator: 'equipment',
       value: 9999,

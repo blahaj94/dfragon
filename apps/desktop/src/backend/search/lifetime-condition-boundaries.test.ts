@@ -38,7 +38,8 @@ function runtime(candidates: CharacterCandidatesHttp, clock: FakeMonotonicClock)
       details: vi.fn(),
       scorePortrait: vi.fn(),
       selection: INITIAL_PORTRAIT_COLOR_POLICY
-    }
+    },
+    score: () => null
   }
 }
 
