@@ -152,9 +152,9 @@ export function Preview(): React.JSX.Element {
     <>
       <main {...stylex.props(styles.app, styles.windowHeight(windowHeight))}>
         <TopBar
-          nav={<MainNav />}
-          boardRef={setBoardSlot}
-          capture={
+          start={<MainNav />}
+          centerRef={setBoardSlot}
+          end={
             <CaptureControls
               capture={{
                 sources,

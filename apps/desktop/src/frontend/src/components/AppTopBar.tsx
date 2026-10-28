@@ -10,11 +10,13 @@ export function AppTopBar(): React.JSX.Element {
 
   return (
     <TopBar
-      nav={<MainNav />}
-      boardRef={attachBoardHeaderSlot}
-      notice={<UpdateNoticeSlot />}
-      capture={
-        <CaptureControls capture={partyCapture} phase={controls.phase} status={controls.status} />
+      start={<MainNav />}
+      centerRef={attachBoardHeaderSlot}
+      end={
+        <>
+          <UpdateNoticeSlot />
+          <CaptureControls capture={partyCapture} phase={controls.phase} status={controls.status} />
+        </>
       }
     />
   )
