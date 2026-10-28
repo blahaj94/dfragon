@@ -1,20 +1,17 @@
 import { Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
+import type { NameFieldTone } from '../lib/name-field-tone'
 import { styles } from './NameField.style'
-
-export type NameFieldTone = 'default' | 'selected' | 'waiting' | 'failure' | 'vacant'
 
 export type NameFieldProps = Omit<ComponentPropsWithoutRef<'input'>, 'size'> & {
   tone?: NameFieldTone
-  left?: ReactNode
-  right?: ReactNode
+  end?: ReactNode
 }
 
 export function NameField({
   tone = 'default',
-  left,
-  right,
+  end,
   ...inputProps
 }: NameFieldProps): React.JSX.Element {
   return (
@@ -27,9 +24,8 @@ export function NameField({
         tone === 'vacant' && styles.fieldVacant
       )}
     >
-      {left}
       <Typo.caption as="input" weight={700} {...inputProps} {...stylex.props(styles.name)} />
-      {right}
+      {end}
     </div>
   )
 }

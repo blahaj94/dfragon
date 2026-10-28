@@ -1,13 +1,12 @@
 import { Button, CardFrame, ProgressCircle, Typo, shapes } from '@dfragon/ui'
 import {
-  type CharacterCardFrameState,
   getCharacterCardFrameState,
   getCharacterCardStatus,
   isVacantSlot
 } from '../lib/card-presentation'
 import * as stylex from '@stylexjs/stylex'
 import { type ChangeEvent, type KeyboardEvent, type ReactNode, useId } from 'react'
-import { NameField, type NameFieldTone } from '../components/NameField'
+import { NameField } from '../components/NameField'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
@@ -19,13 +18,12 @@ import { CardImage } from '../components/CardImage'
 import { CandidateWindow } from '../components/CandidateWindow'
 import { StatLine } from '../components/StatLine'
 import { styles } from './CharacterCard.style'
-import { serverNames } from '../constants/servers'
+import { serverOptions } from '../constants/server-options'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
+import { toNameFieldTone, type NameFieldTone } from '../lib/name-field-tone'
 import type { SlotCard } from '../lib/slot-cards'
 import { toScoreView } from '../lib/card-score'
-import type { CharacterTier, SlotState } from '../types/cards'
-
-const serverOptions = Object.entries(serverNames).map(([id, label]) => ({ id, label }))
+import type { CharacterTier } from '../types/cards'
 
 export function CharacterCard({
   cardKey,
@@ -172,7 +170,7 @@ function PortraitWell({
 function Portrait({ src }: { src: string | undefined }): React.JSX.Element {
   return (
     <div {...stylex.props(styles.portrait)}>
-      <CardImage src={src} label="캐릭터" portrait />
+      <CardImage src={src} label="캐릭터" />
     </div>
   )
 }
@@ -226,7 +224,7 @@ function LookupField({
         onBlur={draft.blurName}
         onChange={handleNameChange}
         onKeyDown={handleNameKeyDown}
-        right={
+        end={
           showServer && (
             <ServerSelect
               variant="field"
@@ -384,20 +382,4 @@ const AWAKENING_PREFIX = /^眞\s*/u
 
 function toJobLabel(job: string): string {
   return job.replace(AWAKENING_PREFIX, '')
-}
-
-function toNameFieldTone(frameState: CharacterCardFrameState, state: SlotState): NameFieldTone {
-  if (frameState === 'selected' || frameState === 'failure') {
-    return frameState
-  }
-
-  if (frameState !== 'waiting') {
-    return 'default'
-  }
-
-  if (state === 'idle') {
-    return 'vacant'
-  }
-
-  return 'waiting'
 }

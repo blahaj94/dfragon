@@ -3,6 +3,7 @@ import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/se
 import { serverNames } from '../constants/servers'
 import { MISSING_VALUE } from '../constants/cards'
 import type { CardCharacter } from '../types/cards'
+import type { SearchMode } from '../types/search-mode'
 import type { ServerId } from '../types/servers'
 
 function isServerId(value: string): value is ServerId {
@@ -11,9 +12,9 @@ function isServerId(value: string): value is ServerId {
 
 export function toCharacterCard(
   summary: SelectedCharacterSummary | undefined
-): CardCharacter | null {
+): CardCharacter | undefined {
   if (summary == null || !isServerId(summary.serverId)) {
-    return null
+    return undefined
   }
   const adventure = summary.adventureName ?? MISSING_VALUE
   const job = summary.jobGrowName ?? summary.jobName ?? MISSING_VALUE
@@ -48,8 +49,6 @@ export function canRetryCharacterSlot(slot: SearchSlot, retryPending: boolean): 
   return true
 }
 
-export type SlotCardScreen = 'party' | 'raid'
-
 function raidSelectionNotice(slot: SearchSlot): string | undefined {
   if (slot.selectionMethod === 'highest-fame') {
     return '직업과 수치 미확인, 최고 명성 후보입니다.'
@@ -74,7 +73,7 @@ function partySelectionNotice(slot: SearchSlot): string | undefined {
   return undefined
 }
 
-function selectionNotice(slot: SearchSlot, screen: SlotCardScreen): string | undefined {
+function selectionNotice(slot: SearchSlot, screen: SearchMode): string | undefined {
   if (screen === 'raid') {
     return raidSelectionNotice(slot)
   }
@@ -82,7 +81,7 @@ function selectionNotice(slot: SearchSlot, screen: SlotCardScreen): string | und
   return partySelectionNotice(slot)
 }
 
-function characterSlotNotice(slot: SearchSlot, screen: SlotCardScreen): string | undefined {
+function characterSlotNotice(slot: SearchSlot, screen: SearchMode): string | undefined {
   if (slot.details === 'failed') {
     return '상세 정보를 불러오지 못했습니다. 서버와 이름을 직접 조회하면 다시 불러옵니다.'
   }
@@ -109,7 +108,7 @@ function characterSlotNotice(slot: SearchSlot, screen: SlotCardScreen): string |
 export function searchSlotNotice(
   slot: SearchSlot,
   nextStep: string,
-  screen: SlotCardScreen = 'party'
+  screen: SearchMode = 'party'
 ): string | undefined {
   const notice = characterSlotNotice(slot, screen)
   if (slot.state === 'failure' || slot.state === 'empty') {

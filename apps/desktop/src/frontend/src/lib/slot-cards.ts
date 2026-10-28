@@ -2,7 +2,8 @@ import type { SearchSlot } from '../../../preload/common/types/search'
 import type { CardCharacter, SlotState } from '../types/cards'
 import type { SnapshotMark } from './adventure-snapshot'
 import type { CandidatePicker } from './candidate-picker'
-import { searchSlotNotice, toCharacterCard, type SlotCardScreen } from './character-card'
+import type { SearchMode } from '../types/search-mode'
+import { searchSlotNotice, toCharacterCard } from './character-card'
 
 const NEXT_LOOKUP_STEP = 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.'
 
@@ -31,7 +32,7 @@ export function toSlotCards({
   manualSlots,
   recognizing,
   snapshotMarks,
-  pickers = [],
+  candidatePickers = [],
   screen = 'party'
 }: {
   slots: readonly SearchSlot[]
@@ -39,15 +40,15 @@ export function toSlotCards({
   manualSlots: readonly boolean[]
   recognizing: boolean
   snapshotMarks: readonly (SnapshotMark | undefined)[]
-  pickers?: readonly (CandidatePicker | null)[]
-  screen?: SlotCardScreen
+  candidatePickers?: readonly (CandidatePicker | null)[]
+  screen?: SearchMode
 }): SlotCard[] {
   return slots.map((slot, index) => {
-    const character = toCharacterCard(slot.selected) ?? undefined
+    const character = toCharacterCard(slot.selected)
     const nickname = nicknames[index] ?? undefined
     const notice = searchSlotNotice(slot, NEXT_LOOKUP_STEP, screen)
     const loading = !manualSlots[index] && recognizing
-    const picker = pickers[index] ?? undefined
+    const picker = candidatePickers[index] ?? undefined
     const scorePending = slot.details === 'pending'
 
     return {
