@@ -44,7 +44,6 @@ function ocr(captureId: string, slot: number) {
 
 async function beginRaid() {
   const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
-  // 공대 캡처 회차처럼 게임 창을 등록한 뒤 공대 수명을 시작한다.
   await fixture.invoke('selectCaptureSource', 'window:search-fixture')
   const begun = (await fixture.invoke('controlRaidSearch', { action: 'begin' })) as {
     snapshot: { captureId: string }

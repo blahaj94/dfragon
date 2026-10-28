@@ -12,16 +12,13 @@ describe('직업명 비교 규칙', () => {
 
   it('잘린 이름은 읽은 앞부분이나 마지막 한 글자를 뺀 앞부분이 4자 이상 같으면 clipped-prefix다', () => {
     expect(matchJobName('眞데몬슬레이', '眞 데몬슬레이어')).toBe('clipped-prefix')
-    // 잘린 `터`를 영문과 기호로 읽은 경우: 한글만 남기면 `소드마스`다.
     expect(matchJobName('眞소드마스E-', '眞 소드마스터')).toBe('clipped-prefix')
-    // 잘린 마지막 글자를 다른 한글로 읽은 경우
     expect(matchJobName('眞소드마스트', '眞 소드마스터')).toBe('clipped-prefix')
   })
 
   it('읽은 문자열이 眞으로 시작하지 않으면 첫 글자를 표식 오인식으로 보고 뺀 문자열로도 비교한다', () => {
     expect(matchJobName('핀소드마스터', '眞 소드마스터')).toBe('exact')
     expect(matchJobName('핀데몬슬레이', '眞 데몬슬레이어')).toBe('clipped-prefix')
-    // 眞을 읽었다면 첫 글자를 빼지 않는다.
     expect(matchJobName('眞핀소드마스터', '眞 소드마스터')).toBeNull()
   })
 

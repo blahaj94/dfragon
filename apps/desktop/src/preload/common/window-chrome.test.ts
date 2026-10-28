@@ -7,7 +7,7 @@ const tokensCss = readFileSync(
   'utf8'
 )
 
-// tokens.css는 :root(다크) 블록에서 변수를 처음 정의한다. Desktop은 다크 값만 쓴다.
+// tokens.css는 :root(다크) 블록에서 변수를 처음 정의한다.
 function readDarkTokenValue(name: string): string {
   const match = tokensCss.match(new RegExp(`--df-${name}:\\s*(#[0-9a-f]{6})\\b`))
   expect(match).not.toBeNull()

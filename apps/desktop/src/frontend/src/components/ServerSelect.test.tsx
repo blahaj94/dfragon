@@ -283,7 +283,6 @@ it('이름 칸에서 Tab을 누르면 서버 목록을 열고, 방향키로 고�
     (option) => option.getAttribute('aria-selected') === 'true'
   )
   const current = options[currentIndex]
-  // 서버 목록 순서와 상관없이 지금 서버의 바로 앞 서버를 고른다. 지금 서버가 맨 앞이 아니어야 한다.
   expect(currentIndex).toBeGreaterThan(0)
   const previous = options[currentIndex - 1]
   await vi.waitFor(() => expect(document.activeElement).toBe(current))
@@ -300,7 +299,6 @@ it('이름 칸에서 Tab을 누르면 서버 목록을 열고, 방향키로 고�
   )?.[0]
   expect(onLookup).toHaveBeenCalledExactlyOnceWith(previewCharacter.name, previousServer)
   expect(trigger.getAttribute('aria-expanded')).toBe('false')
-  // 닫히면 포커스가 서버 칩으로 가서, 다음 Tab은 목록을 다시 열지 않고 다음 요소로 간다.
   await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
 })
 

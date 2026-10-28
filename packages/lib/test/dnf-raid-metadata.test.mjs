@@ -19,7 +19,6 @@ const testTitles = {
   valuesValidation: '수치만 읽을 때도 프레임 상한, 행, 글자 기준을 같은 규칙으로 검증한다'
 }
 
-// 합성 글자, 배지만 사용하며 스크린샷, 게임 자산, 플레이어 데이터는 포함하지 않는다.
 const alphabet = {
   0: ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
   1: ['00100', '01100', '00100', '00100', '00100', '00100', '01110'],
@@ -132,7 +131,6 @@ function score(text, color = [205, 210, 225, 255], gold = false) {
     for (let y = 0; y < 17; y += 1) {
       paint(image, 0, y, 75, 1, [18 + y * 3, 16 + y * 2, 8, 255])
     }
-    // 밝은 아래 구분선을 숫자의 획으로 읽지 않아야 한다.
     paint(image, 40, 15, 35, 1, [200, 170, 30, 255])
   }
   let left = 3
@@ -325,7 +323,6 @@ test(testTitles.contrastBoundary, () => {
     [74, '8'],
     [75, '8']
   ]) {
-    // 배경의 반올림 휘도는 19이므로 글자 획의 대비는 각각 54, 55, 56이다.
     const { image, rows } = fixture([
       { text: '8', color: [brightness, brightness, brightness, 255] }
     ])

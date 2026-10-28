@@ -64,7 +64,6 @@ it('공대 연결은 12자리 snapshot만 받아 12번째 자리 결과를 보�
   snapshot = searchSnapshot({ revision: 3, slots: raidSlots([success]) })
   emit(snapshot)
   expect(view!.slots[11].state).toBe('success')
-  // 파티 수명의 네 자리 snapshot은 공대 연결에 반영하지 않는다.
   emit(searchSnapshot({ revision: 4 }))
   expect(view!.slots).toHaveLength(12)
   expect(view!.slots[11].state).toBe('success')

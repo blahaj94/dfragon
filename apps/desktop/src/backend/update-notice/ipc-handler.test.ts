@@ -144,7 +144,6 @@ it('닫으면 결과 상태를 돌려주고 같은 상태를 신뢰한 화면에
 })
 
 it('창을 닫으면 handler와 알림 구독을 정리한다', async () => {
-  // 앱 실행 동안 유지되는 알림 상태에 닫힌 창의 listener가 남지 않아야 한다.
   const unsubscribed = vi.fn()
   const subscribe = notices.subscribe
   vi.spyOn(notices, 'subscribe').mockImplementation((listener) => {

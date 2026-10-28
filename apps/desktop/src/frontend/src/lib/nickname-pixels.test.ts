@@ -63,7 +63,6 @@ it('글자 밑획에 붙은 프레임 선과 모서리 장식은 가로 정렬�
   }
   const before = rgba.slice()
 
-  // 글자 폭 5px가 32px 입력의 x=13..17에 놓이고 픽셀 자체는 수정하지 않는다.
   expect(nicknameCenterOffset(rgba, width, height, 32)).toBe(11)
   expect(rgba).toEqual(before)
 })

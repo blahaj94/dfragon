@@ -1,7 +1,6 @@
 import { expect, it } from 'vitest'
 import { decodeCtc, decodeCtcCandidates } from './paddle-recognition'
 
-/** 작은 입력의 모든 경로를 직접 열거한다. 제품의 beam이나 forward 점화식을 사용하지 않는다. */
 function enumeratePaths(
   rows: readonly (readonly number[])[],
   characters: readonly string[]
@@ -139,7 +138,6 @@ it('문자 가지치기에서 빠진 정렬 경로도 최종 후보 확률에 �
   second[0] = 0.9
   second[1] = 0.001
   const candidates = decodeCtcCandidates(new Float32Array([...first, ...second]), 2, characters)
-  // P(A) = .99*.9 + .99*.001 + .01*.001. 마지막 경로는 top16에서 A가 탈락해도 합산한다.
   expect(candidates[0]).toEqual({ rank: 1, modelScore: expect.closeTo(89.2, 5), nickname: 'A' })
 })
 
@@ -153,8 +151,6 @@ it('재채점으로 순위가 바뀌면 복구된 최종 점수 내림차순으�
   second[1] = 0.03
   second[2] = 0.1
   const data = new Float32Array([...first, ...second])
-  // 탐색 중 A는 5.2점으로 빈 문자열과 B의 6점보다 낮다.
-  // top16 밖의 blank→A 경로 1.8점을 복구하면 A가 7점으로 1위가 된다.
   const candidates = decodeCtcCandidates(data, 2, characters, 5)
   expect(candidates).toEqual([
     { rank: 1, modelScore: expect.closeTo(7, 5), nickname: 'A' },

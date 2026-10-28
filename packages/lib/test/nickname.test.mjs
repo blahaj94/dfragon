@@ -52,7 +52,6 @@ test(TITLES.mixedByteLengths, () => {
   const asciiCharacters = ['A', '0', '$', '~']
   const legacyCharacters = ['가', '힣', 'ア', '郞', '★', '♡', 'ㄱ']
 
-  // 유한한 조합을 codec으로 따로 계산하여 UTF-16, UTF-8 길이와 혼동하는 회귀를 잡는다.
   for (let asciiCount = 0; asciiCount <= 13; asciiCount++) {
     for (let legacyCount = 0; legacyCount <= 7; legacyCount++) {
       if (asciiCount + legacyCount === 0) {

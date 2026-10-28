@@ -27,7 +27,6 @@ type Pending = {
   reject: (error: unknown) => void
 }
 
-/** 호출을 보류했다가 테스트가 완료 시점을 정하는 이미지 다운로드. */
 function createPendingImage(): {
   image: CharacterImageHttp
   started: Pending[]

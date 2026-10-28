@@ -11,7 +11,7 @@ const dependencyGroups = [
   'peerDependencies',
   'optionalDependencies'
 ]
-// pnpm-workspace.yaml의 packages 목록 항목(`  - apps/*`, 따옴표 허용)만 읽는다. 부정 패턴(`!`)은 globSync가 지원하지 않아 받지 않는다.
+// 부정 패턴(`!`)은 globSync가 지원하지 않아 받지 않는다.
 const workspacePackagesListItem = /^ {2}- (?:'([^'!][^']*)'|"([^"!][^"]*)"|([^\s'"!]\S*))$/u
 
 function readWorkspacePackageGlobs(source) {
@@ -31,7 +31,6 @@ function readWorkspacePackageGlobs(source) {
     if (!inPackages) {
       continue
     }
-    // 지원하지 않는 항목 형태(따옴표, 주석, 부정 패턴)는 조용히 빠지지 않고 실패한다.
     const item = workspacePackagesListItem.exec(line)
     assert.ok(item, `지원하지 않는 packages 구문: ${line}`)
     const [, singleQuotedGlob, doubleQuotedGlob, plainGlob] = item
@@ -43,7 +42,6 @@ function readWorkspacePackageGlobs(source) {
   return globs
 }
 
-// Workspace 패키지 목록을 pnpm-workspace.yaml의 glob에서 찾아 새 패키지가 검사에서 빠지지 않게 한다.
 const workspacePackagePaths = globSync(
   readWorkspacePackageGlobs(workspace).map((pattern) => `${pattern}/package.json`),
   { cwd: fileURLToPath(root) }
@@ -62,7 +60,6 @@ function readCatalogs(source) {
   let section
   let catalog
 
-  // Catalog의 들여쓰기 기반 mapping만 읽고, 지원하지 않는 구문은 누락하지 않고 실패한다.
   for (const line of source.split(/\r?\n/u)) {
     if (/^\s*(?:#.*)?$/u.test(line)) {
       continue

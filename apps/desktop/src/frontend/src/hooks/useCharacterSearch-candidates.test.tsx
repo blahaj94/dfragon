@@ -15,7 +15,6 @@ const mocks = vi.hoisted(() => ({
   manualLookup: vi.fn<(slot: number, nickname: string, serverId: string) => void>()
 }))
 vi.mock('../lib/capture-search', () => ({ createCaptureSearch: mocks.create }))
-// 수동 조회 연결은 따로 검증하므로 여기서는 어떤 서버로 조회를 요청했는지만 본다.
 vi.mock('./useManualCharacterLookup', () => ({
   useManualCharacterLookup: () => ({
     view: {
@@ -48,7 +47,6 @@ function choice(serverId: string, serverName: string): CharacterChoice {
   }
 }
 
-/** 1번 슬롯이 카인을 자동으로 고르고 시로코 후보를 함께 준 캡처 검색 화면 */
 function viewWithChoices(requestId = REQUEST_ID): SearchView {
   const selected = {
     ...searchRow,

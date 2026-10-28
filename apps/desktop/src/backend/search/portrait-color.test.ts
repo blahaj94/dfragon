@@ -12,7 +12,6 @@ import { PortraitComparisonBudgetExceededError } from './portrait-raster'
 const RGBA_CHANNELS = 4
 const OPAQUE_ALPHA = 255
 const FACE_SIZE = 26
-// 왕관 표시처럼 왼쪽 위 12×9px를 비교에서 뺀다.
 const BADGE = { width: 12, height: 9 } as const
 const GARBAGE: Pixel = [255, 0, 0, OPAQUE_ALPHA]
 const TRANSPARENT: Pixel = [0, 0, 0, 0]
@@ -48,7 +47,6 @@ function pixelAt(source: CharacterImage, x: number, y: number): Pixel {
   return [red, green, blue, alpha]
 }
 
-/** 다른 위치의 셀 평균이 우연히 같아지지 않도록 고정 seed 의사 난수 색으로 얼굴을 만든다. */
 function faceImage(size = FACE_SIZE, offset = 0): CharacterImage {
   let state = 1
   const next = () => {
@@ -60,7 +58,6 @@ function faceImage(size = FACE_SIZE, offset = 0): CharacterImage {
   return image(size, size, () => [next(), next(), next(), OPAQUE_ALPHA])
 }
 
-/** 투명한 후보 이미지 위에 얼굴 조각을 놓는다. */
 function candidateImage(
   width: number,
   height: number,
@@ -179,7 +176,6 @@ describe('셀 평균 색 비교의 정렬과 점수', () => {
     const face = image(FACE_SIZE, FACE_SIZE, (x, y) =>
       mask[y * FACE_SIZE + x] === 0 ? GARBAGE : pixelAt(faceImage(), x, y)
     )
-    // 후보도 같은 영역이 투명하면 남은 유효 픽셀의 셀 평균은 정확히 같다.
     const visibleFace = image(FACE_SIZE, FACE_SIZE, (x, y) =>
       mask[y * FACE_SIZE + x] === 0 ? TRANSPARENT : pixelAt(faceImage(), x, y)
     )
@@ -187,7 +183,6 @@ describe('셀 평균 색 비교의 정렬과 점수', () => {
 
     expect(await score(portrait(face, mask), candidate)).toMatchObject({
       distance: 0,
-      // 4×4 격자의 왼쪽 위 셀(6×6px)은 전부 제외돼 비교하지 않는다.
       comparedCells: 15,
       alignment: { x: 8, y: 10 }
     })
@@ -263,7 +258,6 @@ describe('셀 평균 색 비교의 정렬과 점수', () => {
   })
 
   it('비교한 셀 수가 minComparedCells에 못 미치면 고르지 않는다', async () => {
-    // 왼쪽 위 2×2 셀만 유효한 얼굴은 어느 위치에서도 4셀까지만 비교한다.
     const mask = Uint8Array.from({ length: FACE_SIZE * FACE_SIZE }, (_, pixel) =>
       pixel % FACE_SIZE < 13 && Math.floor(pixel / FACE_SIZE) < 13 ? 1 : 0
     )
@@ -395,7 +389,6 @@ describe('색 비교 정책과 입력 경계', () => {
   it('창 탐색 중 event loop를 양보해 같은 프로세스의 취소를 처리한다', async () => {
     const controller = new AbortController()
     const reason = new Error('탐색 도중 캡처 중지')
-    // 얼굴 정규화, 불투명 영역, 적분 영상의 작업량이 양보 단위보다 작아 첫 양보는 창 탐색에서 일어난다.
     const candidate = image(80, 80, () => [80, 90, 100, OPAQUE_ALPHA])
     const pending = createPortraitColorScorer({ ...POLICY, gridSize: 8 })(
       input(portrait(), candidate, controller.signal)

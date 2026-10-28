@@ -72,7 +72,6 @@ const SCORE_ROW: RaidRowObservation = {
   valueText: '50,000'
 }
 
-/** 같은 직업 동명 후보 넷(명성 순 first, second, third, fourth)과 다른 직업 후보 하나 */
 function fixture(engineScores: Record<string, number | null> | null) {
   const clock = new FakeMonotonicClock()
   const controller = new AbortController()
@@ -90,7 +89,6 @@ function fixture(engineScores: Record<string, number | null> | null) {
     return details(characterId)
   })
   const score: MockedFunction<ScoreEngine> = vi.fn((input) => {
-    // 엔진 입력의 각 문서에는 상세 응답의 머리가 복원돼 있다.
     const id = String(input.status.characterId)
 
     return engineResult(engineScores?.[id] ?? null)
@@ -120,7 +118,6 @@ function fixture(engineScores: Record<string, number | null> | null) {
       isCurrent,
       ocrInput: { candidateNicknames: ['공대원'], portrait: null, raidRow }
     })
-  // 공대 식별이 고른 후보의 요약으로 상세와 점수를 채운다.
   const loadDetails = async (isCurrent: () => boolean = () => true) => {
     const identified = await request()
     if (identified?.kind !== 'success' || identified.selected === undefined) {

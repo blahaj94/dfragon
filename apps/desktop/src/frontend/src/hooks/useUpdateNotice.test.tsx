@@ -9,7 +9,6 @@ import type {
   UpdateNoticeSnapshot
 } from '../../../preload/common/types/update-notice'
 
-// App과 같은 방식으로 hook 결과를 알림 컴포넌트에 연결한다.
 function Harness(): React.JSX.Element | null {
   const { notice, openRelease, dismiss } = useUpdateNotice()
   if (notice == null) {

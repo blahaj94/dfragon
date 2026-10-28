@@ -55,7 +55,6 @@ it('얼굴 크롭 경계에는 닉네임과 같은 프레임의 원본 RGBA와 �
   expect(inputs[2]?.portrait).toBe(portrait)
 })
 
-/** 실측한 기본 배율의 HP, MP와 이름 픽셀을 제품 검출 좌표와 독립적으로 그린다. */
 function framePixels(
   width: number,
   height: number,
@@ -79,7 +78,6 @@ function framePixels(
     rgba.set([255, 255, 255, 255, 0, 0, 0, 255, 55, 170, 200, 255], (10 * width + x) * 4)
   }
 
-  // 연결중 팝업의 가림 범위. 텍스트를 읽거나 이름으로 금지하지 않고 가려진 HP, MP를 제외한다.
   for (const x of loadingAnchors) {
     for (let y = 15; y < 35; y += 1) {
       for (let column = x - 26; column < x + 56; column += 1) {
@@ -91,7 +89,6 @@ function framePixels(
   return rgba
 }
 
-/** Canvas 경계만 대체하고 실제 프레임 검출과 픽셀 전처리를 실행한다. */
 function captureCanvas(
   width: number,
   height: number,
@@ -271,7 +268,6 @@ it.each([
 
 it('회차 한 장의 네 슬롯 닉네임 픽셀과 얼굴 원문을 함께 인식 결과로 돌려준다', async () => {
   const setup = captureCanvas(1280, 720, [42, 183, 324, 465])
-  // 각 얼굴 중앙에 슬롯별 원문을 심어 다른 프레임이나 다른 슬롯의 얼굴 사용을 검출한다.
   for (const [slot, left] of [14, 155, 296, 437].entries()) {
     setup.frame.rgba.set([slot + 11, 50, 90, 255], (24 * 1280 + left + 13) * 4)
   }

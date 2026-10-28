@@ -63,8 +63,6 @@ test('body를 받는 중인 검색이 13개여도 새 검색을 거절하지 않
   )
 })
 
-// 섹션, 공용 상세 transport가 13개 열릴 때까지 응답을 막고, 열린 뒤에는 공급자 오류 body로 끝낸다.
-// 각 호출은 예산 초과 429가 아니라 호출부가 기대하는 공급자 실패로 끝나야 한다.
 async function expectThirteenOpenTransports(
   start: (transport: typeof fetch) => Promise<unknown>[],
   expectedFailure: object

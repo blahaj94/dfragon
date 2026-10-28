@@ -75,7 +75,6 @@ test('RGBA view의 채널과 alpha를 유지하면서 독립 회색조 배열을
     const original = storage.slice()
     const gray = participantGrayscale(rgba)
 
-    // 원색의 휘도는 76, 150, 29, (10,20,30)의 휘도는 18로 손으로 검산된다.
     assert.deepEqual([...gray], [76, 150, 29, 255, 18, 0])
     assert.deepEqual(storage, original)
     gray.fill(0)

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { apiDetailsFromEngineInput, readEngineInput } from './details-test-fixture'
 import { toScoreEngineInput } from './input'
 
-// API는 장착 장비의 engrave에는 itemDetail을 붙이지 않으므로 그 아이템 상세는 엔진 입력에 들어가지 않는다.
 function engraveOnlyItemIds(input: ReturnType<typeof readEngineInput>): string[] {
   const equipment = input.equipment.equipment
   if (!Array.isArray(equipment)) {
@@ -74,7 +73,6 @@ describe('상세 응답을 점수 엔진 입력 문서로 바꾸기', () => {
     const input = toScoreEngineInput({
       ...details,
       equipment: { ...details.equipment, equipment },
-      // 같은 아이템이 버프 장착에도 있으면 그쪽 상세로 채워지므로 이 사례에서는 비운다.
       buff: { equipment: null, avatar: null, creature: null }
     })
 

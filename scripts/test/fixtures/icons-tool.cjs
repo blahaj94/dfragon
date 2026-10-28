@@ -1,7 +1,6 @@
 const { mkdir, writeFile } = require('node:fs/promises')
 const { join } = require('node:path')
 
-// 실제 이미지 변환은 실행하지 않고 builder의 파일 생성 경계만 재현한다.
 exports.runIconsTool = async ({ inputFile, outputFormat, outDir }) => {
   const input = await require('node:fs/promises').readFile(inputFile, 'utf8')
   if (input !== '합성 브랜드 원본') {

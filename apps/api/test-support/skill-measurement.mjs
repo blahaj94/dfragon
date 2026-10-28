@@ -92,7 +92,6 @@ function measuredSkill(skills, measurement) {
   }
 }
 
-/** The comparison observation never contributes to the calibration or prediction. */
 export function compareSkillDamage({ skills, ...observations }) {
   validateObservations(observations)
   if (!Array.isArray(skills)) {

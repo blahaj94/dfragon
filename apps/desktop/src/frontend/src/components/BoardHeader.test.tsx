@@ -23,7 +23,6 @@ afterEach(async () => {
 })
 
 type Props = ComponentProps<typeof BoardHeader>
-// 묶음 props는 바꿀 필드만 받아 기본값에 덮는다.
 type RenderProps = Partial<Omit<Props, 'capture' | 'snapshot'>> & {
   capture?: Partial<Props['capture']>
   snapshot?: Partial<Props['snapshot']>
@@ -132,7 +131,6 @@ it('화면이 넘긴 안내만 status 영역에 보이고 없으면 영역을 �
   await render({ notice: '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.' })
   expect(container.querySelector('[role="status"]')).toBe(status)
   expect(status.textContent).toBe('검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.')
-  // 상단 바 한 줄에서 말줄임될 수 있어 전체 문구를 title로도 둔다.
   expect(status.getAttribute('title')).toBe(
     '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
   )
@@ -159,12 +157,10 @@ it('마지막 캡처 시각이 없으면 -이고, 있으면 상대 시간을 표
   expect(container.querySelector('time')?.getAttribute('dateTime')).toBe(new Date(at).toISOString())
   await act(async () => vi.advanceTimersByTime(1_000))
   expect(lastCapture()).toBe('13초 전')
-  // 초 단위 동안은 다시 그린 뒤 다음 타이머를 걸므로 1초씩 넘긴다.
   for (let second = 14; second <= 60; second++) {
     await act(async () => vi.advanceTimersByTime(1_000))
   }
   expect(lastCapture()).toBe('1분 전')
-  // 분 단위 동안은 1초마다 다시 그리지 않고 다음 분이 될 때 한 번 다시 그린다.
   expect(vi.getTimerCount()).toBe(1)
   const nextTimer = vi.spyOn(window, 'setTimeout')
   await act(async () => vi.advanceTimersByTime(59_000))
@@ -185,7 +181,6 @@ it('새 회차가 끝나면 새 완료 시각부터 다시 센다', async () => 
   expect(lastCapture()).toBe('5분 전')
   await render({ capture: { lastCompletedAt: Date.now() } })
   expect(lastCapture()).toBe('0초 전')
-  // 타이머가 돌기 전에 시계가 흐른 뒤 받은 완료 시각도 그 순간의 경과 시간으로 바로 보인다.
   vi.setSystemTime(Date.now() + 30_000)
   await render({ capture: { lastCompletedAt: Date.now() - 12_000 } })
   expect(lastCapture()).toBe('12초 전')

@@ -80,7 +80,6 @@ describe('평가 요약', () => {
     const jobNameRow = manifestRow({
       row: 2,
       valueText: '50,000',
-      // 후보의 jobGrowName이 없고 jobName이 화면 직업명과 같으면 jobName으로 센다.
       candidates: [candidate({ correct: true, jobName: '眞 크루세이더', jobGrowName: null })]
     })
     const summary = summarize(
@@ -92,7 +91,6 @@ describe('평가 요약', () => {
       status: 'run',
       screenJobField: { jobGrowName: 1, jobName: 1, neither: 0 },
       fameDifferences: [10],
-      // 다른 직업 후보(명성 119,995)는 간격에서 빠진다.
       fameGaps: [990]
     })
   })

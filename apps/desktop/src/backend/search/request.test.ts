@@ -31,10 +31,6 @@ const FACE_SIZE = 8
 const FACE_LEFT_SHADE = 100
 const FACE_RIGHT_SHADE = 150
 
-/**
- * 왼쪽과 오른쪽 절반의 밝기가 다른 불투명 정사각형. shift만큼 모든 채널을 밝히면 같은 크기 얼굴과의 셀
- * 평균 거리가 정확히 shift가 된다.
- */
 function shadedImage(shift = 0): CharacterImage {
   const rgba = new Uint8Array(FACE_SIZE * FACE_SIZE * 4)
   for (let y = 0; y < FACE_SIZE; y += 1) {
@@ -96,7 +92,6 @@ function requestWith(adapters: IdentificationAdapters) {
     })
 }
 
-/** 후보 high(명성 100), low(50), null(null)의 이미지를 얼굴과의 거리가 shifts인 이미지로 돌려준다. */
 function fixture(shifts: Record<string, number> = { high: 20, low: 10, null: 30 }): {
   clock: FakeMonotonicClock
   controller: AbortController
@@ -479,7 +474,6 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
     display: { role: 'dealer', switchingLevel: 3, buff30: null, buff50: null }
   }
 
-  // OCR 식별이 후보 검색 응답만으로 만든 요약
   const identified: SelectedCharacterSummary = {
     characterId: 'high',
     characterName: '첫이름',

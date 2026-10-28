@@ -46,7 +46,6 @@ afterEach(async () => {
   container.remove()
 })
 
-// 카드 값과 나머지 props를 한 객체로 받아 카드 값만 `card`로 묶는다.
 type RenderProps = Partial<SlotCard> & Partial<Omit<ComponentProps<typeof CharacterCard>, 'card'>>
 
 async function render({
@@ -201,12 +200,10 @@ function card(): HTMLElement {
   return container.querySelector('article')!
 }
 
-// 오른쪽 위의 상태 표시. 그림 칸의 이미지 대체 표시는 제외한다.
 function statusMark(): Element | null {
   return card().querySelector('[role="img"]:not([aria-label$="이미지 없음"])')
 }
 
-// 화면에 보이는 글자. 보조 기술용 알림 영역은 뺀다.
 function visibleText(): string {
   const copy = card().cloneNode(true) as HTMLElement
   for (const live of copy.querySelectorAll('[aria-live]')) {
@@ -220,7 +217,6 @@ function visibleText(): string {
   return copy.textContent
 }
 
-// 명성과 점수 칸의 값. 스탯 한 줄의 dt와 섞이지 않도록 라벨로 찾는다.
 function statValue(label: string): HTMLElement {
   const term = [...card().querySelectorAll('dt')].find((item) => item.textContent === label)!
 
@@ -242,7 +238,6 @@ it('검색 상태를 꺾쇠 상태와 오른쪽 위 표시로 보이고 상태 �
   expect(card().getAttribute('data-state')).toBe('failure')
   expect(visibleText()).toContain('검색 결과가 없습니다')
 
-  // 대기 모래시계는 두지 않고 상태 이름은 보조 기술에만 전한다.
   await render({ state: 'waiting-portrait', character: undefined })
   expect(card().getAttribute('data-state')).toBe('waiting')
   expect(statusMark()).toBeNull()
@@ -253,7 +248,6 @@ it('검색 상태를 꺾쇠 상태와 오른쪽 위 표시로 보이고 상태 �
   expect(statusMark()).toBeNull()
 })
 
-// 카드 바로 아래의 장식 요소 수. 꺾쇠 네 개와 스냅샷에 없는 모험단의 덮는 층이 여기 들어간다.
 function decorationCount(): number {
   return card().querySelectorAll(':scope > span[aria-hidden="true"]').length
 }
@@ -275,12 +269,10 @@ it('머리 줄은 서버 선택을 품은 이름 칸, 상태 표시, 스냅샷 �
   expect(mark.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
   expect(visibleText()).not.toMatch(/0[1-4]/)
 
-  // 입력할 수 없고 캐릭터도 찾지 못한 자리는 서버 선택을 숨긴다.
   await render({ state: 'idle', character: undefined, inputEnabled: false })
   expect(card().querySelector('select')).toBeNull()
   expect(card().querySelector('input')!.disabled).toBe(true)
 
-  // 빈 자리의 이름 칸은 얼굴 인식을 기다리는 자리와 다른 테두리다.
   const vacantField = card().querySelector('input')!.parentElement!.className
   await render({ state: 'waiting-portrait', character: undefined, inputEnabled: false })
   expect(card().querySelector('input')!.parentElement!.className).not.toBe(vacantField)
@@ -354,7 +346,6 @@ it('이름에 들어가거나 고치는 동안 선택 상태와 수정 중 표�
   expect(statusMark()).toBeNull()
 })
 
-// 오른쪽 열의 줄. 머리 줄, 소속, 명성과 점수, 넷째 줄 순서다.
 function columnLines(): HTMLElement[] {
   const header = card().querySelector('input')!.closest('div:has(> div > div > input)')
   const column = header!.parentElement!
@@ -454,7 +445,6 @@ it('상위, 랭커 단계를 꺾쇠 상태와 단계 색 숫자로 보이고 단
   expect(card().textContent).toContain('랭커 단계')
   expect(statValue('명성').className).not.toBe(topValue)
 
-  // 조회 실패에는 단계를 보이지 않고, 이름을 고치면 단계보다 수정 중 표시가 앞선다.
   await render({ state: 'failure', character: { ...found, tier: 'ranker' } })
   expect(card().getAttribute('data-state')).toBe('failure')
   expect(card().textContent).not.toContain('랭커 단계')
@@ -491,7 +481,6 @@ it('점수 숫자는 딜러 파랑, 버퍼 초록으로 칠하고 역할을 모�
   expect(toneClassesOf(statValue('버프'))).toEqual(['buffer'])
   expect(toneClassesOf(statValue('명성'))).toEqual([])
 
-  // 역할을 모르면 라벨은 장비 점수이고 색은 기본색이다.
   await render({
     state: 'success',
     character: { ...found, card: { ...dealerCard, role: null } }
@@ -499,7 +488,6 @@ it('점수 숫자는 딜러 파랑, 버퍼 초록으로 칠하고 역할을 모�
   expect(statValue('장비').firstChild?.textContent).toBe('330,556')
   expect(toneClassesOf(statValue('장비'))).toEqual([])
 
-  // 값이 없어 -로 보이는 점수는 역할과 상관없이 같은 기본 색이다.
   await render({ state: 'success', character: { ...found, card: { ...dealerCard, score: null } } })
   const dealerMissing = statValue('장비')
   expect(dealerMissing.textContent).toBe('-')
@@ -658,7 +646,6 @@ it('닫기 X로 닫으면 스냅샷 칩 앞에 후보 수 칩이 남고, 칩을 
   expect(candidateWindow()).toBeNull()
   expect(candidateChip()?.getAttribute('aria-expanded')).toBe('false')
 
-  // 닫혀 있는 동안 캡처 쪽 후보 값이 바뀌어도 닫힌 채로 둔다.
   await render({
     state: 'success',
     character: found,

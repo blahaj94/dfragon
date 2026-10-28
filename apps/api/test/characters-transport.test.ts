@@ -255,7 +255,6 @@ test('loopback 본문을 수신하는 도중 deadline timer가 native fetch를 �
 
       const readText = response.text.bind(response)
       response.text = () => {
-        // 실제 native body 소비를 시작한 직후 clock과 timer 경계만 제어한다.
         const body = readText()
         now = 5_000
         assert(deadlineCallback)

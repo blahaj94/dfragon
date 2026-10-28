@@ -27,7 +27,6 @@ async function lintReport(directory) {
   }
 }
 
-// 저장소의 Biome 설정과 플러그인을 격리된 복사본에 두고, 표본 경로별 진단을 한 번에 모은다.
 export async function lintSamples(sources) {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-biome-lint-'))
 
@@ -46,7 +45,6 @@ export async function lintSamples(sources) {
     for (const diagnostic of report.diagnostics) {
       const sample = diagnostics.get(diagnostic.location?.path)
 
-      // Config or plugin load failures have no sample path and must not pass as "no diagnostics".
       if (sample == null) {
         throw new Error(`Unexpected Biome diagnostic: ${JSON.stringify(diagnostic)}`)
       }

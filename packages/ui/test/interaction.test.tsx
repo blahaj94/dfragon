@@ -48,7 +48,6 @@ async function render(children: ReactNode) {
   await act(async () => root.render(children))
 }
 
-// 접근 가능한 이름: aria-labelledby, aria-label, 연결된 label, 글자 순으로 찾는다.
 function accessibleName(element: Element) {
   const labelledBy = element.getAttribute('aria-labelledby')
   if (labelledBy != null) {
@@ -185,7 +184,6 @@ describe('Button의 클릭과 disabled, loading 상태', () => {
       </Button>
     )
     const button = getByRole('button', '검색')
-    // 글자를 직접 담은 가장 안쪽 요소를 본다.
     const label = Array.from(button.querySelectorAll('span'))
       .filter((candidate) => candidate.textContent === '검색')
       .at(-1)
@@ -806,7 +804,6 @@ describe('Select의 키보드 선택과 포커스 복귀', () => {
 
   it('columns를 주면 목록을 그 수의 열로 늘어놓고 화살표로 읽는 순서대로 옮긴다', async () => {
     const onValueChange = vi.fn<(value: string | null) => void>()
-    // 2열이면 카인, 디레지에가 첫 줄이고 시로코가 둘째 줄이다. 시로코에서 위로 가면 바로 위 카인이 아니라 앞 항목인 디레지에다.
     await render(<ServerSelect onValueChange={onValueChange} columns={2} />)
     const trigger = getByRole('combobox', '서버')
     trigger.focus()
@@ -1121,7 +1118,6 @@ describe('NumericText의 최종값 읽기', () => {
 })
 
 describe('CardFrame의 상태별 장식', () => {
-  // 카드 내용은 화면이 넘긴 자식뿐이고, 나머지 자식은 보조 기술에서 숨긴 장식이다.
   async function decorations(state: 'default' | 'waiting' | 'top' | 'ranker') {
     await render(
       <CardFrame state={state} as="article" aria-label="1번 슬롯">

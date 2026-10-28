@@ -1,5 +1,3 @@
-// 이 파일은 Vitest runtime 사례가 아니다. package의 tsc --noEmit이 JSX 사용과
-// expectTypeOf, @ts-expect-error를 검사하며 test/examples도 같은 입력에 포함한다.
 import {
   createRef,
   type ChangeEvent,
@@ -73,7 +71,6 @@ import {
   type TypoProps
 } from '@dfragon/ui'
 
-// 공개 props는 semantic 옵션과 native ref를 보존하고 화면별 외형 override를 노출하지 않는다.
 type PublicPropKeys =
   | keyof ButtonProps
   | keyof IconButtonProps
@@ -143,7 +140,6 @@ const paragraphRef = createRef<HTMLParagraphElement>()
 const captionRef = createRef<HTMLSpanElement>()
 const anchorRef = createRef<HTMLAnchorElement>()
 
-// 실제 공개 컴포넌트 사용으로 semantic props, 이벤트 target과 ref의 연결을 검사한다.
 export const componentExamples = (
   <ContentStack>
     <ExampleSection title="작업 상태">
@@ -336,7 +332,6 @@ export const invalidDesignExamples = (
   </>
 )
 
-// Typo는 다른 공용 Component와 달리 명시된 style/className/표현 옵션을 허용한다.
 expectTypeOf<TypoProps<'a'>['ref']>().toEqualTypeOf<Ref<HTMLAnchorElement> | undefined>()
 expectTypeOf<TypoProps<'input'>['ref']>().toEqualTypeOf<Ref<HTMLInputElement> | undefined>()
 expectTypeOf<TypoProps['ref']>().toEqualTypeOf<Ref<HTMLParagraphElement> | undefined>()
@@ -410,7 +405,6 @@ export const typographyExamples = (
   </>
 )
 
-// 오류 지시자는 실제 거부가 사라지면 tsc의 unused @ts-expect-error로 실패한다.
 export const invalidComponentExamples = (
   <>
     {/* @ts-expect-error Button의 임의 inline style은 공개 prop이 아니다. */}

@@ -3,7 +3,6 @@ import { deferred } from '../lib/async-test-fixture'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
-// 공대 카드 조회는 지정 서버의 상세를 고르는 식별 경로를 쓰고 얼굴은 비교하지 않는다.
 const imageUrl =
   'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1'
 const details = {
@@ -64,7 +63,6 @@ it('공대 수명은 12자리를 갖고 12번째 자리까지 조회하며 범�
       await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, slot))
     ).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })
   }
-  // 파티 카드 수명은 그대로 네 자리만 받는다.
   expect(await fixture.invoke('controlManualSearch', lookup(fixture.captureId, 4))).toMatchObject({
     ok: false,
     error: { code: 'INVALID_SEARCH_COMMAND' }
@@ -198,8 +196,6 @@ it('공대 조회 IPC도 신뢰하지 않는 sender는 HTTP 전에 거절한다'
   expect(fixture.fetchSearch).not.toHaveBeenCalled()
 })
 
-// 공대 캡처의 OCR 관측. 공대 상세 창에는 얼굴이 없어 portrait는 늘 null이고, 이 파일은 수명과 채널을 보므로
-// 그 행의 직업명과 수치는 읽지 못한 값으로 둔다.
 function ocr(captureId: string, slot: number, observationRevision = 1, nickname = '가나') {
   return {
     captureId,
@@ -212,7 +208,6 @@ function ocr(captureId: string, slot: number, observationRevision = 1, nickname 
   }
 }
 
-// 공대 캡처 회차처럼 게임 창을 등록한 뒤 공대 수명을 시작한다. OCR 관측은 이 창 선택에 묶인다.
 const CAPTURE_SOURCE = 'window:search-fixture'
 async function createRaidRoundFixture() {
   const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
@@ -270,7 +265,6 @@ it('공대 OCR 관측은 12번째 자리까지 받아 이름 후보 중 최고 �
     selectionMethod: 'highest-fame',
     selected: { characterId: 'synthetic-other', serverId: 'bakal' }
   })
-  // 이름 후보 검색은 서버를 고르지 않고 상세는 고른 후보의 서버로 한 번만 조회한다.
   const urls = fixture.fetchSearch.mock.calls.map(([input]) => new Request(input).url)
   expect(urls).toHaveLength(2)
   expect(urls[0]).toContain('/characters/candidates?characterName=')
@@ -287,11 +281,9 @@ it('공대 OCR 관측은 다른 수명의 ID와 파티 캡처 채널로 섞이�
   expect(
     await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(party.snapshot.captureId, 0))
   ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
-  // 파티 캡처 채널은 파티 캡처 수명의 네 자리만 받는다.
   expect(
     await fixture.invoke('notifyOcrCandidatesDetected', ocr(fixture.captureId, 11))
   ).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })
-  // 파티 관측에는 공대 행 값이 없다.
   const { raidRow: _raidRow, ...partyObservation } = ocr(fixture.captureId, 0)
   expect(await fixture.invoke('notifyOcrCandidatesDetected', partyObservation)).toMatchObject({
     ok: false,
@@ -328,11 +320,9 @@ it.each([
   '%s 뒤에는 공대 회차의 늦은 OCR 결과와 이전 회차의 OCR 통지를 버리고 직접 조회한 자리는 유지한다',
   async (_change, nextSource) => {
     const fixture = await createRaidRoundFixture()
-    // 5번 자리는 사용자가 서버와 이름으로 직접 조회해 끝냈다.
     respondFound(fixture)
     await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 5))
     await vi.waitFor(async () => expect((await fixture.read()).slots[5].state).toBe('success'))
-    // 3번 자리는 회차의 OCR 이름으로 후보를 찾는 중이다.
     const response = deferred<Response>()
     fixture.fetchSearch.mockReturnValueOnce(response.promise)
     await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 3, 1, '다라'))
@@ -359,7 +349,6 @@ it.each([
     expect(await fixture.read()).toEqual(afterChange)
     expect(fixture.fetchSearch).toHaveBeenCalledTimes(3)
 
-    // 직접 조회는 창과 무관해 같은 수명에서 계속 쓸 수 있다.
     await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 6))
     await vi.waitFor(async () => expect((await fixture.read()).slots[6].state).toBe('success'))
     expect(fixture.fetchSearch).toHaveBeenCalledTimes(3)

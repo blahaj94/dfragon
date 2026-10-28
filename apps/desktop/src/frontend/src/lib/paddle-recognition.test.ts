@@ -6,7 +6,6 @@ import {
   recognitionInputRgba
 } from './paddle-recognition'
 
-/** 흰 배경의 지정 위치에 명암을 넣어 실제 글자 폭과 세로 위치를 고정한다. */
 function nickname(width: number, rows: readonly (readonly number[])[]): Uint8ClampedArray {
   const rgba = new Uint8ClampedArray(width * rows.length * 4)
   rgba.fill(255)
@@ -37,7 +36,6 @@ it('크롭 여백이 아닌 실제 글자 경계를 입력 가운데에 놓고 �
   expect(pixels).toEqual(original)
 })
 
-// 높이 5의 위아래 1행 여백에만 걸친 프레임 점은 경계 계산에서 빠지고 글자와 함께 밀려난다.
 it.each([
   { name: '왼쪽', rows: [[9], [], [0, 1, 2], [], []] },
   { name: '오른쪽', rows: [[], [], [7, 8, 9], [], [0]] }

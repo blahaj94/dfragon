@@ -27,7 +27,6 @@ function biomeFormat(source, filepath) {
   return execFileSync(process.execPath, args, { cwd: root, input: source, encoding: 'utf8' })
 }
 
-// `pnpm format`과 같은 순서로 Biome 포맷 뒤 문장 간격 정책을 적용한다.
 function format(source, filepath) {
   return applyStatementSpacing(biomeFormat(source, filepath), filepath).text
 }

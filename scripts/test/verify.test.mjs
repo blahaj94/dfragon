@@ -12,7 +12,6 @@ const run = promisify(execFile)
 const script = fileURLToPath(new URL('../verify.mjs', import.meta.url))
 const stepScript = fileURLToPath(new URL('./fixtures/verify/step.mjs', import.meta.url))
 
-// 각 명령은 실행 순서를 trace 파일에 남기고 지정한 종료 코드나 signal로 끝난다.
 async function runFixtureJobs(t, jobs) {
   const directory = await mkdtemp(join(tmpdir(), 'verify-'))
   t.after(() => rm(directory, { recursive: true, force: true }))
@@ -88,7 +87,6 @@ test('pnpm script로 시작하면 PATH 대신 실행 중인 pnpm으로 pnpm 명�
   t.after(() => rm(directory, { recursive: true, force: true }))
   const trace = join(directory, 'trace')
   const previous = process.env.npm_execpath
-  // step fixture를 pnpm JavaScript 진입점으로 보고 node로 실행하는지 확인한다.
   process.env.npm_execpath = join(dirname(stepScript), 'pnpm.mjs')
   t.after(() => {
     if (previous === undefined) {
@@ -124,7 +122,6 @@ test('인자를 주면 검사를 실행하지 않고 사용법과 함께 2로 �
   })
 })
 
-// 커밋 하나가 있는 임시 저장소와, 저장소 밖 trace 파일에 실행을 남기는 job 하나를 만든다.
 async function createVerifyRepository(t) {
   const directory = await mkdtemp(join(tmpdir(), 'verify-reuse-'))
   t.after(() => rm(directory, { recursive: true, force: true }))

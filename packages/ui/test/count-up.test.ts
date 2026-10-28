@@ -6,7 +6,6 @@ describe('NumericText가 읽는 숫자 증가 시간', () => {
     { value: '400ms', expected: 400 },
     { value: '0.4s', expected: 400 },
     { value: ' 400ms ', expected: 400 },
-    // 동작 줄이기 설정에서 tokens.css가 0으로 둔 값과, 토큰을 읽지 못한 경우는 바로 최종값을 보인다.
     { value: '0ms', expected: 0 },
     { value: '', expected: 0 },
     { value: '-100ms', expected: 0 },

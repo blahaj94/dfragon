@@ -4,7 +4,6 @@ import { once } from 'node:events'
 import { test } from 'node:test'
 import { stopOwnedProcessGroup } from '../scripts/consumer-process-lifecycle.mjs'
 
-// RED의 무제한 await도 assertion 결과로 반환하고, 실패한 작업은 finally에서 해제한다.
 async function settleWithin({ operation, deadlineMs }) {
   let timer
   const settled = operation.then(

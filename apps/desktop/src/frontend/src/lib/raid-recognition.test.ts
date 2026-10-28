@@ -27,7 +27,6 @@ function crop(gray: number[]): { width: number; height: number; rgba: Uint8Array
   return { width: gray.length, height: 1, rgba }
 }
 
-// 직업명 칸은 닉네임과 다른 크기로 만들어 어느 크롭을 인식했는지 구분한다.
 function row(job: ReturnType<typeof crop> | null = null) {
   return { nickname: crop([20, 230]), job, valueText: '12,345' }
 }
@@ -77,7 +76,6 @@ it('파티 캡처와 같은 반전 이진화를 거친 canvas를 인식에 넘�
 
   const canvas = recognize.mock.calls[0][0]
   expect([canvas.width, canvas.height]).toEqual([2, 1])
-  // 어두운 배경은 흰색, 밝은 글자는 검은색이 된다.
   expect([...drawn.get(canvas)!]).toEqual([255, 255, 255, 255, 0, 0, 0, 255])
 })
 
@@ -90,7 +88,6 @@ it.each([
   const [first] = await recognizeRaidRows([row(crop([20, 230, 20]))], recognize)
 
   expect(first).toEqual({ kind: 'rejected', rejection, text: nickname, slot: 0, jobText: null })
-  // 검색하지 않을 행의 직업명은 읽지 않는다.
   expect(recognize).toHaveBeenCalledOnce()
 })
 

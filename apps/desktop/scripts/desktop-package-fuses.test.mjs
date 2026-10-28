@@ -31,7 +31,6 @@ afterAll(() => {
   vi.unstubAllEnvs()
 })
 
-// NSIS는 줄 단위 명령이다. 따옴표 안의 실행 명령은 보존하고 들여쓰기, 주석만 제외한다.
 function readNsisStatements(source) {
   return source.split(/\r?\n/).flatMap((line) => {
     const tokens = line.match(/"[^"]*"|'[^']*'|`[^`]*`|;.*$|[^\s;]+/g) ?? []
@@ -101,7 +100,6 @@ describe('desktop package fuse configuration', () => {
       'customUnInstall'
     ])
     const cleanup = macros.get('cleanupDfragonLegacyProtocol')
-    // ReadRegStr의 목적 레지스터 이름은 계약이 아니며, 읽은 값과 비교한 값이 같아야 한다.
     const register = cleanup?.[0]?.[1]
     expect(register).toMatch(/^\$(?:R[0-9]|[0-9])$/)
     expect(cleanup).toEqual([

@@ -145,7 +145,6 @@ it('후보 명성은 숫자 구분을 돕되 0, 소수, 정보 없음을 구별�
   expect(values).toEqual(['125,850', '0', '-0.25', '0.00001', '정보 없음'])
 })
 
-// 오류 코드와 재시도 정책은 Rule을 따르고, 기존 화면의 고정 안내를 명시적 기대값으로 보존한다.
 const failures = [
   { code: 'INVALID_SEARCH_QUERY', message: '검색 조건을 확인해 주세요.', retryable: false },
   {

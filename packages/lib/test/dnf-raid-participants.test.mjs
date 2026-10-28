@@ -20,7 +20,6 @@ const testTitles = {
   rgbaViews: '공대의 투명한 RGBA view에서 네 모서리 원본 픽셀과 독립 크롭을 보존한다'
 }
 
-// 합성 픽셀만 사용하며 게임 자산, 참가자 정보는 포함하지 않는다.
 function frame(width = 1067, height = 600) {
   const rgba = new Uint8ClampedArray(width * height * 4)
   for (let index = 0; index < rgba.length; index += 4) {
@@ -74,7 +73,6 @@ function popup(image, { x = 200, y = 150, scale = 1, count = 12 } = {}) {
     paint(source, 284, row + 3, 10, 13, [25, 150, 220, 255])
     paint(source, 207, row + 5, 60, 10, [190, 175 + position, 140, 128])
   }
-  // 합성 fixture는 검출기의 bilinear 비교와 다른 최근접 보간으로 그린다.
   const left = Math.round(x - 15 * scale)
   const top = Math.round(y - 68 * scale)
   const width = Math.round(465 * scale)
@@ -178,7 +176,6 @@ test(testTitles.emptyDialog, () => {
   assert.ok(result.rows.every((row) => !row.occupied && row.nicknameCrop === null))
 })
 
-// desktop-raid-participants.md의 기준 열, 12행을 손으로 확대, 이동한 연속 좌표다.
 // 합성 최근접 보간과 검출기 보간의 차이에 대한 기존 2px 허용 범위는 유지한다.
 const scaledNicknameCases = [
   {
@@ -218,7 +215,6 @@ for (const expected of scaledNicknameCases) {
       assert.ok(Math.abs(row.nickname.y - expected.tops[index]) <= 2, `${row.row}행의 y`)
       assert.ok(Math.abs(row.nickname.width - expected.width) <= 2, `${row.row}행의 폭`)
       assert.ok(Math.abs(row.nickname.height - expected.height) <= 2, `${row.row}행의 높이`)
-      // 직업명 칸은 헤더 기준 x 282..349로 닉네임 칸과 같은 높이다.
       assert.ok(
         Math.abs(row.jobRegion.x - (650 + 282 * expected.scale)) <= 2,
         `${row.row}행 직업 x`
@@ -236,7 +232,6 @@ test(testTitles.requiredRows, () => {
   assert.deepEqual(detectDNFRaidParticipantWindow(image, heading), { status: 'not-found' })
   popup(image)
   assert.equal(detectDNFRaidParticipantWindow(image, heading).status, 'found')
-  // 아래 구분선을 지워 앞의 네 행만 검사하는 잘못된 검출을 구별한다.
   paint(image, 200, 354, 423, 7, [230, 230, 230, 255])
   assert.deepEqual(detectDNFRaidParticipantWindow(image, heading), { status: 'not-found' })
 })
@@ -295,7 +290,6 @@ test(testTitles.validation, () => {
   const invalidFrames = [
     null,
     undefined,
-    // 크기 경계와 정수 검사를 잘못된 바이트 길이만으로 통과시키지 않는다.
     ...[
       [0, 600],
       [8193, 1],

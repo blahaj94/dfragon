@@ -38,7 +38,6 @@ test('정밀 탐색의 소수 배율에서도 파티와 공대 외곽 경계를 
 
 test('각 행의 모서리를 따로 반올림해 소수 간격과 서로 다른 높이를 유지한다', () => {
   const heading = Object.freeze({ x: 0, y: 0, scale: 1.25 })
-  // 파티참가인원 기준의 네 닉네임 경계. 27.5px 행 간격을 먼저 정수화하지 않는다.
   const bounds = [
     { left: 154, top: 20, right: 238, bottom: 35 },
     { left: 154, top: 42, right: 238, bottom: 57 },

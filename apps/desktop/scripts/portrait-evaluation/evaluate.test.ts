@@ -34,7 +34,6 @@ const signal = new AbortController().signal
 
 type Color = (x: number, y: number) => readonly [number, number, number]
 
-// 4x4 셀 경계(0, 6, 13, 19, 26)마다 색을 바꿔 셀 안의 색이 균일하게 한다.
 function cellIndex(position: number): number {
   return [6, 13, 19].filter((edge) => position >= edge).length
 }
@@ -64,7 +63,6 @@ function faceImage(size: number, color: Color): CharacterImage {
   return { width: size, height: size, rgba }
 }
 
-/** 투명 여백 안에 얼굴 크기의 색 블록을 둔 stand 이미지 모양의 후보. */
 function candidateImage(color: Color): CharacterImage {
   const { width, height } = CANDIDATE_SIZE
   const rgba = new Uint8Array(width * height * RGBA_CHANNELS)

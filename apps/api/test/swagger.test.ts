@@ -32,7 +32,6 @@ test('Swagger는 공개 API 경로만 문서화하고 provider를 호출하지 �
     assert.equal(document.paths['/me'], undefined)
     assert.equal(document.security, undefined)
     assert.equal(document.paths['/characters'].get?.security, undefined)
-    // 수동으로 기술한 request/response model을 포함해 모든 참조가 연결되어야 합니다.
     const refs = JSON.stringify(document).matchAll(/"\$ref":"#\/components\/schemas\/([^"/]+)"/g)
     for (const [, name] of refs) {
       assert.ok(document.components?.schemas?.[name], name)
@@ -59,7 +58,6 @@ test('Swagger는 공개 API 경로만 문서화하고 provider를 호출하지 �
       const response = await fetch(`${origin}${path}`)
       assert.equal(response.status, 404)
     }
-    // 제거된 외형, 모험단 검색 endpoint를 부르는 구 Desktop은 일반 404를 받는다.
     for (const path of [
       '/characters/cain/character-id/appearance',
       '/adventures/characters?adventureName=fixture'

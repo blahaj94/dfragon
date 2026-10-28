@@ -43,7 +43,6 @@ it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은
     level: null,
     job: '-'
   })
-  // 카드 값은 main이 검증한 그대로 옮기고, 요약의 점수 자리는 쓰지 않는다.
   expect(
     toCharacterCard({
       ...summary,
@@ -174,7 +173,6 @@ describe('공대 카드의 선택 근거 안내', () => {
     expect(characterSlotNotice({ ...base, selectionMethod: 'highest-fame', choices }, 'raid')).toBe(
       notice
     )
-    // 파티 카드는 외형 문구를 유지한다.
     expect(characterSlotNotice({ ...base, selectionMethod: 'highest-fame' })).toBe(
       '외형 미확인, 최고 명성 후보입니다.'
     )

@@ -52,7 +52,6 @@ describe('capture permission policy', () => {
     }
   )
 
-  // 예전 제품이 캡처 수명마다 한 번 허용하던 main frame의 빈 mediaTypes 요청이다.
   it('denies the former capture candidate media request', () => {
     const fixture = createFixture()
 

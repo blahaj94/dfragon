@@ -11,7 +11,6 @@ const testTitles = {
   invalidNotation: '형식이 다른 표기는 추측 없이 null을 반환한다'
 }
 
-// 합성 픽셀만 사용하며 게임 자산은 포함하지 않는다.
 function frame(width, height, color = [12, 16, 20, 255]) {
   const rgba = new Uint8ClampedArray(width * height * 4)
   for (let index = 0; index < rgba.length; index += 4) {
@@ -29,7 +28,6 @@ function paint(image, x, y, width, height, color) {
   }
 }
 
-// 같은 칸 배경과 전환 아이콘 위에 서로 다른 글자 획만 다르게 그린다.
 function headingCell(strokes) {
   const image = frame(75, 18, [40, 36, 28, 255])
   paint(image, 0, 0, 75, 1, [70, 64, 48, 255])
@@ -185,7 +183,6 @@ test(testTitles.invalidNotation, () => {
     '12,345 ',
     '9007199254740993',
     '9007199254740.9K',
-    // 최솟값은 안전한 정수지만 최댓값 …999는 아니다.
     '9007199254740K'
   ]) {
     assert.equal(parseDNFRaidValueNotation(text), null, text)

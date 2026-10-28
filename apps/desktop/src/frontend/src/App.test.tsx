@@ -67,15 +67,12 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
     expect(slot.querySelector('img')).toBeNull()
   }
   expect(container.querySelector('form')).toBeNull()
-  // 로고는 이미지 대신 brand.logo 면의 마크이고, 푸터가 없다. 캡처 상태는 상단 바 상태 칩이 보이며
-  // 파티 머리는 캡처 진행 문구를 되풀이하지 않는다.
   expect(container.querySelectorAll('img')).toHaveLength(0)
   expect(container.querySelector('footer')).toBeNull()
   expect(container.querySelector('main')?.firstElementChild?.tagName).toBe('HEADER')
   expect(container.querySelector('header')?.textContent).toContain('창 미감지')
   expect(container.querySelector('[aria-label="미리보기 상태"]')).toBeNull()
   expect(container.textContent).not.toContain('닉네임 수정')
-  // 파티 머리는 상단 바 안 한 줄에 제목, 인원수와 접기 버튼 없는 컨트롤을 둔다.
   const partyHeading = container.querySelector('h1')!
   expect(partyHeading.textContent).toBe('파티')
   expect(partyHeading.closest('main > header')).not.toBeNull()
@@ -83,7 +80,6 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(container.querySelector('[aria-label="카드 접기"]')).toBeNull()
   const partyNotice = partyHeading.parentElement!.querySelector('[role="status"]')!
   expect(partyNotice.textContent).toBe('')
-  // 상단 바의 live region은 화면 밖 캡처 안내와 파티 머리의 안내 영역뿐이고 칩 자체는 알리지 않는다.
   expect([...container.querySelectorAll('header [role="status"]')]).toEqual([
     partyNotice,
     container.querySelector('header [data-capture-announcer]')
@@ -92,7 +88,6 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(chip.getAttribute('aria-label')).toBe('화면 캡처, 창 미감지')
   expect(chip.disabled).toBe(false)
   expect(document.querySelector('[role="dialog"]')).toBeNull()
-  // 로그인, 설정, 개발자 도구는 없다.
   expect(container.querySelector('header')?.textContent).not.toContain('로그인')
   expect(container.querySelector('header [aria-label="설정"]')).toBeNull()
 })
@@ -160,7 +155,6 @@ it('새 버전 알림은 카드 위가 아닌 상단 바 칩으로 보이고 메
   await act(async () => dismiss.click())
   expect(dismissUpdateNotice).toHaveBeenCalledExactlyOnceWith('v1.2.0')
   expect(header.textContent).not.toContain('새 버전')
-  // 처음 그릴 때 파티 화면 높이로 맞춘 요청 뒤로 알림이 창 높이를 다시 바꾸지 않는다.
   expect(setContentHeight.mock.calls).toEqual([[163]])
 })
 
@@ -223,7 +217,6 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
 
     return { ok: true, snapshot: raidSnapshot }
   })
-  // 파티 카드의 서버 지정 조회 채널. 공대 자리 조회가 이쪽으로 가지 않는지 확인한다.
   const partyManualControl = vi.fn<SearchApi['controlCharacterSearch']>(async () => ({
     ok: true,
     snapshot: searchSnapshot({ captureId: null })
@@ -249,7 +242,6 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
   expect(trigger.getAttribute('aria-current')).toBe('page')
   expect(trigger.textContent).toBe('검색파티')
-  // 파티 스냅샷을 켜 두면 공대를 보고 돌아와도 파티 화면이 스냅샷을 가지고 있다.
   await act(async () =>
     container.querySelector<HTMLButtonElement>('[aria-label="파티 모험단 순번 스냅샷"]')!.click()
   )
@@ -261,13 +253,11 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   await act(async () => raid.click())
   expect(trigger.textContent).toBe('검색공대')
   expect(raidSection.hidden).toBe(false)
-  // 상단 바에는 보이는 공대 머리만 그린다.
   expect([...container.querySelectorAll('header h1')].map((h1) => h1.textContent)).toEqual(['공대'])
   expect(container.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')).toBeNull()
   const raidCards = [...raidSection.querySelectorAll('article')]
   expect(raidCards).toHaveLength(12)
   expect(raidCards.every((card) => card.getAttribute('data-state') === 'waiting')).toBe(true)
-  // 자리마다 속한 파티를 설명으로 전한다.
   expect(
     [...raidSection.querySelectorAll('[aria-label*="번 자리"]')].map(
       (seat) =>
@@ -280,7 +270,6 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   ])
   expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).not.toBeNull()
 
-  // 빈 공대 자리에서 이름을 넣고 서버를 고르면 공대 검색 채널로 그 자리만 조회한다.
   const tenth = raidCards[9]
   const input = tenth.querySelector<HTMLInputElement>('[aria-label="10번 캐릭터 이름"]')!
   await act(async () => {
@@ -321,6 +310,5 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   expect(
     container.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')!.getAttribute('aria-pressed')
   ).toBe('true')
-  // 숨긴 공대 카드도 자리별 입력을 유지한다.
   expect(input.value).toBe('열번째')
 })

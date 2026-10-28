@@ -80,10 +80,8 @@ it('공대 회차가 인식하는 동안 자리 맞바꾸기 요청을 거절하
 
   await act(async () => value.startRound())
   await vi.waitFor(() => expect(raidMocks.recognize).toHaveBeenCalledOnce())
-  // 회차는 배치를 처음으로 되돌린다.
   expect(value.seatOrder.slice(0, 2)).toEqual([0, 1])
   expect(value.canMoveSeats).toBe(false)
-  // 화면이 막지 않고 요청해도 hook이 다시 검사해 거절한다.
   await act(async () => {
     swapped = value.swapSeats(0, 1)
   })

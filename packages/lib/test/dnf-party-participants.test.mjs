@@ -21,7 +21,6 @@ const testTitles = {
   rgbaViews: '투명한 RGBA view도 검출하고 크롭 네 모서리의 채널과 alpha를 그대로 복사한다'
 }
 
-// 합성 픽셀만 사용하며 게임 자산, 스크린샷, 플레이어 이름은 포함하지 않는다.
 function frame(width = 1067, height = 600) {
   const rgba = new Uint8ClampedArray(width * height * 4)
   for (let index = 0; index < rgba.length; index += 4) {
@@ -67,7 +66,6 @@ function popup(image, { x = 200, y = 150, scale = 1, occupied = [1, 2, 3, 4] } =
   for (let slot = 1; slot <= 4; slot += 1) {
     const row = 84 + (slot - 1) * 22
     if (!occupied.includes(slot)) {
-      // 닉네임 열의 밝은 금색 표식만 있는 행은 빈 슬롯으로 남아야 한다.
       paint(source, 194, row + 5, 9, 10, [210, 175, 75, 255])
       continue
     }
@@ -76,7 +74,6 @@ function popup(image, { x = 200, y = 150, scale = 1, occupied = [1, 2, 3, 4] } =
     paint(source, 257, row + 3, 10, 13, [25, 150, 220, 255])
     paint(source, 178, row + 5, 60, 10, [190, 175 + slot, 140, 128])
   }
-  // 합성 fixture는 검출기의 bilinear 보간과 다른 최근접 보간으로 그린다.
   const left = Math.round(x - 14 * scale)
   const top = Math.round(y - 67 * scale)
   const width = Math.round(394 * scale)
@@ -150,7 +147,6 @@ test(testTitles.slotHoles, () => {
 test(testTitles.emptyDialog, () => {
   const image = frame()
   popup(image, { occupied: [] })
-  // 밝은 초상화 하나만으로 참가자가 있다고 판정하지 않는다.
   paint(image, 232, 170, 16, 16, [220, 220, 220, 255])
   const result = cropDNFPartyParticipantNicknames(image, heading)
   assert.equal(result.status, 'found')
@@ -244,7 +240,6 @@ test(testTitles.validation, () => {
   const invalidFrames = [
     null,
     undefined,
-    // 잘못된 크기에도 정확한 바이트 수를 준비해 길이 검사와 구별한다.
     ...[
       [0, 600],
       [8193, 1],
@@ -362,7 +357,6 @@ test('QHD 화면의 FHD 범위 바깥에 있는 파티원창을 원본 좌표로
 test(testTitles.evidencePairs, () => {
   const image = frame()
   popup(image, { occupied: [] })
-  // 헤더 (200,150)에 문서의 기준 열을 더한 literal 영역이다.
   paint(image, 231, 169, 17, 16, [160, 160, 160, 0])
   paint(image, 251, 169, 21, 16, [160, 160, 160, 0])
   paint(image, 231, 191, 17, 16, [160, 160, 160, 0])

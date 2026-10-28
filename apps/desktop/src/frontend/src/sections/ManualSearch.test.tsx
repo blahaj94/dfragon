@@ -248,7 +248,6 @@ it.each(['success', 'empty'] as const)(
       nickname: 'ALICE'
     })
     expect(container.textContent).not.toContain('synthetic-character')
-    // A late result from the first request must not unlock the current request.
     await result('ALICE', current.revision + 1, 1)
     await submit()
     expect(api.notifyManualNickname).toHaveBeenCalledTimes(2)

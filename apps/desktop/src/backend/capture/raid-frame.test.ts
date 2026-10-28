@@ -9,9 +9,7 @@ vi.mock('../lib/raid-window', async (original) => {
   return { ...actual, readRaidWindowValues: vi.fn(actual.readRaidWindowValues) }
 })
 
-// 합성 창의 첫 행 닉네임 칸은 client (497, 169)에서 시작하는 86×17이고 행 간격은 21이다.
 const NICKNAME = { x: 497, y: 169, width: 86, height: 17, rowSpacing: 21 }
-// 닉네임 칸 오른쪽의 이 열은 직업명 칸 안이다.
 const JOB = { x: 582, y: 169, rowSpacing: 21 }
 
 function nicknamePixels(frame: ReturnType<typeof raidFrame>, row: number): Uint8Array {
@@ -35,7 +33,6 @@ it('공대 상세 창의 12행을 화면 순서로 돌려주고 빈 행은 null,
     return
   }
   expect(Object.keys(result)).toEqual(['kind', 'valueColumn', 'rows'])
-  // 합성 창의 기준 헤더는 장비 점수 열 제목을 담는다.
   expect(result.valueColumn).toBe('equipment-score')
   expect(result.rows).toHaveLength(12)
   expect(result.rows.map((row) => row !== null)).toEqual(

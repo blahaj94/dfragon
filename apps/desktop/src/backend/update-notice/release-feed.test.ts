@@ -3,7 +3,6 @@ import { readReleaseFeedTags, releasePageUrl, selectUpdateNotice } from './relea
 
 const RELEASE_PAGE = 'https://github.com/blahaj94/dfragon/releases/tag/'
 
-/** GitHub Release Atom feed와 같은 구조의 문서를 만든다. 항목 순서는 게시 순서다. */
 function atomFeed(...links: string[]): string {
   const entries = links.map(
     (href, index) => `  <entry>

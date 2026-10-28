@@ -120,7 +120,6 @@ function validateCharacter(details, job) {
     throw new SkillVerificationFailure('INVALID_CHARACTER_DATA')
   }
 
-  // Only an exact ID match is supported; names do not establish awakening lineage.
   if (!job.jobGrowId || basic.jobId !== job.jobId || basic.jobGrowId !== job.jobGrowId) {
     throw new SkillVerificationFailure('PROFILE_MISMATCH')
   }
