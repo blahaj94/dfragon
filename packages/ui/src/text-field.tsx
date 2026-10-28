@@ -5,115 +5,122 @@ import { createContext, useContext, type ComponentType, type ReactNode, type Ref
 import { type ForwardedStyle, type PublicProps, withForwardedStyle } from './public-props'
 import { styles } from './text-field.style'
 
-export type TextFieldValueChangeDetails = { value: string }
-
 type TextFieldSize = 'sm' | 'md' | 'lg'
 
+type TextFieldState = { invalid: boolean; disabled: boolean; size: TextFieldSize }
+
+const TextFieldStateContext = createContext<TextFieldState>({
+  invalid: false,
+  disabled: false,
+  size: 'md'
+})
+
 export type TextFieldProps = {
-  label?: ReactNode
-  description?: ReactNode
-  errorMessage?: ReactNode
   invalid?: boolean
   disabled?: boolean
-  readOnly?: boolean
-  required?: boolean
   name?: string
-  value?: string
-  defaultValue?: string
-  onValueChange?: (details: TextFieldValueChangeDetails) => void
   size?: TextFieldSize
   children: ReactNode
   ref?: Ref<HTMLDivElement>
-  fieldRef?: Ref<HTMLDivElement>
 }
 
-type TextFieldContextValue = Pick<
-  TextFieldProps,
-  'value' | 'defaultValue' | 'onValueChange' | 'readOnly' | 'required'
->
-
-const TextFieldContext = createContext<TextFieldContextValue>({})
-
 export function TextField({
-  label,
-  description,
-  errorMessage,
   invalid = false,
   disabled = false,
-  readOnly,
-  required,
   name,
-  value,
-  defaultValue,
-  onValueChange,
   size = 'md',
   children,
-  ref,
-  fieldRef
+  ref
 }: TextFieldProps) {
-  const showsError = invalid && errorMessage != null
-
   return (
     <Field.Root
-      ref={fieldRef}
+      ref={ref}
       name={name}
       invalid={invalid}
       disabled={disabled}
       {...stylex.props(styles.field)}
     >
-      {label != null && <Field.Label {...stylex.props(styles.label)}>{label}</Field.Label>}
-      <div
-        ref={ref}
-        {...stylex.props(
-          styles.box,
-          styles[size],
-          invalid && styles.invalid,
-          disabled && styles.disabled
-        )}
-      >
-        <TextFieldContext value={{ value, defaultValue, onValueChange, readOnly, required }}>
-          {children}
-        </TextFieldContext>
-      </div>
-      {description != null && (
-        <Field.Description {...stylex.props(styles.description)}>{description}</Field.Description>
-      )}
-      {showsError && (
-        <Field.Error match {...stylex.props(styles.error)}>
-          {errorMessage}
-        </Field.Error>
-      )}
+      <TextFieldStateContext value={{ invalid, disabled, size }}>{children}</TextFieldStateContext>
     </Field.Root>
   )
 }
+
+export type TextFieldLabelProps = PublicProps<typeof Field.Label>
+
+function TextFieldLabelImpl({ className, style, ...props }: TextFieldLabelProps & ForwardedStyle) {
+  return (
+    <Field.Label
+      {...props}
+      {...withForwardedStyle(stylex.props(styles.label), { className, style })}
+    />
+  )
+}
+
+export const TextFieldLabel: ComponentType<TextFieldLabelProps> = TextFieldLabelImpl
 
 export type TextFieldInputProps = Omit<PublicProps<typeof Input>, 'ref'> & {
   ref?: Ref<HTMLInputElement>
 }
 
 function TextFieldInputImpl({
-  onValueChange,
   className,
   style,
   ...inputProps
 }: TextFieldInputProps & ForwardedStyle) {
-  const field = useContext(TextFieldContext)
-  const fieldValueChange = field.onValueChange
+  const { invalid, disabled, size } = useContext(TextFieldStateContext)
 
   return (
-    <Input
-      value={field.value}
-      defaultValue={field.defaultValue}
-      readOnly={field.readOnly}
-      required={field.required}
-      {...inputProps}
-      onValueChange={(value, details) => {
-        onValueChange?.(value, details)
-        fieldValueChange?.({ value })
-      }}
-      {...withForwardedStyle(stylex.props(styles.input), { className, style })}
-    />
+    <div
+      {...stylex.props(
+        styles.box,
+        styles[size],
+        invalid && styles.invalid,
+        disabled && styles.disabled
+      )}
+    >
+      <Input
+        {...inputProps}
+        {...withForwardedStyle(stylex.props(styles.input), { className, style })}
+      />
+    </div>
   )
 }
 
 export const TextFieldInput: ComponentType<TextFieldInputProps> = TextFieldInputImpl
+
+export type TextFieldDescriptionProps = PublicProps<typeof Field.Description>
+
+function TextFieldDescriptionImpl({
+  className,
+  style,
+  ...props
+}: TextFieldDescriptionProps & ForwardedStyle) {
+  return (
+    <Field.Description
+      {...props}
+      {...withForwardedStyle(stylex.props(styles.description), { className, style })}
+    />
+  )
+}
+
+export const TextFieldDescription: ComponentType<TextFieldDescriptionProps> =
+  TextFieldDescriptionImpl
+
+export type TextFieldErrorProps = Omit<PublicProps<typeof Field.Error>, 'match'>
+
+function TextFieldErrorImpl({ className, style, ...props }: TextFieldErrorProps & ForwardedStyle) {
+  const { invalid } = useContext(TextFieldStateContext)
+  if (!invalid) {
+    return null
+  }
+
+  return (
+    <Field.Error
+      match
+      {...props}
+      {...withForwardedStyle(stylex.props(styles.error), { className, style })}
+    />
+  )
+}
+
+export const TextFieldError: ComponentType<TextFieldErrorProps> = TextFieldErrorImpl
