@@ -18,7 +18,7 @@
 
 - GitHub Actions에는 CI 검사 workflow가 없다. 검사는 로컬에서 실행한다.
 - `pnpm verify`가 저장소 검사를 차례로 실행한다. Root `pnpm test`도 `pnpm verify`를 실행한다.
-- `pnpm install`이 husky `pre-push` hook을 설치하며, hook이 push 전에 `pnpm verify`를 실행한다. Windows Test Build와 Product Images는 PR 제목 scope가 `(build)`일 때만 빌드한다. 규칙은 [Repository Map의 배포 workflow 설명](docs/reference/repository-map.md)에 있다.
+- `pnpm install`이 husky `pre-push` hook을 설치하며, hook이 push 전에 `pnpm verify --reuse-pass`를 실행한다. 같은 내용을 직접 `pnpm verify`로 통과한 직후면 다시 검사하지 않는다. Windows Test Build와 Product Images는 PR 제목 scope가 `(build)`일 때만 빌드한다. 규칙은 [Repository Map의 배포 workflow 설명](docs/reference/repository-map.md)에 있다.
 - 변경 범위별 명령 조합은 [Native validation](scripts/README.md#native-validation), 준비 조건은 [`verify` 안내](scripts/README.md#verify)를 따른다.
 - Desktop 테스트는 HOME의 모든 상위 디렉터리가 root나 현재 사용자 소유이고 group, other 쓰기 권한이 없어야 통과한다. [Desktop 테스트 범위](apps/desktop/README.md#테스트-범위와-실행)를 참고한다.
 
@@ -29,6 +29,7 @@
 - `v*` tag 생성과 삭제, Release 게시, Windows Portable workflow 실행, main에서 이미지를 발행하는 Product Images run의 재실행은 저장소 소유자가 한다. 절차는 [포터블 exe와 GitHub Releases](apps/desktop/README.md#포터블-exe와-github-releases)에 있다.
 - Ruleset, Secret, Environment와 저장소 설정도 저장소 소유자가 바꾼다.
 - 개발과 테스트에는 실제 credential을 쓰지 않는다.
+- 포맷은 `pnpm format`(Biome 포맷과 문장 간격 도구)으로만 맞춘다. Prettier 같은 다른 formatter를 실행하면 손대지 않은 코드의 줄바꿈까지 바뀐다.
 - `pnpm-lock.yaml`과 `packages/lib/src/cp949-characters.ts`처럼 도구가 만든 파일은 손으로 고치지 않고 `pnpm install`, `pnpm --filter @dfragon/lib generate:cp949` 같은 생성 명령으로 다시 만든다. 생성물, vendor, license/notice의 소유 규칙은 [Convention 도구 적용](docs/rules/convention-tooling.md#설정과-소유권)을 따른다.
 
 ## PR

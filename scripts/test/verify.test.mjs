@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
-import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { execFile, execFileSync } from 'node:child_process'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { runJobs } from '../verify.mjs'
+import { runJobs, verify } from '../verify.mjs'
 
 const run = promisify(execFile)
 const script = fileURLToPath(new URL('../verify.mjs', import.meta.url))
@@ -117,9 +117,111 @@ test('pnpm script로 시작하면 PATH 대신 실행 중인 pnpm으로 pnpm 명�
 test('인자를 주면 검사를 실행하지 않고 사용법과 함께 2로 끝난다', async () => {
   await assert.rejects(run('node', [script, '--database']), (error) => {
     assert.equal(error.code, 2)
-    assert.match(error.stderr, /Usage: node scripts\/verify\.mjs$/mu)
+    assert.match(error.stderr, /Usage: node scripts\/verify\.mjs \[--reuse-pass\]$/mu)
     assert.doesNotMatch(error.stdout, /\[verify\]/u)
 
     return true
   })
+})
+
+// 커밋 하나가 있는 임시 저장소와, 저장소 밖 trace 파일에 실행을 남기는 job 하나를 만든다.
+async function createVerifyRepository(t) {
+  const directory = await mkdtemp(join(tmpdir(), 'verify-reuse-'))
+  t.after(() => rm(directory, { recursive: true, force: true }))
+  const repository = join(directory, 'repo')
+  const trace = join(directory, 'trace')
+  const git = (...args) => execFileSync('git', args, { cwd: repository, encoding: 'utf8' })
+  execFileSync('git', ['init', '-q', '-b', 'main', repository])
+  git('config', 'user.email', 'test@example.com')
+  git('config', 'user.name', 'test')
+  await writeFile(join(repository, 'app.mjs'), 'export const value = 1\n')
+  git('add', '-A')
+  git('commit', '-q', '-m', 'init')
+  t.mock.method(console, 'log', () => {})
+  t.mock.method(console, 'error', () => {})
+  const jobsWith = (outcome = '0', traceFile = trace) => [
+    { job: 'tooling', commands: [[process.execPath, stepScript, traceFile, 'tooling', outcome]] }
+  ]
+  const ranCount = async () => {
+    try {
+      return (await readFile(trace, 'utf8')).trim().split('\n').length
+    } catch {
+      return 0
+    }
+  }
+
+  return { repository, git, jobsWith, ranCount }
+}
+
+test('통과한 내용과 같은 커밋이면 reusePass로 실행할 때 검사를 건너뛴다', async (t) => {
+  const { repository, jobsWith, ranCount } = await createVerifyRepository(t)
+
+  assert.equal(verify(jobsWith(), { cwd: repository }), 0)
+  assert.equal(verify(jobsWith(), { cwd: repository, reusePass: true }), 0)
+  assert.equal(await ranCount(), 1)
+})
+
+test('통과 기록이 있어도 reusePass 없이 실행하면 다시 검사한다', async (t) => {
+  const { repository, jobsWith, ranCount } = await createVerifyRepository(t)
+
+  verify(jobsWith(), { cwd: repository })
+  verify(jobsWith(), { cwd: repository })
+
+  assert.equal(await ranCount(), 2)
+})
+
+test('미커밋 상태로 통과한 내용을 그대로 커밋하면 건너뛴다', async (t) => {
+  const { repository, git, jobsWith, ranCount } = await createVerifyRepository(t)
+  await writeFile(join(repository, 'app.mjs'), 'export const value = 2\n')
+  await writeFile(join(repository, 'next.mjs'), 'export const next = 1\n')
+
+  verify(jobsWith(), { cwd: repository })
+  git('add', '-A')
+  git('commit', '-q', '-m', 'change')
+  verify(jobsWith(), { cwd: repository, reusePass: true })
+
+  assert.equal(await ranCount(), 1)
+})
+
+test('작업 트리나 커밋 내용이 통과 기록과 다르면 reusePass여도 검사한다', async (t) => {
+  const { repository, git, jobsWith, ranCount } = await createVerifyRepository(t)
+  verify(jobsWith(), { cwd: repository })
+
+  await writeFile(join(repository, 'app.mjs'), 'export const value = 2\n')
+  verify(jobsWith(), { cwd: repository, reusePass: true })
+  assert.equal(await ranCount(), 2)
+
+  await writeFile(join(repository, 'app.mjs'), 'export const value = 3\n')
+  git('commit', '-q', '-am', 'change')
+  verify(jobsWith(), { cwd: repository, reusePass: true })
+  assert.equal(await ranCount(), 3)
+})
+
+test('미커밋 상태로 통과했어도 커밋하지 않은 채면 reusePass여도 검사한다', async (t) => {
+  const { repository, jobsWith, ranCount } = await createVerifyRepository(t)
+  await writeFile(join(repository, 'app.mjs'), 'export const value = 2\n')
+
+  verify(jobsWith(), { cwd: repository })
+  verify(jobsWith(), { cwd: repository, reusePass: true })
+
+  assert.equal(await ranCount(), 2)
+})
+
+test('실패한 검사는 통과로 기록하지 않는다', async (t) => {
+  const { repository, jobsWith, ranCount } = await createVerifyRepository(t)
+
+  assert.equal(verify(jobsWith('3'), { cwd: repository }), 1)
+  assert.equal(verify(jobsWith(), { cwd: repository, reusePass: true }), 0)
+  assert.equal(await ranCount(), 2)
+})
+
+test('검사 중에 작업 트리가 바뀌면 통과로 기록하지 않는다', async (t) => {
+  const { repository, jobsWith, ranCount } = await createVerifyRepository(t)
+  const traceInRepository = join(repository, 'trace')
+
+  verify(jobsWith('0', traceInRepository), { cwd: repository })
+  await rm(traceInRepository)
+  verify(jobsWith(), { cwd: repository, reusePass: true })
+
+  assert.equal(await ranCount(), 1)
 })
