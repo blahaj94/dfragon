@@ -290,6 +290,14 @@ function linkViolation(source, link, rule) {
   return { path: source, line: link.line, rule, text: link.destination }
 }
 
+function linkTarget(source, decodedPath) {
+  if (decodedPath.length > 0) {
+    return resolveTarget(source, decodedPath).replace(trailingSlashes, '')
+  }
+
+  return source
+}
+
 function checkLink(source, link, repository) {
   if (externalDestination.test(link.destination)) {
     return null
@@ -303,11 +311,7 @@ function checkLink(source, link, repository) {
     return linkViolation(source, link, rules.malformedLink)
   }
 
-  let target = source
-
-  if (decodedPath.length > 0) {
-    target = resolveTarget(source, decodedPath).replace(trailingSlashes, '')
-  }
+  const target = linkTarget(source, decodedPath)
 
   if (target === '..' || target.startsWith('../')) {
     return linkViolation(source, link, rules.outsideRepository)

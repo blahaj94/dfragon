@@ -669,7 +669,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
 /** IPC 픽셀 참조를 복사해 수동 재시도까지 동일한 관측을 보관한다. 공대 행의 값은 그대로 함께 둔다. */
 function cloneOcrInput(input: OcrSearchInput): OcrSearchInput {
   const candidateNicknames = input.candidateNicknames.slice(0, 1)
-  const raidRow = input.raidRow === undefined ? {} : { raidRow: { ...input.raidRow } }
+  const raidRow = input.raidRow !== undefined ? { raidRow: { ...input.raidRow } } : {}
   if (input.portrait === null) {
     return { candidateNicknames, portrait: null, ...raidRow }
   }

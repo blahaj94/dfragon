@@ -85,11 +85,11 @@ describe.skipIf(samples === undefined || samples === '')('공대 행 판독 오�
           columnKind: entry.columnKind,
           expected,
           valueText,
-          notation: valueText === null ? null : parseDNFRaidValueNotation(valueText),
+          notation: valueText !== null ? parseDNFRaidValueNotation(valueText) : null,
           jobText:
-            jobReader === null
-              ? null
-              : await readJobText(jobReader, crop(frame, detected.jobRegion))
+            jobReader !== null
+              ? await readJobText(jobReader, crop(frame, detected.jobRegion))
+              : null
         })
       }
       cases.push({

@@ -90,6 +90,14 @@ function formatDuration(milliseconds) {
   return `${minutes}분 ${seconds % 60}초`
 }
 
+function describeSkipped(skipped) {
+  if (skipped > 0) {
+    return `, 이후 명령 ${skipped}개 미실행`
+  }
+
+  return ''
+}
+
 // job끼리 같은 build 산출물을 쓰므로 병렬로 실행하지 않는다.
 export function runJobs(jobs, cwd = repositoryRoot) {
   const startedAt = Date.now()
@@ -125,11 +133,7 @@ export function runJobs(jobs, cwd = repositoryRoot) {
   console.error(`\n[verify] 실패한 job ${failures.length}개:`)
 
   for (const failure of failures) {
-    let detail = ''
-
-    if (failure.skipped > 0) {
-      detail = `, 이후 명령 ${failure.skipped}개 미실행`
-    }
+    const detail = describeSkipped(failure.skipped)
 
     console.error(`  ${failure.job}: ${failure.command} (${failure.reason}${detail})`)
   }

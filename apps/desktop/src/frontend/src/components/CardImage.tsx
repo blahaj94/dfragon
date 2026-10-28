@@ -17,12 +17,14 @@ export function CardImage({ src, label }: { src?: string; label: string }): Reac
     )
   }
 
+  const handleError = () => setFailedSource(src)
+
   return (
     <img
       src={src}
       alt={label}
       draggable={false}
-      onError={() => setFailedSource(src)}
+      onError={handleError}
       {...stylex.props(styles.image, styles.zoom)}
     />
   )

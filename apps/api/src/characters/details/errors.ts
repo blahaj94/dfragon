@@ -42,22 +42,29 @@ export class CharacterDetailFailure extends SanitizedFailure {
   }
 }
 
+function neopleFailureKind(status: number): keyof typeof failures {
+  if (status === 503) {
+    return 'unavailable'
+  }
+
+  if (status === 504) {
+    return 'timeout'
+  }
+
+  if (status === 502) {
+    return 'api'
+  }
+
+  return 'internal'
+}
+
 export function characterDetailFailure(error: unknown): CharacterDetailFailure {
   if (error instanceof CharacterDetailFailure) {
     return error
   }
 
   if (error instanceof NeopleSearchFailure) {
-    let kind: keyof typeof failures = 'internal'
-    if (error.status === 503) {
-      kind = 'unavailable'
-    } else if (error.status === 504) {
-      kind = 'timeout'
-    } else if (error.status === 502) {
-      kind = 'api'
-    }
-
-    return new CharacterDetailFailure(kind, { cause: error })
+    return new CharacterDetailFailure(neopleFailureKind(error.status), { cause: error })
   }
 
   return new CharacterDetailFailure('internal', { cause: error })

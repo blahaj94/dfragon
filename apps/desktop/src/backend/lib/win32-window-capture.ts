@@ -282,7 +282,7 @@ function getProcessImagePath(api: Win32PartyApi, processId: number): string | nu
   if (!api.CloseHandle(process)) {
     const closeError = nativeFailure(api, 'CloseHandle(process)')
     throw new AggregateError(
-      queryError === undefined ? [closeError] : [queryError, closeError],
+      queryError !== undefined ? [queryError, closeError] : [closeError],
       'Windows process query cleanup failed.'
     )
   }
@@ -544,7 +544,7 @@ function copyVisibleClient(
   }
   if (cleanupErrors.length) {
     throw new AggregateError(
-      captureError === undefined ? cleanupErrors : [captureError, ...cleanupErrors],
+      captureError !== undefined ? [captureError, ...cleanupErrors] : cleanupErrors,
       'Windows party capture resource cleanup failed.'
     )
   }

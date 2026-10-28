@@ -36,7 +36,7 @@ export function readAppIdentity(): string | null {
 
 export function readAppApiOrigin(): string | null {
   const channel = readBundledChannel()
-  const origin = channel == null ? process.env['DFRAGON_API_ORIGIN'] : channel.origins.api
+  const origin = channel != null ? channel.origins.api : process.env['DFRAGON_API_ORIGIN']
   if (origin == null) {
     return null
   }

@@ -29,7 +29,7 @@ export function showRejectedOcrNickname({
 }): void {
   const time = new Date().toLocaleTimeString()
   // 앞뒤 공백과 잘못된 Unicode가 보이도록 JSON 문자열로 표시한다.
-  const original = text === null ? '없음' : JSON.stringify(text)
+  const original = text !== null ? JSON.stringify(text) : '없음'
   console.warn(
     `[${PRODUCT_NAME} ${time}] 슬롯 ${slot + 1}의 OCR 첫 후보를 검색에 쓰지 못했습니다. 이유: ${OCR_NICKNAME_REJECTION_REASONS[rejection]}, 원문: ${original}`
   )

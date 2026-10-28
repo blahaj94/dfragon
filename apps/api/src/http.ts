@@ -24,6 +24,21 @@ import {
 
 const TRAILING_SLASHES_PATTERN = /\/+$/
 
+function requestFailure(
+  path: string,
+  error: unknown
+): NeopleSearchFailure | ReturnType<typeof characterDetailFailure> {
+  if (path === '/characters' || path === '/characters/candidates') {
+    if (error instanceof NeopleSearchFailure) {
+      return error
+    }
+
+    return neopleSearchFailure('internal')
+  }
+
+  return characterDetailFailure(error)
+}
+
 @Catch()
 class ApiHttpFilter implements ExceptionFilter {
   catch(error: unknown, host: ArgumentsHost): void {
@@ -42,12 +57,7 @@ class ApiHttpFilter implements ExceptionFilter {
       return
     }
     const path = request.path.toLowerCase().replace(TRAILING_SLASHES_PATTERN, '')
-    let failure: NeopleSearchFailure | ReturnType<typeof characterDetailFailure>
-    if (path === '/characters' || path === '/characters/candidates') {
-      failure = error instanceof NeopleSearchFailure ? error : neopleSearchFailure('internal')
-    } else {
-      failure = characterDetailFailure(error)
-    }
+    const failure = requestFailure(path, error)
 
     recordAccessLogErrorCode(response, failure.body.error.code)
     recordAccessLogErrorChain(response, error)

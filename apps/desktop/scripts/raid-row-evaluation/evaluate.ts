@@ -230,10 +230,10 @@ export function summarize(
     COLUMN_KINDS.map((kind) => {
       const matching = cases.filter((entry) => entry.expectedKind === kind)
       const scores = matching.flatMap((entry) =>
-        entry.matchScore === null ? [] : [entry.matchScore]
+        entry.matchScore !== null ? [entry.matchScore] : []
       )
       const found = rate(matching.map((entry) => entry.detection === 'found'))
-      const minMatchScore = scores.length === 0 ? null : Math.min(...scores)
+      const minMatchScore = scores.length !== 0 ? Math.min(...scores) : null
 
       return [kind, { ...found, minMatchScore }]
     })
@@ -241,13 +241,13 @@ export function summarize(
   const resolutions = [...new Set(rows.map((row) => row.resolution))]
   const jobNames = [...new Set(rows.map((row) => row.expected.jobGrowName))]
   const jobOcr: EvaluationSummary['jobOcr'] =
-    jobOcrSkipReason === null
-      ? {
+    jobOcrSkipReason !== null
+      ? { status: 'not_run', reason: jobOcrSkipReason }
+      : {
           status: 'run',
           nickname: jobOcrSummary(rows, 'nickname', jobNames),
           raw: jobOcrSummary(rows, 'raw', jobNames)
         }
-      : { status: 'not_run', reason: jobOcrSkipReason }
   const uniqueName = {
     unique: rows.filter((row) => row.expected.uniqueName === true).length,
     homonym: rows.filter((row) => row.expected.uniqueName === false).length,

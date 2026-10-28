@@ -17,7 +17,7 @@ export default defineConfig(({ mode, command }) => {
   const shapeCheckAlias = resolve('../../packages/lib/src/utils/shape-check.ts')
   const channelName = readChannelNameFromMode(mode)
   const desktopChannel = JSON.stringify(
-    channelName == null ? null : readDesktopChannel(channelName)
+    channelName != null ? readDesktopChannel(channelName) : null
   )
   const backendEntry = resolve('src/backend/main.ts')
   const frontendRoot = resolve('src/frontend')
