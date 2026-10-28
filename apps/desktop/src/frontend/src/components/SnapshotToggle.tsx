@@ -1,7 +1,7 @@
 import { Popover } from '@base-ui/react/popover'
 import { Button, IconButton, shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { windowChromeStyles } from '../constants/window-chrome.style'
 import { SnapshotIcon } from './SnapshotIcon'
 import { styles } from './SnapshotToggle.style'
@@ -17,22 +17,17 @@ export function SnapshotToggle({
   onTake: () => void
   onClear: () => void
 }): React.JSX.Element {
-  const [confirming, setConfirming] = useState(false)
   const cancelRef = useRef<HTMLButtonElement>(null)
 
-  return (
-    <Popover.Root
-      open={confirming}
-      onOpenChange={(open, details) => {
-        if (open && !active) {
-          details.cancel()
-          onTake()
+  function handleOpenChange(open: boolean, details: Popover.Root.ChangeEventDetails): void {
+    if (open && !active) {
+      details.cancel()
+      onTake()
+    }
+  }
 
-          return
-        }
-        setConfirming(open)
-      }}
-    >
+  return (
+    <Popover.Root onOpenChange={handleOpenChange}>
       <span {...stylex.props(windowChromeStyles.noDrag)}>
         <Popover.Trigger
           render={
@@ -60,24 +55,12 @@ export function SnapshotToggle({
           >
             <Popover.Title {...stylex.props(styles.title)}>스냅샷을 지우시겠습니까?</Popover.Title>
             <div {...stylex.props(styles.actions)}>
-              <Button
-                ref={cancelRef}
-                variant="secondary"
-                size="sm"
-                onClick={() => setConfirming(false)}
-              >
+              <Popover.Close ref={cancelRef} render={<Button variant="secondary" size="sm" />}>
                 취소
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => {
-                  setConfirming(false)
-                  onClear()
-                }}
-              >
+              </Popover.Close>
+              <Popover.Close render={<Button variant="primary" size="sm" />} onClick={onClear}>
                 지우기
-              </Button>
+              </Popover.Close>
             </div>
           </Popover.Popup>
         </Popover.Positioner>
