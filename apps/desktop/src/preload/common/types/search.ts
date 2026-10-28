@@ -109,19 +109,23 @@ export const SEARCH_ERRORS = {
 export type SearchErrorCode = keyof typeof SEARCH_ERRORS
 export type SearchError = Readonly<{ code: SearchErrorCode; retryAfterSeconds: number | null }>
 
+export const SEARCH_SLOT_STATES = [
+  'idle',
+  'pending',
+  'success',
+  'empty',
+  'failure',
+  'waiting-portrait',
+  'waiting-policy'
+] as const
+type SearchSlotState = (typeof SEARCH_SLOT_STATES)[number]
+
 export type SearchSlot = Readonly<{
   slot: number
   observationRevision: number
   requestId: string | null
   nickname: string | null
-  state:
-    | 'idle'
-    | 'pending'
-    | 'success'
-    | 'empty'
-    | 'failure'
-    | 'waiting-portrait'
-    | 'waiting-policy'
+  state: SearchSlotState
   rows: readonly CharacterSearchRow[]
   error: SearchError | null
   selected?: SelectedCharacterSummary
