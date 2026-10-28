@@ -7,7 +7,7 @@ last-reviewed: 2026-10-27
 
 # Desktop 캐릭터 검색
 
-Alt+R이나 파티 머리의 캡처 버튼으로 시작한 회차 프레임 한 장의 OCR 첫 번째 이름을 네 슬롯 검색으로 연결한다. 창 선택과 던파 창 하나 자동 감지는 main에 창만 등록하며 인식은 시작하지 않는다. Desktop에는 로그인이 없으며 제품 main은 고정 API origin만으로 공개 검색을 구성한다. 자동 조회를 마친 슬롯은 다음 회차 시작 전까지 유지하고 수동 서버, 닉네임 조회만 해당 슬롯을 교체한다.
+Alt+R이나 파티 헤더의 캡처 버튼으로 시작한 회차 프레임 한 장의 OCR 첫 번째 이름을 네 슬롯 검색으로 연결한다. 창 선택과 던파 창 하나 자동 감지는 main에 창만 등록하며 인식은 시작하지 않는다. Desktop에는 로그인이 없으며 제품 main은 고정 API origin만으로 공개 검색을 구성한다. 자동 조회를 마친 슬롯은 다음 회차 시작 전까지 유지하고 수동 서버, 닉네임 조회만 해당 슬롯을 교체한다.
 
 Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-제품-캡처-정책)은 공통 GDI 구현으로 선택한 창의 보이는 클라이언트 영역을 읽는다. Main이 창, 프로세스와 캡처 수명을 검증하며 다른 창에 가려진 픽셀은 제외한다. 전체 가림, 최소화나 파티 프레임 미검출로 회차 프레임을 쓸 수 없으면 안내하고 인식을 끝낸다. 자동 재읽기나 화면 복귀 후 재개는 하지 않으며 사용자가 Alt+R을 다시 누른다. 제품의 Electron media 권한은 거절한다.
 
@@ -135,7 +135,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 식별기는 후보를 고르는 데까지만 하고 상세를 조회하지 않는다. `request.ts`는 OCR 식별의 결과를 후보 검색 응답으로 만든 요약(레벨, 길드, 카드 null)과 `details: 'pending'`으로 돌려준다. 지정 서버 수동 조회는 같은 요청에서 `runDetailsRequest`와 같은 상세 조회, 점수 계산을 이어 상세까지 채운다.
 
-`capture-lifetime.ts`는 `details: 'pending'`인 슬롯의 상세를 수명마다 한 번에 하나씩 `runDetailsRequest`로 받는다. 어느 슬롯이든 `pending` 상태면 시작하지 않아 회차의 모든 자리가 이름과 서버를 먼저 정한다. 다음 상세는 슬롯 번호 순서로 고르고, snapshot을 발행할 때마다 시작할 수 있는지 다시 본다. 상세 요청은 그 요청을 접수한 때부터 15초 예산을 쓰며, 같은 캡처, 같은 요청 ID이고 아직 `pending`일 때만 결과를 반영한다. 성공하면 상세로 만든 요약으로 바꾸고 `details`를 지운다. 실패와 시간 초과는 그 슬롯만 `details: 'failed'`로 두고 고른 이름과 서버를 유지한 채 다음 슬롯으로 넘어간다. 상세나 후보 검색의 429는 남은 `pending` 슬롯까지 모두 `failed`로 바꿔 제한 중에 요청을 더 보내지 않는다. 게임 창 변경의 `cancelOcrRequests`도 OCR로 시작한 슬롯의 받는 중인 상세를 취소하고 남은 상세를 `failed`로 둔다. 슬롯 취소와 수명 무효화는 받는 중인 상세의 신호를 취소한다. OCR 관측이 IPC로 따로 도착하므로, 앞 자리의 후보 검색이 캐시로 바로 끝나면 뒤 자리를 관측하기 전에 상세가 먼저 시작될 수 있다. 이때는 같은 회차의 다른 자리도 같은 캐시로 바로 끝나 이름과 서버 표시가 늦어지지 않고, 상세 동시 요청은 여전히 하나다. 회차의 관측이 모두 도착했다는 신호는 renderer가 보내지 않는다.
+`capture-lifetime.ts`는 `details: 'pending'`인 슬롯의 상세를 수명마다 한 번에 하나씩 `runDetailsRequest`로 받는다. 어느 슬롯이든 `pending` 상태면 시작하지 않아 회차의 모든 슬롯이 이름과 서버를 먼저 정한다. 다음 상세는 슬롯 번호 순서로 고르고, snapshot을 발행할 때마다 시작할 수 있는지 다시 본다. 상세 요청은 그 요청을 접수한 때부터 15초 예산을 쓰며, 같은 캡처, 같은 요청 ID이고 아직 `pending`일 때만 결과를 반영한다. 성공하면 상세로 만든 요약으로 바꾸고 `details`를 지운다. 실패와 시간 초과는 그 슬롯만 `details: 'failed'`로 두고 고른 이름과 서버를 유지한 채 다음 슬롯으로 넘어간다. 상세나 후보 검색의 429는 남은 `pending` 슬롯까지 모두 `failed`로 바꿔 제한 중에 요청을 더 보내지 않는다. 게임 창 변경의 `cancelOcrRequests`도 OCR로 시작한 슬롯의 받는 중인 상세를 취소하고 남은 상세를 `failed`로 둔다. 슬롯 취소와 수명 무효화는 받는 중인 상세의 신호를 취소한다. OCR 관측이 IPC로 따로 도착하므로, 앞 슬롯의 후보 검색이 캐시로 바로 끝나면 뒤 슬롯을 관측하기 전에 상세가 먼저 시작될 수 있다. 이때는 같은 회차의 다른 슬롯도 같은 캐시로 바로 끝나 이름과 서버 표시가 늦어지지 않고, 상세 동시 요청은 여전히 하나다. 회차의 관측이 모두 도착했다는 신호는 renderer가 보내지 않는다.
 
 거리를 하나도 구하지 못한 최고 명성 선택은 얼굴 일치와 구분해 진단 코드 `SEARCH_APPEARANCE_FALLBACK`을 남기고, 공대 수명의 최고 명성 선택은 `SEARCH_RAID_ROW_FALLBACK`을 남긴다. 실행 계층은 취소와 만료를 우선하므로 중단된 요청이 대체 선택을 발행하지 않는다. 후보나 상세 조회 실패는 기존 정제된 오류로 남고 상세의 호출 제한도 원래 헤더 수신 시각을 보존한다.
 
@@ -149,7 +149,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 - **표시**: `components/CandidateWindow.tsx`가 카드 위에 한 겹 더 뜨는 후보 창에 후보마다 비교에 쓴 얼굴 초상화(64 × 64)만 한 줄로 그린다. 이름은 후보끼리 같아 쓰지 않고, 서버와 모험단은 `title`과 보조 기술 이름에만 둔다. 얼굴 창이 없거나 이미지를 받지 못하면 빈 칸이다. 카드 폭에 다 들어가지 않으면 가로로 넘긴다. 지금 고른 후보는 회색 테두리, 미리보기 중인 후보는 크림 테두리와 체크다.
 - **미리보기와 확정**: `hooks/useCharacterSearch.ts`의 `pickCandidate`가 누른 후보를 슬롯마다 기억한다. 한 번 누르면 미리보기이며, 카드가 보이는 후보와 다르면 서버 칩과 같은 수동 조회로 그 후보를 불러온다. 조회가 끝날 때까지는 대기 화면 대신 지금 보이는 캐릭터를 두고, 조회가 실패해도 후보 창은 남아 다른 후보를 다시 고를 수 있다. 미리보기 중인 후보를 다시 누르면 확정하고 후보 창을 닫는다. 미리보기 중인 카드는 이름 수정과 같은 선택 꺾쇠와 점 세 개로 보인다. 판단은 `lib/candidate-picker.ts`의 순수 함수가 한다.
-- **열고 닫기**: 후보 창이 열려 있는지는 `sections/CharacterCard.tsx`의 화면 상태다. 닫기 X로 닫으면 카드 머리 줄에 `후보 N` 칩(`aria-expanded`)이 남고, 누르면 다시 연다. 후보가 사라지면(확정, 새 요청) 닫힘 상태도 지우고, 다음 회차는 카드를 새로 그려 처음부터 열린 창으로 보인다.
+- **열고 닫기**: 후보 창이 열려 있는지는 `sections/CharacterCard.tsx`의 화면 상태다. 닫기 X로 닫으면 카드 헤더 줄에 `후보 N` 칩(`aria-expanded`)이 남고, 누르면 다시 연다. 후보가 사라지면(확정, 새 요청) 닫힘 상태도 지우고, 다음 회차는 카드를 새로 그려 처음부터 열린 창으로 보인다.
 - **수명**: 누른 후보는 캡처 슬롯의 요청 ID에 묶여 새 요청이나 캡처 종료에서 버린다. 서버 칩이나 이름 칸으로 직접 조회하면 확정으로 보고 후보 창을 닫는다. 수동 조회가 시작되면 이 슬롯의 OCR 자동 검색은 다음 캡처까지 멈춘다.
 - **문구**: 후보 창이 있는 `highest-fame` 카드는 "외형 미확인" 안내를 따로 쓰지 않는다.
 
@@ -169,7 +169,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 계산기는 API가 정한 `card.role`로 고른다. `buffer`는 `buff`, 그 밖(역할을 모르는 null 포함)은 `equipment`이며 엔진에 역할 판단을 맡기지 않는다. 엔진 결과가 없으면 API가 보낸 값과 관계없이 점수는 null이다. 계산하지 못한 결과는 `score.value`가 null이고 `skipped`에 사유 종류와 문구가 남는다. 엔진이 근사값을 냈으면 `score.approximate`에 값(`value`), 출처(`source`), 엔진의 원문 경고(`warning`)를 함께 두고, 근사값이 없거나 점수를 낸 결과는 null이다. 점수를 낸 결과에 엔진이 붙인 경고는 카드에 옮기지 않는다. Renderer의 `lib/card-score.ts`가 파티 카드와 공대 카드의 점수 칸을 같은 변환으로 정하며, 근사값은 `≈`를 붙여 보이고 사유 종류와 근사 방법만 보조 기술과 마우스 설명에 전한다.
 
-`backend/score/input.ts`는 상세 응답의 basic을 뺀 10개 섹션을 엔진 입력 문서로 바꾼다. `status`, `equipment`, `avatar`, `creature`, `oath`는 같은 이름이고 `mistAssimilation`은 `mist_assimilation`, `skillStyle`은 `skill_style`, `buff.equipment`, `buff.avatar`, `buff.creature`는 `buff_equip_equipment`, `buff_equip_avatar`, `buff_equip_creature`다. API가 섹션 안쪽만 남기므로 각 문서는 `character`의 응답 머리 12칸과 원래 바깥 키(`status`와 `buff`, `equipment`와 `setItemInfo`, `skill`, `skill.buff` 등)를 붙여 Neople 응답 모양으로 되돌린다. 서버가 더한 `itemDetail`, `skillDetails`는 빼고, `itemDetail.data`가 같은 itemId의 아이템 응답이면 `items[itemId]`에 둔다. API는 장착 장비의 `engrave`에 아이템 상세를 붙이지 않으므로 그 아이템은 엔진 입력의 `items`에 들어가지 않는다.
+`backend/score/input.ts`는 상세 응답의 basic을 뺀 10개 섹션을 엔진 입력 문서로 바꾼다. `status`, `equipment`, `avatar`, `creature`, `oath`는 같은 이름이고 `mistAssimilation`은 `mist_assimilation`, `skillStyle`은 `skill_style`, `buff.equipment`, `buff.avatar`, `buff.creature`는 `buff_equip_equipment`, `buff_equip_avatar`, `buff_equip_creature`다. API가 섹션 안쪽만 남기므로 각 문서는 `character`의 basic 응답 상단 필드 12칸과 원래 바깥 키(`status`와 `buff`, `equipment`와 `setItemInfo`, `skill`, `skill.buff` 등)를 붙여 Neople 응답 모양으로 되돌린다. 서버가 더한 `itemDetail`, `skillDetails`는 빼고, `itemDetail.data`가 같은 itemId의 아이템 응답이면 `items[itemId]`에 둔다. API는 장착 장비의 `engrave`에 아이템 상세를 붙이지 않으므로 그 아이템은 엔진 입력의 `items`에 들어가지 않는다.
 
 `backend/score/engine.ts`는 라이브러리를 `koffi`로 열어 `dnfscore_version`, `dnfscore_score`, `dnfscore_free`를 묶는다. 패키지는 `app.asar.unpacked/resources/score/`의 플랫폼별 파일만 열고, 개발 실행만 `DFRAGON_SCORE_LIBRARY`의 절대 경로를 읽는다. 라이브러리는 첫 점수 계산 때 한 번 열며 열지 못한 결과도 기억해 다시 시도하지 않는다. 엔진이 출력으로 할당한 문자열은 반환값과 관계없이 같은 엔진의 `dnfscore_free`로 해제한다. 결과는 Desktop이 쓰는 `calculator`, `score`, `skipped`, `approximate_score`, `approximate_source`, `warning`, `versions`, `display`만 검사하고, 요청한 계산기와 다르거나 점수와 사유가 함께 있거나 둘 다 없으면 버린다. 규칙 rev14 엔진은 건너뛴 결과에 근사값(`approximate_score`), 출처(`approximate_source`), 경고(`warning`)를 더할 수 있고, `native-v0.3.1`부터는 장비 점수(`equipment`)와 버프 점수(`buff`) 모두에 더한다. 근사값과 출처는 함께 있거나 함께 없어야 하고, 있으면 경고도 있으며 `score`가 null인 결과에만 있을 수 있다. 근사값 없이 경고만 있는 결과는 정확한 점수에 붙은 알림(예: 버프 효과에 닿지 않는 부위의 아바타가 번들에 없음)이라 `score`가 있는 결과에만 받는다. 이를 어기면 결과 전체를 버린다. 근사값 칸을 보내지 않는 rev14 이전 엔진의 결과는 근사값 없이 받는다. 출처는 엔진 문서에 네 값이 있지만 새 값이 와도 결과를 버리지 않도록 비어 있지 않은 문자열로 받는다. 파일이 없거나 열기, 호출, 결과 검증이 실패하면 점수만 null이고, 원문 오류는 경로를 담을 수 있어 진단 코드 `SCORE_ENGINE_UNAVAILABLE`, `SCORE_ENGINE_FAILED`만 남긴다.
 
@@ -211,7 +211,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 제품의 `party` 전처리와 별도 학습 저장소의 전처리와 학습된 가중치의 실제 입력분포 일치는 이 변경에서 검증하지 않았다. 글자 가운데 정렬의 픽셀 검증을 인식률 향상으로 보고하지 않으며 새 val, test에서 완전 일치율과 CER을 재평가해야 한다. 기본 모델을 자동 교체하거나 학습 작업을 실행하지 않는다.
 
-캡처 화면은 게임 창과 캡처 중지를 한국어로 표시한다. 제품은 Alt+R 또는 파티 머리의 캡처 버튼으로 회차를 시작하며 둘은 같은 회차 시작을 보낸다. 통합 테스트용 `PartyCapture` 섹션의 캡처 시작 버튼도 같은 동작을 수행한다. 주기적인 반복 인식과 간격 선택은 제공하지 않는다. 1920×1080 테두리 없는 창 모드, UI 배율 50%와 닉네임이 보이는 상태를 안내하며, 인식 실패나 오인식 때 닉네임 수정, 직접 검색으로 이어진다. 창 선택, 캡처 준비, OCR 준비, 실행, 종료 상태는 계속 유지되는 `role="status"` 영역에서 표시한다. 상단 바 상태 배지는 회차 진행 중 `인식 중`, 완료 뒤 `인식 완료`, 안내 후 끝난 회차는 `확인 필요`이며 창 등록 중 `준비 중`과 창 감지 표시는 유지한다. 창 목록 실패는 게임 실행 후 앱 다시 열기, 선택 실패는 창 다시 선택, 회차 프레임을 쓸 수 없으면 Alt+R로 다시 시작하도록 안내한다. OCR 실패는 해당 단계의 복구 안내를 제공한다. 외부 오류 원문을 화면으로 전달하지 않는다. 지원 해상도, 배율과 main의 검색, 캡처 수명 검사는 바꾸지 않는다.
+캡처 화면은 게임 창과 캡처 중지를 한국어로 표시한다. 제품은 Alt+R 또는 파티 헤더의 캡처 버튼으로 회차를 시작하며 둘은 같은 회차 시작을 보낸다. 통합 테스트용 `PartyCapture` 섹션의 캡처 시작 버튼도 같은 동작을 수행한다. 주기적인 반복 인식과 간격 선택은 제공하지 않는다. 1920×1080 테두리 없는 창 모드, UI 배율 50%와 닉네임이 보이는 상태를 안내하며, 인식 실패나 오인식 때 닉네임 수정, 직접 검색으로 이어진다. 창 선택, 캡처 준비, OCR 준비, 실행, 종료 상태는 계속 유지되는 `role="status"` 영역에서 표시한다. 상단 바 상태 배지는 회차 진행 중 `인식 중`, 완료 뒤 `인식 완료`, 안내 후 끝난 회차는 `확인 필요`이며 창 등록 중 `준비 중`과 창 감지 표시는 유지한다. 창 목록 실패는 게임 실행 후 앱 다시 열기, 선택 실패는 창 다시 선택, 회차 프레임을 쓸 수 없으면 Alt+R로 다시 시작하도록 안내한다. OCR 실패는 해당 단계의 복구 안내를 제공한다. 외부 오류 원문을 화면으로 전달하지 않는다. 지원 해상도, 배율과 main의 검색, 캡처 수명 검사는 바꾸지 않는다.
 
 기존 `@dfragon/ui`의 Button, ContentStack, ExampleSection, SupportingText를 조합한다. 후보의 ordered list와 슬롯별 이름 있는 section은 DFragon composition이며 공용 자산의 외형을 덮어쓰는 CSS, style은 없다. 각 슬롯에는 “슬롯 1 검색” 형태의 접근 가능한 이름, 진행 시 `aria-busy`와 상태 안내가 있다. Retry의 loading과 disabled는 함께 적용하며 한 슬롯의 진행이 다른 슬롯 버튼을 막지 않는다.
 
@@ -233,7 +233,7 @@ git diff --check
 
 `ManualSearch.tsx`는 캡처 없이 독립 검색 폼과 결과를 제공한다. `manual-ipc.ts`는 별도의 `createCaptureSearchLifetime` 인스턴스로 기존 HTTP, 입력, 오류, 429, 취소 구현을 재사용한다. 직접 검색의 시작과 종료는 실제 캡처 수명을 변경하지 않는다. 공유 DTO의 이름을 제품 안내에 노출하지 않는다.
 
-공대 카드의 서버, 이름 조회는 같은 `registerManualSearchIpc`의 `raid` 수명으로 실행한다. `capture/ipc-handler.ts`가 파티 카드용(`controlManualSearch`, 4자리)과 공대 카드용(`controlRaidSearch`, 12자리) 수명을 따로 등록하고, 문서 이동, 종료, renderer 종료 때 두 수명을 함께 무효화한다. `commands.ts`는 수명의 슬롯 수로 자리 번호를 검사하고, preload와 renderer의 snapshot 검사는 채널이 기대하는 슬롯 수와 정확히 같은 snapshot만 받는다. Renderer의 `useRaidSearch.ts`는 `useManualCharacterLookup`을 공대 API와 12자리로 써서 파티 카드 조회와 다른 연결을 만든다.
+공대 카드의 서버, 이름 조회는 같은 `registerManualSearchIpc`의 `raid` 수명으로 실행한다. `capture/ipc-handler.ts`가 파티 카드용(`controlManualSearch`, 4자리)과 공대 카드용(`controlRaidSearch`, 12자리) 수명을 따로 등록하고, 문서 이동, 종료, renderer 종료 때 두 수명을 함께 무효화한다. `commands.ts`는 수명의 슬롯 수로 슬롯 번호를 검사하고, preload와 renderer의 snapshot 검사는 채널이 기대하는 슬롯 수와 정확히 같은 snapshot만 받는다. Renderer의 `useRaidSearch.ts`는 `useManualCharacterLookup`을 공대 API와 12자리로 써서 파티 카드 조회와 다른 연결을 만든다.
 
 공대 캡처는 같은 공대 수명을 쓴다. `hooks/useRaidCapture.ts`가 `lib/raid-capture-machine.ts`의 회차를 소유하고, 파티 캡처의 창 등록 상태를 받아 등록이 바뀌면 진행 중 회차를 끝낸다. 회차는 `useManualCharacterLookup`의 `beginRound`로 공대 수명을 새로 시작한 뒤 `window.raidSearch.readCaptureFrame`(`readRaidCaptureFrame`)으로 12행의 닉네임, 직업명 크롭과 수치 표기, 수치 열 종류를 받는다. `lib/raid-recognition.ts`는 파티 캡처와 같은 반전 이진화와 OCR worker로 행마다 닉네임 첫 후보를 판정하고, 검색할 이름이면 직업명 칸도 같은 전처리로 읽는다. 직업명 인식 실패는 그 행의 직업명만 null로 둔다. 인식한 이름은 `notifyRaidOcrCandidatesDetected`로 얼굴 없이, 그 행의 `raidRow`(`jobText`, `valueColumn`, `valueText`)와 함께 알린다. `commands.ts`는 공대 관측에만 `raidRow`를 요구하고 파티 관측에는 받지 않는다. 수치 표기는 숫자, 쉼표, 마침표, `K`로 16자까지, 직업명은 32자까지다.
 
@@ -241,9 +241,9 @@ Main의 공대 수명은 `SearchRuntime.ocrIdentification`을 `raid`로 두어 `
 
 식별기는 고른 후보 한 명의 상세만 조회한다. 공대 카드는 후보 창 없이 `lib/character-card.ts`의 공대 안내만 보조 기술과 마우스 설명으로 전한다. 이전 API가 `jobName`, `jobGrowName`을 보내지 않으면 `character-http.ts`가 null로 받아 직업명 단계를 건너뛴다.
 
-공대 보드의 자리 맞바꾸기는 renderer 배치만 바꾼다. `useRaidCapture`의 `seatOrder[화면 자리]`가 그 자리에 놓인 공대 검색 슬롯이고, `RaidPage`는 조회를 그 슬롯 번호로 알린다. 그래서 main 공대 수명의 자리 번호와 요청, 취소, 늦은 응답 처리는 그대로이며 진행 중 조회와 늦은 응답은 옮겨 간 카드에 들어간다. 회차를 시작할 때(`beginRound`) 배치를 처음으로 되돌려 OCR 행 번호와 슬롯 번호, 화면 자리가 같아지고, 회차가 인식하는 동안은 `canMoveSeats`가 false라 맞바꾸지 않는다.
+공대 보드의 자리 맞바꾸기는 renderer 배치만 바꾼다. `useRaidCapture`의 `seatOrder[화면 자리]`가 그 자리에 놓인 공대 검색 슬롯이고, `RaidPage`는 조회를 그 슬롯 번호로 알린다. 그래서 main 공대 수명의 슬롯 번호와 요청, 취소, 늦은 응답 처리는 그대로이며 진행 중 조회와 늦은 응답은 옮겨 간 카드에 들어간다. 회차를 시작할 때(`beginRound`) 배치를 처음으로 되돌려 OCR 행 번호와 슬롯 번호, 화면 자리가 같아지고, 회차가 인식하는 동안은 `canMoveSeats`가 false라 맞바꾸지 않는다.
 
-공대 수명은 문서 세대만으로 유효성을 보지만 OCR 기원 관측과 요청에는 `isCurrentOcr`(`capture/ipc-handler.ts`의 `isCurrentSearch`, 회차를 시작한 게임 창 선택 세대와 등록 상태)를 더 요구한다. 게임 창 선택이 시작되거나 캡처가 멈추면 `clearSource`가 카드 수명의 `cancelOcrRequests`를 불러 진행 중인 OCR 기원 자리만 취소하고 비운다. 이전 회차의 OCR 통지와 OCR 실패의 재시도는 `STALE_SEARCH`로 거절하며, 서버를 고른 조회와 끝난 자리는 그대로다. 회차 중 사용자가 서버와 이름으로 조회한 자리는 OCR 관측을 보내지 않는다. Alt+R은 `hooks/useRestartShortcut.ts`로 보이는 화면의 회차만 받는다. 상단 바 상태 칩과 공대 머리는 `lib/capture-presentation.ts`의 `getRaidScreenCapture`로 창 선택 상태와 공대 회차 상태를 고른다. Main의 `readRaidCaptureFrame`은 `capture/ipc-handler.ts`에, OCR 통지는 `search/manual-ipc.ts`의 공대 수명에 있다. 한 자리의 새 조회는 그 자리의 이전 요청만 취소하며, 동시 요청 수는 사용자가 조회한 자리 수를 넘지 않는다. 공개 검색의 호출 제한은 파티와 공대 조회가 함께 쓴다.
+공대 수명은 문서 세대만으로 유효성을 보지만 OCR에서 시작한 관측과 요청에는 `isCurrentOcr`(`capture/ipc-handler.ts`의 `isCurrentSearch`, 회차를 시작한 게임 창 선택 세대와 등록 상태)를 더 요구한다. 게임 창 선택이 시작되거나 캡처가 멈추면 `clearSource`가 카드 수명의 `cancelOcrRequests`를 불러 진행 중인 OCR에서 시작한 슬롯만 취소하고 비운다. 이전 회차의 OCR 통지와 OCR 실패의 재시도는 `STALE_SEARCH`로 거절하며, 서버를 고른 조회와 끝난 슬롯은 그대로다. 회차 중 사용자가 서버와 이름으로 조회한 슬롯은 OCR 관측을 보내지 않는다. Alt+R은 `hooks/useRestartShortcut.ts`로 보이는 화면의 회차만 받는다. 상단 바 상태 칩과 공대 헤더는 `lib/capture-presentation.ts`의 `getRaidScreenCapture`로 창 선택 상태와 공대 회차 상태를 고른다. Main의 `readRaidCaptureFrame`은 `capture/ipc-handler.ts`에, OCR 통지는 `search/manual-ipc.ts`의 공대 수명에 있다. 한 슬롯의 새 조회는 그 슬롯의 이전 요청만 취소하며, 동시 요청 수는 사용자가 조회한 슬롯 수를 넘지 않는다. 공개 검색의 호출 제한은 파티와 공대 조회가 함께 쓴다.
 
 선택된 요약에는 상세 응답의 `guildName`과 `equipmentScore`, `card`를 둔다. `equipmentScore`는 [검증한 카드](#카드-전달과-점수-엔진)의 점수이며, 카드가 없거나 엔진이 계산하지 못하면 null로 보내고 추정하지 않는다. 엔진이 근사값을 냈어도 `equipmentScore`는 null이다. 카드는 null을 `-`로, 근사값을 `≈`를 붙인 값으로 표시한다.
 
