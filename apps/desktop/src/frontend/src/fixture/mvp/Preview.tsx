@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CaptureControls } from '../../components/CaptureControls'
 import { MainNav } from '../../components/MainNav'
@@ -47,7 +47,6 @@ export function Preview(): React.JSX.Element {
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
   const [partyRound, setPartyRound] = useState(0)
   const [raidRound, setRaidRound] = useState(0)
-  const raidCardsId = useId()
   const windowHeight =
     searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidHeight : MAIN_WINDOW_SIZE.partyHeight
   const [candidatePicks, setCandidatePicks] = useState<
@@ -229,43 +228,42 @@ export function Preview(): React.JSX.Element {
           </div>
           {searchMode === 'raid' && (
             <div {...stylex.props(styles.page)}>
+              {renderBoardHeader(
+                <BoardHeader
+                  start={
+                    <>
+                      <BoardTitle
+                        label="공대"
+                        filled={filledSlotCount(raidCards)}
+                        total={raidCards.length}
+                        round={raidSnapshot.round}
+                      />
+                      <BoardNotice />
+                    </>
+                  }
+                  end={
+                    <>
+                      <LastCaptureTime at={captureState === 'complete' ? completedAt : null} />
+                      <SnapshotToggle
+                        label="공대 모험단 순번 스냅샷"
+                        active={raidSnapshot.active}
+                        onTake={raidSnapshot.take}
+                        onClear={raidSnapshot.clear}
+                      />
+                      <CaptureButton
+                        target="공대"
+                        disabled={!canCapture}
+                        onClick={() => {
+                          setCaptureState('complete')
+                          setCompletedAt(Date.now())
+                          setRaidRound((round) => round + 1)
+                        }}
+                      />
+                    </>
+                  }
+                />
+              )}
               <RaidPage
-                id={raidCardsId}
-                header={renderBoardHeader(
-                  <BoardHeader
-                    start={
-                      <>
-                        <BoardTitle
-                          label="공대"
-                          filled={filledSlotCount(raidCards)}
-                          total={raidCards.length}
-                          round={raidSnapshot.round}
-                        />
-                        <BoardNotice />
-                      </>
-                    }
-                    end={
-                      <>
-                        <LastCaptureTime at={captureState === 'complete' ? completedAt : null} />
-                        <SnapshotToggle
-                          label="공대 모험단 순번 스냅샷"
-                          active={raidSnapshot.active}
-                          onTake={raidSnapshot.take}
-                          onClear={raidSnapshot.clear}
-                        />
-                        <CaptureButton
-                          target="공대"
-                          disabled={!canCapture}
-                          onClick={() => {
-                            setCaptureState('complete')
-                            setCompletedAt(Date.now())
-                            setRaidRound((round) => round + 1)
-                          }}
-                        />
-                      </>
-                    }
-                  />
-                )}
                 slots={raidCards}
                 seats={{
                   seatOrder,
