@@ -23,7 +23,7 @@ export class SearchDeadline {
       this.reject = reject
     })
     // 이미 끊어진 HTTP 요청도 기다리는 Promise를 만들기 전에 abort할 수 있다.
-    void this.failure.catch(() => undefined)
+    this.failure.catch(() => undefined)
     this.timer = clock.setTimer(this.abort, 2000)
     requestSignal?.addEventListener('abort', this.abort, { once: true })
     const isAlreadyAborted = requestSignal?.aborted === true

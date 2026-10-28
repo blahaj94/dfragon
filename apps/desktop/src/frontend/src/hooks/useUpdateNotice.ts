@@ -44,7 +44,7 @@ export function useUpdateNotice(): {
       }
     }
     const unsubscribe = bridge.onUpdateNoticeChanged(receive)
-    void bridge
+    bridge
       .getUpdateNotice()
       .then(receive)
       .catch(() => undefined)
@@ -60,7 +60,7 @@ export function useUpdateNotice(): {
     if (bridge == null || notice == null) {
       return
     }
-    void bridge.openUpdateRelease(notice.tag).catch(() => undefined)
+    bridge.openUpdateRelease(notice.tag).catch(() => undefined)
   }, [notice])
 
   const dismiss = useCallback(() => {
@@ -68,7 +68,7 @@ export function useUpdateNotice(): {
     if (bridge == null || notice == null) {
       return
     }
-    void bridge
+    bridge
       .dismissUpdateNotice(notice.tag)
       .then(apply)
       .catch(() => undefined)

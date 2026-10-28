@@ -593,7 +593,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       controller: new AbortController()
     }
     detailsJob = job
-    void runDetailsRequest({
+    runDetailsRequest({
       runtime,
       summary: next.selected,
       startedAt: runtime.clock.read().monotonicMs,

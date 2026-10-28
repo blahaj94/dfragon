@@ -122,7 +122,7 @@ export function useManualCharacterLookup(
       const current = session.current
       const revision = ++revisions.current[slot]
       setStartingSlots((slots) => slots.map((pending, index) => index === slot || pending))
-      void current.starting
+      current.starting
         .then((captureId) => {
           if (
             session.current !== current ||

@@ -121,7 +121,7 @@ function createWindow(): void {
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     window.webContents.on('will-navigate', (event) => event.preventDefault())
     const load = shouldLoadDevUrl ? window.loadURL(rendererDocumentUrl) : window.loadFile(entry)
-    void load.catch(() => reportDiagnostic('MAIN_PROCESS_FAILED'))
+    load.catch(() => reportDiagnostic('MAIN_PROCESS_FAILED'))
   } catch (error) {
     disposeShortcuts?.()
     disposeDiagnostics?.()

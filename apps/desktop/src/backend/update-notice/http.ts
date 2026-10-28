@@ -37,7 +37,7 @@ export async function readReleaseFeed(
     return await readBoundedText(response, combined)
   } finally {
     clearTimeout(timer)
-    void response?.body?.cancel().catch(() => undefined)
+    response?.body?.cancel().catch(() => undefined)
   }
 }
 
@@ -48,7 +48,7 @@ async function readBoundedText(response: Response, signal: AbortSignal): Promise
   }
   const reader = response.body.getReader()
   const cancel = (): void => {
-    void reader.cancel().catch(() => undefined)
+    reader.cancel().catch(() => undefined)
   }
   signal.addEventListener('abort', cancel, { once: true })
   const chunks: Uint8Array[] = []

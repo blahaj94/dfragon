@@ -39,11 +39,11 @@ export function useCaptureSources(): {
       setSourcesLoading(false)
       // 완료된 조회 뒤에만 예약해 느린 IPC와 다음 자동 조회가 겹치지 않게 한다.
       if (!foundGame) {
-        retryTimer = setTimeout(() => void loadSources(), CAPTURE_SOURCE_RETRY_INTERVAL_MS)
+        retryTimer = setTimeout(() => loadSources(), CAPTURE_SOURCE_RETRY_INTERVAL_MS)
       }
     }
 
-    void loadSources()
+    loadSources()
 
     return () => {
       cancelled = true

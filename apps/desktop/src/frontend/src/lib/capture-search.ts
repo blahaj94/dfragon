@@ -107,7 +107,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
 
       return
     }
-    void connection.invoke(() => notifyOcr({ ...input, captureId, observationRevision }))
+    connection.invoke(() => notifyOcr({ ...input, captureId, observationRevision }))
   }
 
   function lookup(input: { slot: number; nickname: string; serverId: string }): void {
@@ -119,7 +119,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     pending.delete(input.slot)
     const observationRevision = revisions[input.slot]
     publish()
-    void connection.command({
+    connection.command({
       action: SEARCH_ACTIONS.LOOKUP,
       captureId,
       observationRevision,

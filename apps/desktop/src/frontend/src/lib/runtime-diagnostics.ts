@@ -37,7 +37,7 @@ export function showRejectedOcrNickname({
 
 export function reportRendererDiagnostic(code: RendererDiagnosticCode): void {
   try {
-    void activeApi?.reportRendererDiagnostic(code).catch(() => {})
+    activeApi?.reportRendererDiagnostic(code).catch(() => {})
   } catch {
     // 종료 중인 preload 연결 실패는 원래 작업 오류와 분리한다.
   }
@@ -71,7 +71,7 @@ export function startRendererDiagnostics(api: DiagnosticApi, target: Window = wi
     }
     display(entry)
   })
-  void api
+  api
     .getDiagnosticHistory()
     .then((history) => {
       for (const entry of history) {

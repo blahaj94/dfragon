@@ -40,7 +40,7 @@ export async function readCharacterResponseBody(
   }
   const reader = response.body.getReader()
   const cancel = (): void => {
-    void reader.cancel().catch(() => undefined)
+    reader.cancel().catch(() => undefined)
   }
   signal.addEventListener('abort', cancel, { once: true })
   const chunks: Uint8Array[] = []

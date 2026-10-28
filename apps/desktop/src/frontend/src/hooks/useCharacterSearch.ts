@@ -112,7 +112,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
       const bridge = serverLookupSlotsRef.current.has(slot)
         ? manualBridge.current
         : bridgeRef.current
-      void bridge?.retry(slot)
+      bridge?.retry(slot)
     },
     [manualBridge]
   )

@@ -70,7 +70,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
     get(peerAddress: string | undefined, identity: CharacterIdentity, signal: AbortSignal) {
       const operation = respond(peerAddress, identity, signal)
       active.add(operation)
-      void operation.finally(() => active.delete(operation)).catch(() => undefined)
+      operation.finally(() => active.delete(operation)).catch(() => undefined)
 
       return operation
     },
