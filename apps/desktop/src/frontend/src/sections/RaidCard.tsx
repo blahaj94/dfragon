@@ -10,6 +10,7 @@ import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { StatLine } from '../components/StatLine'
 import { useLookupDraft } from '../hooks/useLookupDraft'
 import { useServerMenu } from '../hooks/useServerMenu'
+import type { SlotCardKey } from '../hooks/useSlotCardStore'
 import {
   type CharacterCardFrameState,
   getCharacterCardFrameState,
@@ -52,11 +53,13 @@ export type RaidCardMove = Pick<
 }
 
 export function RaidCard({
+  cardKey,
   card,
   slot,
   onLookup,
   move
 }: {
+  cardKey: SlotCardKey
   card: SlotCard
   slot: number
   onLookup?: (nickname: string, serverId: string) => void
@@ -65,7 +68,7 @@ export function RaidCard({
   const { state, character, notice, snapshotMark, loading = false } = card
   const characterFound = state === 'success' && character != null
   const nickname = characterFound ? undefined : card.nickname
-  const draft = useLookupDraft({ character, nickname, onLookup })
+  const draft = useLookupDraft({ cardKey, character, nickname, onLookup })
   const serverMenu = useServerMenu()
   const hasCharacter = characterFound && !draft.editing
   const vacant = isVacantSlot(state)

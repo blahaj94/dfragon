@@ -103,6 +103,7 @@ export function RaidPage({
     return (
       <RaidCard
         key={`${resetKey}-${slot}`}
+        cardKey={{ id: `raid-${slot}`, resetKey }}
         card={card}
         slot={seat + 1}
         onLookup={

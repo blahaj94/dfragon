@@ -6,13 +6,14 @@ import {
   isVacantSlot
 } from '../lib/card-presentation'
 import * as stylex from '@stylexjs/stylex'
-import { useId, useState } from 'react'
+import { useEffect, useId } from 'react'
 import { NameField, type NameFieldTone } from '../components/NameField'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { useLookupDraft } from '../hooks/useLookupDraft'
 import { useServerMenu } from '../hooks/useServerMenu'
+import { type SlotCardKey, useSlotCardState, useSlotCardStore } from '../hooks/useSlotCardStore'
 import { CardImage } from '../components/CardImage'
 import { CandidateWindow } from '../components/CandidateWindow'
 import { StatLine } from '../components/StatLine'
@@ -26,6 +27,7 @@ import type { SlotState } from '../types/cards'
 const serverOptions = Object.entries(serverNames).map(([id, label]) => ({ id, label }))
 
 export function CharacterCard({
+  cardKey,
   card,
   slot,
   inputEnabled = false,
@@ -33,6 +35,7 @@ export function CharacterCard({
   onLookup,
   onPickCandidate
 }: {
+  cardKey: SlotCardKey
   card: SlotCard
   slot: number
   inputEnabled?: boolean
@@ -51,16 +54,19 @@ export function CharacterCard({
   } = card
   const characterFound = state === 'success' && character != null
   const picker = card.picker
-  // 확정해 후보가 사라지면 다음 후보는 다시 열린 창으로 보이고, 다음 회차는 카드를 새로 그려 처음부터 열린다.
-  const [candidatesClosed, setCandidatesClosed] = useState(false)
-  if (picker === undefined && candidatesClosed) {
-    setCandidatesClosed(false)
-  }
+  const { candidatesClosed = false } = useSlotCardState(cardKey)
+  const updateSlotCard = useSlotCardStore((state) => state.updateSlotCard)
+  // 확정해 후보가 사라지면 다음 후보는 다시 열린 창으로 보이고, 다음 회차는 카드 키의 회차가 바뀌어 처음부터 열린다.
+  useEffect(() => {
+    if (picker === undefined && candidatesClosed) {
+      updateSlotCard(cardKey, { candidatesClosed: false })
+    }
+  })
   const candidatesOpen = picker !== undefined && !candidatesClosed
   const candidateWindowId = useId()
   const previewing = characterFound && picker?.previewServerId != null
   const nickname = characterFound ? undefined : card.nickname
-  const draft = useLookupDraft({ character, nickname, onLookup })
+  const draft = useLookupDraft({ cardKey, character, nickname, onLookup })
   const serverMenu = useServerMenu()
   const { inputNotice, editing } = draft
   const hasCharacter = state === 'success' && character != null && !editing
@@ -170,7 +176,7 @@ export function CharacterCard({
                   type="button"
                   aria-expanded={candidatesOpen}
                   aria-controls={candidatesOpen ? candidateWindowId : undefined}
-                  onClick={() => setCandidatesClosed(candidatesOpen)}
+                  onClick={() => updateSlotCard(cardKey, { candidatesClosed: candidatesOpen })}
                   {...stylex.props(styles.candidateChip, shapes.cutTopRight)}
                 >
                   <Typo.caption as="span">후보 {picker.choices.length}</Typo.caption>
@@ -249,7 +255,7 @@ export function CharacterCard({
           slot={slot}
           picker={picker}
           onPick={onPickCandidate}
-          onClose={() => setCandidatesClosed(true)}
+          onClose={() => updateSlotCard(cardKey, { candidatesClosed: true })}
         />
       )}
     </div>
