@@ -22,7 +22,7 @@ function start() {
         kind: 'unsupported'
       })
     ),
-    observe: vi.fn()
+    observeOcr: vi.fn()
   }
   const actor = createActor(partyCaptureMachine, { input: effects }).start()
 
@@ -43,19 +43,19 @@ it('시작한 회차 수는 받아들인 START마다 오르고 창 선택과 중
   await waitFor(actor, (state) => state.matches('selected'))
   expect(startedRounds()).toBe(0)
 
-  actor.send({ type: 'START', request: {} })
+  actor.send({ type: 'START' })
   expect(startedRounds()).toBe(1)
 
-  actor.send({ type: 'START', request: {} })
+  actor.send({ type: 'START' })
   expect(startedRounds()).toBe(1)
 
   await waitFor(actor, (state) => state.matches({ capturing: 'frame' }))
-  actor.send({ type: 'START', request: {} })
+  actor.send({ type: 'START' })
   expect(startedRounds()).toBe(2)
 
   await waitFor(actor, (state) => state.matches('captureFailed'))
   expect(startedRounds()).toBe(2)
-  actor.send({ type: 'START', request: {} })
+  actor.send({ type: 'START' })
   expect(startedRounds()).toBe(3)
 
   await waitFor(actor, (state) => state.matches('captureFailed'))

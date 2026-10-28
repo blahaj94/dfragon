@@ -14,10 +14,7 @@ export function useScreenCapture(): ScreenCapture {
   const searchMode = useSearchModeStore((state) => state.searchMode)
   const isPartyMode = useIsPartyMode()
   const isRaidMode = useIsRaidMode()
-  const partyCapture = usePartyCapture({
-    identifyCharacters: true,
-    receivesShortcut: isPartyMode
-  })
+  const partyCapture = usePartyCapture({ receivesShortcut: isPartyMode })
   const raidCapture = useRaidCapture({
     sourceId: partyCapture.source.selectedSourceId,
     sourceReady: partyCapture.source.sourceReady,

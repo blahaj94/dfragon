@@ -37,7 +37,7 @@ const styles = stylex.create({
 
 홀짝 행, hover, focus, disabled처럼 브라우저가 판단할 수 있는 시각 상태는 CSS pseudo-class로 표현합니다. 예를 들어 교차 행 배경은 `backgroundColor: { default: colors.cardBg, ':nth-child(even)': colors.cardStripe }`로 선언하고 JSX에서는 행 인덱스를 계산하지 않습니다. 마법부여 등급처럼 유한한 UI 상태는 정적 스타일을 정의하고 상태 값으로 선택합니다. 동적 스타일 함수는 런타임 색상, 그리드 좌표처럼 실제 값이 달라질 때 사용하며, 고정 테두리, 크기 등은 정적 스타일에 둡니다. 데이터 선택, 누락 처리, 표시할 열과 같은 UI/도메인 분기는 React에 남깁니다.
 
-기존 `className`, `style`과 같은 요소에 적용할 때는 JSX spread가 해당 prop을 덮어쓰지 않도록 합성합니다. 라이브러리 내부 DOM selector 대신 앱이 소유한 요소나 컴포넌트의 공개 API에 적용합니다. 실제 예시는 `PartyCapture.tsx`, `CharacterCandidates.tsx`, `SearchResults.tsx`에 있습니다.
+기존 `className`, `style`과 같은 요소에 적용할 때는 JSX spread가 해당 prop을 덮어쓰지 않도록 합성합니다. 라이브러리 내부 DOM selector 대신 앱이 소유한 요소나 컴포넌트의 공개 API에 적용합니다.
 
 ## 테마 상태
 
