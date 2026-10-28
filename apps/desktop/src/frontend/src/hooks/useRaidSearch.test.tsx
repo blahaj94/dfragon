@@ -26,6 +26,7 @@ const raidApi: SearchApi & {
   notifyOcrCandidatesDetected: vi.fn<AsyncIPCFunctions['notifyRaidOcrCandidatesDetected']>()
 }
 let value: ReturnType<typeof useRaidSearch>
+let initial: ReturnType<typeof useRaidSearch>
 let bridge: CaptureSearch
 let begin: ReturnType<typeof Promise.withResolvers<string | null>>
 let root: Root
@@ -68,6 +69,7 @@ beforeEach(async () => {
   vi.stubGlobal('raidSearch', raidApi)
   root = createRoot(document.createElement('div'))
   await act(async () => root.render(<Harness />))
+  initial = value
 })
 
 afterEach(async () => {
@@ -151,25 +153,25 @@ it('회차는 수명을 새로 시작하고 그 뒤의 서버 지정 조회는 �
   })
 })
 
-it('회차 중 직접 조회한 슬롯은 늦게 끝난 OCR 이름으로 덮지 않고 다음 회차에서 다시 받는다', async () => {
+it('회차 중 직접 조회한 슬롯은 캡처 machine이 처음 받은 함수로 온 늦은 OCR 이름으로도 덮지 않고 다음 회차에서 다시 받는다', async () => {
   await act(async () => {
-    value.beginRound(new AbortController().signal)
+    initial.beginRound(new AbortController().signal)
   })
   await act(async () => begin.resolve(CAPTURE_ID))
   await act(async () => value.lookupSlot(5, '직접조회', 'cain'))
   expect(value.manualSlots[5]).toBe(true)
 
   await act(async () => {
-    value.observeOcr(ocr(5))
-    value.observeOcr(ocr(6))
+    initial.observeOcr(ocr(5))
+    initial.observeOcr(ocr(6))
   })
   expect(bridge.observe).toHaveBeenCalledExactlyOnceWith(ocr(6))
 
   await act(async () => {
-    value.beginRound(new AbortController().signal)
+    initial.beginRound(new AbortController().signal)
   })
   expect(value.manualSlots.every((manual) => !manual)).toBe(true)
-  await act(async () => value.observeOcr(ocr(5)))
+  await act(async () => initial.observeOcr(ocr(5)))
   expect(bridge.observe).toHaveBeenLastCalledWith(ocr(5))
 })
 
