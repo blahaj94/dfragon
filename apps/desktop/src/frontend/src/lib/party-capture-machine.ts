@@ -16,14 +16,12 @@ type CaptureInput = {
   beginSearch: (signal: AbortSignal) => Promise<string | null>
   endSearch: () => void
   readFrame: (captureId: string) => Promise<WindowFrameResult>
-  observe: (input: { slot: number; nickname: string | null }) => void
-  observeOcr?: (input: OcrCaptureObservation) => void
+  observeOcr: (input: OcrCaptureObservation) => void
 }
 
 type CaptureContext = {
   effects: CaptureInput
   selectedSourceId: string
-  request: object | null
   captureId: string | null
   frame: RoundFrame | null
   results: PartySlotRecognition[]
@@ -35,7 +33,7 @@ type CaptureContext = {
 
 type CaptureEvent =
   | { type: 'SELECT'; sourceId: string }
-  | { type: 'START'; request: object }
+  | { type: 'START' }
   | { type: 'STOP'; status?: string }
 
 export const partyCaptureMachine = setup({
@@ -101,13 +99,6 @@ export const partyCaptureMachine = setup({
       round: ({ context }) => context.round + 1
     }),
     countStart: assign({ startedRounds: ({ context }) => context.startedRounds + 1 }),
-    recordRequest: assign(({ event }) => {
-      if (event.type === 'START') {
-        return { request: event.request }
-      }
-
-      return {}
-    }),
     selectSource: assign(({ event }) => {
       if (event.type !== 'SELECT') {
         return {}
@@ -116,7 +107,7 @@ export const partyCaptureMachine = setup({
         ? '게임 창 선택을 확인하고 있습니다.'
         : '캡처할 게임 창을 선택해 주세요.'
 
-      return { selectedSourceId: event.sourceId, request: null, status }
+      return { selectedSourceId: event.sourceId, status }
     }),
     applyRecognition: ({ context }) => {
       const { effects, frame, results } = context
@@ -128,16 +119,12 @@ export const partyCaptureMachine = setup({
           continue
         }
         const { slot, portrait } = result
-        if (effects.observeOcr !== undefined) {
-          if (result.kind === 'rejected') {
-            showRejectedOcrNickname(result)
-            effects.observeOcr({ slot, nickname: '', candidateNicknames: [''], portrait })
-          } else {
-            const { nickname } = result
-            effects.observeOcr({ slot, nickname, candidateNicknames: [nickname], portrait })
-          }
-        } else if (result.legacyNickname.length > 0) {
-          effects.observe({ slot, nickname: result.legacyNickname })
+        if (result.kind === 'rejected') {
+          showRejectedOcrNickname(result)
+          effects.observeOcr({ slot, nickname: '', candidateNicknames: [''], portrait })
+        } else {
+          const { nickname } = result
+          effects.observeOcr({ slot, nickname, candidateNicknames: [nickname], portrait })
         }
       }
     }
@@ -148,7 +135,6 @@ export const partyCaptureMachine = setup({
   context: ({ input }) => ({
     effects: input,
     selectedSourceId: '',
-    request: null,
     captureId: null,
     frame: null,
     results: [],
@@ -207,18 +193,17 @@ export const partyCaptureMachine = setup({
       }
     },
     selected: {
-      on: { START: { target: 'capturing', actions: ['countStart', 'recordRequest'] } }
+      on: { START: { target: 'capturing', actions: ['countStart'] } }
     },
     stopped: {},
     capturing: {
       initial: 'search',
       entry: ['resetSearch', 'resetRecognition', assign({ status: '파티를 인식하고 있습니다.' })],
       on: {
-        START: { target: 'capturing', reenter: true, actions: ['countStart', 'recordRequest'] }
+        START: { target: 'capturing', reenter: true, actions: ['countStart'] }
       },
       states: {
         search: {
-          tags: ['busy'],
           // Main에 수명이 생긴 뒤 begin 응답이 도착할 때까지 중복 시작을 막는다.
           on: { START: {} },
           invoke: {
@@ -238,7 +223,6 @@ export const partyCaptureMachine = setup({
           }
         },
         frame: {
-          tags: ['busy'],
           invoke: {
             src: 'readFrame',
             // 검색 시작 actor의 성공 전이에서만 captureId가 기록된다.
@@ -291,7 +275,6 @@ export const partyCaptureMachine = setup({
           }
         },
         recognizing: {
-          tags: ['busy'],
           invoke: {
             src: 'recognize',
             // frame 상태의 성공 전이에서 확보한 회차 프레임만 인식한다.
@@ -348,7 +331,7 @@ export const partyCaptureMachine = setup({
     selectionFailed: {},
     captureFailed: {
       entry: ['resetSearch', 'resetRecognition'],
-      on: { START: { target: 'capturing', actions: ['countStart', 'recordRequest'] } }
+      on: { START: { target: 'capturing', actions: ['countStart'] } }
     }
   }
 })

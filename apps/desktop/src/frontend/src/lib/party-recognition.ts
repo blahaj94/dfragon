@@ -1,7 +1,6 @@
 import type { PartyOcrResult, PartyOcrWorker } from '../types/capture'
 import type { CharacterImage, CharacterPortrait } from '../../../preload/common/types/character'
 import { capturePartyRecognitionInputs } from './party'
-import { normalizeNickname } from './recognition'
 import type { OcrNicknameRejection } from './runtime-diagnostics'
 
 const MAX_NICKNAME_CODE_POINTS = 12
@@ -17,7 +16,6 @@ export type PartySlotRecognition =
   | (FirstCandidate & {
       slot: number
       portrait: CharacterPortrait | null
-      legacyNickname: string
     })
 
 export async function recognizePartyFrame(
@@ -42,8 +40,7 @@ export async function recognizePartyFrame(
     results.push({
       ...firstCandidate(data),
       slot,
-      portrait: input.portrait,
-      legacyNickname: normalizeNickname(data.text)
+      portrait: input.portrait
     })
   }
 
