@@ -84,8 +84,7 @@ export function useLookupDraft({
     onLookup?.(trimmed, serverId)
   }
 
-  const editing =
-    character != null && (draft.name !== character.name || draft.serverId !== character.serverId)
+  const editing = character != null && !isSameTarget(draft, character)
   const active = nameFocused || draft.dirty || editing
 
   return {
