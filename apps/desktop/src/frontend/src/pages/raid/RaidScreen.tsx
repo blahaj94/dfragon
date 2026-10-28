@@ -1,4 +1,3 @@
-import { useId } from 'react'
 import { BoardHeader } from '../../components/BoardHeader'
 import { BoardNotice } from '../../components/BoardNotice'
 import { BoardTitle } from '../../components/BoardTitle'
@@ -13,7 +12,6 @@ import { RaidPage } from './RaidPage'
 
 export function RaidScreen(): React.JSX.Element {
   const { raidCapture: capture } = useScreenCaptureContext()
-  const cardsId = useId()
   const { cards, snapshot } = useRaidSlotCards(capture)
   const notice = capture.search.connectionFailed
     ? '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
@@ -21,9 +19,8 @@ export function RaidScreen(): React.JSX.Element {
   const { renderBoardHeader } = useBoardHeaderPortal()
 
   return (
-    <RaidPage
-      id={cardsId}
-      header={renderBoardHeader(
+    <>
+      {renderBoardHeader(
         <BoardHeader
           start={
             <>
@@ -54,10 +51,12 @@ export function RaidScreen(): React.JSX.Element {
           }
         />
       )}
-      resetKey={String(capture.round)}
-      slots={cards}
-      seats={capture}
-      actions={capture.search}
-    />
+      <RaidPage
+        resetKey={String(capture.round)}
+        slots={cards}
+        seats={capture.seats}
+        actions={{ lookupSlot: capture.search.lookupSlot }}
+      />
+    </>
   )
 }

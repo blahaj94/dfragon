@@ -8,7 +8,8 @@ export function useRaidSlotCards(capture: RaidCapture): {
   cards: SlotCard[]
   snapshot: ReturnType<typeof useAdventureSnapshot>
 } {
-  const { search, seatOrder } = capture
+  const { search } = capture
+  const { seatOrder } = capture.seats
   const snapshot = useAdventureSnapshot(
     'raid',
     seatOrder.map((slot) => slotAdventureName(search.slots[slot])),

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMachine } from '@xstate/react'
 import { getRaidCapturePhase, raidCaptureMachine } from '../lib/raid-capture-machine'
 import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
-import { createSeatOrder, swapSeats, type SeatOrder } from '../lib/raid-seats'
+import { createSeatOrder, swapSeats as swapSeatOrder, type SeatOrder } from '../lib/raid-seats'
 import { useRaidSearch } from './useRaidSearch'
 import { useRestartShortcut } from './useRestartShortcut'
 
@@ -17,9 +17,11 @@ export type RaidCapture = {
   lastCompletedAt: number | null
   canStartCapture: boolean
   startRound: () => void
-  seatOrder: SeatOrder
-  canMoveSeats: boolean
-  swapSeats: (from: number, to: number) => boolean
+  seats: {
+    seatOrder: SeatOrder
+    canMoveSeats: boolean
+    swapSeats: (from: number, to: number) => boolean
+  }
 }
 
 /**
@@ -80,11 +82,11 @@ export function useRaidCapture({
   })
   const canStartCapture = snapshot.can({ type: 'START' })
   const canMoveSeats = !recognizing
-  const moveSeats = (from: number, to: number): boolean => {
+  const swapSeats = (from: number, to: number): boolean => {
     if (!canMoveSeats) {
       return false
     }
-    const next = swapSeats(seatOrder, from, to)
+    const next = swapSeatOrder(seatOrder, from, to)
     if (next === seatOrder) {
       return false
     }
@@ -104,8 +106,6 @@ export function useRaidCapture({
     lastCompletedAt: snapshot.context.completedAt,
     canStartCapture,
     startRound,
-    seatOrder,
-    canMoveSeats,
-    swapSeats: moveSeats
+    seats: { seatOrder, canMoveSeats, swapSeats }
   }
 }

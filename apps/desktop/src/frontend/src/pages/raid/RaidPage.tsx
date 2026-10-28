@@ -1,6 +1,6 @@
 import { shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
-import { type ReactNode, useLayoutEffect, useRef, useState } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { RAID_PARTY_COUNT, RAID_PARTY_SIZE } from '../../constants/cards'
 import type { SlotCard, SlotCardActions } from '../../lib/slot-cards'
 import { neighborSeat, type SeatDirection, type SeatOrder } from '../../lib/raid-seats'
@@ -19,15 +19,11 @@ const seatKeys: Readonly<Record<string, SeatDirection>> = {
 }
 
 export function RaidPage({
-  id,
-  header,
   slots,
   resetKey = 'raid',
   seats,
   actions = {}
 }: {
-  id: string
-  header: ReactNode
   slots: readonly SlotCard[]
   resetKey?: string
   seats: {
@@ -39,6 +35,7 @@ export function RaidPage({
 }): React.JSX.Element {
   const { seatOrder, canMoveSeats, swapSeats } = seats
   const { lookupSlot } = actions
+  const id = useId()
   const [dragging, setDragging] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
   // 드래그하던 카드가 회차나 배치 변경으로 다시 그려지면 dragend가 오지 않으므로, 그때와 맞바꿀 수 없게 될 때 드래그를
@@ -187,7 +184,6 @@ export function RaidPage({
 
   return (
     <section aria-label="공대" {...stylex.props(styles.page)}>
-      {header}
       <div id={id} {...stylex.props(styles.scroller)}>
         <div {...stylex.props(styles.board)}>
           {parties.flatMap((seats, party) => {
