@@ -196,7 +196,7 @@ export function Preview(): React.JSX.Element {
                         total={partySlots.length}
                         round={partySnapshot.round}
                       />
-                      <BoardNotice text="" />
+                      <BoardNotice />
                     </>
                   }
                   end={
@@ -245,7 +245,7 @@ export function Preview(): React.JSX.Element {
                           total={raidCards.length}
                           round={raidSnapshot.round}
                         />
-                        <BoardNotice text="" />
+                        <BoardNotice />
                       </>
                     }
                     end={

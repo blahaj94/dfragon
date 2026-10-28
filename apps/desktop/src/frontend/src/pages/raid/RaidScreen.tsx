@@ -50,7 +50,7 @@ export function RaidScreen({ hidden }: { hidden: boolean }): React.JSX.Element {
                   total={cards.length}
                   round={snapshot.round}
                 />
-                <BoardNotice text={notice} />
+                <BoardNotice>{notice}</BoardNotice>
               </>
             }
             end={

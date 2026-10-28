@@ -40,7 +40,7 @@ export function PartyScreen({ hidden }: { hidden: boolean }): React.JSX.Element 
                   total={cards.length}
                   round={snapshot.round}
                 />
-                <BoardNotice text="" />
+                <BoardNotice />
               </>
             }
             end={
