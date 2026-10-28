@@ -237,10 +237,8 @@ describe('capture main document and source boundary', () => {
       'controlManualSearch',
       'controlRaidSearch',
       'listCaptureSources',
-      'notifyManualNickname',
       'notifyOcrCandidatesDetected',
       'notifyRaidOcrCandidatesDetected',
-      'notifyStableNicknameDetected',
       'readCaptureFrame',
       'readRaidCaptureFrame',
       'selectCaptureSource'
@@ -364,6 +362,8 @@ describe('capture main document and source boundary', () => {
           slot: 0,
           observationRevision: 1,
           nickname: '가나',
+          candidateNicknames: ['가나'],
+          portrait: null,
           unexpected: true
         }
       ]
@@ -375,15 +375,17 @@ describe('capture main document and source boundary', () => {
           captureId: '00000000-0000-4000-8000-000000000001',
           slot: 0,
           observationRevision: 1,
-          nickname: '가나'
+          nickname: '가나',
+          candidateNicknames: ['가나'],
+          portrait: null
         },
         null
       ]
     }
-  ])('관측의 $name는 정제된 입력 실패와 빈 현재 snapshot으로 응답한다', async ({ args }) => {
+  ])('OCR 관측의 $name는 정제된 입력 실패와 빈 현재 snapshot으로 응답한다', async ({ args }) => {
     const fixture = await setup()
 
-    const result = await fixture.invoke('notifyStableNicknameDetected', ...args)
+    const result = await fixture.invoke('notifyOcrCandidatesDetected', ...args)
 
     expect(result).toEqual({
       ok: false,
@@ -424,11 +426,13 @@ describe('capture main document and source boundary', () => {
     const current = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
       snapshot: { captureId: string }
     }
-    const result = await fixture.invoke('notifyStableNicknameDetected', {
+    const result = await fixture.invoke('notifyOcrCandidatesDetected', {
       captureId: current.snapshot.captureId,
       slot: 0,
       observationRevision: 1,
-      nickname: '가나'
+      nickname: '가나',
+      candidateNicknames: ['가나'],
+      portrait: null
     })
 
     expect(result).toMatchObject({
@@ -515,15 +519,17 @@ describe('capture main document and source boundary', () => {
     expect(callback).toHaveBeenCalledExactlyOnceWith(null)
   })
 
-  it('capture ID가 없는 관측은 STALE_SEARCH로 거절한다', async () => {
+  it('capture ID가 없는 OCR 관측은 STALE_SEARCH로 거절한다', async () => {
     const fixture = await setup()
     vi.spyOn(console, 'info').mockImplementation(() => undefined)
     await expect(
-      fixture.invoke('notifyStableNicknameDetected', {
+      fixture.invoke('notifyOcrCandidatesDetected', {
         captureId: '00000000-0000-4000-8000-000000000001',
         slot: 0,
         observationRevision: 1,
-        nickname: '가나'
+        nickname: '가나',
+        candidateNicknames: ['가나'],
+        portrait: null
       })
     ).resolves.toMatchObject({
       ok: false,
@@ -532,18 +538,20 @@ describe('capture main document and source boundary', () => {
     })
   })
 
-  it.each(['notifyStableNicknameDetected', 'controlCharacterSearch'])(
+  it.each(['notifyOcrCandidatesDetected', 'controlCharacterSearch'])(
     '%s의 untrusted sender는 snapshot 없는 SEARCH_NOT_ALLOWED rejection을 받는다',
     async (channel) => {
       const fixture = await setup()
       Object.assign(fixture.event, { sender: {} })
-      const isObservation = channel === 'notifyStableNicknameDetected'
+      const isObservation = channel === 'notifyOcrCandidatesDetected'
       const input = isObservation
         ? {
             captureId: '00000000-0000-4000-8000-000000000001',
             slot: 0,
             observationRevision: 1,
-            nickname: '가나'
+            nickname: '가나',
+            candidateNicknames: ['가나'],
+            portrait: null
           }
         : { action: 'read' }
 
@@ -558,7 +566,7 @@ describe('capture main document and source boundary', () => {
     await fixture.invoke('listCaptureSources')
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
-    await fixture.invoke('notifyStableNicknameDetected', { slot: 0, nickname: 'SYNTHETIC_CANARY' })
+    await fixture.invoke('notifyOcrCandidatesDetected', { slot: 0, nickname: 'SYNTHETIC_CANARY' })
     expect(log).not.toHaveBeenCalled()
   })
 })

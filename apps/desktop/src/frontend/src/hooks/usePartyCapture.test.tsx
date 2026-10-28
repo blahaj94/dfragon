@@ -48,7 +48,6 @@ type HookValue = ReturnType<typeof usePartyCapture>
 
 const api = {
   listCaptureSources: vi.fn(),
-  notifyStableNicknameDetected: vi.fn(),
   notifyOcrCandidatesDetected: vi.fn(),
   selectCaptureSource: vi.fn(),
   readCaptureFrame: (...args: unknown[]) => readCaptureFrame(...args),
@@ -150,10 +149,6 @@ beforeEach(() => {
 
   api.onDesktopShortcut.mockReturnValue(() => {})
   api.listCaptureSources.mockResolvedValue([])
-  api.notifyStableNicknameDetected.mockImplementation(async () => ({
-    ok: true,
-    snapshot: currentSearch
-  }))
   api.notifyOcrCandidatesDetected.mockImplementation(async () => ({
     ok: true,
     snapshot: currentSearch
@@ -826,7 +821,6 @@ it.each(['failed', 'rejected'] as const)(
 
     expect(worker.recognize).toHaveBeenCalledTimes(4)
     expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
-    expect(api.notifyStableNicknameDetected).not.toHaveBeenCalled()
     expect(report).toHaveBeenCalledExactlyOnceWith('OCR_FAILED')
     expect(hook.getCurrent().phase).toBe('failed')
     expect(hook.getCurrent().status).toBe(

@@ -256,26 +256,15 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     })
   })
 
-  it('새 OCR 입력과 일반 검색 간 모드 전환은 같은 대표 이름이어도 이전 선택을 지운다', async () => {
+  it('같은 대표 이름이어도 OCR 입력이 바뀌면 끝난 슬롯의 이전 선택을 지우고 다시 식별한다', async () => {
     const fixture = await createSearchFixture('capture', policy)
     resolveMatch(fixture)
     await fixture.invoke('notifyOcrCandidatesDetected', observation(fixture))
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
     const selected = (await fixture.read()).slots[0]
-    await fixture.invoke('notifyStableNicknameDetected', {
-      captureId: fixture.captureId,
-      slot: 0,
-      observationRevision: 2,
-      nickname: names[0]
-    })
-    expect((await fixture.read()).slots[0].selected).toBeUndefined()
-    expect((await fixture.read()).slots[0].requestId).not.toBe(selected.requestId)
-    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-    expect(new URL(new Request(...fixture.fetchSearch.mock.calls[4]).url).pathname).toBe(
-      '/characters'
-    )
+    expect(selected.selected).toBeDefined()
     const restarted = await fixture.invoke('notifyOcrCandidatesDetected', {
-      ...observation(fixture, 3),
+      ...observation(fixture, 2),
       portrait: null
     })
     const restartedSlot = (
@@ -285,7 +274,6 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     expect(restartedSlot.selected).toBeUndefined()
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
     expect((await fixture.read()).slots[0].requestId).not.toBe(selected.requestId)
-    expect(fixture.fetchSearch).toHaveBeenCalledTimes(5)
   })
 
   it('같은 후보와 보이는 얼굴의 revision은 요청을 유지하고 15초를 연장하지 않는다', async () => {

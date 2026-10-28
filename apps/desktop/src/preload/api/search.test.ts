@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import type { SearchControl, ManualSearchApi } from '../common/types/search'
+import type { SearchControl, SearchApi } from '../common/types/search'
 import {
   CAPTURE_ID,
   REQUEST_ID,
@@ -37,13 +37,13 @@ beforeEach(() => {
 async function exposedSearch(): Promise<{
   search: SearchTestApi
   capture: ObservationTestApi
-  manual: ManualSearchApi
+  manual: SearchApi
 }> {
   await import('../index')
   const exposed = new Map(renderer.expose.mock.calls)
   expect(exposed.get('search'), '검색 전용 preload API').toBeDefined()
   const search = exposed.get('search') as SearchTestApi
-  const manual = exposed.get('manualSearch') as ManualSearchApi
+  const manual = exposed.get('manualSearch') as SearchApi
   const capture = exposed.get('api') as ObservationTestApi
 
   return { search, manual, capture }
@@ -56,19 +56,22 @@ it('검색 feature는 제어 invoke와 단일 event만 노출하고 기존 notif
     { action: 'read' },
     { action: 'begin' },
     { action: 'end', captureId: CAPTURE_ID },
-    { action: 'clear', captureId: CAPTURE_ID, slot: 2, observationRevision: 3 },
     { action: 'retry', captureId: CAPTURE_ID, slot: 2, requestId: REQUEST_ID }
   ]
   for (const control of controls) {
     await search.controlCharacterSearch(control)
   }
-  const observation = { captureId: CAPTURE_ID, slot: 2, observationRevision: 4, nickname: '가나' }
-  await capture.notifyStableNicknameDetected(observation)
-  const ocr = { ...observation, candidateNicknames: ['가나', '다라'], portrait: null }
+  const ocr = {
+    captureId: CAPTURE_ID,
+    slot: 2,
+    observationRevision: 4,
+    nickname: '가나',
+    candidateNicknames: ['가나', '다라'],
+    portrait: null
+  }
   await capture.notifyOcrCandidatesDetected(ocr)
   expect(renderer.invoke.mock.calls).toEqual([
     ...controls.map((control) => ['controlCharacterSearch', control]),
-    ['notifyStableNicknameDetected', observation],
     ['notifyOcrCandidatesDetected', ocr]
   ])
 })
@@ -131,11 +134,13 @@ it.each(invalidSearchSnapshots)(
     const capture = (await import('./capture')) as unknown as ObservationTestApi
     renderer.invoke.mockResolvedValue({ ok: true, snapshot: invalid() })
     await expect(
-      capture.notifyStableNicknameDetected({
+      capture.notifyOcrCandidatesDetected({
         captureId: CAPTURE_ID,
         slot: 0,
         observationRevision: 1,
-        nickname: '가나'
+        nickname: '가나',
+        candidateNicknames: ['가나'],
+        portrait: null
       })
     ).rejects.toThrow()
     const { search } = await exposedSearch()
@@ -232,18 +237,9 @@ it.each([
 
 it('직접 검색 preload는 전용 invoke, event 채널과 같은 검증 DTO를 사용한다', async () => {
   const { manual } = await exposedSearch()
-  expect(Object.keys(manual).sort()).toEqual([
-    'controlCharacterSearch',
-    'notifyManualNickname',
-    'onCharacterSearchChanged'
-  ])
-  const observation = { captureId: CAPTURE_ID, slot: 0, observationRevision: 1, nickname: '가나' }
+  expect(Object.keys(manual).sort()).toEqual(['controlCharacterSearch', 'onCharacterSearchChanged'])
   await manual.controlCharacterSearch({ action: 'begin' })
-  await manual.notifyManualNickname(observation)
-  expect(renderer.invoke.mock.calls).toEqual([
-    ['controlManualSearch', { action: 'begin' }],
-    ['notifyManualNickname', observation]
-  ])
+  expect(renderer.invoke.mock.calls).toEqual([['controlManualSearch', { action: 'begin' }]])
   const listener = vi.fn()
   const unsubscribe = manual.onCharacterSearchChanged(listener)
   const [channel, wrapper] = renderer.on.mock.calls[0]
@@ -259,14 +255,6 @@ it('직접 검색 preload도 잘못된 invoke, event DTO를 전달하지 않는�
   const invalid = { ...searchSnapshot(), private: true }
   renderer.invoke.mockResolvedValue({ ok: true, snapshot: invalid })
   await expect(manual.controlCharacterSearch({ action: 'read' })).rejects.toThrow()
-  await expect(
-    manual.notifyManualNickname({
-      captureId: CAPTURE_ID,
-      slot: 0,
-      observationRevision: 1,
-      nickname: '가나'
-    })
-  ).rejects.toThrow()
   const listener = vi.fn()
   manual.onCharacterSearchChanged(listener)
   renderer.on.mock.calls[0][1]({}, invalid)
