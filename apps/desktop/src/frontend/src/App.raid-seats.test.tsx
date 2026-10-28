@@ -302,6 +302,7 @@ it('공대 스냅샷을 켠 뒤 자리를 옮기면 바뀐 카드에 순번 칩�
 
   await act(async () => snapshotButton().click())
   expect(snapshotButton().getAttribute('aria-pressed')).toBe('true')
+  expect(raidHeader().querySelector('[aria-label="1번째 공대"]')?.textContent).toBe('#1')
   expect(seats().flatMap(chipsOf)).toEqual([])
 
   await moveRight(seats()[0])
