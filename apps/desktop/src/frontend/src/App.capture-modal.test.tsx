@@ -7,9 +7,11 @@ import {
   media
 } from './testing/fixtures/search-renderer-test-fixture'
 import App from './App'
+import { stubIdleDesktopBridges } from './testing/fixtures/idle-desktop-bridges'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
 
 beforeEach(() => {
+  stubIdleDesktopBridges()
   vi.stubGlobal(
     'matchMedia',
     vi.fn(() => ({ matches: false }))
