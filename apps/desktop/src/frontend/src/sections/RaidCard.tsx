@@ -3,7 +3,7 @@ import type { ChangeEvent, HTMLAttributes, KeyboardEvent, ReactNode, Ref } from 
 import * as stylex from '@stylexjs/stylex'
 import { CardImage } from '../components/CardImage'
 import { HourglassIcon } from '../components/HourglassIcon'
-import { NameField, type NameFieldTone } from '../components/NameField'
+import { NameField } from '../components/NameField'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
@@ -12,35 +12,17 @@ import { type LookupDraft, useLookupDraft } from '../hooks/useLookupDraft'
 import { useServerMenu } from '../hooks/useServerMenu'
 import type { SlotCardKey } from '../hooks/useSlotCardStore'
 import {
-  type CharacterCardFrameState,
   getCharacterCardFrameState,
   getCharacterCardStatus,
   isVacantSlot
 } from '../lib/card-presentation'
 import { toScoreView } from '../lib/card-score'
+import { toNameFieldTone, type NameFieldTone } from '../lib/name-field-tone'
 import type { SlotCard } from '../lib/slot-cards'
-import type { CharacterTier, SlotState } from '../types/cards'
+import type { CharacterTier } from '../types/cards'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
-import { serverNames } from '../constants/servers'
+import { serverOptions } from '../constants/server-options'
 import { styles } from './RaidCard.style'
-
-const serverOptions = Object.entries(serverNames).map(([id, label]) => ({ id, label }))
-
-function nameFieldTone(frameState: CharacterCardFrameState, state: SlotState): NameFieldTone {
-  if (frameState === 'selected' || frameState === 'failure') {
-    return frameState
-  }
-
-  if (state === 'idle') {
-    return 'vacant'
-  }
-
-  if (frameState === 'waiting') {
-    return 'waiting'
-  }
-
-  return 'default'
-}
 
 export type RaidCardMove = Pick<
   HTMLAttributes<HTMLDivElement>,
@@ -91,7 +73,7 @@ export function RaidCard({
           </PortraitWell>
           <div {...stylex.props(styles.column)}>
             <div {...stylex.props(styles.header)}>
-              <LookupField slot={slot} tone={nameFieldTone(frameState, state)} draft={draft} />
+              <LookupField slot={slot} tone={toNameFieldTone(frameState, state)} draft={draft} />
               {tier !== undefined && (
                 <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
               )}
@@ -186,7 +168,7 @@ function PortraitWell({
 function Portrait({ src }: { src: string | undefined }): React.JSX.Element {
   return (
     <div {...stylex.props(styles.portrait)}>
-      <CardImage src={src} label="캐릭터" portrait />
+      <CardImage src={src} label="캐릭터" />
     </div>
   )
 }
@@ -232,7 +214,7 @@ function LookupField({
         onBlur={draft.blurName}
         onChange={handleNameChange}
         onKeyDown={handleNameKeyDown}
-        right={
+        end={
           <ServerSelect
             variant="field"
             label={`${slot}번 서버`}

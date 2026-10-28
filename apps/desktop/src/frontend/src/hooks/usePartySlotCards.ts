@@ -19,7 +19,7 @@ export function usePartySlotCards(capture: PartyCapture): {
     manualSlots: search.manualSlots,
     recognizing: capture.recognizing,
     snapshotMarks: snapshot.marks,
-    pickers: search.candidatePickers
+    candidatePickers: search.candidatePickers
   })
 
   return { cards, snapshot }
