@@ -1,7 +1,7 @@
 import { useId } from 'react'
-import { createPortal } from 'react-dom'
 import { BoardHeader } from '../../components/BoardHeader'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
+import { useBoardHeaderPortal } from '../../hooks/useBoardHeaderPortal'
 import type { RaidCapture } from '../../hooks/useRaidCapture'
 import { slotAdventureName } from '../../lib/adventure-snapshot'
 import { seatValuesToSlotOrder } from '../../lib/raid-seats'
@@ -26,12 +26,10 @@ export type RaidScreenCapture = Pick<
 
 export function RaidScreen({
   capture,
-  hidden,
-  headerSlot
+  hidden
 }: {
   capture: RaidScreenCapture
   hidden: boolean
-  headerSlot: HTMLElement | null
 }): React.JSX.Element {
   const cardsId = useId()
   const { search, seatOrder } = capture
@@ -50,6 +48,7 @@ export function RaidScreen({
   const notice = search.connectionFailed
     ? '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
     : ''
+  const { renderBoardHeader } = useBoardHeaderPortal()
 
   return (
     <RaidPage
@@ -57,16 +56,14 @@ export function RaidScreen({
       hidden={hidden}
       header={
         !hidden &&
-        headerSlot != null &&
-        createPortal(
+        renderBoardHeader(
           <BoardHeader
             target="공대"
             filledCount={filledSlotCount(cards)}
             notice={notice}
             capture={capture}
             snapshot={snapshot}
-          />,
-          headerSlot
+          />
         )
       }
       resetKey={String(capture.round)}
