@@ -59,13 +59,13 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 제품의 OCR 전용 관측은 아래 IPC 경로로 식별 함수를 사용한다. 카드의 수동 서버 조회는 지정한 서버와 이름에 맞는 실제 캐릭터 상세를 선택한다. 앱은 `/characters`의 일반 검색을 호출하지 않는다. API origin이 설정된 제품은 후보 이미지 다운로드와 색 비교를 연결한다. 얼굴 크롭을 사용할 수 없어도 이름 검색 결과가 있으면 최고 명성 후보를 대체 표시한다. HTTP 클라이언트 테스트와 실제 게임의 식별 성공을 구분한다.
 
-## 얼굴 크롭의 교체 경계와 비교 입력
+## 얼굴 크롭과 비교 입력
 
-`lib/party.ts`의 `capturePartyRecognitionInputs`는 한 번 읽은 원본 RGBA에서 닉네임과 얼굴 입력을 같은 슬롯에 묶는다. 닉네임에는 기존 OCR 전처리를 적용하고 얼굴 cropper에는 전처리하지 않은 전체 프레임, 검출된 닉네임 영역과 래스터 배율을 전달한다. 이 입력을 `lib/party-recognition.ts`의 `recognizePartyFrame`이 슬롯별로 인식한다.
+`lib/party.ts`의 `capturePartyRecognitionInputs`는 한 번 읽은 원본 RGBA에서 닉네임과 얼굴 입력을 같은 슬롯에 묶는다. 닉네임에는 기존 OCR 전처리를 적용하고 `cropPartyPortrait`에는 전처리하지 않은 전체 프레임, 검출된 닉네임 영역과 래스터 배율을 전달한다. 이 입력을 `lib/party-recognition.ts`의 `recognizePartyFrame`이 슬롯별로 인식한다.
 
 실제 얼굴 위치는 `lib/party-portrait.ts`의 `cropPartyPortrait`가 소유한다. 검출된 HP, MP 시작점의 왼쪽 28 기준 픽셀, 화면 위쪽 11 기준 픽셀에서 26×26 기준 픽셀 영역을 관측 래스터 배율로 투영한다. 기준은 높이 600px의 기본 HUD이며, 실제 영상에서 새로 검출한 각 슬롯의 x와 배율을 사용한다. 원본 RGBA를 복사하고 화면 밖 영역이나 처리 한도를 넘는 영역은 null로 반환한다. 해상도나 파일명, 게임 UI 설정 퍼센트로 좌표를 고정하지 않는다.
 
-크롭 결과 `CharacterPortrait`는 `image: { width, height, rgba }`, `rasterScale`, 선택적 `validMask`다. 현재 cropper는 게임 UI 퍼센트가 아닌 관측 HUD 래스터 배율을 전달한다. 비교기는 이 값으로 기본 크기를 복원하지만 API 스프라이트와 모든 외형의 얼굴이 동일하게 대응한다는 보장은 아직 없다. 마스크는 얼굴 이미지의 픽셀 수와 같은 길이이며, 왕관이나 PC 표시 등 제외할 픽셀은 0, 사용할 픽셀은 1이다. 마스크가 없으면 투명하지 않은 얼굴 픽셀을 모두 사용한다.
+크롭 결과 `CharacterPortrait`는 `image: { width, height, rgba }`, `rasterScale`, 선택적 `validMask`다. `cropPartyPortrait`는 게임 UI 퍼센트가 아닌 관측 HUD 래스터 배율을 전달한다. 비교기는 이 값으로 기본 크기를 복원하지만 API 스프라이트와 모든 외형의 얼굴이 동일하게 대응한다는 보장은 아직 없다. 마스크는 얼굴 이미지의 픽셀 수와 같은 길이이며, 왕관이나 PC 표시 등 제외할 픽셀은 0, 사용할 픽셀은 1이다. 마스크가 없으면 투명하지 않은 얼굴 픽셀을 모두 사용한다.
 
 얼굴 마스크는 기준 픽셀로 바깥쪽 1px, 위쪽 2px과 좌우 위 모서리 각각 12×9px을 제외한다. 파티장 왕관, PC 표시와 테두리가 없는 슬롯에도 같은 영역을 제외해 장식 변화가 다른 얼굴 관측을 만들지 않게 한다. 비교에 남는 얼굴 정보가 줄어들므로 이 마스크의 적용 자체를 캐릭터 식별 정확도나 일치 기준의 검증으로 해석하지 않는다.
 
@@ -196,7 +196,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 `modelScore`는 재계산한 문자열 확률의 100배다. 실제 정답률이나 상위 후보 사이의 상대 비율이 아니며, 반환한 후보 점수의 합을 100으로 맞추지 않는다. 입력은 유한한 0~1의 softmax 확률이어야 한다. 시점별 확률 합과 1의 차이가 0.001 이하면 그 합으로 나누어 보정하고, 범위를 벗어나면 거절한다. Logits에 softmax를 다시 적용하지 않는다. 빌드 준비 단계도 같은 확률 범위와 합계 조건을 검사한다.
 
-`decodeCtc(data, steps, characters)`는 같은 후보 목록의 첫 `nickname` 문자열을 반환한다. Worker는 후보를 한 번 계산한 뒤 `{ text, confidence, candidates }`를 반환한다. `text`와 `confidence`는 각각 1위 닉네임과 `modelScore`를 유지하고, `candidates`에는 최대 두 개의 원문, 순위, 모델 점수를 전달한다. 빈 문자열이나 같은 이름을 worker 경계에서 보정하거나 제거하지 않는다.
+Worker는 후보를 한 번 계산한 뒤 `{ text, confidence, candidates }`를 반환한다. `text`와 `confidence`는 각각 1위 닉네임과 `modelScore`를 유지하고, `candidates`에는 최대 두 개의 원문, 순위, 모델 점수를 전달한다. 빈 문자열이나 같은 이름을 worker 경계에서 보정하거나 제거하지 않는다.
 
 `createPartyOcrWorker`는 후보 개수, 1부터 시작하는 연속 순위, 유한한 0~100 점수의 내림차순과 1위 호환 필드의 일치를 확인한다. 초기화와 인식, 실패가 섞인 응답은 거절하고 기존 worker 종료, 취소, 시간 초과 처리를 유지한다. 후보를 여러 개 전달해도 회차의 검색에는 첫 후보만 사용한다.
 
