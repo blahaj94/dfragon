@@ -27,7 +27,10 @@ export function readReleaseFeedTags(feed: string): string[] | null {
   const tags: string[] = []
   for (const [, entry] of feed.matchAll(ENTRY_PATTERN)) {
     const link = LINK_PATTERN.exec(entry)?.[0]
-    const href = link == null ? undefined : HREF_PATTERN.exec(link)?.[1]
+    if (link == null) {
+      continue
+    }
+    const href = HREF_PATTERN.exec(link)?.[1]
     if (!href?.startsWith(RELEASE_PAGE_PREFIX)) {
       continue
     }

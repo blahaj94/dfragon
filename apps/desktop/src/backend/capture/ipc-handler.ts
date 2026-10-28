@@ -1,3 +1,4 @@
+import type { WindowFrameResult } from '../../preload/common/types/capture'
 import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import {
   desktopCapturer,
@@ -165,6 +166,60 @@ function isCurrentSearch(binding: CaptureBinding): boolean {
   return isCurrent
 }
 
+function isReadableCapture(binding: CaptureBinding, args: readonly unknown[]): boolean {
+  const [captureId] = args
+  if (args.length !== 1 || typeof captureId !== 'string') {
+    return false
+  }
+
+  if (binding.captureId !== captureId) {
+    return false
+  }
+
+  return isCurrentSearch(binding)
+}
+
+type CaptureOwner = { readonly current: CaptureBinding | null }
+
+function isSameFrameRead(
+  owner: CaptureOwner,
+  binding: CaptureBinding,
+  readFrame: ReadWindowFrame
+): boolean {
+  if (owner.current !== binding) {
+    return false
+  }
+
+  if (!isCurrentSearch(binding)) {
+    return false
+  }
+
+  return readSelectedFrame === readFrame
+}
+
+async function readBoundCaptureFrame(
+  event: IpcMainInvokeEvent,
+  args: readonly unknown[],
+  owner: CaptureOwner
+): Promise<WindowFrameResult> {
+  requireSearchSender(event)
+  const binding = owner.current
+  if (binding == null || !isReadableCapture(binding, args)) {
+    throw new Error('CAPTURE_NOT_ALLOWED')
+  }
+  const readFrame = readSelectedFrame
+  if (readFrame === null) {
+    throw new Error('CAPTURE_NOT_ALLOWED')
+  }
+  const result = await readFrame()
+  requireSearchSender(event)
+  if (!isSameFrameRead(owner, binding, readFrame)) {
+    throw new Error('CAPTURE_NOT_ALLOWED')
+  }
+
+  return result
+}
+
 type SearchConfiguration = {
   apiOrigin: string
   fetch?: typeof fetch
@@ -297,57 +352,11 @@ function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
     }
   })
 
-  addHandler('readCaptureFrame', async (event, ...args) => {
-    requireSearchSender(event)
-    const binding = lifetime.current
-    const readFrame = readSelectedFrame
-    if (
-      args.length !== 1 ||
-      typeof args[0] !== 'string' ||
-      binding == null ||
-      binding.captureId !== args[0] ||
-      !isCurrentSearch(binding) ||
-      readFrame === null
-    ) {
-      throw new Error('CAPTURE_NOT_ALLOWED')
-    }
-    const result = await readFrame()
-    requireSearchSender(event)
-    if (
-      lifetime.current !== binding ||
-      !isCurrentSearch(binding) ||
-      readSelectedFrame !== readFrame
-    ) {
-      throw new Error('CAPTURE_NOT_ALLOWED')
-    }
+  addHandler('readCaptureFrame', (event, ...args) => readBoundCaptureFrame(event, args, lifetime))
 
-    return result
-  })
-
-  // 공대 캡처 회차는 공대 수명의 BEGIN이 기록한 창 선택과 같은 창에서만 프레임 한 장을 읽고, 공대 상세 창의
-  // 닉네임 크롭만 돌려준다. 읽는 동안 회차, 창, 문서가 바뀌면 결과를 전달하지 않는다.
-  addHandler('readRaidCaptureFrame', async (event, ...args) => {
-    requireSearchSender(event)
-    const binding = raid.current
-    const readFrame = readSelectedFrame
-    if (
-      args.length !== 1 ||
-      typeof args[0] !== 'string' ||
-      binding == null ||
-      binding.captureId !== args[0] ||
-      !isCurrentSearch(binding) ||
-      readFrame === null
-    ) {
-      throw new Error('CAPTURE_NOT_ALLOWED')
-    }
-    const result = await readFrame()
-    requireSearchSender(event)
-    if (raid.current !== binding || !isCurrentSearch(binding) || readSelectedFrame !== readFrame) {
-      throw new Error('CAPTURE_NOT_ALLOWED')
-    }
-
-    return toRaidFrameResult(result)
-  })
+  addHandler('readRaidCaptureFrame', async (event, ...args) =>
+    toRaidFrameResult(await readBoundCaptureFrame(event, args, raid))
+  )
 
   addHandler('controlCharacterSearch', (event, ...args) => {
     requireSearchSender(event)

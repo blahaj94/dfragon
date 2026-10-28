@@ -12,10 +12,6 @@ export type UpdateNotices = Readonly<{
   dispose: () => void
 }>
 
-/**
- * 새 버전 확인의 주기, 취소, 늦은 결과 차단과 알림 상태를 소유한다.
- * Release 판정은 release-feed의 순수 함수가 맡는다.
- */
 export function createUpdateNotices({
   currentVersion,
   readFeed,

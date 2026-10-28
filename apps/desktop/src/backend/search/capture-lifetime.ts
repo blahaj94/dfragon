@@ -68,25 +68,26 @@ function idleSlot({
 function retryAfterForFailure(
   result: Extract<SearchOutcome, { kind: 'failure' }>
 ): Pick<RetryAfter, 'seconds' | 'receivedAt'> | null {
-  const seconds = result.error.retryAfterSeconds
-  const receivedAt = result.retryAfterReceivedAt
   const isRateLimited = result.error.code === 'SEARCH_RATE_LIMITED'
-  const hasRetryAfter = seconds != null
-  const hasReceivedAt = receivedAt != null
-  let retryAfter: { seconds: number; receivedAt: number } | null = null
-  if (hasRetryAfter) {
-    const hasPositiveRetryAfter = seconds > 0
-    const hasWait = hasPositiveRetryAfter && hasReceivedAt
-    if (hasWait) {
-      retryAfter = { seconds, receivedAt }
-    }
-  }
-
   if (!isRateLimited) {
     return null
   }
+  const seconds = result.error.retryAfterSeconds
+  const hasRetryAfter = seconds != null
+  if (!hasRetryAfter) {
+    return null
+  }
+  const hasPositiveRetryAfter = seconds > 0
+  if (!hasPositiveRetryAfter) {
+    return null
+  }
+  const receivedAt = result.retryAfterReceivedAt
+  const hasReceivedAt = receivedAt != null
+  if (!hasReceivedAt) {
+    return null
+  }
 
-  return retryAfter
+  return { seconds, receivedAt }
 }
 
 /** 이름과 서버를 정한 슬롯 하나의 상세 조회. 수명마다 한 번에 하나만 실행한다. */
@@ -141,16 +142,12 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
 
       if (slot.choices !== undefined) {
         copiedSlot.choices = slot.choices.map((choice) => {
-          const face = choice.face === null ? null : { ...choice.face }
+          const face = choice.face !== null ? { ...choice.face } : null
 
           return { ...choice, face }
         })
       }
-      let copiedError: SearchSlot['error'] = null
-      if (hasError) {
-        copiedError = { ...error }
-      }
-      copiedSlot.error = copiedError
+      copiedSlot.error = hasError ? { ...error } : null
 
       return copiedSlot
     })
@@ -457,15 +454,11 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
 
   function isCurrentSlot(request: RequestIdentity): boolean {
     const currentBinding = binding
-    const hasBinding = currentBinding != null
-    let hasPermission = false
-    if (hasBinding) {
-      hasPermission = options.isCurrent(currentBinding)
+    if (currentBinding == null) {
+      return false
     }
-    let hasSameCapture = false
-    if (hasBinding) {
-      hasSameCapture = currentBinding.captureId === request.captureId
-    }
+    const hasPermission = options.isCurrent(currentBinding)
+    const hasSameCapture = currentBinding.captureId === request.captureId
     const hasSameRequestId = slots[request.slot].requestId === request.requestId
     const isCurrent = hasPermission && hasSameCapture && hasSameRequestId
 

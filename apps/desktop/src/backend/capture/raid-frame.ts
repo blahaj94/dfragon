@@ -38,11 +38,6 @@ function copyRegion(frame: CharacterImage, region: DNFRectangle): CharacterImage
   return { width, height, rgba }
 }
 
-/**
- * 공대 회차 프레임 한 장에서 12행 공대 상세 창을 찾아 화면 순서대로 12행의 닉네임, 직업명 원본과 수치 표기,
- * 수치 열 종류를 남긴다. 빈 행과 닉네임이 가려진 행은 null이고, 창을 찾지 못하거나 후보가 모호하면 크롭을
- * 만들지 않는다. 프레임 원본은 반환하지 않는다.
- */
 export function toRaidFrameResult(result: WindowFrameResult): RaidFrameResult {
   if (result.kind !== 'frame') {
     return result

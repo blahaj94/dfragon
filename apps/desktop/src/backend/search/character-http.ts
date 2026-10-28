@@ -122,6 +122,18 @@ function validateNickname(nickname: string): void {
   }
 }
 
+function expectedErrorCode(status: number, details: boolean): string | undefined {
+  if (details && status === 400) {
+    return 'INVALID_CHARACTER_QUERY'
+  }
+
+  if (details && status === 429) {
+    return 'CHARACTER_RATE_LIMITED'
+  }
+
+  return statusErrors[status]
+}
+
 function assertApiSuccess(
   response: Response,
   body: unknown,
@@ -136,12 +148,7 @@ function assertApiSuccess(
     return
   }
   const code = statusErrors[response.status]
-  let expectedCode: string | undefined = code
-  if (details && response.status === 400) {
-    expectedCode = 'INVALID_CHARACTER_QUERY'
-  } else if (details && response.status === 429) {
-    expectedCode = 'CHARACTER_RATE_LIMITED'
-  }
+  const expectedCode = expectedErrorCode(response.status, details)
   const failure = failureSchema.safeParse(body)
   if (!code || !failure.success || failure.data.error.code !== expectedCode) {
     throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')

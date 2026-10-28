@@ -4,10 +4,6 @@ const FEED_TIMEOUT_MS = 10_000
 // 2026-10 기준 feed는 Release 10개에 약 13KB다. 긴 Release note를 감안해 상한을 넉넉히 둔다.
 const FEED_MAX_BYTES = 2 * 1024 * 1024
 
-/**
- * GitHub Release feed를 cookie와 인증 정보 없이 받아 UTF-8 문자열로 돌려준다.
- * 응답 상태, 크기, 대기 시간이 상한을 벗어나면 원문 없이 실패한다.
- */
 export async function readReleaseFeed(
   transport: typeof fetch,
   signal: AbortSignal
