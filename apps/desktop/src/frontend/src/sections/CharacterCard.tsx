@@ -6,14 +6,15 @@ import {
   isVacantSlot
 } from '../lib/card-presentation'
 import * as stylex from '@stylexjs/stylex'
-import { useEffect, useId } from 'react'
+import { type ReactNode, useId } from 'react'
 import { NameField, type NameFieldTone } from '../components/NameField'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
-import { useLookupDraft } from '../hooks/useLookupDraft'
+import { type LookupDraft, useLookupDraft } from '../hooks/useLookupDraft'
 import { useServerMenu } from '../hooks/useServerMenu'
-import { type SlotCardKey, useSlotCardState, useSlotCardStore } from '../hooks/useSlotCardStore'
+import { useCandidateWindow } from '../hooks/useCandidateWindow'
+import type { SlotCardKey } from '../hooks/useSlotCardStore'
 import { CardImage } from '../components/CardImage'
 import { CandidateWindow } from '../components/CandidateWindow'
 import { StatLine } from '../components/StatLine'
@@ -22,7 +23,7 @@ import { serverNames } from '../constants/servers'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import type { SlotCard } from '../lib/slot-cards'
 import { toScoreView } from '../lib/card-score'
-import type { SlotState } from '../types/cards'
+import type { CharacterTier, SlotState } from '../types/cards'
 
 const serverOptions = Object.entries(serverNames).map(([id, label]) => ({ id, label }))
 
@@ -47,218 +48,326 @@ export function CharacterCard({
     state,
     character,
     notice,
+    picker,
     snapshotMark,
     retryEnabled = false,
     retryPending = false,
     loading = false
   } = card
   const characterFound = state === 'success' && character != null
-  const picker = card.picker
-  const { candidatesClosed = false } = useSlotCardState(cardKey)
-  const updateSlotCard = useSlotCardStore((state) => state.updateSlotCard)
-  // 확정해 후보가 사라지면 다음 후보는 다시 열린 창으로 보이고, 다음 회차는 카드 키의 회차가 바뀌어 처음부터 열린다.
-  useEffect(() => {
-    if (picker === undefined && candidatesClosed) {
-      updateSlotCard(cardKey, { candidatesClosed: false })
-    }
-  })
-  const candidatesOpen = picker !== undefined && !candidatesClosed
+  const candidates = useCandidateWindow(cardKey, picker !== undefined)
   const candidateWindowId = useId()
   const previewing = characterFound && picker?.previewServerId != null
-  const nickname = characterFound ? undefined : card.nickname
-  const draft = useLookupDraft({ cardKey, character, nickname, onLookup })
-  const serverMenu = useServerMenu()
-  const { inputNotice, editing } = draft
-  const hasCharacter = state === 'success' && character != null && !editing
+  const draft = useLookupDraft({
+    cardKey,
+    character,
+    nickname: characterFound ? undefined : card.nickname,
+    onLookup
+  })
+  const { editing } = draft
   const score = toScoreView(characterFound ? character.card : null, card.scorePending)
-  const vacant = isVacantSlot(state)
   const busy = loading || state === 'pending'
   const cardStatus = getCharacterCardStatus(state)
-  const status = inputNotice || notice || cardStatus
+  const slotNotice = draft.inputNotice || notice
   const emptyMessage = state === 'empty' ? cardStatus : ''
-  const message = inputNotice || notice || emptyMessage
+  const foundNote = slotNotice || (editing ? 'Enter로 조회' : '')
   const frameState = getCharacterCardFrameState({
     state,
     editing: draft.active || previewing,
     tier: characterFound ? character.tier : undefined
   })
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
-  const nameTone = toNameFieldTone(frameState, state)
-  const showRetry = state === 'failure' && onRetry != null
-  const foundNote = message || (editing ? 'Enter로 조회' : '')
 
   return (
     <div {...stylex.props(styles.slot)}>
       <CardFrame as="article" state={frameState} aria-label={`${slot}번 슬롯`} aria-busy={busy}>
         <div {...stylex.props(styles.body)}>
-          <div
-            {...stylex.props(
-              shapes.gridWell,
-              styles.well,
-              tier === 'top' && styles.wellTop,
-              tier === 'ranker' && styles.wellRanker
-            )}
-          >
-            {characterFound && (
-              <div {...stylex.props(styles.portrait)}>
-                <CardImage src={character.image} label="캐릭터" portrait />
-              </div>
-            )}
-            {busy && (
-              <div
-                role="status"
-                aria-label={`${slot}번 캐릭터 확인 중`}
-                {...stylex.props(styles.progress)}
-              >
-                <ProgressCircle size="24" tone="staticWhite" />
-              </div>
-            )}
-          </div>
+          <PortraitWell tier={tier}>
+            {characterFound && <Portrait src={character.image} />}
+            {busy && <LookupProgress slot={slot} />}
+          </PortraitWell>
           <div {...stylex.props(styles.column)}>
             <div {...stylex.props(styles.header)}>
-              <div {...stylex.props(styles.nameField)}>
-                <NameField
-                  tone={nameTone}
-                  aria-label={`${slot}번 캐릭터 이름`}
-                  value={draft.name}
-                  disabled={!inputEnabled}
-                  onFocus={draft.focusName}
-                  onBlur={draft.blurName}
-                  onChange={(event) => draft.changeName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      draft.submit()
-                    } else if (inputEnabled) {
-                      serverMenu.openOnTab(event)
-                    }
-                  }}
-                  right={
-                    (inputEnabled || characterFound) && (
-                      <ServerSelect
-                        variant="field"
-                        label={`${slot}번 서버`}
-                        value={draft.serverId}
-                        disabled={!inputEnabled}
-                        options={serverOptions}
-                        open={serverMenu.open}
-                        onOpenChange={serverMenu.setOpen}
-                        onValueChange={draft.changeServer}
-                      />
-                    )
-                  }
-                />
-              </div>
+              <LookupField
+                slot={slot}
+                tone={toNameFieldTone(frameState, state)}
+                draft={draft}
+                inputEnabled={inputEnabled}
+                showServer={inputEnabled || characterFound}
+              />
               {tier !== undefined && (
                 <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
               )}
               {frameState === 'selected' && (
-                <span
-                  role="img"
-                  aria-label={previewing ? '후보 미리보기 중' : '이름 수정 중'}
-                  {...stylex.props(styles.dots)}
-                >
-                  <span {...stylex.props(styles.dot)} />
-                  <span {...stylex.props(styles.dot, styles.dotSecond)} />
-                  <span {...stylex.props(styles.dot, styles.dotThird)} />
-                </span>
+                <EditingDots label={previewing ? '후보 미리보기 중' : '이름 수정 중'} />
               )}
-              {frameState === 'failure' && (
-                <span
-                  role="img"
-                  aria-label={cardStatus}
-                  {...stylex.props(styles.mark, shapes.cutTopRight, styles.alert)}
-                >
-                  !
-                </span>
-              )}
+              {frameState === 'failure' && <FailureMark label={cardStatus} />}
               {picker !== undefined && (
-                <button
-                  type="button"
-                  aria-expanded={candidatesOpen}
-                  aria-controls={candidatesOpen ? candidateWindowId : undefined}
-                  onClick={() => updateSlotCard(cardKey, { candidatesClosed: candidatesOpen })}
-                  {...stylex.props(styles.candidateChip, shapes.cutTopRight)}
+                <CandidateChip
+                  expanded={candidates.open}
+                  controls={candidates.open ? candidateWindowId : undefined}
+                  onClick={candidates.toggle}
                 >
-                  <Typo.caption as="span">후보 {picker.choices.length}</Typo.caption>
-                </button>
+                  {`후보 ${picker.choices.length}`}
+                </CandidateChip>
               )}
               {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="party" />}
             </div>
-            <div {...stylex.props(styles.line)}>
-              {characterFound && (
-                <>
-                  <Typo.caption {...stylex.props(styles.adventure)}>
-                    {character.adventure}
-                  </Typo.caption>
-                  <span aria-hidden="true" {...stylex.props(styles.lineDivider)} />
-                  <Typo.caption {...stylex.props(styles.guild)}>
-                    {character.guild ?? MISSING_VALUE}
-                  </Typo.caption>
-                </>
-              )}
-              {!characterFound && message !== '' && (
-                <Typo.caption as="p" title={message} {...stylex.props(styles.message)}>
-                  {message}
-                </Typo.caption>
-              )}
-              {!characterFound && message === '' && (
-                <Typo.caption aria-hidden="true" {...stylex.props(styles.placeholder)}>
-                  모험단
-                </Typo.caption>
-              )}
-            </div>
+            {characterFound ? (
+              <AffiliationLine adventure={character.adventure} guild={character.guild} />
+            ) : (
+              <NoticeLine>{slotNotice || emptyMessage}</NoticeLine>
+            )}
             <StatLine
               fame={characterFound ? character.fame : null}
               score={score}
-              vacant={vacant}
+              vacant={isVacantSlot(state)}
               tier={tier}
             />
-            {characterFound && (
-              <div {...stylex.props(styles.line)}>
-                <Typo.caption {...stylex.props(styles.job)}>
-                  {toJobLabel(character.job)}
-                </Typo.caption>
-                {foundNote !== '' && (
-                  <>
-                    <span aria-hidden="true" {...stylex.props(styles.lineDivider)} />
-                    <Typo.caption as="p" title={foundNote} {...stylex.props(styles.message)}>
-                      {foundNote}
-                    </Typo.caption>
-                  </>
-                )}
-              </div>
-            )}
-            {showRetry && (
-              <div {...stylex.props(styles.line)}>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={!retryEnabled}
-                  loading={retryPending}
-                  onClick={onRetry}
-                  {...stylex.props(styles.retry)}
-                >
-                  <Typo.caption as="span">다시 시도</Typo.caption>
-                </Button>
-              </div>
+            {characterFound && <JobLine job={character.job} note={foundNote} />}
+            {state === 'failure' && onRetry != null && (
+              <RetryButton disabled={!retryEnabled} loading={retryPending} onClick={onRetry} />
             )}
           </div>
         </div>
         {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
-        <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
-          {hasCharacter ? character?.name : status}
-        </span>
+        <CardAnnouncer>
+          {characterFound && !editing ? character.name : slotNotice || cardStatus}
+        </CardAnnouncer>
       </CardFrame>
-      {candidatesOpen && (
+      {picker !== undefined && candidates.open && (
         <CandidateWindow
           id={candidateWindowId}
           slot={slot}
           picker={picker}
           onPick={onPickCandidate}
-          onClose={() => updateSlotCard(cardKey, { candidatesClosed: true })}
+          onClose={candidates.close}
         />
       )}
     </div>
+  )
+}
+
+function PortraitWell({
+  tier,
+  children
+}: {
+  tier: CharacterTier | undefined
+  children: ReactNode
+}): React.JSX.Element {
+  return (
+    <div
+      {...stylex.props(
+        shapes.gridWell,
+        styles.well,
+        tier === 'top' && styles.wellTop,
+        tier === 'ranker' && styles.wellRanker
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+function Portrait({ src }: { src: string | undefined }): React.JSX.Element {
+  return (
+    <div {...stylex.props(styles.portrait)}>
+      <CardImage src={src} label="캐릭터" portrait />
+    </div>
+  )
+}
+
+function LookupProgress({ slot }: { slot: number }): React.JSX.Element {
+  return (
+    <div role="status" aria-label={`${slot}번 캐릭터 확인 중`} {...stylex.props(styles.progress)}>
+      <ProgressCircle size="24" tone="staticWhite" />
+    </div>
+  )
+}
+
+function LookupField({
+  slot,
+  tone,
+  draft,
+  inputEnabled,
+  showServer
+}: {
+  slot: number
+  tone: NameFieldTone
+  draft: LookupDraft
+  inputEnabled: boolean
+  showServer: boolean
+}): React.JSX.Element {
+  const serverMenu = useServerMenu()
+
+  return (
+    <div {...stylex.props(styles.nameField)}>
+      <NameField
+        tone={tone}
+        aria-label={`${slot}번 캐릭터 이름`}
+        value={draft.name}
+        disabled={!inputEnabled}
+        onFocus={draft.focusName}
+        onBlur={draft.blurName}
+        onChange={(event) => draft.changeName(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+            draft.submit()
+          } else if (inputEnabled) {
+            serverMenu.openOnTab(event)
+          }
+        }}
+        right={
+          showServer && (
+            <ServerSelect
+              variant="field"
+              label={`${slot}번 서버`}
+              value={draft.serverId}
+              disabled={!inputEnabled}
+              options={serverOptions}
+              open={serverMenu.open}
+              onOpenChange={serverMenu.setOpen}
+              onValueChange={draft.changeServer}
+            />
+          )
+        }
+      />
+    </div>
+  )
+}
+
+function EditingDots({ label }: { label: string }): React.JSX.Element {
+  return (
+    <span role="img" aria-label={label} {...stylex.props(styles.dots)}>
+      <span {...stylex.props(styles.dot)} />
+      <span {...stylex.props(styles.dot, styles.dotSecond)} />
+      <span {...stylex.props(styles.dot, styles.dotThird)} />
+    </span>
+  )
+}
+
+function FailureMark({ label }: { label: string }): React.JSX.Element {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      {...stylex.props(styles.mark, shapes.cutTopRight, styles.alert)}
+    >
+      !
+    </span>
+  )
+}
+
+function CandidateChip({
+  expanded,
+  controls,
+  onClick,
+  children
+}: {
+  expanded: boolean
+  controls: string | undefined
+  onClick: () => void
+  children: string
+}): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      aria-expanded={expanded}
+      aria-controls={controls}
+      onClick={onClick}
+      {...stylex.props(styles.candidateChip, shapes.cutTopRight)}
+    >
+      <Typo.caption as="span">{children}</Typo.caption>
+    </button>
+  )
+}
+
+function AffiliationLine({
+  adventure,
+  guild
+}: {
+  adventure: string
+  guild: string | null | undefined
+}): React.JSX.Element {
+  return (
+    <div {...stylex.props(styles.line)}>
+      <Typo.caption {...stylex.props(styles.adventure)}>{adventure}</Typo.caption>
+      <LineDivider />
+      <Typo.caption {...stylex.props(styles.guild)}>{guild ?? MISSING_VALUE}</Typo.caption>
+    </div>
+  )
+}
+
+function NoticeLine({ children }: { children: string }): React.JSX.Element {
+  return (
+    <div {...stylex.props(styles.line)}>
+      {children === '' ? (
+        <Typo.caption aria-hidden="true" {...stylex.props(styles.placeholder)}>
+          모험단
+        </Typo.caption>
+      ) : (
+        <LineMessage>{children}</LineMessage>
+      )}
+    </div>
+  )
+}
+
+function JobLine({ job, note }: { job: string; note: string }): React.JSX.Element {
+  return (
+    <div {...stylex.props(styles.line)}>
+      <Typo.caption {...stylex.props(styles.job)}>{toJobLabel(job)}</Typo.caption>
+      {note !== '' && (
+        <>
+          <LineDivider />
+          <LineMessage>{note}</LineMessage>
+        </>
+      )}
+    </div>
+  )
+}
+
+function LineDivider(): React.JSX.Element {
+  return <span aria-hidden="true" {...stylex.props(styles.lineDivider)} />
+}
+
+function LineMessage({ children }: { children: string }): React.JSX.Element {
+  return (
+    <Typo.caption as="p" title={children} {...stylex.props(styles.message)}>
+      {children}
+    </Typo.caption>
+  )
+}
+
+function RetryButton({
+  disabled,
+  loading,
+  onClick
+}: {
+  disabled: boolean
+  loading: boolean
+  onClick: () => void
+}): React.JSX.Element {
+  return (
+    <div {...stylex.props(styles.line)}>
+      <Button
+        variant="primary"
+        size="sm"
+        disabled={disabled}
+        loading={loading}
+        onClick={onClick}
+        {...stylex.props(styles.retry)}
+      >
+        <Typo.caption as="span">다시 시도</Typo.caption>
+      </Button>
+    </div>
+  )
+}
+
+function CardAnnouncer({ children }: { children: string }): React.JSX.Element {
+  return (
+    <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
+      {children}
+    </span>
   )
 }
 
