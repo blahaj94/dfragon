@@ -16,26 +16,32 @@ export function PartyPage({
 }): React.JSX.Element {
   const { lookupSlot, retrySlot, pickCandidate } = actions
 
+  function renderSlot(card: SlotCard, index: number): React.JSX.Element {
+    const handleRetry = retrySlot != null ? () => retrySlot(index) : undefined
+    const handleLookup =
+      lookupSlot != null
+        ? (nickname: string, serverId: string) => lookupSlot(index, nickname, serverId)
+        : undefined
+    const handlePickCandidate =
+      pickCandidate != null ? (serverId: string) => pickCandidate(index, serverId) : undefined
+
+    return (
+      <CharacterCard
+        key={`${resetKey}-${index}`}
+        cardKey={{ id: `party-${index}`, resetKey }}
+        card={card}
+        slot={index + 1}
+        inputEnabled={inputEnabled}
+        onRetry={handleRetry}
+        onLookup={handleLookup}
+        onPickCandidate={handlePickCandidate}
+      />
+    )
+  }
+
   return (
     <section aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>
-      {slots.map((card, index) => (
-        <CharacterCard
-          key={`${resetKey}-${index}`}
-          cardKey={{ id: `party-${index}`, resetKey }}
-          card={card}
-          slot={index + 1}
-          inputEnabled={inputEnabled}
-          onRetry={retrySlot === undefined ? undefined : () => retrySlot(index)}
-          onLookup={
-            lookupSlot === undefined
-              ? undefined
-              : (nickname, serverId) => lookupSlot(index, nickname, serverId)
-          }
-          onPickCandidate={
-            pickCandidate === undefined ? undefined : (serverId) => pickCandidate(index, serverId)
-          }
-        />
-      ))}
+      {slots.map(renderSlot)}
     </section>
   )
 }

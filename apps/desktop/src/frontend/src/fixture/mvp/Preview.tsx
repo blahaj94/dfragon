@@ -64,28 +64,18 @@ export function Preview(): React.JSX.Element {
     phase === 'unavailable'
   const character = getCharacterPreview(scenario, previewCharacter)
   const identification = scenario === 'identification'
-  const identifiedCharacter = {
-    ...character,
-    characterId: 'preview-selected',
-    fame: null,
-    card: null
-  }
-  let characters: readonly (CardCharacter | null)[] | undefined
-  if (identification) {
-    characters = [identifiedCharacter, null, null, null]
-  } else if (scenario === 'tiers') {
-    characters = tierPreviewCharacters
-  } else if (scenario === 'roles') {
-    characters = rolePreviewCharacters
-  } else if (scenario === 'snapshot') {
-    characters = snapshotPreviewPartyRounds[partyRound % snapshotPreviewPartyRounds.length]
-  }
   const partySlots = scenarios[scenario]
+  const partyCharacters = getPartyPreviewCharacters({
+    scenario,
+    character,
+    partyRound,
+    slotCount: partySlots.length
+  })
   const raidCharacters = snapshotPreviewRaidRounds[raidRound % snapshotPreviewRaidRounds.length]
   const partySnapshot = useAdventureSnapshot(
     'party',
     partySlots.map((state, slot) => {
-      const shown = characters === undefined ? character : characters[slot]
+      const shown = partyCharacters[slot]
       if (state !== 'success' || shown == null) {
         return null
       }
@@ -132,8 +122,9 @@ export function Preview(): React.JSX.Element {
       candidatePicks.map((current, index) => (index === slot ? { serverId, confirmed } : current))
     )
   }
+  const retrySlot = (): void => setScenario('pending')
   const partyCards: SlotCard[] = partySlots.map((state, slot) => {
-    const shown = characters === undefined ? character : characters[slot]
+    const shown = partyCharacters[slot]
     const selected = shown ?? undefined
     const nickname = identification ? (identificationNicknames[slot] ?? undefined) : undefined
     const notice = identification ? identificationNotices[slot] : undefined
@@ -231,7 +222,7 @@ export function Preview(): React.JSX.Element {
               resetKey={scenario}
               inputEnabled
               actions={{
-                retrySlot: identification ? () => setScenario('pending') : undefined,
+                retrySlot: identification ? retrySlot : undefined,
                 pickCandidate: candidates ? pickCandidate : undefined
               }}
             />
@@ -350,4 +341,41 @@ export function Preview(): React.JSX.Element {
       </p>
     </>
   )
+}
+
+function getPartyPreviewCharacters({
+  scenario,
+  character,
+  partyRound,
+  slotCount
+}: {
+  scenario: string
+  character: CardCharacter
+  partyRound: number
+  slotCount: number
+}): readonly (CardCharacter | null)[] {
+  if (scenario === 'identification') {
+    const identifiedCharacter = {
+      ...character,
+      characterId: 'preview-selected',
+      fame: null,
+      card: null
+    }
+
+    return [identifiedCharacter, null, null, null]
+  }
+
+  if (scenario === 'tiers') {
+    return tierPreviewCharacters
+  }
+
+  if (scenario === 'roles') {
+    return rolePreviewCharacters
+  }
+
+  if (scenario === 'snapshot') {
+    return snapshotPreviewPartyRounds[partyRound % snapshotPreviewPartyRounds.length]
+  }
+
+  return Array.from({ length: slotCount }, () => character)
 }

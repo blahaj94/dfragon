@@ -97,6 +97,10 @@ export function RaidPage({
     } else if (dropTarget === slot) {
       drag = 'target'
     }
+    const handleLookup =
+      lookupSlot != null
+        ? (nickname: string, serverId: string) => lookupSlot(slot, nickname, serverId)
+        : undefined
 
     return (
       <RaidCard
@@ -104,11 +108,7 @@ export function RaidPage({
         cardKey={{ id: `raid-${slot}`, resetKey }}
         card={card}
         slot={seat + 1}
-        onLookup={
-          lookupSlot === undefined
-            ? undefined
-            : (nickname, serverId) => lookupSlot(slot, nickname, serverId)
-        }
+        onLookup={handleLookup}
         move={{
           movable: canMoveSeats,
           drag,
@@ -128,8 +128,11 @@ export function RaidPage({
               return
             }
             const direction = seatKeys[event.key]
-            const target = direction === undefined ? null : neighborSeat(seat, direction)
-            if (target === null || !canMoveSeats) {
+            if (direction == null || !canMoveSeats) {
+              return
+            }
+            const target = neighborSeat(seat, direction)
+            if (target === null) {
               return
             }
             event.preventDefault()
