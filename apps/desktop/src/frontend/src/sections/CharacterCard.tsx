@@ -6,7 +6,7 @@ import {
   isVacantSlot
 } from '../lib/card-presentation'
 import * as stylex from '@stylexjs/stylex'
-import { type ReactNode, useId } from 'react'
+import { type ChangeEvent, type KeyboardEvent, type ReactNode, useId } from 'react'
 import { NameField, type NameFieldTone } from '../components/NameField'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
@@ -194,11 +194,26 @@ function LookupField({
 }: {
   slot: number
   tone: NameFieldTone
-  draft: LookupDraft
+  draft: Pick<
+    LookupDraft,
+    'name' | 'serverId' | 'changeName' | 'changeServer' | 'focusName' | 'blurName' | 'submit'
+  >
   inputEnabled: boolean
   showServer: boolean
 }): React.JSX.Element {
   const serverMenu = useServerMenu()
+
+  const handleNameChange = (event: ChangeEvent<HTMLInputElement>): void => {
+    draft.changeName(event.target.value)
+  }
+
+  const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+      draft.submit()
+    } else if (inputEnabled) {
+      serverMenu.openOnTab(event)
+    }
+  }
 
   return (
     <div {...stylex.props(styles.nameField)}>
@@ -209,14 +224,8 @@ function LookupField({
         disabled={!inputEnabled}
         onFocus={draft.focusName}
         onBlur={draft.blurName}
-        onChange={(event) => draft.changeName(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-            draft.submit()
-          } else if (inputEnabled) {
-            serverMenu.openOnTab(event)
-          }
-        }}
+        onChange={handleNameChange}
+        onKeyDown={handleNameKeyDown}
         right={
           showServer && (
             <ServerSelect
