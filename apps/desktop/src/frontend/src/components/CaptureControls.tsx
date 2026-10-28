@@ -52,14 +52,6 @@ export function CaptureControls({
     failed: source.sourcesFailed,
     hasDetectedSource: detected.length > 0
   })
-  // 창 목록 조회가 끝날 때마다 새 목록 배열이 오고, 그 순간부터 다음 자동 조회까지 15초를 잰다. 목록을
-  // 늦게 열어도 재조회 진행 막대가 실제 남은 시간과 맞도록 상단 바에 늘 있는 이 컴포넌트가 시작 시각을
-  // 기억한다.
-  // 벽시계가 바뀌어도 실제 타이머와 어긋나지 않도록 단조 시계로 잰다.
-  const [retry, setRetry] = useState(() => ({ sources, startedAt: performance.now() }))
-  if (retry.sources !== sources) {
-    setRetry({ sources, startedAt: performance.now() })
-  }
   let markLabel: string | null = null
   if (phase === 'unavailable') {
     markLabel = '주의'
@@ -178,7 +170,7 @@ export function CaptureControls({
               loading={source.sourcesLoading}
               failed={source.sourcesFailed}
               ready={searchReady}
-              retryStartedAt={retry.startedAt}
+              retryStartedAt={source.retryStartedAt}
               onSelect={source.selectSource}
             />
           </div>

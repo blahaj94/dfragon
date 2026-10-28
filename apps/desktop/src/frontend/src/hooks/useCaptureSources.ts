@@ -8,11 +8,15 @@ export function useCaptureSources(): {
   sources: CaptureSource[]
   sourcesLoading: boolean
   sourcesFailed: boolean
+  retryStartedAt: number
   refreshSources: () => void
 } {
   const [sourcesLoading, setSourcesLoading] = useState(true)
   const [sourcesFailed, setSourcesFailed] = useState(false)
   const [sources, setSources] = useState<CaptureSource[]>([])
+  // 목록을 늦게 열어도 재조회 진행 막대가 실제 남은 시간과 맞도록 새 목록이 온 시각을 기억한다. 벽시계가
+  // 바뀌어도 실제 타이머와 어긋나지 않도록 단조 시계로 잰다.
+  const [retryStartedAt, setRetryStartedAt] = useState(() => performance.now())
   const [sourceListVersion, setSourceListVersion] = useState(0)
 
   useEffect(() => {
@@ -28,6 +32,7 @@ export function useCaptureSources(): {
           return
         }
         setSources(nextSources)
+        setRetryStartedAt(performance.now())
         setSourcesFailed(false)
         foundGame = nextSources.filter(isDnfCaptureSource).length === 1
       } catch {
@@ -57,5 +62,5 @@ export function useCaptureSources(): {
     setSourceListVersion((version) => version + 1)
   }
 
-  return { sources, sourcesLoading, sourcesFailed, refreshSources }
+  return { sources, sourcesLoading, sourcesFailed, retryStartedAt, refreshSources }
 }

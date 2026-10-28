@@ -97,6 +97,33 @@ it('조회 실패도 재시도하고 성공하면 목록 오류 상태를 해제
   expect(current.sourcesLoading).toBe(false)
 })
 
+it('재조회 시작 시각은 목록을 받을 때만 그 시각으로 바뀌고 조회 실패와 폐기한 응답은 바꾸지 않는다', async () => {
+  const now = vi.spyOn(performance, 'now').mockReturnValue(1_000)
+  const late = Promise.withResolvers<Awaited<ReturnType<typeof listCaptureSources>>>()
+  listCaptureSources
+    .mockRejectedValueOnce(new Error('synthetic internal error'))
+    .mockResolvedValueOnce([other])
+    .mockReturnValueOnce(late.promise)
+    .mockResolvedValueOnce([other])
+  await mount()
+  expect(current.sourcesFailed).toBe(true)
+  expect(current.retryStartedAt).toBe(1_000)
+
+  now.mockReturnValue(16_000)
+  await advance(15_000)
+  expect(current.sources).toEqual([other])
+  expect(current.retryStartedAt).toBe(16_000)
+
+  now.mockReturnValue(31_000)
+  await advance(15_000)
+  now.mockReturnValue(32_000)
+  await act(async () => current.refreshSources())
+  expect(current.retryStartedAt).toBe(32_000)
+  now.mockReturnValue(33_000)
+  await act(async () => late.resolve([other]))
+  expect(current.retryStartedAt).toBe(32_000)
+})
+
 it('느린 자동 조회가 끝나기 전에는 다음 자동 요청을 시작하지 않는다', async () => {
   const pending = Promise.withResolvers<Awaited<ReturnType<typeof listCaptureSources>>>()
   listCaptureSources.mockResolvedValueOnce([]).mockReturnValueOnce(pending.promise)
