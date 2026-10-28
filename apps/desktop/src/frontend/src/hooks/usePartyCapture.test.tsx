@@ -59,7 +59,7 @@ let currentSearch = searchSnapshot({ captureId: null, revision: 0 })
 const readCaptureFrame = vi.fn()
 
 function HookHarness({ onRender }: { onRender: (value: HookValue) => void }): null {
-  onRender(usePartyCapture())
+  onRender(usePartyCapture({ receivesShortcut: true }))
 
   return null
 }
@@ -368,10 +368,9 @@ it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 재�
   await act(async () => hook.getCurrent().source.selectSource('game'))
   await shortcut()
   expect(readCaptureFrame).toHaveBeenCalledExactlyOnceWith(CAPTURE_ID)
-  expect(moduleMocks.capturePartyRecognitionInputs).toHaveBeenCalledExactlyOnceWith({
-    ...(frame.kind === 'frame' ? frame.image : {}),
-    captureId: CAPTURE_ID
-  })
+  expect(moduleMocks.capturePartyRecognitionInputs).toHaveBeenCalledExactlyOnceWith(
+    frame.kind === 'frame' ? frame.image : {}
+  )
   expect(worker.recognize.mock.calls.map(([crop]) => crop)).toEqual(
     inputs.map((input) => input!.nickname)
   )
@@ -694,7 +693,6 @@ it('검색 시작 대기 중 Alt+R은 무시하고 begin 완료 뒤 같은 회�
     Promise.withResolvers<Awaited<ReturnType<typeof window.search.controlCharacterSearch>>>()
   search.controlCharacterSearch.mockImplementationOnce((command: SearchControl) => {
     expect(command.action).toBe('begin')
-    // Main은 응답이 renderer에 도착하기 전에 수명을 만든다.
     currentSearch = searchSnapshot({ revision: currentSearch.revision + 1 })
 
     return begin.promise

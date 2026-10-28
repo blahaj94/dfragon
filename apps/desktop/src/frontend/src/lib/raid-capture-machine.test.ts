@@ -211,7 +211,6 @@ it.each([null, 'next'])(
 
     actor.send({ type: 'SOURCE', sourceId })
     pending.resolve(recognized)
-    // 인식 actor의 완료와 worker 정리가 끝날 때까지 기다린 뒤 늦은 결과가 버려졌는지 본다.
     await vi.waitFor(() => expect(terminate).toHaveBeenCalledOnce())
     await new Promise((resolve) => setTimeout(resolve, 0))
 
