@@ -1,0 +1,75 @@
+// Biome's GritQL does not run recursive patterns, so an if/else chain is checked through each
+// `if` and `else` node it contains. Assignments that read the variable itself are accumulations;
+// member and property names with the same text (`o.label`) are not reads.
+or {
+  JsIfStatement(),
+  JsSwitchStatement()
+} as $branch where {
+  $branch <: after $declaration,
+  $declaration <: JsVariableStatement(declaration=JsVariableDeclaration(declarators=[
+    JsVariableDeclarator(id=$name)
+  ])),
+  $declaration <: r"let\s[\s\S]*",
+  $branch <: or {
+    if_assigns_only($name),
+    switch_assigns_only($name)
+  },
+  register_diagnostic(span=$branch, message="let과 분기로 값 하나를 정하지 않고 이름 있는 함수와 early return으로 값을 정합니다.")
+}
+
+pattern if_assigns_only($name) {
+  JsIfStatement() as $if where {
+    $if <: not contains JsIfStatement(consequent=$consequent) where {
+      $consequent <: not branch_assignment($name)
+    },
+    $if <: not contains JsElseClause(alternate=$alternate) where {
+      $alternate <: not or {
+        branch_assignment($name),
+        JsIfStatement()
+      }
+    }
+  }
+}
+
+// Empty cases fall through to the next case, so only cases with statements are judged.
+pattern switch_assigns_only($name) {
+  JsSwitchStatement(cases=$cases) where {
+    $cases <: some or {
+      JsCaseClause(consequent=case_assignment($name)),
+      JsDefaultClause(consequent=case_assignment($name))
+    },
+    $cases <: every or {
+      JsCaseClause(consequent=[]),
+      JsCaseClause(consequent=case_assignment($name)),
+      JsDefaultClause(consequent=case_assignment($name))
+    }
+  }
+}
+
+pattern branch_assignment($name) {
+  or {
+    JsExpressionStatement(expression=plain_assignment($name)),
+    JsBlockStatement(statements=[JsExpressionStatement(expression=plain_assignment($name))])
+  }
+}
+
+pattern case_assignment($name) {
+  or {
+    [JsExpressionStatement(expression=plain_assignment($name))],
+    [JsExpressionStatement(expression=plain_assignment($name)), JsBreakStatement()]
+  }
+}
+
+pattern plain_assignment($name) {
+  JsAssignmentExpression(left=$target, right=$value) as $assignment where {
+    $target <: $name,
+    $value <: not contains $read where {
+      $read <: $name,
+      $read <: not or {
+        JsName(),
+        JsLiteralMemberName()
+      }
+    },
+    $assignment <: r"[\w$]+\s*=[^=][\s\S]*"
+  }
+}
