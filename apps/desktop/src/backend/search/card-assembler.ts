@@ -44,16 +44,17 @@ function toCardScore(result: ScoreEngineResult): CharacterCardScore {
 
 export function buildCharacterCard(
   details: CharacterDetails,
-  score: ScoreEngine | null
+  score: ScoreEngine
 ): CharacterCard | null {
   const parsed = apiCharacterCardSchema.safeParse(details.card)
   if (!parsed.success) {
     return null
   }
   const { role } = parsed.data
-  const result = score === null ? null : score(toScoreEngineInput(details), scoreCalculator(role))
+  const result = score(toScoreEngineInput(details), scoreCalculator(role))
+  if (result === null) {
+    return { role, score: null }
+  }
 
-  const cardScore = result === null ? null : toCardScore(result)
-
-  return { role, score: cardScore }
+  return { role, score: toCardScore(result) }
 }
