@@ -72,7 +72,7 @@ const SCORE_ROW: RaidRowObservation = {
   valueText: '50,000'
 }
 
-function fixture(engineScores: Record<string, number | null> | null) {
+function fixture(engineScores: Record<string, number | null>) {
   const clock = new FakeMonotonicClock()
   const controller = new AbortController()
   const calls: string[] = []
@@ -91,7 +91,7 @@ function fixture(engineScores: Record<string, number | null> | null) {
   const score: MockedFunction<ScoreEngine> = vi.fn((input) => {
     const id = String(input.status.characterId)
 
-    return engineResult(engineScores?.[id] ?? null)
+    return engineResult(engineScores[id] ?? null)
   })
   const runtime = () => ({
     clock,
@@ -103,7 +103,7 @@ function fixture(engineScores: Record<string, number | null> | null) {
       selection: INITIAL_PORTRAIT_COLOR_POLICY
     },
     ocrIdentification: 'raid' as const,
-    ...(engineScores === null ? {} : { score })
+    score
   })
   const request = (
     raidRow: RaidRowObservation = SCORE_ROW,
@@ -286,7 +286,8 @@ it.each([[['']], [[' 공대원']], [['가', '나', '다']]])(
           scorePortrait: vi.fn(),
           selection: INITIAL_PORTRAIT_COLOR_POLICY
         },
-        ocrIdentification: 'raid'
+        ocrIdentification: 'raid',
+        score: f.score
       },
       nickname: nicknames[0],
       startedAt: f.clock.monotonicMs,

@@ -128,18 +128,6 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
   })
 
-  it('식별 서비스가 설정되지 않았으면 조회 실패를 표시한다', async () => {
-    const fixture = await createSearchFixture('capture', null)
-    await fixture.invoke('notifyOcrCandidatesDetected', observation(fixture))
-    const snapshot = await fixture.read()
-    expect(snapshot.slots[0]).toMatchObject({
-      state: 'failure',
-      error: { code: 'NEOPLE_UNAVAILABLE' }
-    })
-    expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
-    expect(fixture.fetchSearch).not.toHaveBeenCalled()
-  })
-
   it('빈 첫 OCR 이름은 조회 실패이며 두 번째 후보를 검색하지 않는다', async () => {
     const fixture = await createSearchFixture('capture', policy)
     await fixture.invoke('notifyOcrCandidatesDetected', {
