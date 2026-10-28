@@ -3,7 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, vi, type Mocked } from 'vitest'
 import type { WindowFrameResult } from '../../../../preload/common/types/capture'
 import type { DesktopShortcutApi } from '../../../../preload/common/types/desktop-shortcut'
-import type { SearchCommandResult, SearchSnapshot } from '../../../../preload/common/types/search'
+import type { SearchSnapshot } from '../../../../preload/common/types/search'
 import {
   CAPTURE_ID,
   searchSlot,
@@ -12,7 +12,7 @@ import {
   type ObservationTestApi
 } from '../../../../preload/api/search-test-fixture'
 import type { PartyOcrWorker } from '../../types/capture'
-import type { PartyFrameSource } from '../../lib/party'
+import type { CharacterImage } from '../../../../preload/common/types/character'
 
 const media = vi.hoisted(() => {
   const crops = vi.fn()
@@ -33,7 +33,7 @@ vi.mock('../../lib/party', async (original) => {
 
   return {
     ...originalModule,
-    capturePartyRecognitionInputs: (frame: PartyFrameSource) =>
+    capturePartyRecognitionInputs: (frame: CharacterImage) =>
       media.crops(frame).map((nickname: HTMLCanvasElement | null, slot: number) => {
         if (nickname === null) {
           return null
@@ -68,7 +68,6 @@ type RendererFixture = {
   unmount: () => Promise<void>
   restart: () => Promise<void>
   current: () => SearchSnapshot
-  result: () => SearchCommandResult
 }
 
 export function captureResources(): CaptureResources {
@@ -187,8 +186,7 @@ export function createRendererFixture(): RendererFixture {
     restart: async () => {
       await act(async () => capture.onDesktopShortcut.mock.lastCall![0]('restart-search'))
     },
-    current: () => currentSearch,
-    result: (): SearchCommandResult => ({ ok: true, snapshot: currentSearch })
+    current: () => currentSearch
   }
 }
 

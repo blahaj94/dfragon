@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { decodeCtc, decodeCtcCandidates } from './paddle-recognition'
+import { decodeCtcCandidates } from './ctc-candidates'
 
 function enumeratePaths(
   rows: readonly (readonly number[])[],
@@ -44,7 +44,6 @@ it('기본 두 후보와 요청한 개수를 최종 점수 순으로 반환하�
   expect(decodeCtcCandidates(data, 2, ['A', 'B'], 1)).toEqual(expected.slice(0, 1))
   expect(decodeCtcCandidates(data, 2, ['A', 'B'], 5)).toEqual(expected)
   expect(decodeCtcCandidates(data, 2, ['A', 'B'], 10)).toEqual(expected)
-  expect(decodeCtc(data, 2, ['A', 'B'])).toBe('A')
 })
 
 it.each([
@@ -159,7 +158,6 @@ it('재채점으로 순위가 바뀌면 복구된 최종 점수 내림차순으�
     { rank: 4, modelScore: expect.closeTo(4, 5), nickname: 'AB' },
     { rank: 5, modelScore: expect.closeTo(3.08, 5), nickname: 'C' }
   ])
-  expect(decodeCtc(data, 2, characters)).toBe('A')
 })
 
 it('blank만 있거나 스텝이 없으면 빈 문자열 후보만 반환한다', () => {
@@ -215,4 +213,12 @@ it('잘못된 스텝, 배열 크기, 중복 사전과 여러 문자로 된 label
   expect(() => decodeCtcCandidates(new Float32Array(), -1, ['A'])).toThrow(/shape/)
   expect(() => decodeCtcCandidates(new Float32Array([1, 0, 0]), 1, ['A', 'A'])).toThrow(/labels/)
   expect(() => decodeCtcCandidates(new Float32Array([1, 0]), 1, ['AB'])).toThrow(/labels/)
+})
+
+it('연속 출력은 합치고 blank로 분리한 같은 문자는 보존해 1위 후보로 반환한다', () => {
+  const data = new Float32Array([
+    0.05, 0.9, 0.05, 0.05, 0.9, 0.05, 0.9, 0.05, 0.05, 0.05, 0.9, 0.05, 0.05, 0.05, 0.9
+  ])
+
+  expect(decodeCtcCandidates(data, 5, ['가', '나'])[0].nickname).toBe('가가나')
 })

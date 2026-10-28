@@ -1,6 +1,8 @@
 import { expect, it } from 'vitest'
 import { sameCharacterPortrait } from '../../../preload/common/search/ocr-input'
-import { cropPartyPortrait, type PartyPortraitCropInput } from './party-portrait'
+import { cropPartyPortrait } from './party-portrait'
+
+type PartyPortraitCropInput = Parameters<typeof cropPartyPortrait>[0]
 
 function input(width = 1067, height = 600, x = 42, rasterScale = 1): PartyPortraitCropInput {
   const rgba = new Uint8Array(width * height * 4)

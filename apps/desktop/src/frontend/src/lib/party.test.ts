@@ -4,7 +4,6 @@ import type { CharacterImage } from '../../../preload/common/types/character'
 import { capturePartyRecognitionInputs } from './party'
 import { recognizePartyFrame } from './party-recognition'
 import type { PartyOcrWorker } from '../types/capture'
-import type { PartyPortraitCropper } from './party-portrait'
 
 type NicknameCanvas = {
   width: number
@@ -14,45 +13,32 @@ type NicknameCanvas = {
 
 afterEach(() => vi.unstubAllGlobals())
 
-it('얼굴 크롭 제공자가 얼굴을 반환하지 않으면 닉네임만 유지한다', () => {
-  const setup = captureCanvas(1280, 720, [42, 324])
+it('얼굴 영역이 프레임 밖이면 닉네임만 유지한다', () => {
+  const setup = captureCanvas(1067, 600, [20])
 
-  const inputs = capturePartyRecognitionInputs(setup.frame, () => null)
+  const inputs = capturePartyRecognitionInputs(setup.frame)
 
   expect(inputs).toEqual([
     { slot: 0, nickname: setup.nicknames[0], portrait: null },
     null,
-    { slot: 2, nickname: setup.nicknames[1], portrait: null },
+    null,
     null
   ])
 })
 
-it('얼굴 크롭 경계에는 닉네임과 같은 프레임의 원본 RGBA와 검출 배율을 전달한다', () => {
+it('얼굴 크롭에는 닉네임과 같은 프레임의 원본 RGBA를 검출한 위치 기준으로 전달한다', () => {
   const setup = captureCanvas(1280, 720, [42, 324])
-  const portrait = {
-    image: { width: 1, height: 1, rgba: new Uint8Array([55, 170, 200, 255]) },
-    rasterScale: 1
-  }
-  const cropper = vi.fn<PartyPortraitCropper>(() => portrait)
+  setup.frame.rgba.set([55, 170, 200, 255], (24 * 1280 + 14 + 13) * 4)
+  setup.frame.rgba.set([66, 171, 201, 255], (24 * 1280 + 296 + 13) * 4)
 
-  const inputs = capturePartyRecognitionInputs(setup.frame, cropper)
+  const inputs = capturePartyRecognitionInputs(setup.frame)
 
-  expect(cropper).toHaveBeenCalledTimes(2)
-  const first = cropper.mock.calls[0][0]
-  const third = cropper.mock.calls[1][0]
-  expect(first).toMatchObject({
-    frame: { width: 1280, height: 720 },
-    nicknameRegion: { slot: 1, x: 42, y: 10, width: 73, height: 16 },
-    rasterScale: 1
-  })
-  expect(third.nicknameRegion).toMatchObject({ slot: 3, x: 324 })
-  expect(third.frame.rgba).toBe(first.frame.rgba)
-  const nicknameStart = (10 * 1280 + 42) * 4
-  expect([...first.frame.rgba.slice(nicknameStart, nicknameStart + 12)]).toEqual([
-    255, 255, 255, 255, 0, 0, 0, 255, 55, 170, 200, 255
-  ])
-  expect(inputs[0]?.portrait).toBe(portrait)
-  expect(inputs[2]?.portrait).toBe(portrait)
+  const pixel = (slot: number): number[] => [
+    ...inputs[slot]!.portrait!.image.rgba.slice((13 * 26 + 13) * 4, (13 * 26 + 14) * 4)
+  ]
+  expect(inputs[0]?.portrait).toMatchObject({ rasterScale: 1, image: { width: 26, height: 26 } })
+  expect(pixel(0)).toEqual([55, 170, 200, 255])
+  expect(pixel(2)).toEqual([66, 171, 201, 255])
 })
 
 function framePixels(
@@ -214,17 +200,15 @@ it('HP, MP 띠가 이어져 슬롯을 판별할 수 없으면 OCR에 크롭을 �
 
 it('연결중 팝업으로 가려진 슬롯은 OCR과 얼굴 크롭에서 제외하고 정상 복귀 때 다시 검출한다', () => {
   const setup = captureCanvas(1920, 1080, [42, 183, 324, 465], [183, 324, 465])
-  const cropper = vi.fn<PartyPortraitCropper>(() => null)
 
-  const inputs = capturePartyRecognitionInputs(setup.frame, cropper)
+  const inputs = capturePartyRecognitionInputs(setup.frame)
 
   expect(inputs).toEqual([
-    { slot: 0, nickname: setup.nicknames[0], portrait: null },
+    { slot: 0, nickname: setup.nicknames[0], portrait: expect.anything() },
     null,
     null,
     null
   ])
-  expect(cropper).toHaveBeenCalledOnce()
   setup.nextFrame(1920, 1080, [42, 183, 324, 465])
   expect(capturePartyRecognitionInputs(setup.frame).every((entry) => entry?.portrait != null)).toBe(
     true
