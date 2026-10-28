@@ -19,7 +19,6 @@ export function useManualCharacterLookup(
   notifyOcr?: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
 ): {
   view: SearchView
-  startingSlots: readonly boolean[]
   bridge: React.RefObject<CaptureSearch | null>
   lookup: (slot: number, nickname: string, serverId: string) => void
   beginRound: (signal: AbortSignal) => Promise<string | null>
@@ -148,5 +147,16 @@ export function useManualCharacterLookup(
     [reset]
   )
 
-  return { view, startingSlots, bridge, lookup, beginRound, observeOcr, reset }
+  const slots = view.slots.map((slot) => {
+    if (startingSlots[slot.slot]) {
+      const state = 'pending' as const
+
+      return { ...slot, state }
+    }
+
+    return slot
+  })
+  const shownView = { ...view, slots }
+
+  return { view: shownView, bridge, lookup, beginRound, observeOcr, reset }
 }

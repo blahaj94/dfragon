@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffectEvent, useState } from 'react'
 import { SEARCH_SLOT_COUNTS, type SearchSlot } from '../../../preload/common/types/search'
 import type { OcrCaptureObservation } from '../lib/capture-search'
 import { useManualCharacterLookup } from './useManualCharacterLookup'
@@ -23,7 +23,6 @@ const emptyManualSlots = (): boolean[] =>
 export function useRaidSearch(): RaidSearch {
   const {
     view,
-    startingSlots,
     lookup,
     beginRound: beginLookupRound,
     observeOcr: observeLookupOcr
@@ -32,12 +31,10 @@ export function useRaidSearch(): RaidSearch {
     SEARCH_SLOT_COUNTS.raid,
     window.raidSearch.notifyOcrCandidatesDetected
   )
-  const manualSlotsRef = useRef(new Set<number>())
   const [manualSlots, setManualSlots] = useState<readonly boolean[]>(emptyManualSlots)
 
   const lookupSlot = useCallback(
     (slot: number, nickname: string, serverId: string): void => {
-      manualSlotsRef.current.add(slot)
       setManualSlots((slots) => slots.map((manual, index) => manual || index === slot))
       lookup(slot, nickname, serverId)
     },
@@ -45,34 +42,22 @@ export function useRaidSearch(): RaidSearch {
   )
   const beginRound = useCallback(
     (signal: AbortSignal): Promise<string | null> => {
-      manualSlotsRef.current.clear()
       setManualSlots(emptyManualSlots())
 
       return beginLookupRound(signal)
     },
     [beginLookupRound]
   )
-  // 회차 진행 중 사용자가 직접 조회한 슬롯은 늦게 끝난 OCR 결과로 바꾸지 않는다.
-  const observeOcr = useCallback(
-    (input: OcrCaptureObservation): void => {
-      if (!manualSlotsRef.current.has(input.slot)) {
-        observeLookupOcr(input)
-      }
-    },
-    [observeLookupOcr]
-  )
-  const slots = view.slots.map((slot) => {
-    if (startingSlots[slot.slot]) {
-      const state = 'pending' as const
-
-      return { ...slot, state }
+  // 회차 진행 중 사용자가 직접 조회한 슬롯은 늦게 끝난 OCR 결과로 바꾸지 않는다. 캡처 machine은 처음
+  // 받은 함수를 계속 부르므로, 그 함수도 최신 수동 조회 슬롯을 읽어야 한다.
+  const observeOcr = useEffectEvent((input: OcrCaptureObservation): void => {
+    if (!manualSlots[input.slot]) {
+      observeLookupOcr(input)
     }
-
-    return slot
   })
 
   return {
-    slots,
+    slots: view.slots,
     connectionFailed: view.connectionFailed,
     manualSlots,
     lookupSlot,

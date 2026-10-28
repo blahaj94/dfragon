@@ -3,7 +3,11 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useCharacterSearch } from './useCharacterSearch'
-import type { CaptureSearch, createCaptureSearch } from '../lib/capture-search'
+import type {
+  CaptureSearch,
+  createCaptureSearch,
+  OcrCaptureObservation
+} from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
 import type { CharacterChoice, SearchSlot } from '../../../preload/common/types/search'
@@ -23,7 +27,6 @@ vi.mock('./useManualCharacterLookup', () => ({
       retryPending: [false, false, false, false],
       connectionFailed: false
     },
-    startingSlots: [false, false, false, false],
     bridge: { current: null },
     lookup: mocks.manualLookup,
     reset: vi.fn()
@@ -33,6 +36,8 @@ vi.mock('./useManualCharacterLookup', () => ({
 const SLOT = 1
 const NEXT_REQUEST_ID = '00000000-0000-4000-8000-000000000088'
 let value: ReturnType<typeof useCharacterSearch>
+let initial: ReturnType<typeof useCharacterSearch>
+let bridge: CaptureSearch
 let root: Root
 let container: HTMLDivElement
 
@@ -95,7 +100,7 @@ function Harness({
 
 beforeEach(async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
-  const bridge: CaptureSearch = {
+  bridge = {
     connect: vi.fn(),
     begin: vi.fn(),
     end: vi.fn(),
@@ -109,7 +114,6 @@ beforeEach(async () => {
   mocks.manualSlots = null
   vi.stubGlobal('search', {})
   vi.stubGlobal('api', {
-    openCharacterDetails: vi.fn(),
     notifyOcrCandidatesDetected: vi.fn()
   })
   container = document.createElement('div')
@@ -124,6 +128,7 @@ beforeEach(async () => {
       />
     )
   )
+  initial = value
   await publish(viewWithChoices())
 })
 
@@ -133,7 +138,7 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-it('캡처 검색이 준 후보로 자동 선택을 보여 주는 후보 줄을 만든다', () => {
+it('캡처 검색이 준 후보로 자동 선택을 보여 주는 후보 창을 만든다', () => {
   expect(value.candidatePickers[SLOT]).toEqual({
     choices: [choice('cain', '카인'), choice('siroco', '시로코')],
     shownServerId: 'cain',
@@ -180,14 +185,14 @@ it('미리보기를 다른 후보로 옮기면 옮긴 후보로 다시 조회한
   expect(value.candidatePickers[SLOT]?.previewServerId).toBe('cain')
 })
 
-it('후보 줄에 없는 서버는 무시한다', async () => {
+it('후보 창에 없는 서버는 무시한다', async () => {
   await act(async () => value.pickCandidate(SLOT, 'anton'))
 
   expect(mocks.manualLookup).not.toHaveBeenCalled()
   expect(value.candidatePickers[SLOT]?.previewServerId).toBeNull()
 })
 
-it('서버 칩으로 직접 조회하면 후보 줄을 닫는다', async () => {
+it('서버 칩으로 직접 조회하면 후보 창을 닫는다', async () => {
   await act(async () => value.lookupSlot(SLOT, searchRow.characterName, 'anton'))
 
   expect(mocks.manualLookup).toHaveBeenCalledExactlyOnceWith(SLOT, searchRow.characterName, 'anton')
@@ -217,4 +222,22 @@ it('미리보기 조회가 끝나기 전에는 대기 화면 대신 지금 보�
 
   expect(value.slots[SLOT]).toMatchObject({ state: 'success', selected: { serverId: 'cain' } })
   expect(value.candidatePickers[SLOT]?.previewServerId).toBe('siroco')
+})
+
+function ocr(slot: number): OcrCaptureObservation {
+  return { slot, nickname: '파티원', candidateNicknames: ['파티원'], portrait: null }
+}
+
+it('캡처 machine이 처음 받은 OCR 관측 함수도 수동 조회한 슬롯은 건너뛰고 캡처를 끝내면 다시 넘긴다', async () => {
+  await act(async () => value.lookupSlot(SLOT, searchRow.characterName, 'anton'))
+  await act(async () => {
+    initial.observeOcr(ocr(SLOT))
+    initial.observeOcr(ocr(0))
+  })
+  expect(bridge.observe).toHaveBeenCalledExactlyOnceWith(ocr(0))
+
+  await act(async () => initial.end())
+  expect(value.manualSlots[SLOT]).toBe(false)
+  await act(async () => initial.observeOcr(ocr(SLOT)))
+  expect(bridge.observe).toHaveBeenLastCalledWith(ocr(SLOT))
 })
