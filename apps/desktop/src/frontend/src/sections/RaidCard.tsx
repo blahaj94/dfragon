@@ -1,5 +1,5 @@
 import { CardFrame, ProgressCircle, shapes } from '@dfragon/ui'
-import type { HTMLAttributes, Ref } from 'react'
+import type { ChangeEvent, HTMLAttributes, KeyboardEvent, ReactNode, Ref } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CardImage } from '../components/CardImage'
 import { HourglassIcon } from '../components/HourglassIcon'
@@ -8,7 +8,7 @@ import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { StatLine } from '../components/StatLine'
-import { useLookupDraft } from '../hooks/useLookupDraft'
+import { type LookupDraft, useLookupDraft } from '../hooks/useLookupDraft'
 import { useServerMenu } from '../hooks/useServerMenu'
 import type { SlotCardKey } from '../hooks/useSlotCardStore'
 import {
@@ -19,7 +19,7 @@ import {
 } from '../lib/card-presentation'
 import { toScoreView } from '../lib/card-score'
 import type { SlotCard } from '../lib/slot-cards'
-import type { SlotState } from '../types/cards'
+import type { CharacterTier, SlotState } from '../types/cards'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import { serverNames } from '../constants/servers'
 import { styles } from './RaidCard.style'
@@ -69,13 +69,10 @@ export function RaidCard({
   const characterFound = state === 'success' && character != null
   const nickname = characterFound ? undefined : card.nickname
   const draft = useLookupDraft({ cardKey, character, nickname, onLookup })
-  const serverMenu = useServerMenu()
-  const hasCharacter = characterFound && !draft.editing
-  const vacant = isVacantSlot(state)
   const busy = loading || state === 'pending'
   const cardStatus = getCharacterCardStatus(state)
-  const status = draft.inputNotice || notice || cardStatus
-  const message = draft.inputNotice || notice || (state === 'empty' ? cardStatus : '')
+  const slotNotice = draft.inputNotice || notice
+  const message = slotNotice || (state === 'empty' ? cardStatus : '')
   const frameState = getCharacterCardFrameState({
     state,
     editing: draft.active,
@@ -83,6 +80,62 @@ export function RaidCard({
   })
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
   const score = toScoreView(characterFound ? character.card : null, card.scorePending)
+
+  return (
+    <Seat slot={slot} move={move}>
+      <CardFrame as="article" state={frameState} aria-busy={busy}>
+        <div {...stylex.props(styles.body)}>
+          <PortraitWell tier={tier}>
+            {characterFound && <Portrait src={character.image} />}
+            {busy && <LookupProgress slot={slot} />}
+          </PortraitWell>
+          <div {...stylex.props(styles.column)}>
+            <div {...stylex.props(styles.header)}>
+              <LookupField slot={slot} tone={nameFieldTone(frameState, state)} draft={draft} />
+              {tier !== undefined && (
+                <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
+              )}
+              {frameState === 'selected' && <EditingDots label="이름 수정 중" />}
+              {frameState === 'failure' && <FailureMark label={cardStatus} />}
+              {frameState === 'waiting' && cardStatus !== '' && <WaitingMark label={cardStatus} />}
+              {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
+              <SlotNumber selected={frameState === 'selected'} tier={tier}>
+                {String(slot).padStart(2, '0')}
+              </SlotNumber>
+            </div>
+            {characterFound ? (
+              <AffiliationLine adventure={character.adventure} guild={character.guild}>
+                {message}
+              </AffiliationLine>
+            ) : (
+              <NoticeLine>{message}</NoticeLine>
+            )}
+            <StatLine
+              fame={characterFound ? character.fame : null}
+              score={score}
+              vacant={isVacantSlot(state)}
+              tier={tier}
+            />
+          </div>
+        </div>
+        {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
+        <CardAnnouncer>
+          {characterFound && !draft.editing ? character.name : slotNotice || cardStatus}
+        </CardAnnouncer>
+      </CardFrame>
+    </Seat>
+  )
+}
+
+function Seat({
+  slot,
+  move,
+  children
+}: {
+  slot: number
+  move: RaidCardMove
+  children: ReactNode
+}): React.JSX.Element {
   const { movable, drag, describedBy, ref, ...handlers } = move
 
   return (
@@ -104,134 +157,197 @@ export function RaidCard({
         drag === 'target' && styles.dragTarget
       )}
     >
-      <CardFrame as="article" state={frameState} aria-busy={busy}>
-        <div {...stylex.props(styles.body)}>
-          <div
-            {...stylex.props(
-              shapes.gridWell,
-              styles.well,
-              tier === 'top' && styles.wellTop,
-              tier === 'ranker' && styles.wellRanker
-            )}
-          >
-            {characterFound && (
-              <div {...stylex.props(styles.portrait)}>
-                <CardImage src={character.image} label="캐릭터" portrait />
-              </div>
-            )}
-            {busy && (
-              <div
-                role="status"
-                aria-label={`${slot}번 캐릭터 확인 중`}
-                {...stylex.props(styles.progress)}
-              >
-                <ProgressCircle size="24" tone="staticWhite" />
-              </div>
-            )}
-          </div>
-          <div {...stylex.props(styles.column)}>
-            <div {...stylex.props(styles.header)}>
-              <div {...stylex.props(styles.nameField)}>
-                <NameField
-                  aria-label={`${slot}번 캐릭터 이름`}
-                  tone={nameFieldTone(frameState, state)}
-                  value={draft.name}
-                  onFocus={draft.focusName}
-                  onBlur={draft.blurName}
-                  onChange={(event) => draft.changeName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      draft.submit()
-                    } else {
-                      serverMenu.openOnTab(event)
-                    }
-                  }}
-                  right={
-                    <ServerSelect
-                      variant="field"
-                      label={`${slot}번 서버`}
-                      value={draft.serverId}
-                      options={serverOptions}
-                      open={serverMenu.open}
-                      onOpenChange={serverMenu.setOpen}
-                      onValueChange={draft.changeServer}
-                    />
-                  }
-                />
-              </div>
-              {tier !== undefined && (
-                <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
-              )}
-              {frameState === 'selected' && (
-                <span role="img" aria-label="이름 수정 중" {...stylex.props(styles.dots)}>
-                  <span {...stylex.props(styles.dot)} />
-                  <span {...stylex.props(styles.dot, styles.dotSecond)} />
-                  <span {...stylex.props(styles.dot, styles.dotThird)} />
-                </span>
-              )}
-              {frameState === 'failure' && (
-                <span
-                  role="img"
-                  aria-label={cardStatus}
-                  {...stylex.props(styles.mark, shapes.cutTopRight, styles.alert)}
-                >
-                  !
-                </span>
-              )}
-              {frameState === 'waiting' && cardStatus !== '' && (
-                <span
-                  role="img"
-                  aria-label={cardStatus}
-                  {...stylex.props(styles.mark, shapes.cutTopRight, styles.waitingMark)}
-                >
-                  <HourglassIcon width="12" height="12" />
-                </span>
-              )}
-              {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
-              <span
-                aria-hidden="true"
-                {...stylex.props(
-                  styles.number,
-                  shapes.cutTopRight,
-                  frameState === 'selected' && styles.numberSelected,
-                  tier === 'top' && styles.numberTop,
-                  tier === 'ranker' && styles.numberRanker
-                )}
-              >
-                {String(slot).padStart(2, '0')}
-              </span>
-            </div>
-            <div title={message || undefined} {...stylex.props(styles.affiliation)}>
-              {characterFound && (
-                <>
-                  <span {...stylex.props(styles.adventure)}>{character.adventure}</span>
-                  <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
-                  <span {...stylex.props(styles.guild)}>{character.guild ?? MISSING_VALUE}</span>
-                  {message !== '' && <span {...stylex.props(shapes.srOnly)}>{message}</span>}
-                </>
-              )}
-              {!characterFound && message !== '' && (
-                <p {...stylex.props(styles.notice)}>{message}</p>
-              )}
-              {!characterFound && message === '' && (
-                <span aria-hidden="true" {...stylex.props(styles.affiliationPlaceholder)}>
-                  모험단
-                </span>
-              )}
-            </div>
-            <StatLine
-              fame={characterFound ? character.fame : null}
-              score={score}
-              vacant={vacant}
-              tier={tier}
-            />
-          </div>
-        </div>
-        {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
-        <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
-          {hasCharacter ? character?.name : status}
-        </span>
-      </CardFrame>
+      {children}
     </div>
+  )
+}
+
+function PortraitWell({
+  tier,
+  children
+}: {
+  tier: CharacterTier | undefined
+  children: ReactNode
+}): React.JSX.Element {
+  return (
+    <div
+      {...stylex.props(
+        shapes.gridWell,
+        styles.well,
+        tier === 'top' && styles.wellTop,
+        tier === 'ranker' && styles.wellRanker
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+function Portrait({ src }: { src: string | undefined }): React.JSX.Element {
+  return (
+    <div {...stylex.props(styles.portrait)}>
+      <CardImage src={src} label="캐릭터" portrait />
+    </div>
+  )
+}
+
+function LookupProgress({ slot }: { slot: number }): React.JSX.Element {
+  return (
+    <div role="status" aria-label={`${slot}번 캐릭터 확인 중`} {...stylex.props(styles.progress)}>
+      <ProgressCircle size="24" tone="staticWhite" />
+    </div>
+  )
+}
+
+function LookupField({
+  slot,
+  tone,
+  draft
+}: {
+  slot: number
+  tone: NameFieldTone
+  draft: LookupDraft
+}): React.JSX.Element {
+  const serverMenu = useServerMenu()
+  const handleNameChange = (event: ChangeEvent<HTMLInputElement>): void => {
+    draft.changeName(event.target.value)
+  }
+  const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
+    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+      draft.submit()
+
+      return
+    }
+
+    serverMenu.openOnTab(event)
+  }
+
+  return (
+    <div {...stylex.props(styles.nameField)}>
+      <NameField
+        aria-label={`${slot}번 캐릭터 이름`}
+        tone={tone}
+        value={draft.name}
+        onFocus={draft.focusName}
+        onBlur={draft.blurName}
+        onChange={handleNameChange}
+        onKeyDown={handleNameKeyDown}
+        right={
+          <ServerSelect
+            variant="field"
+            label={`${slot}번 서버`}
+            value={draft.serverId}
+            options={serverOptions}
+            open={serverMenu.open}
+            onOpenChange={serverMenu.setOpen}
+            onValueChange={draft.changeServer}
+          />
+        }
+      />
+    </div>
+  )
+}
+
+function EditingDots({ label }: { label: string }): React.JSX.Element {
+  return (
+    <span role="img" aria-label={label} {...stylex.props(styles.dots)}>
+      <span {...stylex.props(styles.dot)} />
+      <span {...stylex.props(styles.dot, styles.dotSecond)} />
+      <span {...stylex.props(styles.dot, styles.dotThird)} />
+    </span>
+  )
+}
+
+function FailureMark({ label }: { label: string }): React.JSX.Element {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      {...stylex.props(styles.mark, shapes.cutTopRight, styles.alert)}
+    >
+      !
+    </span>
+  )
+}
+
+function WaitingMark({ label }: { label: string }): React.JSX.Element {
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      {...stylex.props(styles.mark, shapes.cutTopRight, styles.waitingMark)}
+    >
+      <HourglassIcon width="12" height="12" />
+    </span>
+  )
+}
+
+function SlotNumber({
+  selected,
+  tier,
+  children
+}: {
+  selected: boolean
+  tier: CharacterTier | undefined
+  children: string
+}): React.JSX.Element {
+  return (
+    <span
+      aria-hidden="true"
+      {...stylex.props(
+        styles.number,
+        shapes.cutTopRight,
+        selected && styles.numberSelected,
+        tier === 'top' && styles.numberTop,
+        tier === 'ranker' && styles.numberRanker
+      )}
+    >
+      {children}
+    </span>
+  )
+}
+
+function AffiliationLine({
+  adventure,
+  guild,
+  children
+}: {
+  adventure: string
+  guild: string | null | undefined
+  children: string
+}): React.JSX.Element {
+  return (
+    <div title={children || undefined} {...stylex.props(styles.affiliation)}>
+      <span {...stylex.props(styles.adventure)}>{adventure}</span>
+      <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
+      <span {...stylex.props(styles.guild)}>{guild ?? MISSING_VALUE}</span>
+      {children !== '' && <span {...stylex.props(shapes.srOnly)}>{children}</span>}
+    </div>
+  )
+}
+
+function NoticeLine({ children }: { children: string }): React.JSX.Element {
+  if (children === '') {
+    return (
+      <div {...stylex.props(styles.affiliation)}>
+        <span aria-hidden="true" {...stylex.props(styles.affiliationPlaceholder)}>
+          모험단
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div title={children} {...stylex.props(styles.affiliation)}>
+      <p {...stylex.props(styles.notice)}>{children}</p>
+    </div>
+  )
+}
+
+function CardAnnouncer({ children }: { children: string }): React.JSX.Element {
+  return (
+    <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
+      {children}
+    </span>
   )
 }
