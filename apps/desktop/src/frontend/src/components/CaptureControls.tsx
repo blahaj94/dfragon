@@ -168,7 +168,6 @@ function DialogCorners({
 
 function StopCaptureButton({ onClick }: { onClick: () => void }): React.JSX.Element {
   function handleClick(): void {
-    // 클릭 이벤트가 stopCapture의 nextStatus 인자로 들어가지 않게 인자 없이 부른다.
     onClick()
   }
 

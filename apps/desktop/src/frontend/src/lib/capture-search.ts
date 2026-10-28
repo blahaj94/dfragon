@@ -203,7 +203,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   function publish(): void {
     options.onChange({
       ready: connection.isReady(),
-      captureActive: lifetime.getSnapshot().matches('active'),
       slots: getVisibleSearchSlots({
         captureId: lifetime.getSnapshot().context.captureId,
         snapshot,
