@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest'
-import { sameCharacterPortrait } from '../../../preload/common/search/ocr-input'
+import { sameOcrSearchInput } from '../../../preload/common/search/ocr-input'
+import type { CharacterPortrait } from '../../../preload/common/types/character'
 import { cropPartyPortrait } from './party-portrait'
 
 type PartyPortraitCropInput = Parameters<typeof cropPartyPortrait>[0]
@@ -17,6 +18,13 @@ function input(width = 1067, height = 600, x = 42, rasterScale = 1): PartyPortra
   }
 
   return { frame, nicknameRegion, rasterScale }
+}
+
+function samePortrait(left: CharacterPortrait, right: CharacterPortrait): boolean {
+  return sameOcrSearchInput(
+    { candidateNicknames: [], portrait: left },
+    { candidateNicknames: [], portrait: right }
+  )
 }
 
 // 첨부 원본에서 확인한 좌표와 크기만 사용하며 플레이어 이미지와 닉네임은 저장하지 않는다.
@@ -61,9 +69,9 @@ it('왕관, PC 표시와 테두리 변화는 같은 얼굴로 취급하고 유�
   const second = cropPartyPortrait(source)!
   second.image.rgba[(3 * 26 + 3) * 4] = 20
   second.image.rgba[(3 * 26 + 22) * 4] = 40
-  expect(sameCharacterPortrait(first, second)).toBe(true)
+  expect(samePortrait(first, second)).toBe(true)
   second.image.rgba[(13 * 26 + 13) * 4] = 60
-  expect(sameCharacterPortrait(first, second)).toBe(false)
+  expect(samePortrait(first, second)).toBe(false)
 })
 
 it('UI 100% 확대에서도 왕관과 PC 영역을 항상 가리고 아래 얼굴과 중앙은 비교한다', () => {

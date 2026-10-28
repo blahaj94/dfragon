@@ -20,8 +20,8 @@ describe('backend IPC adapter', () => {
   it('contract channel과 handler를 Electron에 등록한다', () => {
     const handler = vi.fn()
 
-    addHandler('message', handler)
+    addHandler('controlManualSearch', handler)
 
-    expect(ipcMain.handle).toHaveBeenCalledWith('message', handler)
+    expect(ipcMain.handle).toHaveBeenCalledWith('controlManualSearch', handler)
   })
 })

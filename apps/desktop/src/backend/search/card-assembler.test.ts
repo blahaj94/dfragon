@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { bufferCard, dealerCard } from '../../preload/common/search/card-test-fixture'
-import { characterCardSchema } from '../../preload/common/search/character-summary'
+import { parseSearchSnapshot } from '../../preload/common/search/snapshot'
+import { searchRow, searchSlot, withSearchSlot } from '../../preload/api/search-test-fixture'
 import type { CharacterDetails } from '../../preload/common/types/character'
 import { apiDetailsFromEngineInput, readEngineInput } from '../score/details-test-fixture'
 import type { ScoreEngine, ScoreEngineResult } from '../score/engine'
@@ -29,6 +30,26 @@ const bufferResult: ScoreEngineResult = {
   display: { role: 'buffer', switchingLevel: 2, buff30: 1874.5, buff50: 622 }
 }
 
+const selected = {
+  ...searchRow,
+  fame: 0,
+  level: null,
+  adventureName: null,
+  jobName: null,
+  jobGrowName: null,
+  imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1',
+  guildName: null,
+  equipmentScore: null
+}
+
+function acceptsCard(card: unknown): boolean {
+  const snapshot = withSearchSlot(
+    searchSlot({ state: 'success', rows: [searchRow], selected: { ...selected, card } as never })
+  )
+
+  return parseSearchSnapshot(snapshot) !== null
+}
+
 describe('API 카드와 엔진 결과 조립', () => {
   it('딜러 카드는 equipment 계산기로 상세 응답의 엔진 입력을 넘기고 점수를 채운다', () => {
     const details = apiDetailsFromEngineInput(readEngineInput('dealer-blade'), dealerCard)
@@ -47,7 +68,7 @@ describe('API 카드와 엔진 결과 조립', () => {
         versions: { package: '0.1.0', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
       }
     })
-    expect(characterCardSchema.safeParse(card).success).toBe(true)
+    expect(acceptsCard(card)).toBe(true)
   })
 
   it('버퍼 카드는 buff 계산기로 부르고 점수를 채운다', () => {
@@ -127,7 +148,7 @@ describe('API 카드와 엔진 결과 조립', () => {
       skipped,
       approximate: { value: 1650, source: 'legacy_fusion_policy_a', warning }
     })
-    expect(characterCardSchema.safeParse(card).success).toBe(true)
+    expect(acceptsCard(card)).toBe(true)
   })
 
   it('정확한 점수에 붙은 경고는 카드에 남기지 않고 점수만 채운다', () => {
@@ -137,7 +158,7 @@ describe('API 카드와 엔진 결과 조립', () => {
     const card = buildCharacterCard(details, score)
 
     expect(card?.score).toMatchObject({ value: 136617, skipped: null, approximate: null })
-    expect(characterCardSchema.safeParse(card).success).toBe(true)
+    expect(acceptsCard(card)).toBe(true)
   })
 
   it('엔진 실패이면 API가 보낸 점수를 지운다', () => {

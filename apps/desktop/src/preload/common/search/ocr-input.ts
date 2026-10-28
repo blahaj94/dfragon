@@ -4,7 +4,7 @@ import type { OcrSearchInput, RaidRowObservation } from '../types/search'
 const RGBA_CHANNELS = 4
 const ALPHA_CHANNEL = 3
 
-export function sameCharacterPortrait(
+function sameCharacterPortrait(
   left: CharacterPortrait | null,
   right: CharacterPortrait | null
 ): boolean {

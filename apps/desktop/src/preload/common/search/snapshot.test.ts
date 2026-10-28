@@ -7,7 +7,6 @@ import {
   withSearchSlot
 } from '../../api/search-test-fixture'
 import { SEARCH_SLOT_COUNTS, type SearchSlot } from '../types/search'
-import { characterCardSchema } from './character-summary'
 import { bufferCard, dealerCard } from './card-test-fixture'
 
 const selected = {
@@ -218,6 +217,14 @@ describe('얼굴로 확정하지 못한 선택의 후보', () => {
   })
 })
 
+function acceptsCard(card: unknown): boolean {
+  const snapshot = withSearchSlot(
+    searchSlot({ state: 'success', rows: [searchRow], selected: { ...selected, card } as never })
+  )
+
+  return parseSearchSnapshot(snapshot) !== null
+}
+
 describe('카드 strict 스키마', () => {
   it.each([
     ['추가 키', { ...dealerCard, imageUrl: 'https://img-api.neople.co.kr/df/items/x' }],
@@ -238,8 +245,8 @@ describe('카드 strict 스키마', () => {
       }
     ]
   ])('%s 카드를 거절한다', (_name, invalid) => {
-    expect(characterCardSchema.safeParse(dealerCard).success).toBe(true)
-    expect(characterCardSchema.safeParse(invalid).success).toBe(false)
+    expect(acceptsCard(dealerCard)).toBe(true)
+    expect(acceptsCard(invalid)).toBe(false)
   })
 
   it('요약의 카드가 스키마를 어기면 snapshot 전체를 renderer로 전달하지 않는다', () => {

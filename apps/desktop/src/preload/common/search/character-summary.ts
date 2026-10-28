@@ -53,15 +53,11 @@ function hasFixedServerAndImage(summary: z.infer<z.ZodObject<typeof characterSum
   )
 }
 
-export const characterSummarySchema = z
-  .strictObject(characterSummaryShape)
-  .refine(hasFixedServerAndImage)
-
 const characterRole = z.enum(['dealer', 'buffer']).nullable()
 
 export const apiCharacterCardSchema = z.object({ role: characterRole })
 
-export const characterCardSchema = z.strictObject({
+const characterCardSchema = z.strictObject({
   role: characterRole,
   score: z
     .strictObject({
