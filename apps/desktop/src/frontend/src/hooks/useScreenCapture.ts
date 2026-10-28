@@ -4,11 +4,13 @@ import { usePartyCapture, type PartyCapture } from './usePartyCapture'
 import { useRaidCapture, type RaidCapture } from './useRaidCapture'
 import { useIsPartyMode, useIsRaidMode, useSearchModeStore } from './useSearchModeStore'
 
-export function useScreenCapture(): {
+export type ScreenCapture = {
   partyCapture: PartyCapture
   raidCapture: RaidCapture
   controls: { phase: CapturePhase; status: string }
-} {
+}
+
+export function useScreenCapture(): ScreenCapture {
   const searchMode = useSearchModeStore((state) => state.searchMode)
   const isPartyMode = useIsPartyMode()
   const isRaidMode = useIsRaidMode()
