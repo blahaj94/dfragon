@@ -1,9 +1,9 @@
 import { assign, fromPromise, setup, type SnapshotFrom } from 'xstate'
-import type { CapturePhase, PartyOcrWorker } from '../types/capture'
+import type { CapturePhase } from '../types/capture'
 import type { RaidFrameResult, RaidFrameRow } from '../../../preload/common/types/capture'
 import type { RaidValueColumn } from '../../../preload/common/types/search'
 import type { OcrCaptureObservation } from './capture-search'
-import { createPartyOcrWorker } from './ocr'
+import { recognizeWithOcrWorker } from './ocr-worker-recognition'
 import { recognizeRaidRows, type RaidSlotRecognition } from './raid-recognition'
 import { reportRendererDiagnostic, showRejectedOcrNickname } from './runtime-diagnostics'
 
@@ -61,31 +61,10 @@ export const raidCaptureMachine = setup({
         input.effects.readFrame(input.captureId)
     ),
     recognize: fromPromise(
-      async ({
-        input,
-        signal
-      }: {
-        input: readonly (RaidFrameRow | null)[]
-        signal: AbortSignal
-      }) => {
-        let worker: PartyOcrWorker | null = null
-        let status = '글자 인식을 준비하지 못했습니다. Alt+R을 눌러 다시 인식해 주세요.'
-        try {
-          try {
-            worker = await createPartyOcrWorker(signal)
-            signal.throwIfAborted()
-            status = OCR_FAILED_STATUS
-            const results = await recognizeRaidRows(input, worker.recognize)
-            signal.throwIfAborted()
-
-            return results
-          } finally {
-            await worker?.terminate()
-          }
-        } catch {
-          throw new Error(status)
-        }
-      }
+      ({ input, signal }: { input: readonly (RaidFrameRow | null)[]; signal: AbortSignal }) =>
+        recognizeWithOcrWorker(signal, OCR_FAILED_STATUS, (recognizeText) =>
+          recognizeRaidRows(input, recognizeText)
+        )
     )
   },
   guards: {
