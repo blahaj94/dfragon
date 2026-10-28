@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
+import { stubIdleDesktopBridges } from './testing/fixtures/idle-desktop-bridges'
 import { CAPTURE_ID, searchSnapshot } from '../../preload/api/search-test-fixture'
 import type { SearchApi } from '../../preload/common/types/search'
 import { emptySearchSlots } from './lib/slots'
@@ -14,6 +15,7 @@ let root: Root
 let container: HTMLDivElement
 
 beforeEach(() => {
+  stubIdleDesktopBridges()
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   vi.stubGlobal(
     'matchMedia',

@@ -3,6 +3,7 @@ import { act } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createRendererFixture } from './testing/fixtures/search-renderer-test-fixture'
 import App from './App'
+import { stubIdleDesktopBridges } from './testing/fixtures/idle-desktop-bridges'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
 import { emptySearchSlots } from './lib/slots'
 import { searchSlot, searchSnapshot } from '../../preload/api/search-test-fixture'
@@ -32,6 +33,7 @@ const recognized: RaidSlotRecognition[] = [
 ]
 
 beforeEach(() => {
+  stubIdleDesktopBridges()
   vi.stubGlobal(
     'matchMedia',
     vi.fn(() => ({ matches: false }))
