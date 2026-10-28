@@ -1,5 +1,10 @@
 import { useId } from 'react'
 import { BoardHeader } from '../../components/BoardHeader'
+import { BoardNotice } from '../../components/BoardNotice'
+import { BoardTitle } from '../../components/BoardTitle'
+import { CaptureButton } from '../../components/CaptureButton'
+import { LastCaptureTime } from '../../components/LastCaptureTime'
+import { SnapshotToggle } from '../../components/SnapshotToggle'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import { useBoardHeaderPortal } from '../../hooks/useBoardHeaderPortal'
 import { useScreenCaptureContext } from '../../hooks/useScreenCaptureContext'
@@ -37,11 +42,33 @@ export function RaidScreen({ hidden }: { hidden: boolean }): React.JSX.Element {
         !hidden &&
         renderBoardHeader(
           <BoardHeader
-            target="공대"
-            filledCount={filledSlotCount(cards)}
-            notice={notice}
-            capture={capture}
-            snapshot={snapshot}
+            start={
+              <>
+                <BoardTitle
+                  label="공대"
+                  filled={filledSlotCount(cards)}
+                  total={cards.length}
+                  round={snapshot.round}
+                />
+                <BoardNotice text={notice} />
+              </>
+            }
+            end={
+              <>
+                <LastCaptureTime at={capture.lastCompletedAt} />
+                <SnapshotToggle
+                  label="공대 모험단 순번 스냅샷"
+                  active={snapshot.active}
+                  onTake={snapshot.take}
+                  onClear={snapshot.clear}
+                />
+                <CaptureButton
+                  target="공대"
+                  disabled={!capture.canStartCapture}
+                  onClick={capture.startRound}
+                />
+              </>
+            }
           />
         )
       }

@@ -4,6 +4,11 @@ import { CaptureControls } from '../../components/CaptureControls'
 import { MainNav } from '../../components/MainNav'
 import { BoardHeader } from '../../components/BoardHeader'
 import { BoardHeaderSlot } from '../../components/BoardHeaderSlot'
+import { BoardNotice } from '../../components/BoardNotice'
+import { BoardTitle } from '../../components/BoardTitle'
+import { CaptureButton } from '../../components/CaptureButton'
+import { LastCaptureTime } from '../../components/LastCaptureTime'
+import { SnapshotToggle } from '../../components/SnapshotToggle'
 import { TopBar } from '../../components/TopBar'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { RaidPage } from '../../pages/raid/RaidPage'
@@ -183,19 +188,37 @@ export function Preview(): React.JSX.Element {
             {searchMode === 'party' &&
               renderBoardHeader(
                 <BoardHeader
-                  target="파티"
-                  filledCount={partySlots.filter((state) => state === 'success').length}
-                  notice=""
-                  capture={{
-                    lastCompletedAt: captureState === 'complete' ? completedAt : null,
-                    canStartCapture: canCapture,
-                    startRound: () => {
-                      setCaptureState('complete')
-                      setCompletedAt(Date.now())
-                      setPartyRound((round) => round + 1)
-                    }
-                  }}
-                  snapshot={partySnapshot}
+                  start={
+                    <>
+                      <BoardTitle
+                        label="파티"
+                        filled={partySlots.filter((state) => state === 'success').length}
+                        total={partySlots.length}
+                        round={partySnapshot.round}
+                      />
+                      <BoardNotice text="" />
+                    </>
+                  }
+                  end={
+                    <>
+                      <LastCaptureTime at={captureState === 'complete' ? completedAt : null} />
+                      <SnapshotToggle
+                        label="파티 모험단 순번 스냅샷"
+                        active={partySnapshot.active}
+                        onTake={partySnapshot.take}
+                        onClear={partySnapshot.clear}
+                      />
+                      <CaptureButton
+                        target="파티"
+                        disabled={!canCapture}
+                        onClick={() => {
+                          setCaptureState('complete')
+                          setCompletedAt(Date.now())
+                          setPartyRound((round) => round + 1)
+                        }}
+                      />
+                    </>
+                  }
                 />
               )}
             <PartyPage
@@ -214,19 +237,37 @@ export function Preview(): React.JSX.Element {
                 id={raidCardsId}
                 header={renderBoardHeader(
                   <BoardHeader
-                    target="공대"
-                    filledCount={filledSlotCount(raidCards)}
-                    notice=""
-                    capture={{
-                      lastCompletedAt: captureState === 'complete' ? completedAt : null,
-                      canStartCapture: canCapture,
-                      startRound: () => {
-                        setCaptureState('complete')
-                        setCompletedAt(Date.now())
-                        setRaidRound((round) => round + 1)
-                      }
-                    }}
-                    snapshot={raidSnapshot}
+                    start={
+                      <>
+                        <BoardTitle
+                          label="공대"
+                          filled={filledSlotCount(raidCards)}
+                          total={raidCards.length}
+                          round={raidSnapshot.round}
+                        />
+                        <BoardNotice text="" />
+                      </>
+                    }
+                    end={
+                      <>
+                        <LastCaptureTime at={captureState === 'complete' ? completedAt : null} />
+                        <SnapshotToggle
+                          label="공대 모험단 순번 스냅샷"
+                          active={raidSnapshot.active}
+                          onTake={raidSnapshot.take}
+                          onClear={raidSnapshot.clear}
+                        />
+                        <CaptureButton
+                          target="공대"
+                          disabled={!canCapture}
+                          onClick={() => {
+                            setCaptureState('complete')
+                            setCompletedAt(Date.now())
+                            setRaidRound((round) => round + 1)
+                          }}
+                        />
+                      </>
+                    }
                   />
                 )}
                 slots={raidCards}
