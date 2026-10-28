@@ -91,7 +91,6 @@ jobs:
           echo "::add-mask::$basic"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $basic" \
             submodule update --init --checkout --depth 1 packages/models/score-engine
-      # --require fails a release build that cannot place the score engine.
       - name: Prepare score engine
         run: pnpm --filter @dfragon/desktop prepare:score-engine --require
       - run: pnpm --filter @dfragon/desktop build:distribution
@@ -99,7 +98,6 @@ jobs:
         shell: bash
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
-        # Release builds keep the electron-builder default 7z level 9; test builds lower it in their own workflow.
         run: pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$RELEASE_VERSION"
       - name: Write portable executable checksum
         shell: bash

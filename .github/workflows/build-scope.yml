@@ -1,8 +1,5 @@
 name: Build Scope
 
-# Windows Test Build and Product Images call this workflow so every build follows one rule: the
-# PR title scope is (build), the PR is from Dependabot, or the run was started by hand. Main pushes
-# read the title of the merged PR.
 on:
   workflow_call:
     outputs:
@@ -20,7 +17,6 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      # Main pushes look up the merged PR of the pushed commit.
       pull-requests: read
     outputs:
       build: ${{ steps.scope.outputs.build }}
