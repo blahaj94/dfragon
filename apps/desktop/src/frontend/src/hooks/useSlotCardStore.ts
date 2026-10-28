@@ -6,7 +6,7 @@ export type StoredLookupDraft = {
   name: string
   serverId: string
   dirty: boolean
-  submitted: { nickname: string; serverId: string } | null
+  submitted: { name: string; serverId: string } | null
   inputNotice: string
   source: { name: string | undefined; serverId: string | undefined }
 }

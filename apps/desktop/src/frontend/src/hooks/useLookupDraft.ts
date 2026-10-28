@@ -7,6 +7,8 @@ import {
   useSlotCardStore
 } from './useSlotCardStore'
 
+type LookupTarget = { name?: string; serverId?: string }
+
 type LookupDraft = {
   name: string
   serverId: string
@@ -74,7 +76,7 @@ export function useLookupDraft({
       ...base,
       name: trimmed,
       dirty: false,
-      submitted: { nickname: trimmed, serverId },
+      submitted: { name: trimmed, serverId },
       inputNotice: ''
     })
     onLookup?.(trimmed, serverId)
@@ -123,21 +125,33 @@ function createDraft({
 function followSource(
   draft: StoredLookupDraft,
   source: StoredLookupDraft['source'],
-  character?: Pick<CardCharacter, 'name' | 'serverId'>
+  character?: LookupTarget
 ): StoredLookupDraft {
-  if (draft.source.name === source.name && draft.source.serverId === source.serverId) {
+  if (isSameTarget(draft.source, source)) {
     return draft
   }
-  const acceptsSource =
-    draft.submitted === null ||
-    (character?.name === draft.submitted.nickname &&
-      character?.serverId === draft.submitted.serverId)
-  if (draft.dirty || !acceptsSource) {
+
+  if (keepsUserInput(draft, character)) {
     return { ...draft, source }
   }
-
   const name = source.name ?? draft.name
   const serverId = source.serverId ?? draft.serverId
 
   return { ...draft, source, name, serverId }
+}
+
+function keepsUserInput(draft: StoredLookupDraft, character?: LookupTarget): boolean {
+  if (draft.dirty) {
+    return true
+  }
+
+  if (draft.submitted === null) {
+    return false
+  }
+
+  return !isSameTarget(draft.submitted, character ?? {})
+}
+
+function isSameTarget(a: LookupTarget, b: LookupTarget): boolean {
+  return a.name === b.name && a.serverId === b.serverId
 }
