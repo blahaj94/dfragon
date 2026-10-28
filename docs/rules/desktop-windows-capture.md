@@ -39,8 +39,8 @@ Desktop은 OCR 자료를 수집하거나 업로드하지 않는다. Alt+Print Sc
 
 ## Electron media 권한의 한계
 
-Electron **44.9.0**의 `RequestMediaAccessPermission`은 장치 camera/microphone에만 `mediaTypes`의 `video`/`audio`를 채운다. 정상 display capture와 legacy desktop `getUserMedia`는 모두 `media` 요청과 빈 배열을 사용할 수 있다. 허용 뒤 display 경로는 `ChooseDisplayMediaDevice`로 가지만 legacy 경로는 renderer가 요청한 source를 별도로 처리한다. 따라서 빈 배열은 정상 display API나 선택 source, gesture의 증거가 아니다. [공식 media 처리 source](https://raw.githubusercontent.com/electron/electron/v44.9.0/shell/browser/web_contents_permission_helper.cc)
+Electron **44.9.3**의 `RequestMediaAccessPermission`은 장치 camera/microphone에만 `mediaTypes`의 `video`/`audio`를 채운다. 정상 display capture와 legacy desktop `getUserMedia`는 모두 `media` 요청과 빈 배열을 사용할 수 있다. 허용 뒤 display 경로는 `ChooseDisplayMediaDevice`로 가지만 legacy 경로는 renderer가 요청한 source를 별도로 처리한다. 따라서 빈 배열은 정상 display API나 선택 source, gesture의 증거가 아니다. [공식 media 처리 source](https://raw.githubusercontent.com/electron/electron/v44.9.3/shell/browser/web_contents_permission_helper.cc)
 
-공개 `MediaAccessPermissionRequest`에는 API 종류, source, gesture를 구별할 field가 없다. 그 정보로 legacy 경로를 확실히 차단한다고 주장하지 않는다. [공개 요청 구조](https://raw.githubusercontent.com/electron/electron/v44.9.0/docs/api/structures/media-access-permission-request.md)
+공개 `MediaAccessPermissionRequest`에는 API 종류, source, gesture를 구별할 field가 없다. 그 정보로 legacy 경로를 확실히 차단한다고 주장하지 않는다. [공개 요청 구조](https://raw.githubusercontent.com/electron/electron/v44.9.3/docs/api/structures/media-access-permission-request.md)
 
-Custom request/check handler가 없으면 media 요청과 검사가 기본 허용될 수 있다. 따라서 제품은 handler를 제거하지 않고 명시적으로 거절한다. [공식 permission manager](https://raw.githubusercontent.com/electron/electron/v44.9.0/shell/browser/electron_permission_manager.cc)
+Custom request/check handler가 없으면 media 요청과 검사가 기본 허용될 수 있다. 따라서 제품은 handler를 제거하지 않고 명시적으로 거절한다. [공식 permission manager](https://raw.githubusercontent.com/electron/electron/v44.9.3/shell/browser/electron_permission_manager.cc)
