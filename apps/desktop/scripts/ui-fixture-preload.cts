@@ -34,4 +34,29 @@ contextBridge.exposeInMainWorld('diagnostics', {
 })
 contextBridge.exposeInMainWorld('desktopShortcut', { onDesktopShortcut: () => () => {} })
 
+const blockedSearch = {
+  controlCharacterSearch: async () => {
+    throw new Error('UI fixture must not run character search')
+  },
+  onCharacterSearchChanged: () => () => {}
+}
+contextBridge.exposeInMainWorld('search', blockedSearch)
+contextBridge.exposeInMainWorld('manualSearch', blockedSearch)
+contextBridge.exposeInMainWorld('raidSearch', {
+  ...blockedSearch,
+  notifyOcrCandidatesDetected: async () => {
+    throw new Error('UI fixture must not run recognition')
+  },
+  readCaptureFrame: async () => {
+    throw new Error('UI fixture must not read capture frames')
+  }
+})
+contextBridge.exposeInMainWorld('updateNotice', {
+  getUpdateNotice: async () => ({ revision: 0, notice: null }),
+  dismissUpdateNotice: async () => ({ revision: 0, notice: null }),
+  openUpdateRelease: async () => {},
+  onUpdateNoticeChanged: () => () => {}
+})
+contextBridge.exposeInMainWorld('windowChrome', { setContentHeight: async () => {} })
+
 ipcRenderer.send('ui-fixture-ready')

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 
 export function useRestartShortcut(enabled: boolean, startRound: () => void): void {
   useEffect(() => {
-    if (!enabled || window.desktopShortcut === undefined) {
+    if (!enabled) {
       return
     }
 

@@ -30,7 +30,7 @@ export function useRaidSearch(): RaidSearch {
   } = useManualCharacterLookup(
     window.raidSearch,
     SEARCH_SLOT_COUNTS.raid,
-    window.raidSearch?.notifyOcrCandidatesDetected
+    window.raidSearch.notifyOcrCandidatesDetected
   )
   const manualSlotsRef = useRef(new Set<number>())
   const [manualSlots, setManualSlots] = useState<readonly boolean[]>(emptyManualSlots)

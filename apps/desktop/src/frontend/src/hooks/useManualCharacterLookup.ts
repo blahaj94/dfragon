@@ -14,7 +14,7 @@ import type {
 } from '../../../preload/common/types/search'
 
 export function useManualCharacterLookup(
-  api: SearchApi | undefined,
+  api: SearchApi,
   slotCount: SearchSlotCount,
   notifyOcr?: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
 ): {
@@ -50,9 +50,6 @@ export function useManualCharacterLookup(
   }, [slotCount])
 
   useEffect(() => {
-    if (api === undefined) {
-      return
-    }
     const connection = createCaptureSearch({
       api,
       notifyOcr,
