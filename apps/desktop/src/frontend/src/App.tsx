@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { useScreenCapture } from './hooks/useScreenCapture'
-import { CaptureControls } from './components/CaptureControls'
-import { TopBar } from './components/TopBar'
-import { MainNav, type SearchMode } from './components/MainNav'
+import { AppTopBar } from './components/AppTopBar'
+import type { SearchMode } from './components/MainNav'
 import { PartyScreen } from './pages/party/PartyScreen'
 import { RaidScreen } from './pages/raid/RaidScreen'
 import { useMainWindowHeight } from './hooks/useMainWindowHeight'
-import { UpdateNoticeSlot } from './components/UpdateNoticeSlot'
 import { MAIN_WINDOW_HEIGHTS } from './constants/main-window-heights'
 import { styles } from './App.style'
 
@@ -21,13 +19,12 @@ function App(): React.JSX.Element {
 
   return (
     <main {...stylex.props(styles.app)}>
-      <TopBar
-        nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
+      <AppTopBar
+        searchMode={searchMode}
+        onSearchModeChange={setSearchMode}
         boardRef={setBoardSlot}
-        notice={<UpdateNoticeSlot />}
-        capture={
-          <CaptureControls capture={partyCapture} phase={controls.phase} status={controls.status} />
-        }
+        capture={partyCapture}
+        controls={controls}
       />
       <div {...stylex.props(styles.content)}>
         <div {...stylex.props(styles.page)}>
