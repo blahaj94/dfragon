@@ -18,7 +18,7 @@ export function TopBar({
   nav: ReactNode
   /** 화면 머리 자리 요소를 받는다. 각 화면이 이 요소에 React portal로 머리를 그린다. */
   boardRef: Ref<HTMLDivElement>
-  /** 새 버전 알림 칩. 알릴 새 버전이 없으면 비운다. */
+  /** 새 버전 알림 칩 자리. 알릴 새 버전이 없으면 아무것도 그리지 않는 요소를 넘기거나 비운다. */
   notice?: ReactNode
   /** 게임 연결 상태 칩. 누르면 캡처할 창을 고르는 대화상자를 연다. */
   capture: ReactNode

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   formatPartyCaptureStatus,
   getCaptureControlState,
-  getRaidScreenCapture
+  getRaidScreenCapture,
+  getTopBarCaptureControls
 } from './capture-presentation'
 
 describe('getCaptureControlState', () => {
@@ -45,6 +46,75 @@ describe('getRaidScreenCapture', () => {
         hasDetectedSource: true
       }).tone
     ).toBe('danger')
+  })
+})
+
+describe('getTopBarCaptureControls', () => {
+  const input = {
+    party: {
+      phase: 'selected',
+      status: '파티 문구',
+      sourceReady: true,
+      selectedSourceId: 'window:1',
+      connectionFailed: false
+    },
+    raid: { phase: 'recognizing', status: '공대 문구' }
+  } as const
+
+  it('같은 입력에서 보이는 화면에 따라 파티 또는 공대 회차의 단계와 문구를 고른다', () => {
+    expect(getTopBarCaptureControls({ ...input, searchMode: 'party' })).toEqual({
+      phase: 'selected',
+      status: '파티 문구'
+    })
+    expect(getTopBarCaptureControls({ ...input, searchMode: 'raid' })).toEqual({
+      phase: 'recognizing',
+      status: '공대 문구'
+    })
+  })
+
+  it('캡처 연결 실패 문구가 회차 문구보다 우선하고 단계는 화면의 단계를 둔다', () => {
+    const failed = {
+      ...input,
+      party: { ...input.party, connectionFailed: true }
+    }
+
+    expect(getTopBarCaptureControls({ ...failed, searchMode: 'raid' })).toEqual({
+      phase: 'recognizing',
+      status: '캡처 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
+    })
+    expect(
+      getTopBarCaptureControls({
+        ...failed,
+        searchMode: 'party',
+        party: { ...failed.party, selectedSourceId: '' }
+      })
+    ).toEqual({
+      phase: 'selected',
+      status: '캡처 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
+    })
+  })
+
+  it('게임 창을 고르기 전에는 문구를 비우고 단계는 화면의 단계를 둔다', () => {
+    const unselected = {
+      ...input,
+      party: { ...input.party, selectedSourceId: '' }
+    }
+
+    expect(getTopBarCaptureControls({ ...unselected, searchMode: 'party' })).toEqual({
+      phase: 'selected',
+      status: ''
+    })
+  })
+
+  it('공대 화면에서 창이 준비됐고 공대 회차 전이면 단계를 selected로 둔다', () => {
+    expect(
+      getTopBarCaptureControls({
+        ...input,
+        searchMode: 'raid',
+        party: { ...input.party, phase: 'idle' },
+        raid: { phase: 'idle', status: '' }
+      })
+    ).toEqual({ phase: 'selected', status: '' })
   })
 })
 

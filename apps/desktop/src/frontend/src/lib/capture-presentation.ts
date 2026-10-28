@@ -88,6 +88,45 @@ export function getRaidScreenCapture({
   return { phase: raid.phase, status: raid.status }
 }
 
+/**
+ * 상단 바 캡처 컨트롤이 보일 단계와 안내 문구를 고른다. 단계와 회차 문구는 `searchMode`의 화면을 따르고,
+ * 문구는 캡처 연결 실패가 회차 문구보다 우선하며 게임 창을 고르기 전에는 비운다. 연결 실패나 창 미선택이어도
+ * 단계는 화면의 단계를 그대로 둔다.
+ */
+export function getTopBarCaptureControls({
+  searchMode,
+  party,
+  raid
+}: {
+  searchMode: 'party' | 'raid'
+  party: {
+    phase: CapturePhase
+    status: string
+    sourceReady: boolean
+    selectedSourceId: string
+    connectionFailed: boolean
+  }
+  raid: { phase: CapturePhase; status: string }
+}): { phase: CapturePhase; status: string } {
+  const screenCapture =
+    searchMode === 'raid'
+      ? getRaidScreenCapture({ party, raid })
+      : { phase: party.phase, status: party.status }
+
+  if (party.connectionFailed) {
+    return {
+      phase: screenCapture.phase,
+      status: '캡처 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
+    }
+  }
+
+  if (!party.selectedSourceId) {
+    return { phase: screenCapture.phase, status: '' }
+  }
+
+  return screenCapture
+}
+
 // 상태를 첫 줄에 두고 원래 슬롯 번호와 닉네임 원문을 유지해 표시 문구를 만든다.
 export function formatPartyCaptureStatus({
   status,
