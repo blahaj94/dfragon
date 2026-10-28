@@ -1,9 +1,9 @@
 import { useId, useMemo, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { createPortal } from 'react-dom'
 import { CaptureControls } from '../../components/CaptureControls'
 import { MainNav } from '../../components/MainNav'
 import { BoardHeader } from '../../components/BoardHeader'
+import { BoardHeaderSlot } from '../../components/BoardHeaderSlot'
 import { TopBar } from '../../components/TopBar'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { RaidPage } from '../../pages/raid/RaidPage'
@@ -24,6 +24,7 @@ import {
   tierPreviewCharacters
 } from './fixture'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
+import { useBoardHeaderPortal } from '../../hooks/useBoardHeaderPortal'
 import { useSearchModeStore } from '../../hooks/useSearchModeStore'
 import type { CardCharacter } from '../../types/cards'
 import { createSeatOrder, seatValuesToSlotOrder, swapSeats } from '../../lib/raid-seats'
@@ -31,7 +32,7 @@ import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
 import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
 
 export function Preview(): React.JSX.Element {
-  const [boardSlot, setBoardSlot] = useState<HTMLDivElement | null>(null)
+  const { renderBoardHeader } = useBoardHeaderPortal()
   const [scenario, setScenario] = useState('states')
   const [captureState, setCaptureState] = useState('idle')
   const [source, setSource] = useState('')
@@ -153,7 +154,7 @@ export function Preview(): React.JSX.Element {
       <main {...stylex.props(styles.app, styles.windowHeight(windowHeight))}>
         <TopBar
           start={<MainNav />}
-          centerRef={setBoardSlot}
+          center={<BoardHeaderSlot />}
           end={
             <CaptureControls
               capture={{
@@ -180,8 +181,7 @@ export function Preview(): React.JSX.Element {
         <div {...stylex.props(styles.content)}>
           <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
             {searchMode === 'party' &&
-              boardSlot != null &&
-              createPortal(
+              renderBoardHeader(
                 <BoardHeader
                   target="파티"
                   filledCount={partySlots.filter((state) => state === 'success').length}
@@ -196,8 +196,7 @@ export function Preview(): React.JSX.Element {
                     }
                   }}
                   snapshot={partySnapshot}
-                />,
-                boardSlot
+                />
               )}
             <PartyPage
               slots={partyCards}
@@ -213,27 +212,23 @@ export function Preview(): React.JSX.Element {
             <div {...stylex.props(styles.page)}>
               <RaidPage
                 id={raidCardsId}
-                header={
-                  boardSlot != null &&
-                  createPortal(
-                    <BoardHeader
-                      target="공대"
-                      filledCount={filledSlotCount(raidCards)}
-                      notice=""
-                      capture={{
-                        lastCompletedAt: captureState === 'complete' ? completedAt : null,
-                        canStartCapture: canCapture,
-                        startRound: () => {
-                          setCaptureState('complete')
-                          setCompletedAt(Date.now())
-                          setRaidRound((round) => round + 1)
-                        }
-                      }}
-                      snapshot={raidSnapshot}
-                    />,
-                    boardSlot
-                  )
-                }
+                header={renderBoardHeader(
+                  <BoardHeader
+                    target="공대"
+                    filledCount={filledSlotCount(raidCards)}
+                    notice=""
+                    capture={{
+                      lastCompletedAt: captureState === 'complete' ? completedAt : null,
+                      canStartCapture: canCapture,
+                      startRound: () => {
+                        setCaptureState('complete')
+                        setCompletedAt(Date.now())
+                        setRaidRound((round) => round + 1)
+                      }
+                    }}
+                    snapshot={raidSnapshot}
+                  />
+                )}
                 slots={raidCards}
                 seats={{
                   seatOrder,

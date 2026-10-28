@@ -31,7 +31,6 @@ export const styles = stylex.create({
   mark: { width: 24, height: 24, flexShrink: 0, backgroundColor: colors.brandLogo },
   name: { display: { default: 'inline', [HIDE_NAME]: 'none' }, whiteSpace: 'nowrap' },
   divider: { width: 1, height: 24, flexShrink: 0, backgroundColor: colors.borderDefault },
-  board: { display: 'flex', alignItems: 'center', flexGrow: 1, minWidth: 0 },
   status: {
     display: 'flex',
     alignItems: 'center',

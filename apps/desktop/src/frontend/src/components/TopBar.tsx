@@ -1,16 +1,16 @@
 import { PRODUCT_NAME } from '@dfragon/lib'
 import { shapes, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
-import type { ReactNode, Ref } from 'react'
+import type { ReactNode } from 'react'
 import { styles } from './TopBar.style'
 
 export function TopBar({
   start,
-  centerRef,
+  center,
   end
 }: {
   start: ReactNode
-  centerRef: Ref<HTMLDivElement>
+  center: ReactNode
   end: ReactNode
 }): React.JSX.Element {
   return (
@@ -24,7 +24,7 @@ export function TopBar({
       </div>
       <span aria-hidden="true" {...stylex.props(styles.divider)} />
       {start}
-      <div ref={centerRef} {...stylex.props(styles.board)} />
+      {center}
       <span {...stylex.props(styles.status)}>{end}</span>
     </header>
   )
