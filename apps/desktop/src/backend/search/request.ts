@@ -42,9 +42,9 @@ export type IdentificationAdapters = {
 
 export type SearchRuntime = {
   clock: MonotonicClock
-  identification?: IdentificationAdapters
+  identification: IdentificationAdapters
   ocrIdentification?: 'portrait' | 'raid'
-  score?: ScoreEngine
+  score: ScoreEngine
 }
 export type SearchOutcome =
   | {
@@ -93,13 +93,6 @@ function displayNumber(value: CharacterJsonValue | undefined): number | null {
  */
 export async function runSearchRequest(input: RequestInput): Promise<SearchOutcome> {
   const adapters = input.runtime.identification
-  if (adapters === undefined) {
-    return {
-      kind: 'failure',
-      error: { code: 'NEOPLE_UNAVAILABLE', retryAfterSeconds: null },
-      retryAfterReceivedAt: null
-    }
-  }
   const outcome = await runSearchOperation(
     {
       clock: input.runtime.clock,
@@ -163,13 +156,6 @@ export async function runDetailsRequest(input: {
   isCurrent: () => boolean
 }): Promise<DetailsOutcome> {
   const adapters = input.runtime.identification
-  if (adapters === undefined) {
-    return {
-      kind: 'failure',
-      error: { code: 'NEOPLE_UNAVAILABLE', retryAfterSeconds: null },
-      retryAfterReceivedAt: null
-    }
-  }
   const outcome = await runSearchOperation(
     {
       clock: input.runtime.clock,
@@ -208,12 +194,12 @@ async function loadDetailsSummary(
   base: SelectedCharacterSummary,
   adapters: IdentificationAdapters,
   execution: SearchOperation,
-  score: ScoreEngine | undefined
+  score: ScoreEngine
 ): Promise<SelectedCharacterSummary> {
   const identity = { serverId: base.serverId, characterId: base.characterId }
   const details = await execution.run((signal) => adapters.details({ ...identity, signal }))
   // 엔진 호출도 같은 예산과 취소 판정 안에서 실행해 늦은 결과를 버린다.
-  const card = await execution.run(async () => buildCharacterCard(details, score ?? null))
+  const card = await execution.run(async () => buildCharacterCard(details, score))
   const character = details.character
   const adventureName = displayText(character.adventureName)
   const jobName = displayText(character.jobName)
