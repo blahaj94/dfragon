@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseSearchControl, parseSearchObservation } from './commands'
 import { deferred } from '../lib/async-test-fixture'
-import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
+import {
+  candidate,
+  candidateResponse,
+  createSearchFixture,
+  jsonResponse
+} from './search-test-fixture'
 
 const captureId = '00000000-0000-4000-8000-000000000011'
 const requestId = '00000000-0000-4000-8000-000000000012'
@@ -88,26 +93,49 @@ describe('검색 IPC 명령 입력 경계', () => {
   })
 
   it.each([
-    ['캡처', 'capture', 'controlCharacterSearch', 'notifyStableNicknameDetected'],
-    ['직접 검색', 'manual', 'controlManualSearch', 'notifyManualNickname']
+    ['캡처', 'capture', 'controlCharacterSearch'],
+    ['직접 검색', 'manual', 'controlManualSearch']
   ] as const)(
     '%s의 잘못된 명령은 현재 요청을 취소하거나 상태를 발행하지 않는다',
-    async (_name, kind, controlChannel, observationChannel) => {
+    async (_name, kind, controlChannel) => {
       const fixture = await createSearchFixture(kind)
       const response = deferred<Response>()
       fixture.fetchSearch.mockReturnValueOnce(response.promise)
-      await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+      await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
       await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
       const pending = await fixture.read()
       const request = new Request(...fixture.fetchSearch.mock.calls[0])
       fixture.published.mockClear()
+      const lookup = {
+        action: 'lookup',
+        captureId: fixture.captureId,
+        slot: 0,
+        observationRevision: 2,
+        nickname: '다라',
+        serverId: 'cain'
+      }
+      const searchCommands: Array<[string, unknown[]]> =
+        kind === 'capture'
+          ? [
+              [
+                'notifyOcrCandidatesDetected',
+                [
+                  {
+                    captureId: fixture.captureId,
+                    slot: 0,
+                    observationRevision: 2,
+                    nickname: null,
+                    candidateNicknames: ['다라'],
+                    portrait: null
+                  }
+                ]
+              ]
+            ]
+          : [[controlChannel, [{ ...lookup, serverId: 'unknown-server' }]]]
 
       const invalidCommands: Array<[string, unknown[]]> = [
         [controlChannel, [{ action: 'end', captureId: fixture.captureId, unexpected: true }]],
-        [
-          controlChannel,
-          [{ action: 'clear', captureId: fixture.captureId, slot: 0, observationRevision: 0 }]
-        ],
+        [controlChannel, [{ ...lookup, observationRevision: 0 }]],
         [
           controlChannel,
           [
@@ -120,10 +148,7 @@ describe('검색 IPC 명령 입력 경계', () => {
             null
           ]
         ],
-        [
-          observationChannel,
-          [{ captureId: fixture.captureId, slot: 0, observationRevision: 2, nickname: null }]
-        ]
+        ...searchCommands
       ]
       for (const [channel, args] of invalidCommands) {
         expect(await fixture.invoke(channel, ...structuredClone(args))).toEqual({
@@ -136,12 +161,15 @@ describe('검색 IPC 명령 입력 경계', () => {
       expect(request.signal.aborted).toBe(false)
       expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
       expect(fixture.published).not.toHaveBeenCalled()
-      response.resolve(jsonResponse({ body: { rows: [candidate] } }))
+      response.resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
       await vi.waitFor(async () =>
-        expect((await fixture.read()).slots[0]).toEqual({
-          ...pending.slots[0],
+        expect((await fixture.read()).slots[0]).toMatchObject({
+          requestId: pending.slots[0].requestId,
+          observationRevision: 1,
+          nickname: '가나',
           state: 'success',
-          rows: [candidate]
+          rows: [candidate],
+          error: null
         })
       )
     }

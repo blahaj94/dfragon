@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { deferred } from '../lib/async-test-fixture'
-import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
+import {
+  candidateResponse,
+  createSearchFixture,
+  jsonResponse,
+  requestPaths
+} from './search-test-fixture'
 
 async function flushSearch(): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, 0))
@@ -48,7 +53,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
     const fixture = await createSearchFixture()
     const body = pendingBody()
     fixture.fetchSearch.mockResolvedValueOnce(body.response)
-    await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+    await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
     await vi.waitFor(() => expect(body.pull).toHaveBeenCalled())
 
     try {
@@ -62,7 +67,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
       })
       expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
     } finally {
-      body.finish(JSON.stringify({ rows: [candidate] }))
+      body.finish(JSON.stringify({ rows: [candidateResponse] }))
       await flushSearch()
     }
     expect((await fixture.read()).slots[0].state).toBe('failure')
@@ -74,7 +79,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
       const fixture = await createSearchFixture()
       const body = pendingBody()
       fixture.fetchSearch.mockResolvedValueOnce(body.response)
-      await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+      await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
       await vi.waitFor(() => expect(body.pull).toHaveBeenCalled())
 
       fixture.clock.elapseWithoutTimers(elapsed)
@@ -90,38 +95,38 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
     }
   )
 
-  it.each(['{broken', JSON.stringify({ rows: [candidate, { ...candidate, fame: '0' }] })])(
-    'deadline에 완료된 parsing/전체 후보 검증 실패도 timeout이 우선한다: %s',
-    async (text) => {
-      const fixture = await createSearchFixture()
-      const body = pendingBody()
-      fixture.fetchSearch.mockResolvedValueOnce(body.response)
-      await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
-      await vi.waitFor(() => expect(body.pull).toHaveBeenCalled())
+  it.each([
+    '{broken',
+    JSON.stringify({ rows: [candidateResponse, { ...candidateResponse, fame: '0' }] })
+  ])('deadline에 완료된 parsing/전체 후보 검증 실패도 timeout이 우선한다: %s', async (text) => {
+    const fixture = await createSearchFixture()
+    const body = pendingBody()
+    fixture.fetchSearch.mockResolvedValueOnce(body.response)
+    await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
+    await vi.waitFor(() => expect(body.pull).toHaveBeenCalled())
 
-      fixture.clock.elapseWithoutTimers(15_000)
-      body.finish(text)
-      await flushSearch()
+    fixture.clock.elapseWithoutTimers(15_000)
+    body.finish(text)
+    await flushSearch()
 
-      expect((await fixture.read()).slots[0]).toMatchObject({
-        state: 'failure',
-        rows: [],
-        error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
-      })
-    }
-  )
+    expect((await fixture.read()).slots[0]).toMatchObject({
+      state: 'failure',
+      rows: [],
+      error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
+    })
+  })
 
   it('같은 nickname의 revision 승격은 기존 request의 15초를 연장하지 않는다', async () => {
     const fixture = await createSearchFixture()
     const response = deferred<Response>()
     fixture.fetchSearch.mockReturnValueOnce(response.promise)
-    await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+    await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
     await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
     const before = await fixture.read()
 
     try {
       fixture.clock.advance(10_000)
-      await fixture.observe({ slot: 0, observationRevision: 2, nickname: '가나' })
+      await fixture.startSearch({ slot: 0, observationRevision: 2, nickname: '가나' })
       fixture.clock.advance(5_000)
       await flushSearch()
 
@@ -143,7 +148,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
     fixture.fetchSearch.mockResolvedValueOnce(
       jsonResponse({ status: 500, body: { error: { code: 'INTERNAL_SERVER_ERROR' } } })
     )
-    await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+    await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('failure'))
     const before = await fixture.read()
     const response = deferred<Response>()
@@ -159,6 +164,10 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
       })
       expect(retry).toMatchObject({ ok: true })
       await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(2))
+      expect(requestPaths(fixture.fetchSearch)).toEqual([
+        '/characters/candidates',
+        '/characters/candidates'
+      ])
       const current = await fixture.read()
       expect(current.slots[0].requestId).not.toBe(before.slots[0].requestId)
       fixture.clock.advance(14_999)
