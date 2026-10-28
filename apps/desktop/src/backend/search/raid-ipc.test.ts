@@ -98,7 +98,6 @@ it('공대와 파티 카드 조회는 같은 자리 번호에서도 서로의 �
   const party = (await fixture.invoke('controlManualSearch', { action: 'begin' })) as {
     snapshot: { captureId: string }
   }
-  // 파티 카드의 수명 ID로 공대 자리를 조회할 수 없고 반대도 같다.
   expect(
     await fixture.invoke('controlRaidSearch', lookup(party.snapshot.captureId, 1))
   ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })

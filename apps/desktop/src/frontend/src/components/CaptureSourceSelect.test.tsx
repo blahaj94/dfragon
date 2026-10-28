@@ -175,7 +175,6 @@ it('감지된 게임을 먼저 두고 그룹 이름과 선택 표시를 타일 �
     '테스트 창다른 창'
   ])
   expect(tiles().map((input) => input.checked)).toEqual([true, false])
-  // 고른 창만 체크 아이콘을 둔다.
   expect(tiles().map((input) => input.parentElement?.querySelector('svg') != null)).toEqual([
     true,
     false

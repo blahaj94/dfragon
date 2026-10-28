@@ -69,7 +69,6 @@ function installApi(overrides: Partial<UpdateNoticeApi>): UpdateNoticeApi {
   return api
 }
 
-// 상단 바의 새 버전 칩을 눌러 메뉴를 열고 이름이 같은 메뉴 항목을 누른다.
 async function choose(label: string): Promise<void> {
   const chip = container.querySelector('button')
   if (chip == null) {

@@ -676,7 +676,6 @@ describe('공대 캡처 회차의 프레임 IPC', () => {
     for (const args of [[party.snapshot.captureId], [stale], [raidId, 'window:999:0'], []]) {
       await expect(f.invoke('readRaidCaptureFrame', ...args)).rejects.toThrow('CAPTURE_NOT_ALLOWED')
     }
-    // 공대 수명의 ID로 파티 캡처 프레임을 읽을 수도 없다.
     await expect(f.invoke('readCaptureFrame', raidId)).rejects.toThrow('CAPTURE_NOT_ALLOWED')
     expect(nativeFrame.read).not.toHaveBeenCalled()
     await expect(f.invoke('readRaidCaptureFrame', raidId)).resolves.toEqual({ kind: 'unsupported' })

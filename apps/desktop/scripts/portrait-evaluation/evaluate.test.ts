@@ -246,7 +246,6 @@ describe('buildHudPortrait', () => {
 
       expect(portrait.image.rgba).toEqual(hud.rgba)
       expect(portrait.rasterScale).toBe(rasterScale)
-      // 가장자리 한 칸과 왕관 자리는 제외되고 얼굴 한가운데는 유효하다.
       expect(portrait.validMask?.[0]).toBe(0)
       expect(portrait.validMask?.[Math.floor(size / 2) * size + Math.floor(size / 2)]).toBe(1)
     }

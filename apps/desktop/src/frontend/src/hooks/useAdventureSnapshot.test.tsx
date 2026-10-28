@@ -8,7 +8,6 @@ import { useAdventureSnapshot } from './useAdventureSnapshot'
 let container: HTMLDivElement
 let root: Root
 
-// hook이 돌려주는 값을 DOM에 적어 두고 버튼으로 take, clear를 부른다.
 function Harness({
   adventures,
   startedRounds

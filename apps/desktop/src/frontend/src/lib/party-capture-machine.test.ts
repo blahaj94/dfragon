@@ -43,7 +43,6 @@ it('시작한 회차 수는 받아들인 START마다 오르고 창 선택과 중
   await waitFor(actor, (state) => state.matches('selected'))
   expect(startedRounds()).toBe(0)
 
-  // selected에서 받은 START
   actor.send({ type: 'START', request: {} })
   expect(startedRounds()).toBe(1)
 

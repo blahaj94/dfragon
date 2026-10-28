@@ -1067,7 +1067,6 @@ describe('StatusChip의 tone과 진행 표시', () => {
     expect(
       new Set([neutral, success, danger, warning, done].map((chip) => chip.className)).size
     ).toBe(5)
-    // 진행 중이 아닌 칩은 사각 점 하나, 진행 중인 칩은 보조 기술에 숨긴 점 세 개다.
     expect(done.hasAttribute('data-busy')).toBe(false)
     expect(done.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1)
     expect(busy.hasAttribute('data-busy')).toBe(true)
@@ -1141,7 +1140,6 @@ describe('CardFrame의 상태별 장식', () => {
     expect(top.extras).toHaveLength(5)
     expect(top.extras.every((child) => child.getAttribute('aria-hidden') === 'true')).toBe(true)
     expect(top.card?.textContent).toBe('내용')
-    // 장식 층 안에 빛줄기 하나를 둔다.
     expect(top.extras[0]?.children).toHaveLength(1)
     const topLayer = top.extras[0]?.className
     const topSweep = top.extras[0]?.firstElementChild?.className
@@ -1149,7 +1147,6 @@ describe('CardFrame의 상태별 장식', () => {
     const ranker = await decorations('ranker')
     expect(ranker.extras).toHaveLength(5)
     expect(ranker.extras[0]?.children).toHaveLength(1)
-    // 랭커 층에는 스캔선이 깔리고 빛줄기도 상위의 금색 띠와 다른 청록 띠다.
     expect(ranker.extras[0]?.className).not.toBe(topLayer)
     expect(ranker.extras[0]?.firstElementChild?.className).not.toBe(topSweep)
   })

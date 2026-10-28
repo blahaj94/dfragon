@@ -420,7 +420,6 @@ it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을
   expect(score.textContent).toBe('-')
   expect(card().textContent).toContain('찾은모험단')
   expect(card().textContent).toContain('찾은길드')
-  // 서버 순위는 지웠다.
   expect(card().textContent).not.toContain('서버 순위')
 
   await render({ state: 'success', character: found })

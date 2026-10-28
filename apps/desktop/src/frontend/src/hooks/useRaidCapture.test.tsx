@@ -97,7 +97,6 @@ it('공대 회차가 인식하는 동안 자리 맞바꾸기 요청을 거절하
   })
   expect(swapped).toBe(true)
   expect(value.seatOrder.slice(0, 2)).toEqual([1, 0])
-  // 같은 자리끼리는 맞바꾼 것이 아니다.
   await act(async () => {
     swapped = value.swapSeats(3, 3)
   })

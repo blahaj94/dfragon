@@ -54,7 +54,6 @@ it('공대 상세 창의 12행을 화면 순서로 돌려주고 빈 행은 null,
     const expected = nicknamePixels({ ...frame, rgba: original }, row)
     expect(Buffer.from(nickname!.rgba).equals(Buffer.from(expected))).toBe(true)
   }
-  // 전달한 크롭을 바꿔도 회차 프레임은 그대로다.
   result.rows[0]!.nickname.rgba.fill(0)
   result.rows[0]!.job!.rgba.fill(0)
   expect(Buffer.from(frame.rgba).equals(Buffer.from(original))).toBe(true)
