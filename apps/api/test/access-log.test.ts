@@ -155,10 +155,8 @@ test('접근 로그는 요청마다 allowlist field 한 줄만 남기고 credent
     })
   )
   for (const [index, { name, expected }] of cases.entries()) {
-    // 응답 header의 ID로 같은 요청의 로그 줄을 찾으며 클라이언트가 보낸 값은 쓰지 않는다.
     const correlationId = correlationIds[index]!
     assert.match(correlationId, UUID_PATTERN, name)
-    // 오류 chain의 내용은 아래 test가 검사하고, 여기서는 5xx 응답에만 붙는지 확인한다.
     const { errorChain, ...fields } = entries.get(correlationId) ?? {}
     assert.equal(Array.isArray(errorChain), expected.status >= 500, name)
     assert.deepEqual(fields, expected, name)
@@ -169,7 +167,6 @@ test('접근 로그는 요청마다 allowlist field 한 줄만 남기고 credent
 test('5xx 응답에는 오류 class 이름, code와 message를 뺀 stack frame만 담은 오류 chain을 남긴다', {
   timeout: 5000
 }, async (t) => {
-  // Message 끝에 frame처럼 보이는 줄을 넣어도 message 경계 뒤의 실제 frame만 남아야 한다.
   const databaseFailure = Object.assign(
     new Error(`${secrets.errorDetail}\n    at forged (${secrets.query})`),
     { code: '57P01', detail: secrets.characterName }
@@ -183,7 +180,6 @@ test('5xx 응답에는 오류 class 이름, code와 message를 뺀 stack frame�
     },
     {
       fetchDetails: async (): Promise<never> => {
-        // Error가 아닌 값은 원문 대신 종류만 남아야 한다.
         throw secrets.token
       }
     },
@@ -221,7 +217,6 @@ test('5xx 응답에는 오류 class 이름, code와 message를 뺀 stack frame�
       { name: 'Error', code: '57P01' }
     ]
   )
-  // 원래 오류의 frame은 이 test file에서 오류를 만든 위치부터 시작한다.
   assert.match(search![1]!.frames![0]!, /access-log\.test\.js:\d+:\d+\)?$/)
   assert.equal(output.includes('forged'), false)
   assert.deepEqual(

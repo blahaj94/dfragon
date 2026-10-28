@@ -12,10 +12,6 @@ const K_NOTATION_PATTERN = /K$/
 const WHITESPACE_PATTERN = /\s+/gu
 const AWAKENING_MARK_PATTERN = /^眞/u
 
-/**
- * `nickname`은 공대 닉네임과 같은 반전 이진화와 가운데 정렬, `raw`는 원본 색 그대로다. 제품은 `nickname`
- * 전처리를 쓰며, 비교를 위해 두 전처리를 모두 측정한다.
- */
 export const JOB_OCR_PREPROCESSINGS = ['nickname', 'raw'] as const
 export type JobOcrPreprocessing = (typeof JOB_OCR_PREPROCESSINGS)[number]
 
@@ -27,7 +23,6 @@ export type RowObservation = Readonly<{
   expected: ManifestRow
   valueText: string | null
   notation: DNFRaidValueNotation | null
-  /** 직업명 OCR을 돌리지 않았으면 null이다. */
   jobText: Readonly<Record<JobOcrPreprocessing, string>> | null
 }>
 
@@ -45,15 +40,10 @@ type Rate = { matched: number; total: number }
 type NotRun = { status: 'not_run'; reason: string }
 
 export type JobOcrSummary = Readonly<{
-  /** OCR 문자열이 화면 문자열과 그대로 같은 행 */
   exactRaw: Rate
-  /** 공백과 앞의 `眞`만 지운 뒤 같은 행 */
   exactWithoutSpaceAndMark: Rate
-  /** 제안 규칙의 정규화(`眞`을 지우고 한글 음절만 남김) 뒤 같은 행 */
   exactNormalized: Rate
-  /** 제안 규칙(`matchJobName`)으로 정답 직업명과 맞은 행 */
   ruleMatched: Rate
-  /** 제안 규칙이 표본의 다른 직업명과도 맞은 행 */
   ruleFalseMatched: Rate
 }>
 
@@ -61,11 +51,8 @@ export type CandidateSummary =
   | NotRun
   | Readonly<{
       status: 'run'
-      /** 화면 직업명이 후보의 jobGrowName, jobName 중 무엇과 정규화 뒤 같은지 센 값 */
       screenJobField: Readonly<{ jobGrowName: number; jobName: number; neither: number }>
-      /** 명성 열 행에서 정답 후보 명성이 화면 표기 범위에서 벗어난 거리 */
       fameDifferences: readonly number[]
-      /** 직업명이 같은 동명 후보 사이에서 정답과 가장 가까운 다른 후보의 명성 차이 */
       fameGaps: readonly number[]
     }>
 
@@ -90,7 +77,6 @@ export type EvaluationSummary = Readonly<{
         expected: string
         read: string | null
       }>[]
-      /** 읽은 표기를 값 범위로 바꾼 결과가 정답 표기의 해석과 같은 행 */
       notationMatched: Rate
     }>
   jobOcr: NotRun | Readonly<{ status: 'run' } & Record<JobOcrPreprocessing, JobOcrSummary>>
@@ -122,7 +108,6 @@ function sameNotation(read: DNFRaidValueNotation | null, expected: string): bool
   return read !== null && parsed !== null && read.min === parsed.min && read.max === parsed.max
 }
 
-/** 화면 표기가 가리키는 범위 안이면 0, 밖이면 가까운 끝과의 거리다. */
 function distanceToNotation(notation: DNFRaidValueNotation, value: number): number {
   if (value < notation.min) {
     return notation.min - value
@@ -317,7 +302,6 @@ export function summarize(
   }
 }
 
-/** 행 하나의 직업명 크롭을 두 전처리로 모두 읽는다. */
 export async function readJobText(
   reader: JobOcrReader,
   crop: Parameters<JobOcrReader>[0]

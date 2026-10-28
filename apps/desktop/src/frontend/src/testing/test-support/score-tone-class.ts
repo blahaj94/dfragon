@@ -19,7 +19,6 @@ function toneClass(tone: keyof typeof tones): string {
   return className
 }
 
-/** 숫자 칸이 역할 색(딜러 파랑, 버퍼 초록)과 단계 색(상위, 랭커) 가운데 어느 색 class를 가졌는지. */
 export function toneClassesOf(element: Element): (keyof typeof tones)[] {
   const classes = element.className.split(' ')
 

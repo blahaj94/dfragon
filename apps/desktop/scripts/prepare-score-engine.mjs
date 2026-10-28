@@ -15,8 +15,6 @@ const engineSource = join(
  */
 
 /**
- * score-engine submodule의 플랫폼별 엔진을 패키지 resources/score/에 둔다.
- * 비공개 submodule을 받지 않은 checkout(포크 PR, 권한 없는 로컬)은 엔진 없이 진행하도록 건너뛴다.
  * @param {{ config?: ScoreEngineConfig, target?: string, root?: string, source?: string }} [options]
  * @returns {Promise<ScoreEnginePreparation>}
  */
@@ -66,7 +64,6 @@ const SKIP_MESSAGES = {
 }
 
 /**
- * Release 빌드는 엔진을 반드시 싣는다.
  * @param {ScoreEnginePreparation} result
  * @returns {void}
  */

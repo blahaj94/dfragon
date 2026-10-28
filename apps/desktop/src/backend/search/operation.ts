@@ -28,7 +28,6 @@ function failure(code: SearchErrorCode): SearchOperationFailure {
   return { kind: 'failure', error: { code, retryAfterSeconds: null }, retryAfterReceivedAt: null }
 }
 
-/** 조회와 후속 이미지 비교를 처음 접수한 시각부터 하나의 취소 신호와 시간 예산으로 실행한다. */
 export async function runSearchOperation<T>(
   input: SearchOperationContext,
   operation: (execution: SearchOperation) => Promise<T>

@@ -3,10 +3,6 @@ import type { Writable } from 'node:stream'
 import type { NextFunction, Request, Response } from 'express'
 import { type ErrorChainEntry, describeErrorChain } from './error-chain.js'
 
-/**
- * 요청마다 만든 JSON 한 줄을 받는다. 운영 기본값은 stdout이며 테스트는 직접 수집한다.
- * 쓰기 실패는 요청 처리에 영향을 주지 않도록 접근 로그 쪽에서 버린다.
- */
 export type AccessLogSink = (line: string) => void
 
 const SERVICE = 'api'
@@ -21,8 +17,7 @@ function dropStreamError(): void {
 }
 
 /**
- * Stream에 접근 로그를 한 줄씩 쓴다. 첫 쓰기 때 오류 listener를 두어, stdout pipe가 닫혀도
- * 처리되지 않은 `error` event로 서버 process가 끝나지 않게 한다.
+ * 첫 쓰기 때 오류 listener를 두어, stdout pipe가 닫혀도 처리되지 않은 `error` event로 서버 process가 끝나지 않게 한다.
  */
 export function createStreamAccessLogSink(stream: Writable): AccessLogSink {
   let isWatchingErrors = false
@@ -38,14 +33,12 @@ export function createStreamAccessLogSink(stream: Writable): AccessLogSink {
 
 export const writeAccessLogToStdout = createStreamAccessLogSink(process.stdout)
 
-/** 응답에 쓴 정제 오류 code를 접근 로그에 전달한다. */
 export function recordAccessLogErrorCode(response: Response, code: string): void {
   errorCodes.set(response, code)
 }
 
 /**
- * 5xx 응답의 원인을 접근 로그에 남기도록 filter가 받은 오류를 정제해 둔다. 오류 object는
- * 보관하지 않는다.
+ * 오류 object는 보관하지 않는다.
  */
 export function recordAccessLogErrorChain(response: Response, error: unknown): void {
   try {

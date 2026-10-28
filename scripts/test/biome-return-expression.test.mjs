@@ -11,7 +11,6 @@ const sampleFiles = [
   'apps/api/test-support/return-expression-sample.mjs'
 ]
 
-// 같은 source를 모든 표본 경로에 두고 Biome를 한 번 실행해 경로별 정책 진단을 고른다.
 async function policyMessages(source) {
   const results = await lintSamples(Object.fromEntries(sampleFiles.map((file) => [file, source])))
   const entries = [...results].map(([file, diagnostics]) => {

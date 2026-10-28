@@ -41,8 +41,6 @@ function captureButton(): HTMLButtonElement {
   return button!
 }
 
-// Alt+R은 main이 보낸 단축키 이벤트로, 캡처 버튼은 화면 클릭으로 회차를 요청한다. 비활성 버튼의
-// click()은 native button처럼 아무것도 실행하지 않는다.
 async function press(f: Fixture, trigger: Trigger): Promise<void> {
   if (trigger === 'Alt+R') {
     await f.restart()
@@ -52,7 +50,6 @@ async function press(f: Fixture, trigger: Trigger): Promise<void> {
   await act(async () => captureButton().click())
 }
 
-// 파티 머리는 캡처 진행 문구를 되풀이하지 않으므로 상단 바 상태 칩의 접근 가능한 이름으로 상태를 읽는다.
 function captureState(): string | null {
   return document
     .querySelector('main > header button[aria-label^="화면 캡처, "]')!
@@ -73,7 +70,6 @@ function lastCapture(): string | null {
   return label.nextElementSibling!.textContent
 }
 
-// 상단 바의 상태 칩으로 캡처 대화상자를 열고 창 목록에서 창을 고른 뒤 대화상자를 닫는다.
 async function chooseSource(name: string): Promise<void> {
   const chip = document.querySelector<HTMLButtonElement>(
     'main > header button[aria-label^="화면 캡처, "]'
@@ -110,12 +106,10 @@ it('캡처 버튼은 상단 바에 그린 파티 머리에만 있고 대화상�
   const button = captureButton()
   expect(document.querySelectorAll('button[aria-label="파티 캡처, 단축키 Alt R"]')).toHaveLength(1)
   expect(button.closest('main > header')).not.toBeNull()
-  // 상단 바에는 보이는 파티 화면의 머리만 그리고 숨긴 공대 머리는 그리지 않는다.
   expect(document.querySelector('button[aria-label="공대 캡처, 단축키 Alt R"]')).toBeNull()
   expect(button.closest('section[aria-label="공대"]')).toBeNull()
   expect(button.getAttribute('aria-haspopup')).toBeNull()
   expect(button.getAttribute('aria-keyshortcuts')).toBe('Alt+R')
-  // 카메라 아이콘과 `Alt R` 글자만 두고 `캡처` 글자와 키 테두리는 없다.
   expect(button.querySelector('kbd')).toBeNull()
   expect(button.querySelector('svg')).not.toBeNull()
   expect(button.textContent).toBe('Alt R')
@@ -149,7 +143,6 @@ it.each(triggers)(
     await press(f, trigger)
     expect(beginCount(f)).toBe(1)
     expect(f.readCaptureFrame).toHaveBeenCalledOnce()
-    // 합성 프레임에는 파티 프레임이 없어 두 경로 모두 같은 안내로 회차를 끝낸다.
     expect(captureState()).toBe('화면 캡처, 확인 필요')
     expect(partyNotice()).toBe('')
     expect(captureButton().disabled).toBe(false)

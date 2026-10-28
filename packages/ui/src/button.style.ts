@@ -25,7 +25,6 @@ export const styles = stylex.create({
   sm: { height: size.controlSm, paddingInline: space.s12, fontSize: 13 },
   md: { height: size.controlMd, paddingInline: space.s16, fontSize: 14 },
   lg: { height: size.controlLg, paddingInline: space.s24, fontSize: 16 },
-  // 주 행동: 신호색 면에 오른쪽 위를 잘라 낸다. 자른 모서리는 shapes.cutTopRight로 합성한다.
   primary: {
     borderRadius: radius.panel,
     borderWidth: 0,

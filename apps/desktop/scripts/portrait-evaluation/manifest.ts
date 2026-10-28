@@ -7,10 +7,8 @@ const MANIFEST_FILE = 'manifest.json'
 
 export type ManifestCandidate = Readonly<{
   id: string
-  /** manifest 폴더 기준 상대 경로. 이미지를 받지 못한 후보는 null이다. */
   image: string | null
   correct: boolean
-  /** 후보의 기본 직업명. 직업별 얼굴 위치를 찾을 때 쓰며 없으면 null이다. */
   jobName: string | null
 }>
 
@@ -27,7 +25,6 @@ export type LoadedCandidate = Readonly<{
   id: string
   correct: boolean
   jobName: string | null
-  /** 이미지가 없는 후보는 null이며 점수를 구하지 않는다. */
   image: CharacterImage | null
 }>
 
@@ -145,7 +142,6 @@ export function readPng(file: string): CharacterImage {
   return { width: png.width, height: png.height, rgba: new Uint8Array(png.data) }
 }
 
-/** 케이스 하나의 PNG를 읽는다. 표본이 커서 케이스를 평가할 때마다 읽고 버린다. */
 export function loadCase(manifest: Manifest, entry: ManifestCase): LoadedCase {
   const hud = readPng(resolveInside(manifest.directory, entry.hud))
   const candidates = entry.candidates.map((candidate) => ({

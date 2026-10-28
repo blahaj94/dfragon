@@ -8,7 +8,6 @@ import { isolatedNeople } from '../../../api/test-support/character-search-fixtu
 
 const apiDirectory = fileURLToPath(new URL('../../../api/', import.meta.url))
 const preload = fileURLToPath(new URL('./neople-redirect.mjs', import.meta.url))
-// 이 검사가 부르는 API route template이다. 준비 확인의 `/` 요청은 `<unmatched>`로 남는다.
 const searchRoute = '/characters'
 
 async function unusedPort() {
@@ -75,7 +74,6 @@ async function waitForApi(port, runtime) {
   assert.fail('API did not listen within the test deadline')
 }
 
-// API 접근 로그가 쓰는 필드다. 이 밖의 필드가 있는 줄은 접근 로그로 보지 않는다.
 const accessLogFields = new Set([
   'time',
   'service',
@@ -89,7 +87,6 @@ const accessLogFields = new Set([
   'aborted'
 ])
 
-// 접근 로그 JSON 줄만 골라 낸다. 그 밖의 출력은 그대로 남겨 빈 출력 검사가 막는다.
 function separateAccessLogs(stdout) {
   const accessLogs = []
   let otherOutput = ''

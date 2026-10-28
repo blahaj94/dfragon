@@ -10,10 +10,8 @@ import { parseOcrSearchObservation, parseSearchControl, parseSearchObservation }
 import type { SearchRuntime } from './request'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 
-/** 파티 카드의 네 자리 조회와 공대 카드의 12자리 조회는 서로 다른 수명과 채널을 쓴다. */
 export type ManualSearchKind = keyof typeof SEARCH_SLOT_COUNTS
 
-// 수명마다 제어 채널과 변경 알림 채널을 함께 정해 한 곳에서만 대응시킨다.
 const CHANNELS = {
   party: { control: 'controlManualSearch', changed: 'manualSearchChanged' },
   raid: { control: 'controlRaidSearch', changed: 'raidSearchChanged' }
@@ -41,7 +39,6 @@ export function registerManualSearchIpc({
   isCurrentDocument: (generation: number) => boolean
   publish: (channel: ManualSearchChangedChannel, snapshot: SearchSnapshot) => void
 }): {
-  /** 현재 수명의 결합. 조회만 하는 수명이면 창 선택 세대는 프레임 읽기에 쓰이지 않는다. */
   readonly current: CaptureBinding | null
   invalidate: () => void
   /** 게임 창이 바뀌거나 캡처를 멈추면 진행 중인 OCR 기원 요청을 끝낸다. */
@@ -51,7 +48,6 @@ export function registerManualSearchIpc({
   const slotCount = SEARCH_SLOT_COUNTS[kind]
   const { control: controlChannel, changed: changedChannel } = CHANNELS[kind]
   // The shared DTO calls its session ID captureId; this instance never grants media access.
-  // 공대 캡처의 OCR 이름은 얼굴 비교 대신 공대 후보 선택 함수로 식별한다.
   const lifetimeRuntime: SearchRuntime | undefined =
     kind === 'raid' && runtime !== undefined ? { ...runtime, ocrIdentification: 'raid' } : runtime
   const lifetime = createCaptureSearchLifetime({
@@ -90,7 +86,6 @@ export function registerManualSearchIpc({
     }
   })
 
-  // 공대 카드는 서버를 함께 고른 조회만 쓰므로 서버 없는 이름 통지는 파티 수명에만 연다.
   if (kind === 'party') {
     addHandler('notifyManualNickname', (event, ...args) => {
       requireSender(event)
@@ -103,7 +98,6 @@ export function registerManualSearchIpc({
     })
   }
 
-  // 공대 캡처의 OCR 관측은 서버 없이 이름으로 식별하므로 공대 수명에만 연다. 파티 캡처는 캡처 수명의 채널을 쓴다.
   if (kind === 'raid') {
     addHandler('notifyRaidOcrCandidatesDetected', (event, ...args) => {
       requireSender(event)

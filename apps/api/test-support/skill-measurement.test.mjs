@@ -207,7 +207,6 @@ test('오프라인 선택, 패시브 레벨 보정의 원래 값과 출처를 �
   const { snapshot, skillPackage, readRequest } = snapshotScenario()
   const before = structuredClone(snapshot)
   const input = observations()
-  // Extra user fields must not replace the actual package result.
   input.skills = []
   const summary = calculateSnapshotMeasurement(snapshot, input, skillPackage)
   assert.deepEqual(readRequest(), {

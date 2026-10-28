@@ -347,7 +347,6 @@ test('기본 응답 뒤 한 섹션이 실패하면 부분 성공을 반환하지
 
     return true
   })
-  // 나머지 10개는 basic 뒤 한꺼번에 시작하므로 실패와 관계없이 각 섹션을 한 번씩 부른다.
   assert.equal(paths.length, 11)
   assert.equal(new Set(paths).size, paths.length)
 })

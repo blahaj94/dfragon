@@ -2,7 +2,6 @@ import type { CharacterDetails, CharacterJsonValue } from '../../preload/common/
 
 type JsonObject = { readonly [key: string]: CharacterJsonValue }
 
-/** 점수 엔진 입력 문서(`dnf-character-v1`). 각 문서는 Neople 응답 원문 형태다. */
 export type ScoreEngineInput = Readonly<{
   status: JsonObject
   equipment: JsonObject
@@ -40,7 +39,6 @@ export function isJsonObject(value: CharacterJsonValue | undefined): value is Js
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/** 아이템 상세가 같은 itemId의 Neople 아이템 응답일 때만 엔진의 items에 둔다. */
 function readItemDetail(item: JsonObject): JsonObject | null {
   const itemId = item.itemId
   const detail = item[ITEM_DETAIL_FIELD]
@@ -86,10 +84,6 @@ function withoutSkillDetails(value: CharacterJsonValue): CharacterJsonValue {
   return skill
 }
 
-/**
- * 상세 응답의 basic을 뺀 10개 섹션과 아이템 상세를 엔진 입력 문서로 바꾼다. 서버가 더한 필드는 넣지 않고
- * 아이템 상세는 `items[itemId]`로 옮긴다.
- */
 export function toScoreEngineInput(details: CharacterDetails): ScoreEngineInput {
   const items: Record<string, JsonObject> = {}
   const original = (value: CharacterJsonValue): CharacterJsonValue => restoreOriginal(value, items)

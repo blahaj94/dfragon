@@ -3,11 +3,6 @@ import { MISSING_VALUE } from '../constants/cards'
 import { useElapsedTime } from '../hooks/useElapsedTime'
 import { styles } from './LastCaptureTime.style'
 
-/**
- * 머리의 마지막 캡처 상대 시간을 `마지막 캡처 12초 전` 한 줄로 보인다. 표시 값이 바뀔 때만 이 요소를 다시
- * 그리고, 완료 시각이 없으면 `-`다. 화면은 완료 시각이 바뀔 때마다 `key`로 새로 그려 현재 시각을 그 순간부터
- * 다시 잰다.
- */
 export function LastCaptureTime({ at }: { at: number | null }): React.JSX.Element {
   const time = useElapsedTime(at)
   const elapsed = at === null || time === null ? null : { at, ...time }

@@ -17,8 +17,6 @@ async function writeFiles(directory, files) {
   }
 }
 
-// tracked는 git add한 파일, untracked는 add하지 않은 새 파일이다. submodules는 내용을 받지 않은 submodule
-// 경로로, clone 직후처럼 빈 디렉터리와 gitlink 항목만 둔다. 검사는 Git 저장소 단위로 실행된다.
 async function checkFixture(t, { tracked, untracked = {}, submodules = [] }) {
   const directory = await mkdtemp(join(tmpdir(), 'check-docs-'))
   t.after(() => rm(directory, { recursive: true, force: true }))
@@ -43,7 +41,6 @@ async function checkFixture(t, { tracked, untracked = {}, submodules = [] }) {
   }
 }
 
-// front matter의 YAML 주석은 heading이 아니므로 아래 두 번째 개요가 개요-1이 된다.
 const guide = [
   '---',
   '# 개요',

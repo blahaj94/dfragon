@@ -13,13 +13,10 @@ import {
  */
 export function useAdventureSnapshot(
   current: SeatAdventures,
-  /** 지금까지 시작한 캡처 회차 수. 실패하거나 취소된 회차도 센다. */
   startedRounds: number
 ): {
   active: boolean
-  /** 자리마다 표시. 스냅샷이 없거나 표시할 것이 없는 자리는 undefined다. */
   marks: readonly (SnapshotMark | undefined)[]
-  /** 스냅샷을 켠 뒤 몇 번째 회차인지. 켠 순간이 1이고 스냅샷이 없으면 null이다. */
   round: number | null
   take: () => void
   clear: () => void

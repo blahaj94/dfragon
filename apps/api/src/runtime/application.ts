@@ -7,7 +7,6 @@ import type { readRuntimeConfiguration } from './configuration.js'
 
 type RuntimeConfiguration = Awaited<ReturnType<typeof readRuntimeConfiguration>>
 
-/** 이번 실행이 소유한 앱의 종료 책임을 관리한다. */
 export async function createApiRuntime(configuration: RuntimeConfiguration) {
   const app = await createApiHttpApp(
     {

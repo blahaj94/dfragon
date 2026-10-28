@@ -1,7 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, space } from '@dfragon/ui/tokens.stylex'
 
-// 이름 입력과 서버 칩을 감싼 높이 20의 칸. 테두리 1px이 카드 상태를 따른다.
 export const styles = stylex.create({
   field: {
     boxSizing: 'border-box',

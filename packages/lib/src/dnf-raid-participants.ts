@@ -17,26 +17,20 @@ import {
 
 export type DNFRaidParticipantPosition = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12
 export type DNFRaidParticipantRow = {
-  /** One-based screen position in this frame, not a persistent participant identity. */
   row: DNFRaidParticipantPosition
   occupied: boolean
   nickname: DNFRectangle
   partyRegion: DNFRectangle
-  /** Fame or equipment-score cell; the heading at valueHeadingRegion says which. */
   equipmentScoreRegion: DNFRectangle
-  /** 眞 mark and job name, ending before the inspect icon that clips long names. */
   jobRegion: DNFRectangle
 }
 type Unavailable = { status: 'not-found' | 'ambiguous' | 'search-limit' }
 type Found = {
   status: 'found'
   scale: number
-  /** Normalized heading correlation, not an OCR accuracy or probability. */
   matchScore: number
   window: DNFRectangle
-  /** Label cell above the numeric column, switched in game between fame and equipment score. */
   valueHeadingRegion: DNFRectangle
-  /** Always twelve entries in current screen order, including empty rows. */
   rows: DNFRaidParticipantRow[]
 }
 export type DNFRaidParticipantDetection = Found | Unavailable
@@ -64,7 +58,6 @@ function validateFrame(frame: DNFParticipantFrame, heading = false): void {
   }
 }
 
-/** Rejects unrelated red decoration before spending the shared template-matching budget. */
 function createRaidRowValidator(frame: ParticipantGrayFrame) {
   const stride = frame.width + 1
   const darkCounts = new Uint16Array(stride * frame.height)
@@ -107,12 +100,6 @@ function createRaidRowValidator(frame: ParticipantGrayFrame) {
   }
 }
 
-/**
- * Finds the movable twelve-row raid detail dialog, using a caller-owned UI-0% heading.
- * The 423x18 reference includes all five column labels and the blank action-column header.
- * No decoding, capture, OCR, settings reads, or persistence is performed.
- * An eight-row special-raid layout is outside this measured layout's contract.
- */
 export function detectDNFRaidParticipantWindow(
   frame: DNFParticipantFrame,
   headingTemplate: DNFParticipantFrame
@@ -238,7 +225,6 @@ export function detectDNFRaidParticipantWindow(
   }
 }
 
-/** Copies raw nickname pixels from this frame; an empty row has nicknameCrop:null. */
 export function cropDNFRaidParticipantNicknames(
   frame: DNFParticipantFrame,
   headingTemplate: DNFParticipantFrame

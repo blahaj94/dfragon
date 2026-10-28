@@ -12,7 +12,6 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
-  # Run workflow on any branch from the Actions page to build it without a PR.
   workflow_dispatch:
 
 permissions:
@@ -20,11 +19,9 @@ permissions:
 
 concurrency:
   group: windows-test-build-${{ github.ref }}
-  # A newer push replaces the running test build.
   cancel-in-progress: true
 
 jobs:
-  # A Windows build runs only for a (build) PR or a run started from the Actions page.
   scope:
     name: Build scope
     permissions:
@@ -42,7 +39,6 @@ jobs:
       name: test
       deployment: false
     env:
-      # The test channel keeps its own identity, so it runs beside the distribution app.
       DFRAGON_CHANNEL: test
       TEST_VERSION: 0.0.0-test.${{ github.run_number }}
     steps:

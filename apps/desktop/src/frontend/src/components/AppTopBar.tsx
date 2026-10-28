@@ -8,7 +8,6 @@ import { MainNav, type SearchMode } from './MainNav'
 import { TopBar } from './TopBar'
 import { UpdateNoticeSlot } from './UpdateNoticeSlot'
 
-/** 메인 창 상단 바에 화면 전환 내비, 새 버전 알림, 게임 연결 상태 칩을 채운다. */
 export function AppTopBar({
   searchMode,
   onSearchModeChange,

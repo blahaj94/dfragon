@@ -58,7 +58,6 @@ it.each([
   })
   const header = container.querySelector('header')!
   expect(header.querySelector(`[data-tone="${tone}"]`)?.textContent).toBe(label)
-  // 상태 칩 자체는 알리지 않고, 상단 바의 live region은 화면 밖 캡처 안내와 파티 머리 안내뿐이다.
   expect(header.querySelector('[data-tone][role="status"]')).toBeNull()
   expect(header.querySelectorAll('[role="status"]:not([data-capture-announcer])')).toHaveLength(1)
   await act(async () =>

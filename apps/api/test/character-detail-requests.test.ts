@@ -186,7 +186,6 @@ test('공유 조회 실패 뒤 새 요청을 허용하고 서버 종료는 취�
 })
 
 test('상세 응답은 기존 필드에 역할만 정한 card를 더하고 지운 카드 칸은 빈 값이다', async (t) => {
-  // 이 fixture의 기본정보에는 전직명이 없어 역할은 null이다.
   const service = createCharacterDetailService({ fetchDetails: async () => payloads })
   t.after(() => service.onModuleDestroy())
 

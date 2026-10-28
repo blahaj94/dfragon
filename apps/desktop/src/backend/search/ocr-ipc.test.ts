@@ -7,7 +7,6 @@ import { dealerCard } from '../../preload/common/search/card-test-fixture'
 import { deferred } from '../lib/async-test-fixture'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 
-// 2×1 합성 얼굴을 한 셀로 비교해 같은 픽셀만 고르는 테스트 정책이며 운영 기준이 아니다.
 const policy = {
   gridSize: 1,
   minCoverage: 1,
@@ -26,7 +25,6 @@ const names = ['가나', '다라']
 const imageUrl =
   'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1'
 const matchedCandidate = { ...candidate, fame: 70000, imageUrl }
-// 얼굴과 색이 다른 낮은 명성 후보. 후보가 둘 이상이어야 2위와의 차이로 얼굴 선택을 판정한다.
 const otherCandidate = {
   ...candidate,
   characterId: 'other',
@@ -218,7 +216,6 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       jobGrowName: '웨펀마스터',
       imageUrl,
       guildName: '합성길드',
-      // 상세 응답에 card가 없으면 점수를 만들지 않는다.
       equipmentScore: null,
       card: null
     })

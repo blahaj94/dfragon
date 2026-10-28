@@ -1,4 +1,3 @@
-// 문자열 안의 원문 공백과 독립 기대값을 그대로 보존한다. 각 호출은 새 사례 객체와 배열을 만든다.
 export function createSpacingCases() {
   return [
     {

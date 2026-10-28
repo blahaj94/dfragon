@@ -6,7 +6,6 @@ import {
   type ReactNode
 } from 'react'
 
-// h4 이하는 자간을 inline으로 지정하지 않아 기본 자간 0을 따르고 화면 className의 letter-spacing을 덮지 않는다.
 export const typographyVariants = {
   h1: { fontSize: 48, lineHeight: '60px', fontWeight: 700, letterSpacing: '-0.02em' },
   h2: { fontSize: 40, lineHeight: '52px', fontWeight: 700, letterSpacing: '-0.02em' },

@@ -35,12 +35,10 @@ function candidate(id: string, name: string, fame: number | null): CharacterCand
   }
 }
 
-/** 후보마다 다른 얼굴 창이라 선택지의 창이 어느 후보의 점수에서 왔는지 구분할 수 있다. */
 function faceOf(characterId: string): { x: number; y: number; width: number; height: number } {
   return { x: characterId.length, y: 2, width: 26, height: 26 }
 }
 
-/** 후보 이미지마다 정한 거리를 돌려주는 비교 연산. 이미지는 캐릭터 ID로 구분한다. */
 function fixture(distances: Record<string, number> = { high: 20, low: 10, null: 30 }): {
   calls: string[]
   findCandidates: MockedFunction<IdentificationServices['findCandidates']>

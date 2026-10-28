@@ -56,7 +56,6 @@ async function click(element: HTMLElement): Promise<void> {
   await act(async () => element.click())
 }
 
-// 창 고르기 타일. 선택 순서는 감지된 게임 먼저, 다른 창 다음이다.
 function tiles(): HTMLInputElement[] {
   return [...dialog().querySelectorAll<HTMLInputElement>('input[type="radio"]')]
 }
@@ -73,7 +72,6 @@ function dialog(): HTMLElement {
   return document.querySelector<HTMLElement>('[role="dialog"]')!
 }
 
-// 창 타일 줄 맨 앞의 찾는 중 안내. 대화상자 머리의 상태 칩도 status 영역이라 문구로 찾는다.
 function searchingNotice(): HTMLElement | undefined {
   return [...dialog().querySelectorAll<HTMLElement>('[role="status"]')].find((status) =>
     status.textContent?.startsWith('던전앤파이터 찾는 중')
@@ -111,8 +109,6 @@ it.each([
     expect(button.getAttribute('aria-haspopup')).toBe('dialog')
     const status = button.querySelector(`[data-tone="${tone}"]`)!
     expect(status.textContent).toBe(label)
-    // 상단 바의 칩은 상태가 바뀔 때마다 읽지 않는다. 대화상자를 닫은 동안의 알림은 화면 밖 캡처
-    // 안내 하나만 한다.
     expect([...document.querySelectorAll('[role="status"], [aria-live]')]).toEqual([announcer()])
     expect(document.querySelector('kbd')).toBeNull()
   }
@@ -169,13 +165,11 @@ it('감지된 게임을 먼저 두고 그룹 이름과 선택 표시를 타일 �
     '던전앤파이터',
     '테스트 창'
   ])
-  // 이름과 그룹은 같은 타일의 두 줄이다.
   expect(tiles().map((input) => input.parentElement?.textContent)).toEqual([
     '던전앤파이터감지된 게임',
     '테스트 창다른 창'
   ])
   expect(tiles().map((input) => input.checked)).toEqual([true, false])
-  // 고른 창만 체크 아이콘을 둔다.
   expect(tiles().map((input) => input.parentElement?.querySelector('svg') != null)).toEqual([
     true,
     false
@@ -203,14 +197,12 @@ it('조회 실패 시 실패 타일을 두고 이전 목록 선택을 막는다'
   expect(tiles().every((input) => input.disabled)).toBe(true)
   await click(tile('테스트 창'))
   expect(props.capture.selectSource).not.toHaveBeenCalled()
-  // 새로고침은 목록 안이 아니라 머리 줄 버튼 하나뿐이다.
   expect(document.body.textContent).not.toContain('창 목록 새로고침')
 })
 
 it('빈 목록, 사라진 선택과 로딩, 연결 미준비 상태를 처리한다', async () => {
   props.capture.sources = []
   await openDialog()
-  // 선택한 창이 목록에서 사라져도 선택은 남고 어느 창이었는지는 알리지 못한다.
   expect(tiles().map((input) => [input.getAttribute('aria-label'), input.checked])).toEqual([
     ['선택한 창', true]
   ])
@@ -264,7 +256,6 @@ it.each([
   }
 )
 
-// 꺾쇠의 class를 단계별로 모아 색과 움직임이 실제로 달라지는지 본다.
 async function cornerClass(phase: CaptureControlsProps['phase']): Promise<string> {
   props.phase = phase
   await render()
@@ -280,7 +271,6 @@ it('꺾쇠는 tone마다 다른 색이고, 같은 신호색 중 인식하는 동
   const done = await cornerClass('complete')
   const recognizing = await cornerClass('recognizing')
   expect(new Set([neutral, success, warning, done]).size).toBe(4)
-  // 인식 완료와 인식 중은 같은 신호색이고, 인식 중만 조여 드는 움직임 class가 더 붙는다.
   expect(recognizing).not.toBe(done)
   expect(recognizing.split(' ').length).toBeGreaterThan(done.split(' ').length)
 })
@@ -303,7 +293,6 @@ it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에
   props.status = '인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.'
   await render()
   expect(dialog().querySelector('p[role="status"] [role="img"]')).toBeNull()
-  // 같은 주의 색이어도 창 미감지의 안내에는 `!` 칸을 붙이지 않는다.
   props.phase = 'selected'
   props.capture.sources = [{ id: 'other', name: '테스트 창' }]
   props.capture.selectedSourceId = 'other'
@@ -320,7 +309,6 @@ it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에
     [...dialog().querySelectorAll('button')]
       .map((button) => button.getAttribute('aria-label') ?? button.textContent)
       .filter((name) => name === '닫기' || name === '캡처 중지' || name === '새로고침')
-  // 머리 줄의 버튼 순서다. 아래쪽에는 닫기 버튼을 따로 두지 않는다.
   expect(actions()).toEqual(['캡처 중지', '새로고침', '닫기'])
   props.phase = 'idle'
   props.capture.selectedSourceId = ''
@@ -352,7 +340,6 @@ it('새로고침 버튼은 창 목록을 다시 조회하고 대화상자를 연
   await click(refresh)
   expect(props.capture.refreshSources).toHaveBeenCalledTimes(2)
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
-  // 조회 중에는 겹쳐 조회하지 않도록 누를 수 없다.
   props.capture.sourcesLoading = true
   await render()
   expect(refresh.disabled).toBe(true)
@@ -365,17 +352,14 @@ it('창을 찾는 동안 재조회 진행 막대가 마지막 조회 완료부�
   props.capture.selectedSourceId = ''
   props.capture.sources = []
   await render()
-  // 대화상자를 6초 뒤에 열면 막대는 이미 지난 6초만큼 앞당겨 시작한다.
   now.mockReturnValue(start + 6_000)
   await click(chip())
   const timing = (name: string) => retryProgress()!.style.getPropertyValue(`--x-${name}`)
   expect(timing('animationDuration')).toBe('15000ms')
   expect(timing('animationDelay')).toBe('-6000ms')
-  // 같은 목록으로 다시 그려도 시작 시각은 그대로다.
   now.mockReturnValue(start + 9_000)
   await render()
   expect(timing('animationDelay')).toBe('-6000ms')
-  // 자동 재조회가 끝나 새 목록이 오면 그 순간부터 다시 찬다.
   props.capture.sources = []
   await render()
   expect(timing('animationDelay')).toBe('0ms')
@@ -403,7 +387,6 @@ it('대화상자를 닫은 동안 화면 밖 안내가 캡처 문구를 알리�
   expect(announcer().textContent).toBe(props.status)
   expect(announcer().closest('[aria-hidden="true"], [inert]')).toBeNull()
   await click(chip())
-  // 모달이 바깥을 가리므로 화면 밖 안내는 보조 기술에서 빠지고 대화상자 안 안내가 같은 문구를 알린다.
   expect(announcer().closest('[aria-hidden="true"], [inert]')).not.toBeNull()
   expect(dialog().querySelector('p[role="status"]')?.textContent).toBe(`!${props.status}`)
   await click(dialog().querySelector<HTMLButtonElement>('button[aria-label="닫기"]')!)
@@ -425,7 +408,6 @@ it('캡처가 실패로 끝나면 창 감지 대신 위험 톤의 캡처 실패�
   const failureMark = notice.querySelector('[role="img"]')!
   expect(failureMark.getAttribute('aria-label')).toBe('실패')
   expect(notice.textContent).toBe(`!${props.status}`)
-  // 실패 `!` 칸은 확인 필요의 주의 색 칸과 다른 위험 색이다.
   const failureClass = failureMark.className
   props.phase = 'unavailable'
   await render()
@@ -436,7 +418,6 @@ it('캡처가 실패로 끝나면 창 감지 대신 위험 톤의 캡처 실패�
   await render()
   const corner = dialog().querySelector<HTMLElement>(':scope > [aria-hidden="true"]')!
   expect(corner.dataset.tone).toBe('danger')
-  // 등록한 창이 남아 있으므로 캡처를 멈출 수 있다.
   expect(
     [...dialog().querySelectorAll('button')].some((button) => button.textContent === '캡처 중지')
   ).toBe(true)

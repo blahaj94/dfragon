@@ -31,11 +31,8 @@ export type ChannelName = keyof z.infer<typeof channelsSchema>
 export type ChannelOriginKind = keyof Channel['origins']
 type BuildEnvironment = Readonly<Record<string, string | undefined>>
 
-// 개발 채널만 localhost 서버를 바라본다. 다른 채널의 고정 origin, default와 빌드 변수 값은 공개 주소여야 한다.
 const LOOPBACK_ORIGIN_CHANNEL = 'development' satisfies ChannelName
-// electron-vite mode `dfragon-<채널>`이 채널 빌드를 고른다. 그 밖의 mode는 채널 없는 빌드나 개발 실행이다.
 const CHANNEL_MODE_PREFIX = 'dfragon-'
-// electron-builder의 기본 진입 파일은 이 변수로 채널을 고르고, 비우면 배포 채널을 만든다.
 const CHANNEL_ENVIRONMENT_VARIABLE = 'DFRAGON_CHANNEL'
 const DEFAULT_PACKAGING_CHANNEL = 'distribution' satisfies ChannelName
 const DNS_ROOT_LABEL_PATTERN = /\.$/
@@ -108,13 +105,10 @@ export function parseChannels(file: unknown): z.infer<typeof channelsSchema> {
 }
 
 /**
- * 채널별 공개 빌드 값의 단일 원본은 `channels.json`이다.
  * 설치본 main bundle에는 공개 연결 설정만 들어가므로 secret이나 credential은 이 파일에 두지 않는다.
- * 문자열 origin은 파일의 값을 그대로 쓰고, `variable` origin은 빌드 환경변수에서 읽는다.
  */
 export const channels = parseChannels(channelsFile)
 
-/** Only public connection settings may cross into the installed main bundle. */
 export function readChannelOrigin(
   name: ChannelName,
   kind: ChannelOriginKind,
@@ -172,7 +166,6 @@ export function readChannelNameFromEnvironment(
   return configured
 }
 
-/** 채널 빌드의 main bundle에 넣는 공개 tuple. 빌드 변수 origin은 여기서 한 번 읽는다. */
 export function readDesktopChannel(
   name: ChannelName,
   environment: BuildEnvironment = process.env

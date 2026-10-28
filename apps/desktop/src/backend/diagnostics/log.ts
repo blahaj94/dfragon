@@ -11,7 +11,7 @@ export type DiagnosticLog = Readonly<{
   subscribe: (listener: (entry: DiagnosticEntry) => void) => () => void
 }>
 
-/** 현재 프로세스의 진단 코드만 보관한다. 원문 오류와 요청 데이터는 받지 않는다. */
+/** 원문 오류와 요청 데이터는 받지 않는다. */
 export function createDiagnosticLog(): DiagnosticLog {
   const entries: DiagnosticEntry[] = []
   const listeners = new Set<(entry: DiagnosticEntry) => void>()
@@ -55,7 +55,6 @@ export function createDiagnosticLog(): DiagnosticLog {
 export const diagnosticLog = createDiagnosticLog()
 export const reportDiagnostic = diagnosticLog.report
 
-/** 종료 동작을 바꾸지 않고 처리되지 않은 메인 프로세스 오류만 관찰한다. */
 export function registerMainDiagnosticErrors(): () => void {
   const reportFailure = (): void => reportDiagnostic('MAIN_PROCESS_FAILED')
   process.on('uncaughtExceptionMonitor', reportFailure)

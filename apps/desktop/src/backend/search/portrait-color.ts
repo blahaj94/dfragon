@@ -17,44 +17,32 @@ import {
 
 const RGB_CHANNELS = 3
 
-/** 계산량 한도이며 비교 해상도의 권장값이 아니다. */
 export const PORTRAIT_COLOR_LIMITS = { gridSize: 32 } as const
 
 export type PortraitColorPolicy = Readonly<{
-  /** 얼굴과 후보 창을 나눌 가로, 세로 셀 수. */
   gridSize: number
-  /** 비교한 셀 면적 중 후보의 불투명 픽셀 비율 하한. */
   minCoverage: number
-  /** 얼굴과 후보 양쪽에 픽셀이 있는 셀 수의 하한. */
   minComparedCells: number
-  /** 기준 위치가 없을 때 후보 창의 위쪽 끝이 놓일 수 있는 범위를 후보 불투명 영역 높이의 위쪽 비율로 제한한다. */
   topFraction: number
-  /** 기준 위치가 있을 때 창을 옮겨 볼 가로, 세로 거리(px). 기준 위치의 측정 오차를 흡수한다. */
   anchorRadius: number
 }>
 
-/** 셀 평균 RGB의 거리이며 확률이나 일치 판정이 아니다. */
 export type PortraitColorScore = Readonly<{
-  /** 비교한 셀의 평균 RGB 채널 절대 차이 평균(0 ~ 255). */
   distance: number
-  /** 얼굴 유효 픽셀이 있는 셀 면적 중 후보 창의 불투명 픽셀 비율. */
   coverage: number
   comparedCells: number
-  /** zoom=1 후보 이미지에서 정규화된 얼굴 크기 창의 좌상단 정수 좌표와 크기. */
   alignment: Readonly<{ x: number; y: number; width: number; height: number }>
 }>
 
 export type PortraitColorInput = Readonly<{
   portrait: CharacterPortrait
   candidate: CharacterImage
-  /** 후보 직업으로 아는 얼굴 창 위치. null이면 불투명 영역의 위쪽에서 창을 찾는다. */
   anchor: PortraitAnchor | null
   signal: AbortSignal
 }>
 
 export type PortraitColorScorer = (input: PortraitColorInput) => Promise<PortraitColorScore | null>
 
-/** 얼굴 셀의 창 내부 좌표(끝 제외)와 유효 픽셀 평균 RGB. */
 type FaceCell = Readonly<{
   left: number
   top: number
@@ -71,7 +59,6 @@ type FaceCells = Readonly<{
   area: number
 }>
 type SearchRange = Readonly<{ firstX: number; lastX: number; firstY: number; lastY: number }>
-/** 검색 영역 원점 기준 (stride × (영역 높이 + 1)) 누적합. */
 type CandidateIntegral = Readonly<{
   originX: number
   originY: number
@@ -108,7 +95,6 @@ function cellEdges(length: number, gridSize: number): number[] {
   return Array.from({ length: gridSize + 1 }, (_, index) => Math.floor((index * length) / gridSize))
 }
 
-/** 유효 픽셀이 없는 셀은 비교에서 빼고, 유효 픽셀이 모두 같은 색이면 구분 정보가 없다고 본다. */
 function summarizeFace(raster: PortraitRaster, gridSize: number): FaceCells | null {
   const { width, height, rgba, valid } = raster
   if (width < gridSize || height < gridSize) {
@@ -172,7 +158,6 @@ function summarizeFace(raster: PortraitRaster, gridSize: number): FaceCells | nu
   return { width, height, cells, area }
 }
 
-/** 창은 이미지 안에 두고 기준 위치에서 anchorRadius 안의 위치만 본다. */
 function anchorRange(
   candidate: CharacterImage,
   anchor: PortraitAnchor,
@@ -190,7 +175,6 @@ function anchorRange(
   return { firstX, lastX, firstY, lastY }
 }
 
-/** 창은 이미지 안에 두고 불투명 영역과 겹칠 수 있는 위치 중 위쪽 끝이 topFraction 범위인 곳만 본다. */
 function searchRange(
   candidate: CharacterImage,
   bounds: OpaqueBounds,
@@ -212,7 +196,6 @@ function searchRange(
   return { firstX, lastX, firstY, lastY }
 }
 
-/** 검색 창이 닿는 영역만 불투명 픽셀의 채널 합과 개수를 누적한다. */
 async function integrateCandidate(
   candidate: CharacterImage,
   range: SearchRange,
@@ -315,7 +298,6 @@ async function findBestWindow(
         continue
       }
       const distance = channelError / (comparedCells * RGB_CHANNELS)
-      // 같은 거리면 더 많은 셀을 비교한 창, 그다음 위쪽, 왼쪽 창을 고른다.
       if (
         best === null ||
         distance < best.distance ||
@@ -330,11 +312,6 @@ async function findBestWindow(
   return best
 }
 
-/**
- * 크롭을 마친 얼굴과 후보 stand 이미지를 같은 N×N 셀 평균 RGB로 비교해 거리가 가장 작은 창을 찾는다. 기준
- * 위치가 있으면 그 주변만 비교한다. 비교할 셀이 없거나 기준을 만족하는 창이 없으면 null이며, 취소와 계산
- * 예산 초과는 그대로 던진다.
- */
 export function createPortraitColorScorer(policy: PortraitColorPolicy): PortraitColorScorer {
   validatePolicy(policy)
   const { gridSize, minCoverage, minComparedCells, topFraction, anchorRadius } = policy

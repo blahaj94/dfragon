@@ -3,7 +3,6 @@ import { cp949Characters } from './cp949-characters.js'
 export type NicknameValidationResult = { isValid: true } | { isValid: false; reason: string }
 
 export interface DFNicknameValidationOptions {
-  /** Caller-owned, case-insensitive substring rules; no official banned list is assumed. */
   bannedWords?: readonly string[]
 }
 

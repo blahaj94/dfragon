@@ -41,9 +41,6 @@ function isBlockIf(statement) {
   return ts.isIfStatement(statement) && ts.isBlock(statement.thenStatement)
 }
 
-// The first statement of a list keeps Biome's layout; later returns and adjacent block ifs are separated.
-// A return needs the blank line right above it, after any leading comment. A block if accepts a blank
-// line anywhere between the previous if and its own line. Biome suppression comments stay attached.
 function spacingKind(statement, previous) {
   if (ts.isReturnStatement(statement)) {
     return 'return'
@@ -56,11 +53,6 @@ function spacingKind(statement, previous) {
   return null
 }
 
-/**
- * Biome가 정렬한 JavaScript/TypeScript source에 문장 간격 정책을 적용한다.
- * 같은 줄에 이어진 문장은 Biome 포맷이 먼저 나누므로 고치지 않고 unresolved로 돌려준다.
- * 구문 오류가 있는 source는 바꾸지 않고 hasSyntaxError로 알린다.
- */
 export function applyStatementSpacing(source, fileName) {
   const scriptKind = SCRIPT_KINDS.get(extname(fileName))
   const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind)
@@ -239,7 +231,6 @@ function run(argv, cwd) {
     console.log(`Checked ${files.length} files. Fixed ${fixed} files.`)
   }
 
-  // A syntax error is a different failure from a spacing mismatch, matching the old formatter exit code.
   if (syntaxErrors > 0) {
     return 2
   }

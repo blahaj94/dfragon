@@ -17,7 +17,6 @@ import {
 export type DNFParticipantFrame = Readonly<{
   width: number
   height: number
-  /** Row-major, unpremultiplied RGBA bytes; alpha is preserved but not used in detection. */
   rgba: Uint8Array | Uint8ClampedArray
 }>
 export type DNFParticipantSlot = 1 | 2 | 3 | 4
@@ -30,10 +29,8 @@ type Unavailable = { status: 'not-found' | 'ambiguous' | 'search-limit' }
 type Found = {
   status: 'found'
   scale: number
-  /** Normalized heading correlation, not a correctness probability. */
   matchScore: number
   window: DNFRectangle
-  /** Always four entries in screen order, including empty/locked rows. */
   rows: DNFParticipantRow[]
 }
 export type DNFParticipantDetection = Found | Unavailable
@@ -45,7 +42,6 @@ export type DNFParticipantCropResult =
 
 const windowBounds = { left: -14, top: -67, right: 380, bottom: 143 }
 
-/** Rejects malformed or unbounded pixel inputs before scanning or allocating buffers. */
 function validateFrame(frame: DNFParticipantFrame, heading = false): void {
   if (
     frame == null ||
@@ -60,7 +56,6 @@ function validateFrame(frame: DNFParticipantFrame, heading = false): void {
   }
 }
 
-/** Precomputes dark row counts to reject impossible dialogs before template comparisons. */
 function createParticipantRowValidator(frame: ParticipantGrayFrame) {
   const stride = frame.width + 1
   const darkCounts = new Uint16Array(stride * frame.height)
@@ -72,7 +67,6 @@ function createParticipantRowValidator(frame: ParticipantGrayFrame) {
   }
 
   return (x: number, y: number, scale: number): boolean => {
-    // Same full-window and four-separator requirements as the final detection, including holes.
     const window = projectParticipantRectangle({ x, y, scale }, windowBounds)
     if (
       window.x < 0 ||
@@ -105,9 +99,6 @@ function createParticipantRowValidator(frame: ParticipantGrayFrame) {
 }
 
 /**
- * Finds the movable participant dialog using its red icon and caller-owned UI-0% heading.
- * No image decoding, capture, OCR, settings reads, or persistence is performed.
- * Requires a 368x17 RGBA reference of the four column labels and their background/borders.
  * Frame dimensions are bounded to the measured 1067..1920 by 600..1080 client range.
  */
 export function detectDNFPartyParticipantWindow(
@@ -202,7 +193,6 @@ export function detectDNFPartyParticipantWindow(
   return { status: 'found', scale: matched.scale, matchScore: matched.score, window, rows }
 }
 
-/** Detects and copies from the same frame; empty rows stay in place with crop:null. */
 export function cropDNFPartyParticipantNicknames(
   frame: DNFParticipantFrame,
   headingTemplate: DNFParticipantFrame

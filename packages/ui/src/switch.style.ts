@@ -1,7 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, motion, radius } from './tokens.stylex'
 
-// 정사각 스위치는 DFragon 디자인 캔버스의 설정 보드(44x22, 손잡이 14, 바깥에서 4)를 따른다.
 export const styles = stylex.create({
   root: {
     position: 'relative',
@@ -31,7 +30,6 @@ export const styles = stylex.create({
     transitionDuration: motion.durState,
     transitionTimingFunction: motion.ease
   },
-  // 각진 손잡이. 켜면 오른쪽으로 옮겨 가며 신호색 위에서는 글자색이 된다.
   thumb: {
     width: 14,
     height: 14,

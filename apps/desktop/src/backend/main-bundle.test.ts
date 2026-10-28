@@ -31,7 +31,6 @@ it.each([['src/backend/search/http.ts', 'createSearchHttp']])(
     expect(chunks).toHaveLength(1)
     const environment = mainEnvironment()
     runInContext(chunks[0].code, environment.context)
-    // Native profile failures previously let the full-main smoke skip this initialization.
     expect(() =>
       environment.context.exports[factory]({ apiOrigin: 'https://api.example.test' })
     ).not.toThrow()
@@ -263,7 +262,6 @@ it.each([
   }
   const environment = mainEnvironment()
   if (mode === 'dfragon-development') {
-    // 셸 설정 없이 OS에서 바로 실행한 것처럼 빌드에 넣은 채널 값만으로 시작한다.
     environment.context.process.platform = 'win32'
   }
   environment.context.__dirname = dirname(resolve(main!.build!.outDir!, entry.fileName))
@@ -282,7 +280,6 @@ it.each([
   }
   expect(failure).toBeNull()
   expect(environment.error).not.toHaveBeenCalled()
-  // 채널 빌드만 채널 profile 폴더를 정하고, 채널 없는 빌드는 Electron 기본 profile을 쓴다.
   if (mode === 'dfragon-development') {
     expect(environment.getPath).toHaveBeenCalledExactlyOnceWith('appData')
   } else {

@@ -29,7 +29,6 @@ const details: CharacterDetails = {
 
 describe('OCR로 고른 캐릭터의 카드 요약', () => {
   it('이전 API가 함께 보내던 카드 값은 버리고 역할만 메인 카드 요약에 넘긴다', async () => {
-    // 지금 배포된 API의 카드 응답 모양이다. 새 Desktop은 역할만 읽는다.
     const card = {
       role: 'dealer',
       stats: null,

@@ -32,7 +32,6 @@ export const styles = stylex.create({
       ':is([data-disabled])': colors.fgDisabled
     }
   },
-  // 현재 탭 아래의 2px 신호색 선. 탭을 바꾸면 hover와 같은 시간에 옮겨 간다.
   indicator: {
     position: 'absolute',
     bottom: -1,
@@ -44,7 +43,6 @@ export const styles = stylex.create({
     transitionDuration: motion.durHover,
     transitionTimingFunction: motion.ease
   },
-  // 카드 면 탭. 카드 아래 높이 40 줄을 탭이 나눠 채우고 위쪽 1px 선 위에 현재 탭 선을 둔다.
   cardList: {
     gap: 0,
     borderBottomWidth: 0,

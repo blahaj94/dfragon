@@ -9,7 +9,6 @@ type RaidSearch = {
   /** 이번 회차가 시작된 뒤 사용자가 서버와 이름으로 조회한 자리. 회차의 OCR 결과가 덮지 않는다. */
   manualSlots: readonly boolean[]
   lookupSlot: (slot: number, nickname: string, serverId: string) => void
-  /** 공대 캡처 회차를 위해 공대 수명을 새로 시작한다. 12자리와 직접 조회 표시를 비운다. */
   beginRound: (signal: AbortSignal) => Promise<string | null>
   observeOcr: (input: OcrCaptureObservation) => void
 }
@@ -62,7 +61,6 @@ export function useRaidSearch(): RaidSearch {
     },
     [observeLookupOcr]
   )
-  // 서버 연결을 기다리는 자리는 main snapshot이 오기 전에도 진행 표시를 보인다.
   const slots = view.slots.map((slot) => {
     if (startingSlots[slot.slot]) {
       const state = 'pending' as const

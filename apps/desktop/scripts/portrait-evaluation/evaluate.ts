@@ -10,7 +10,6 @@ import type { LoadedCase } from './manifest'
 export type CandidateResult = Readonly<{
   id: string
   correct: boolean
-  /** 비교기가 null을 돌려준 후보. 점수가 없다. */
   score: PortraitColorScore | null
 }>
 
@@ -19,39 +18,28 @@ export type ExclusionReason = 'correct-image-missing' | 'single-candidate'
 export type CaseResult = Readonly<{
   caseId: string
   gridSize: number
-  /** 이미지가 있어 점수를 구한 후보 수. */
   comparedCandidates: number
-  /** manifest에서 image가 null이라 건너뛴 후보 id. */
   skippedCandidateIds: readonly string[]
   candidates: readonly CandidateResult[]
-  /** 정답보다 distance가 작거나 같은 오답 수 + 1. 정답 점수가 null이면 비교한 후보 수(최하위). */
   rank: number | null
   correctDistance: number | null
   correctCoverage: number | null
-  /** 오답 중 가장 작은 distance. */
   bestWrongDistance: number | null
-  /** bestWrongDistance - correctDistance. 정답이 1위면 양수, 아니면 0 이하다. */
   margin: number | null
   elapsedMs: number
-  /** 값이 있으면 1위 정확도와 margin 요약에서 뺀다. */
   excludedReason: ExclusionReason | null
 }>
 
 export type EvaluationSummary = Readonly<{
   gridSize: number
   totalCases: number
-  /** 1위 정확도와 margin 요약에 포함한 케이스 수. */
   evaluatedCases: number
   excludedCases: number
   top1Count: number
   top1Accuracy: number | null
-  /** 점수가 있는 모든 케이스의 정답 distance 최댓값. */
   maxCorrectDistance: number | null
-  /** 정답이 1위가 아닌 케이스에서 1위가 된 오답의 distance 최솟값. */
   minWrongTop1Distance: number | null
-  /** 모든 케이스의 오답 distance 최솟값. */
   minWrongDistance: number | null
-  /** 정답이 1위인 케이스의 margin 최솟값. */
   minCorrectTop1Margin: number | null
   nullScoreCount: number
 }>
@@ -80,7 +68,6 @@ export async function evaluateCase(input: {
   loaded: LoadedCase
   gridSize: number
   scorer: PortraitColorScorer
-  /** true면 제품처럼 후보 직업의 얼굴 위치 주변만 비교한다. */
   anchors: boolean
   signal: AbortSignal
 }): Promise<CaseResult> {

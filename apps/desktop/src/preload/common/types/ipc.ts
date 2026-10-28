@@ -32,7 +32,6 @@ interface AsyncIPCFunctions
   ) => Promise<SearchCommandResult>
   controlCharacterSearch: (control: SearchControl) => Promise<SearchCommandResult>
 
-  // Used inside tests, so we can be a bit lenient with the type checking here
   message: (...params: unknown[]) => void
 }
 

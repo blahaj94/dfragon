@@ -55,7 +55,6 @@ import { Typo as StandaloneTypo, typographyVariants as standaloneVariants } from
 import type { TypoProps as StandaloneTypoProps } from '@dfragon/ui/typo'
 import { colors, motion } from '@dfragon/ui/tokens.stylex'
 
-// 별도 tsconfig는 source alias 없이 package export의 dist declaration을 해석한다.
 export const components = [
   Button,
   CardFrame,
@@ -154,7 +153,6 @@ export const link = (
   </StandaloneTypo.txtM>
 )
 
-// 소비자 compiler가 package export의 토큰 상수와 dist의 공용 형태를 함께 정적 CSS로 만든다.
 const consumerStyles = stylex.create({
   signal: { backgroundColor: colors.signal, transitionDuration: motion.durHover }
 })

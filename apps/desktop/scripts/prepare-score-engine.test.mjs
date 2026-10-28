@@ -17,7 +17,6 @@ async function temporaryRoot() {
   return root
 }
 
-/** submodule을 받은 checkout처럼 엔진 파일이 있는 원본 폴더 */
 async function checkedOutSource(bytes = engineBytes) {
   const source = await temporaryRoot()
   await writeFile(join(source, 'dnfscore.dll'), bytes)

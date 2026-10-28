@@ -80,8 +80,6 @@ it('회차는 공대 수명을 시작해 프레임 한 장의 12행을 인식하
   expect(effects.readFrame).toHaveBeenCalledExactlyOnceWith(ROUND)
   expect(modules.recognize).toHaveBeenCalledExactlyOnceWith(rows.rows, expect.any(Function))
   expect(terminate).toHaveBeenCalledOnce()
-  // 공대 상세 창에는 얼굴이 없어 이름과 그 행의 직업명, 수치로 식별하고, 검색에 쓰지 못한 첫 후보는 빈
-  // 이름으로 알린다.
   const raidRow = { jobText: '眞 크루세이더', valueColumn: 'fame', valueText: '12,345' }
   expect(effects.observeOcr.mock.calls.map(([input]) => input)).toEqual([
     { slot: 0, nickname: '첫째', candidateNicknames: ['첫째'], portrait: null, raidRow },
@@ -197,7 +195,6 @@ it('수명 시작을 기다리는 동안의 START는 무시하고 인식 중 STA
   await waitFor(actor, (state) => state.matches({ capturing: 'complete' }))
 
   expect(effects.readFrame.mock.calls.map(([captureId]) => captureId)).toEqual([ROUND, NEXT_ROUND])
-  // 이름은 새 회차에서 한 번만 알린다.
   expect(effects.observeOcr).toHaveBeenCalledTimes(3)
   expect(actor.getSnapshot().context.round).toBe(roundBefore + 1)
 })

@@ -10,7 +10,6 @@ import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
 vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
 
-// 합성 이름과 캐릭터 ID만 쓴다. 이름 하나에 후보 하나라 얼굴 비교 없이 고른다.
 function candidate(name: string): CharacterCandidate {
   return {
     characterId: `id-${name}`,
@@ -304,7 +303,6 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
     })
 
     await vi.waitFor(() => expect(f.lifetime.snapshot().slots[3].state).toBe('success'))
-    // 다른 슬롯이 아직 이름과 서버를 고르는 중이어도 직접 조회한 슬롯은 상세까지 채운다.
     expect(f.lifetime.snapshot().slots[0].state).toBe('pending')
     expect(f.lifetime.snapshot().slots[3]).not.toHaveProperty('details')
     expect(f.lifetime.snapshot().slots[3].selected).toMatchObject({ level: 115 })

@@ -12,7 +12,6 @@ type TextFieldSize = 'sm' | 'md' | 'lg'
 export type TextFieldProps = {
   label?: ReactNode
   description?: ReactNode
-  /** `invalid`일 때만 보인다. */
   errorMessage?: ReactNode
   invalid?: boolean
   disabled?: boolean
@@ -22,13 +21,9 @@ export type TextFieldProps = {
   value?: string
   defaultValue?: string
   onValueChange?: (details: TextFieldValueChangeDetails) => void
-  /** sm 32, md 40, lg 48px 높이. @default 'md' */
   size?: TextFieldSize
-  /** `TextFieldInput` 하나를 둔다. */
   children: ReactNode
-  /** 입력 상자(테두리를 그리는 요소). */
   ref?: Ref<HTMLDivElement>
-  /** label, 설명, 오류를 묶는 Field 요소. */
   fieldRef?: Ref<HTMLDivElement>
 }
 
@@ -39,8 +34,6 @@ type TextFieldContextValue = Pick<
 
 const TextFieldContext = createContext<TextFieldContextValue>({})
 
-// Base UI Field가 label, 설명, 오류를 입력의 접근 가능한 이름과 설명에 연결한다.
-// value와 onValueChange는 안쪽 TextFieldInput에 전달한다.
 export function TextField({
   label,
   description,
@@ -123,5 +116,4 @@ function TextFieldInputImpl({
   )
 }
 
-// Base UI Input. TextField 안에 두면 label, 설명, 오류와 value가 연결된다.
 export const TextFieldInput: ComponentType<TextFieldInputProps> = TextFieldInputImpl

@@ -12,7 +12,6 @@ import {
 import { loadCase, readManifest } from './manifest'
 
 const GRID_SIZES = [4, 6, 8] as const
-// 제품 정책의 후보값이며 환경 변수로 바꿔 가며 비교한다.
 const DEFAULT_POLICY: PolicyBase = {
   minCoverage: 0.5,
   minComparedCells: 6,

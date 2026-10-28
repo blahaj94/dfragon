@@ -5,7 +5,6 @@ export const RGBA_CHANNELS = 4
 export const ALPHA_CHANNEL = 3
 const PIXEL_CENTER = 0.5
 
-/** 계산량 한도이며 캐릭터 일치 여부를 결정하는 허용 오차가 아니다. */
 export const PORTRAIT_COMPARISON_LIMITS = {
   imageDimension: 2048,
   imagePixels: 1024 * 1024,
@@ -15,9 +14,7 @@ export const PORTRAIT_COMPARISON_LIMITS = {
 } as const
 
 export type OpaqueBounds = Readonly<{ left: number; top: number; right: number; bottom: number }>
-/** 한 번의 비교가 소유하는 계산량과 양보 시점. 비교마다 새로 만든다. */
 export type SearchBudget = { comparisonSteps: number; workSinceYield: number }
-/** UI 배율을 되돌린 얼굴. valid는 픽셀당 0 또는 1이며 투명하거나 마스크로 제외한 픽셀은 0이다. */
 export type PortraitRaster = Readonly<{
   width: number
   height: number
@@ -53,7 +50,6 @@ export function createSearchBudget(): SearchBudget {
   return { comparisonSteps: 0, workSinceYield: 0 }
 }
 
-/** 비교 한 단계를 예산에 더하고, 예산을 넘으면 실패를 숨기지 않고 던진다. */
 export function countComparisonStep(budget: SearchBudget): void {
   budget.comparisonSteps += 1
   if (budget.comparisonSteps > PORTRAIT_COMPARISON_LIMITS.comparisonSteps) {
@@ -61,7 +57,6 @@ export function countComparisonStep(budget: SearchBudget): void {
   }
 }
 
-/** 작업 한 단위를 세고 event loop에 양보할 때가 됐는지 알려 준다. */
 export function shouldYield(budget: SearchBudget): boolean {
   budget.workSinceYield += 1
 
@@ -74,7 +69,6 @@ export async function yieldSearch(budget: SearchBudget, signal: AbortSignal): Pr
   budget.workSinceYield = 0
 }
 
-/** 크롭한 얼굴을 rasterScale 1 크기로 되돌린다. 원본 이미지와 마스크 버퍼는 읽기만 한다. */
 export async function rasterizePortrait(
   portrait: CharacterPortrait,
   budget: SearchBudget,
@@ -113,7 +107,6 @@ export async function rasterizePortrait(
 
   const rgba = new Uint8Array(width * height * RGBA_CHANNELS)
   const valid = new Uint8Array(width * height)
-  // 최근접 샘플링으로 원본 픽셀을 보존한다. 좌표와 UI 배율 추정은 크롭 제공자의 책임이다.
   for (let y = 0; y < height; y += 1) {
     const sourceY = Math.min(image.height - 1, Math.floor((y + PIXEL_CENTER) * rasterScale))
     for (let x = 0; x < width; x += 1) {

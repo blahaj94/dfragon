@@ -10,22 +10,15 @@ export type RaidCapture = {
   search: ReturnType<typeof useRaidSearch>
   phase: ReturnType<typeof getRaidCapturePhase>
   recognizing: boolean
-  /** 화면 순서대로 인식한 12행 공대원 이름. 인식하지 못한 자리는 null이다. */
   nicknames: (string | null)[]
   round: number
-  /** 지금까지 시작한 회차 수. 실패하거나 취소된 회차도 센다. */
   startedRounds: number
   status: string
-  /** 마지막으로 인식을 마친 공대 회차의 완료 시각(ms). 없으면 null이다. */
   lastCompletedAt: number | null
   canStartCapture: boolean
-  /** Alt+R과 같은 공대 회차 시작. 창이 등록되지 않았거나 받을 수 없는 상태에서는 아무 일도 하지 않는다. */
   startRound: () => void
-  /** 화면 자리 0~11에 놓인 공대 검색 슬롯 */
   seatOrder: SeatOrder
-  /** 공대 회차가 인식하는 동안은 자리를 맞바꾸지 않는다. */
   canMoveSeats: boolean
-  /** 두 화면 자리를 맞바꾸고 맞바꿨는지 돌려준다. 맞바꿀 수 없는 동안이나 같은 자리면 false다. */
   swapSeats: (from: number, to: number) => boolean
 }
 
@@ -44,11 +37,8 @@ export function useRaidCapture({
   sourceReady,
   receivesShortcut
 }: {
-  /** 공대 화면이 보일 때만 Alt+R을 받는다. */
   receivesShortcut: boolean
-  /** 파티 캡처가 main에 등록한 게임 창. 바뀌면 진행 중 회차를 취소한다. */
   sourceId: string
-  /** 창 등록을 마쳐 프레임을 읽을 수 있는 상태인지 */
   sourceReady: boolean
 }): RaidCapture {
   const search = useRaidSearch()
@@ -70,7 +60,6 @@ export function useRaidCapture({
     }
   })
 
-  // 창 변경, 중지, 개발 도구 진입처럼 파티 캡처의 창 등록이 바뀌면 machine이 진행 중인 공대 회차를 끝낸다.
   const registeredSourceId = sourceReady ? sourceId : null
   useEffect(() => {
     send({ type: 'SOURCE', sourceId: registeredSourceId })

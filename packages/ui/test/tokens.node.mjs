@@ -8,7 +8,6 @@ const VARIABLE_REFERENCE_PATTERN = /var\((--df-[a-z0-9-]+)\)/g
 const css = await readFile(new URL('../tokens.css', import.meta.url), 'utf8')
 const constants = await readFile(new URL('../src/tokens.stylex.ts', import.meta.url), 'utf8')
 
-// 규칙의 첫 선택자부터 닫는 괄호까지 읽는다. 시작 표시는 줄 맨 앞에서 찾는다.
 function block(start) {
   const index = css.indexOf(`\n${start}`)
   assert.notEqual(index, -1, start)

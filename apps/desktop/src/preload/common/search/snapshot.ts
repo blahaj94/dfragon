@@ -139,7 +139,6 @@ const slot = z
 
     return hasNoResult
   })
-// 검색 수명마다 슬롯 수가 정해져 있어 채널이 기대하는 수와 정확히 같은 snapshot만 받는다.
 function createSchemas(slotCount: SearchSlotCount) {
   const snapshot = z
     .strictObject({

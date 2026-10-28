@@ -42,7 +42,6 @@ export function createCharacterSearchService(
       const input = parseCharacterSearchQuery(originalUrl)
 
       const result = await search(peerAddress, input, requestSignal)
-      // 직업명은 후보 API의 계약이라 기존 검색 응답은 다섯 field로 유지한다.
       const rows = result.rows.map(
         ({ characterId, characterName, serverId, serverName, fame }): CharacterCandidate => ({
           characterId,

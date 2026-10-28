@@ -60,13 +60,10 @@ const member: CardCharacter = {
   job: '공대직업',
   serverId: 'cain',
   fame: 120000,
-  // 역할을 모르는 카드 값. 점수 라벨은 장비 점수다.
   card: { ...dealerCard, role: null }
 }
 const idle: SlotState[] = Array.from({ length: 12 }, () => 'idle')
 
-// 슬롯별 배열로 쓴 입력을 페이지가 받는 슬롯 카드 값으로 묶는다. 배열이 짧으면 나머지 슬롯은 비운다.
-// 자리 배치와 슬롯 동작도 풀어 받아 `seats`, `actions`로 묶는다.
 type RenderProps = Partial<Omit<ComponentProps<typeof RaidPage>, 'slots' | 'seats' | 'actions'>> &
   Partial<ComponentProps<typeof RaidPage>['seats']> &
   NonNullable<ComponentProps<typeof RaidPage>['actions']> & {
@@ -169,7 +166,6 @@ it('세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () =
   expect(seats().map((seat) => seat.getAttribute('aria-label'))).toEqual(
     Array.from({ length: 12 }, (_, index) => `${index + 1}번 자리, 끌어서 옮기기`)
   )
-  // 자리마다 속한 파티를 설명으로 전한다.
   const partyOf = (seat: HTMLElement): string | undefined =>
     seat
       .getAttribute('aria-describedby')
@@ -187,13 +183,10 @@ it('세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () =
   expect(first.textContent).toContain('01')
   expect(first.textContent).toContain('공대모험단')
   expect(first.textContent).toContain('공대길드')
-  // 직업은 카드에 두지 않는다.
   expect(first.textContent).not.toContain('공대직업')
-  // 서버 순위, 상세 열기, 면 탭 없는 축약 카드다.
   expect(first.textContent).not.toContain('서버 순위')
   expect(first.querySelector('[aria-label="1번 캐릭터 상세 열기"]')).toBeNull()
   expect(container.querySelector('[role="tab"]')).toBeNull()
-  // 빈 자리도 이름 입력과 서버 선택부터 시작할 수 있다.
   const vacant = seats()[11]
   expect(vacant.querySelector('article')?.getAttribute('data-state')).toBe('waiting')
   expect(vacant.querySelector<HTMLInputElement>('[aria-label="12번 캐릭터 이름"]')?.disabled).toBe(
@@ -211,7 +204,6 @@ it('자리 배치대로 슬롯을 그리고 조회는 그 자리에 놓인 검�
     lookupSlot: lookup
   })
 
-  // 슬롯 0의 캐릭터는 6번 자리에 번호 06으로 보이고 1번 자리에는 슬롯 5가 놓인다.
   expect(nameOf(seats()[5])).toBe('공대원')
   expect(seats()[5].textContent).toContain('06')
   expect(nameOf(seats()[0])).toBe('')
@@ -264,7 +256,6 @@ it('카드에 포커스한 채 Alt와 방향키로 이웃 자리와 맞바꾸고
 
   await pressAlt(seats()[1], 'ArrowDown')
   expect(swap).toHaveBeenLastCalledWith(1, 5)
-  // 보드 가장자리 밖, Alt 없는 방향키, 카드 안 입력의 방향키는 맞바꾸지 않는다.
   swap.mockClear()
   await pressAlt(seats()[0], 'ArrowLeft')
   await pressAlt(seats()[0], 'ArrowUp')
@@ -370,7 +361,6 @@ it('맞바꾸기를 거절하면 알리지 않고, 다음 배치 변경에서 �
 
   const headerButton = container.querySelector<HTMLButtonElement>('section > button')!
   await act(async () => headerButton.focus())
-  // 회차 시작처럼 다른 이유로 배치가 바뀐다.
   await render({
     characters: [member],
     header,
@@ -384,7 +374,6 @@ it('같은 두 자리를 연달아 맞바꿔도 알림 영역을 번갈아 채�
   await render({ characters: [member] })
   const text = '1번 자리와 2번 자리를 맞바꿨습니다.'
 
-  // 매번 한 영역에만 문구가 있고, 두 번째 알림은 비어 있던 다른 영역이 받아 새 내용으로 읽힌다.
   await pressAlt(seats()[0], 'ArrowRight')
   const first = moveNotices()
   expect(first.filter((notice) => notice === text)).toHaveLength(1)
@@ -427,7 +416,6 @@ it('찾은 카드의 안내는 소속 줄을 지키며 보조 기술에만 전�
 
   const card = (index: number): HTMLElement => seats()[index].querySelector('article')!
   expect(card(0).textContent).not.toContain('추정한 후보')
-  // 소속 줄에는 모험단과 길드가 그대로 보이고, 안내는 줄 위 `title`과 보조 기술 문구로만 전한다.
   const affiliation = card(1).querySelector<HTMLElement>(
     '[title="장비 점수로 추정한 후보입니다."]'
   )!
@@ -516,14 +504,11 @@ it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 
   expect(termValue(bufferSeat, '장비')).toBeUndefined()
   expect(termValue(bufferSeat, '버프')!.textContent).toContain('게임 버프 점수')
   expect(toneClassesOf(termValue(bufferSeat, '버프')!)).toEqual(['buffer'])
-  // 역할을 모르면 라벨은 장비이고 색은 기본색이다.
   expect(toneClassesOf(termValue(unknownSeat, '장비')!)).toEqual([])
-  // 단계 카드는 명성과 점수를 모두 단계 색으로 칠한다.
   expect(toneClassesOf(termValue(topSeat, '명성')!)).toEqual(['top'])
   expect(toneClassesOf(termValue(topSeat, '버프')!)).toEqual(['top'])
   expect(toneClassesOf(termValue(rankerSeat, '명성')!)).toEqual(['ranker'])
   expect(toneClassesOf(termValue(rankerSeat, '장비')!)).toEqual(['ranker'])
-  // 값이 없어 -로 보이는 점수는 역할 색 없이 기본 색이다.
   expect(termValue(missingSeat, '버프')!.textContent).toBe('-')
   expect(toneClassesOf(termValue(missingSeat, '버프')!)).toEqual([])
 })
@@ -562,7 +547,6 @@ it('보드는 창 폭을 네 등분한 열에 간격 8로 카드를 놓고 넘�
   for (const name of [...classesOf(expectedLayout.columns), ...classesOf(expectedLayout.gap)]) {
     expect(classes(board)).toContain(name)
   }
-  // 왼쪽 파티 번호 열은 그리지 않고, 파티 이름은 보조 기술에 자리 설명으로만 전한다.
   expect(
     [...board.querySelectorAll('[id^="raid-cards-party-"]')].map((label) => label.textContent)
   ).toEqual(['1파티', '2파티', '3파티'])

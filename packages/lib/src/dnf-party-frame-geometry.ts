@@ -10,7 +10,6 @@ export type PartyFrameRegion = {
 }
 
 export type PartyFrameGeometry = {
-  /** Detected raster scale relative to the measured 1067×600 party-frame geometry. */
   scale: number
   slots: PartyFrameRegion[]
 }
@@ -45,9 +44,6 @@ const TRACK_REFERENCE_WIDTH = 99
 const FIRST_TRACK_REFERENCE_X = 42
 const REFERENCE_SLOT_SPACING = 141
 
-// This window is used only to identify the actual slot number. Crops always use observed x.
-// Broad, non-overlapping identity windows tolerate decorations and raster rounding.
-// These windows identify missing slots; they never supply an unobserved crop coordinate.
 const SLOT_IDENTITY_HALF_WINDOW = REFERENCE_SLOT_SPACING / 3
 
 const SEARCH_FIRST_ROW = 12
@@ -124,7 +120,6 @@ type TrackPairCandidate = {
   mp: TrackBand
 }
 
-/** A capture that cannot be placed confidently must not be stored as a party sample. */
 export class PartyFrameGeometryError extends Error {
   constructor(readonly reason: PartyFrameGeometryFailureReason) {
     const messages: Record<PartyFrameGeometryFailureReason, string> = {
@@ -139,7 +134,6 @@ export class PartyFrameGeometryError extends Error {
   }
 }
 
-/** Validates allocation bounds without imposing a game resolution or aspect ratio. */
 export function isValidPartyFrameSize(width: number, height: number): boolean {
   return (
     Number.isSafeInteger(width) &&
@@ -152,11 +146,6 @@ export function isValidPartyFrameSize(width: number, height: number): boolean {
   )
 }
 
-/**
- * Finds full paired HP/MP bars, checks their local edge structure, and crops the name line
- * relative to each observed bar. The scale search is based on measured track row centers;
- * client dimensions, UI percentages, and repeated-slot spacing do not position the crops.
- */
 export function detectPartyFrameGeometry({
   width,
   height,
@@ -267,7 +256,6 @@ function findTrackBands({ width, height, rgba }: PartyFramePixels): TrackBand[] 
   })
 }
 
-/** Select the closest unused band, retaining the first active band when distances tie. */
 function selectMatchingTrackBand({
   active,
   run,
@@ -604,7 +592,6 @@ function clusterCandidatesByScale(candidates: TrackPairCandidate[]): TrackPairCa
   return clusters
 }
 
-/** Keep all largest clusters long enough to reject an equally plausible scale. */
 function selectScaleCluster(candidates: TrackPairCandidate[]): TrackPairCandidate[] {
   const clusters = clusterCandidatesByScale(candidates)
   const largestClusterSize = Math.max(...clusters.map((cluster) => cluster.length))
@@ -616,7 +603,6 @@ function selectScaleCluster(candidates: TrackPairCandidate[]): TrackPairCandidat
   return bestClusters[0]
 }
 
-/** Aggregate scale values without changing the candidate objects or their order. */
 function medianCandidateScale(candidates: TrackPairCandidate[]): number {
   const scale = median(candidates.map(({ scale }) => scale))
 
@@ -642,7 +628,6 @@ function identifySlot(anchorX: number, scale: number): PartyFrameSlot | undefine
   return undefined
 }
 
-/** Project only identified observations and return them in slot-number order. */
 function projectObservedSlots({
   bySlot,
   scale

@@ -30,7 +30,6 @@ export const characterIdentitySchema = z.object({
     .refine((value) => !INVALID_CHARACTER_ID_CHARACTERS_PATTERN.test(value))
 })
 
-/** 검증한 캐릭터 식별자에서 고정된 네오플 이미지 URL만 구성한다. */
 export function characterImageUrl(identity: CharacterIdentity): string {
   return `${CHARACTER_IMAGE_ORIGIN}/df/servers/${identity.serverId}/characters/${identity.characterId}?zoom=${CHARACTER_IMAGE_ZOOM}`
 }
@@ -47,7 +46,6 @@ const characterSummaryShape = {
   imageUrl: z.string()
 }
 
-/** 서버 이름과 이미지 URL이 식별자에서 만든 고정 값인지 확인한다. */
 function hasFixedServerAndImage(summary: z.infer<z.ZodObject<typeof characterSummaryShape>>) {
   return (
     summary.serverName === CHARACTER_SERVER_NAMES[summary.serverId] &&
@@ -61,12 +59,8 @@ export const characterSummarySchema = z
 
 const characterRole = z.enum(['dealer', 'buffer']).nullable()
 
-/**
- * API 상세 응답의 `card`에서 역할만 읽는다. 이전 API가 함께 보내던 스탯, 세트, 서약, 강화 값은 무시한다.
- */
 export const apiCharacterCardSchema = z.object({ role: characterRole })
 
-/** main이 점수를 채운 카드를 renderer에 넘기기 전에 검사한다. 숫자는 유한값만 받는다. */
 export const characterCardSchema = z.strictObject({
   role: characterRole,
   score: z
@@ -79,7 +73,6 @@ export const characterCardSchema = z.strictObject({
         .nullable(),
       versions: z.strictObject({ package: nonblank, rulesRev: nonblank, bundleId: nonblank })
     })
-    // 근사값은 점수를 건너뛴 결과에만 있다.
     .refine(
       (score) => score.approximate === null || (score.value === null && score.skipped !== null)
     )

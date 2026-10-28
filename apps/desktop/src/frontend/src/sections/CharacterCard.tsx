@@ -33,13 +33,11 @@ export function CharacterCard({
   onLookup,
   onPickCandidate
 }: {
-  /** 이 슬롯이 그릴 검색 상태, 찾은 캐릭터, 인식한 이름, 안내, 진행과 스냅샷 표시 */
   card: SlotCard
   slot: number
   inputEnabled?: boolean
   onRetry?: () => void
   onLookup?: (nickname: string, serverId: string) => void
-  /** 후보 창의 후보를 서버로 누른다. */
   onPickCandidate?: (serverId: string) => void
 }): React.JSX.Element {
   const {
@@ -52,9 +50,7 @@ export function CharacterCard({
     loading = false
   } = card
   const characterFound = state === 'success' && character != null
-  // 미리보기 조회가 실패해도 다른 후보를 다시 고를 수 있게 후보 창은 캐릭터를 찾지 못한 동안에도 남긴다.
   const picker = card.picker
-  // 후보 창을 닫기 X로 닫았는지. 후보 목록과 미리보기, 확정은 캡처 쪽이 가지고, 열림만 카드가 가진다.
   // 확정해 후보가 사라지면 다음 후보는 다시 열린 창으로 보이고, 다음 회차는 카드를 새로 그려 처음부터 열린다.
   const [candidatesClosed, setCandidatesClosed] = useState(false)
   if (picker === undefined && candidatesClosed) {
@@ -63,7 +59,6 @@ export function CharacterCard({
   const candidatesOpen = picker !== undefined && !candidatesClosed
   const candidateWindowId = useId()
   const previewing = characterFound && picker?.previewServerId != null
-  // 찾은 자리는 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
   const nickname = characterFound ? undefined : card.nickname
   const draft = useLookupDraft({ character, nickname, onLookup })
   const serverMenu = useServerMenu()
@@ -74,10 +69,8 @@ export function CharacterCard({
   const busy = loading || state === 'pending'
   const cardStatus = getCharacterCardStatus(state)
   const status = inputNotice || notice || cardStatus
-  // 상태 이름은 꺾쇠와 표시로 보이므로 글자로 다시 쓰지 않는다. 0건과 안내 문구만 화면에 남긴다.
   const emptyMessage = state === 'empty' ? cardStatus : ''
   const message = inputNotice || notice || emptyMessage
-  // 후보 미리보기는 확정 전이라 이름 수정과 같은 선택 상태로 보인다.
   const frameState = getCharacterCardFrameState({
     state,
     editing: draft.active || previewing,
@@ -86,7 +79,6 @@ export function CharacterCard({
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
   const nameTone = toNameFieldTone(frameState, state)
   const showRetry = state === 'failure' && onRetry != null
-  // 찾은 카드의 넷째 줄 직업 뒤에 둘 안내. 고치는 동안 다른 안내가 없으면 조회 방법을 둔다.
   const foundNote = message || (editing ? 'Enter로 조회' : '')
 
   return (
@@ -264,15 +256,12 @@ export function CharacterCard({
   )
 }
 
-// 직업 이름의 각성 표시(`眞 `). 카드에는 직업 이름만 둔다.
 const AWAKENING_PREFIX = /^眞\s*/u
 
 function toJobLabel(job: string): string {
   return job.replace(AWAKENING_PREFIX, '')
 }
 
-// 이름 칸 테두리. 수정 중, 실패는 카드 상태를 따르고, 대기 카드는 얼굴, 식별을 기다리는 자리면 회색,
-// 아직 아무 회차도 채우지 않은 빈 자리면 점선이다.
 function toNameFieldTone(frameState: CharacterCardFrameState, state: SlotState): NameFieldTone {
   if (frameState === 'selected' || frameState === 'failure') {
     return frameState

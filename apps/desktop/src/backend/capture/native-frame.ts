@@ -9,7 +9,6 @@ import { reportDiagnostic } from '../diagnostics/log'
 
 export type ReadWindowFrame = () => WindowFrameResult | Promise<WindowFrameResult>
 
-/** 선택한 창에만 결합된 읽기를 만들고 Windows 실패를 공개 캡처 상태로 정제한다. */
 export function bindWindowFrame(sourceId: string): ReadWindowFrame {
   if (process.platform !== 'win32') {
     return () => ({ kind: 'unsupported' })

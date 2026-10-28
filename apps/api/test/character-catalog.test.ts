@@ -70,7 +70,6 @@ test('처리 기한이 끝나면 진행 중인 아이템 조회를 쓰지 않고
     })
   }, 5)
   const result = await service.load(keys, signal)
-  // 아이템 10개는 하나의 배치로 시작한다.
   assert.equal(calls, 1)
   const started = calls
   for (const entry of result.values()) {

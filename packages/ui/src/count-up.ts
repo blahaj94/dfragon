@@ -28,7 +28,6 @@ function bezierPoint(t: number, first: number, second: number) {
   return 3 * inverse * inverse * t * first + 3 * inverse * t * t * second + t * t * t
 }
 
-// CSS cubic-bezier 곡선의 진행률(x)에 맞는 값(y). 읽을 수 없는 값이면 직선으로 둔다.
 export function parseEasing(value: string): (progress: number) => number {
   const match = CUBIC_BEZIER_PATTERN.exec(value.trim())
   const points = match?.[1].split(',').map(Number) ?? []
@@ -39,7 +38,6 @@ export function parseEasing(value: string): (progress: number) => number {
   const [x1, y1, x2, y2] = points
 
   return (progress) => {
-    // x(t)는 0..1에서 단조 증가하므로 이분 탐색으로 t를 찾는다.
     let low = 0
     let high = 1
     for (let step = 0; step < BISECTION_STEPS; step += 1) {

@@ -5,7 +5,6 @@ import type { NeopleCharacterSearchInput } from '../types/neople-character-searc
 
 type DecodedQueryPair = { key: string; value: string }
 
-/** Raw URL 해석과 검색 조건 검증을 순서대로 수행한다. */
 export function parseCharacterSearchQuery(originalUrl: string): NeopleCharacterSearchInput {
   const pairs = decodeRawQuery(originalUrl)
 

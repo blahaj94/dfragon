@@ -30,7 +30,6 @@ type LifetimeContext = {
   captureId: string | null
 }
 
-/** 직접 begin 응답과 최신 snapshot을 비교한 뒤 호출자의 취소 여부를 한 번 확인한다. */
 export function inspectCaptureStart(
   result: SearchCommandResult | null,
   latest: SearchSnapshot | null,

@@ -41,7 +41,6 @@ type Options = {
   publish: (snapshot: SearchSnapshot) => void
   isCurrent: (binding: CaptureBinding) => boolean
   runtime?: SearchRuntime
-  /** 이 수명이 소유하는 슬롯 수. 기본은 파티 네 자리다. */
   slotCount?: SearchSlotCount
   /**
    * OCR 관측과 그 요청에만 더 요구하는 유효성. 공대 카드 수명은 회차를 시작한 게임 창 선택이 그대로인지 본다.
@@ -264,7 +263,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     return result()
   }
 
-  // OCR 기원 관측과 요청은 수명의 유효성에 더해 OCR 전용 조건(공대는 회차의 게임 창 선택)도 만족해야 한다.
   function isCurrentOcrBinding(currentBinding: CaptureBinding): boolean {
     const isCurrentOcr = options.isCurrentOcr
     if (isCurrentOcr === undefined) {
@@ -293,7 +291,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     }
   }
 
-  /** 아직 받지 않은 상세를 실패로 두고 받는 중이면 취소한다. 바뀐 슬롯이 있으면 true다. */
   function failPendingDetails(matches: (slot: number) => boolean): boolean {
     if (detailsJob !== null && matches(detailsJob.slot)) {
       detailsJob.controller.abort()
@@ -656,8 +653,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   }
 
   /**
-   * 이름과 서버만 정한 슬롯의 상세와 점수를 슬롯 순서로 하나씩 채운다. 어느 슬롯이든 조회 중이면 시작하지
-   * 않아, 회차의 모든 자리가 이름과 서버를 먼저 정한 뒤 상세를 받는다.
+   * 어느 슬롯이든 조회 중이면 시작하지 않아, 회차의 모든 자리가 이름과 서버를 먼저 정한 뒤 상세를 받는다.
    */
   function startNextDetails(): void {
     const runtime = options.runtime
@@ -713,7 +709,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       return
     }
 
-    // 상세를 받지 못해도 이미 정한 이름과 서버는 그대로 두고 점수만 비운다.
     if (outcome.kind === 'failure') {
       slots[job.slot] = { ...slots[job.slot], details: 'failed' }
       // 호출 제한을 받으면 남은 상세도 받지 않아 제한 중에 요청을 더 보내지 않는다.

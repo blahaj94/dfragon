@@ -191,7 +191,6 @@ function registerCaptureIpc(configuration?: {
       const { maxDistance, minMargin, maxCandidates } = policy
       const selection = { maxDistance, minMargin, maxCandidates }
       validateSelectionPolicy(selection)
-      // 캡처, 파티 카드, 공대 수명이 같은 runtime을 쓰므로 이미지 대기열과 캐시도 하나를 공유한다.
       runtime.identification = {
         candidates: createCachedCharacterCandidates(createCharacterCandidatesHttp(configuration)),
         image: createCharacterImageSource({ image: createCharacterImageHttp(configuration) }),

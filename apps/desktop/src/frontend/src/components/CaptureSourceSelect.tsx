@@ -14,10 +14,6 @@ type CaptureSourceSelectProps = {
   loading: boolean
   failed: boolean
   ready: boolean
-  /**
-   * 마지막 창 목록 조회가 끝난 시각(`performance.now()` ms). 다음 자동 조회까지의 진행 막대가 이 시각부터
-   * 찬다.
-   */
   retryStartedAt: number
   onSelect: (id: string) => void
 }
@@ -41,8 +37,6 @@ export function CaptureSourceSelect({
   const searching = !failed && detected.length === 0
   const disabled = loading || failed || !ready
 
-  // 창을 한 줄의 radio 타일로 고른다. 안내 타일(찾는 중, 조회 실패)은 radio가 아니라 그 앞에 둔다.
-
   return (
     <div {...stylex.props(styles.row)}>
       {failed && (
@@ -62,7 +56,6 @@ export function CaptureSourceSelect({
       )}
       <div role="radiogroup" aria-label="캡처할 창" {...stylex.props(styles.group)}>
         {value.length > 0 && !hasSelected && (
-          // 선택한 창이 새 목록에서 사라졌다. 어느 창이었는지 알 수 없으므로 선택만 알린다.
           <SourceTile
             groupName={groupName}
             id={value}
@@ -100,7 +93,6 @@ type SourceTileProps = {
   onSelect: (id: string) => void
 }
 
-// 이름과 그룹을 두 줄로 쓰는 radio 타일. radio 입력이 타일 전체를 덮어 누르기와 방향키, 포커스를 받는다.
 function SourceTile({
   groupName,
   id,

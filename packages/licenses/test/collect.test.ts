@@ -29,7 +29,6 @@ test('번들 입력과 production 전이, 순환 의존성을 한 번씩 수집�
     documents: { LICENSE: 'Nested fixture\n' }
   })
   pkg('optional', { documents: { LICENSE: 'Optional fixture\n' } })
-  // 원문이 없는 개발 도구도 실제 설치하지만 수집 대상에 넣지 않는다.
   pkg('tool', { documents: {} })
   pkg('nested-tool', { documents: {} })
   const renderer = pkg('renderer', { documents: { LICENSE: 'Renderer fixture\r\n' } })

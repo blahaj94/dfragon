@@ -33,7 +33,6 @@ function clock() {
   }
 }
 
-// 상세 명시 갱신의 시작 전 DB 대기가 쓰는 2초 경계다.
 test('deadline 대기는 1,999ms에는 통과하고 정확히 2,000ms에는 취소된다', async (t) => {
   for (const releaseAt of [1_999, 2_000]) {
     await t.test(`${releaseAt}ms 경계`, async () => {

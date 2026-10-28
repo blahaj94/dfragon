@@ -254,7 +254,6 @@ export function createRendererFixture(): RendererFixture {
     resources,
     readCaptureFrame,
     order,
-    // 상단 바 화면 이전의 직접 검색과 캡처 섹션. 통합 테스트가 검색 연결만 확인하도록 그대로 띄운다.
     mount: async (
       content = (
         <>

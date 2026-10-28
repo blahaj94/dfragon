@@ -16,7 +16,6 @@ function isSearchMode(value: unknown): value is SearchMode {
   return SEARCH_MODES.some((mode) => mode.value === value)
 }
 
-/** 상단 바의 주 메뉴. 검색 하나만 두고, 파티와 공대를 고르는 하위 메뉴를 연다. */
 export function MainNav({
   searchMode,
   onSearchModeChange

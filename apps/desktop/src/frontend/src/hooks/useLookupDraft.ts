@@ -4,18 +4,13 @@ import type { CardCharacter } from '../types/cards'
 type LookupDraft = {
   name: string
   serverId: string
-  /** 서버나 이름이 빠져 조회하지 않았을 때의 안내. 다시 입력하면 지운다. */
   inputNotice: string
-  /** 찾은 캐릭터와 다른 이름이나 서버를 입력해 아직 조회하지 않은 상태 */
   editing: boolean
-  /** 이름 칸에 들어가 있거나 고친 뒤 확정하지 않은 상태. 카드는 이 동안 이름 수정 중으로 보인다. */
   active: boolean
   changeName: (name: string) => void
-  /** 서버를 바꾸면 바로 그 서버와 입력한 이름으로 조회한다. */
   changeServer: (serverId: string) => void
   focusName: () => void
   blurName: () => void
-  /** 입력한 서버와 이름으로 조회를 요청한다. 서버나 이름이 비면 요청하지 않고 안내를 남긴다. */
   submit: () => void
 }
 
@@ -30,7 +25,6 @@ export function useLookupDraft({
   onLookup
 }: {
   character?: Pick<CardCharacter, 'name' | 'serverId'>
-  /** 캐릭터를 찾기 전 이름 칸에 둘 인식한 이름 */
   nickname?: string
   onLookup?: (nickname: string, serverId: string) => void
 }): LookupDraft {

@@ -6,7 +6,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// The image must already be present locally; this check never builds or deploys it.
 const imageArguments = process.argv.slice(2)
 const [imageReference] = imageArguments
 if (imageArguments.length !== 1 || imageReference.trim() === '' || imageReference.startsWith('-')) {
@@ -114,7 +113,6 @@ try {
     '/tmp:size=16m,mode=1777',
     '--init'
   ]
-  // Exercise the image entrypoint's legacy fallback and both explicit input modes.
   for (const mode of ['legacy', 'file', 'environment']) {
     const expectedMounts = ['/app/container-runtime-check.mjs']
     const serviceInput = []

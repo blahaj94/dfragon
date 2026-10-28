@@ -6,7 +6,6 @@ type ScheduledTask = {
   cancelled: boolean
 }
 
-/** 테스트가 시간을 직접 진행하는 시계. `advance`만 만료된 timer를 실행한다. */
 export class FakeMonotonicClock implements MonotonicClock {
   monotonicMs = 1_000
   readonly scheduled: ScheduledTask[] = []

@@ -6,7 +6,6 @@ function component(width, height, color = [235, 20, 25, 128], count = width * he
   const frameWidth = 40
   const frameHeight = 40
   const rgba = new Uint8Array(frameWidth * frameHeight * 4)
-  // 연결된 L을 먼저 그려 채움 비율이 낮은 fixture도 같은 가로, 세로 크기를 유지한다.
   const pixels = new Set()
   for (let x = 0; x < width; x += 1) {
     pixels.add(x)
@@ -119,7 +118,6 @@ test('대각선으로 닿은 빨간 영역도 8방향 연결 앵커 하나로 �
   }
   const original = rgba.slice()
 
-  // 18×18 외곽 안의 두 9×9 블록은 50%를 채우며 중심은 (10.5, 10.5)다.
   assert.deepEqual(findParticipantAnchors(width, height, rgba), [{ x: 10.5, y: 10.5, scale: 2 }])
   assert.deepEqual(rgba, original)
 })

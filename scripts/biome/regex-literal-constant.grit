@@ -1,4 +1,3 @@
-// Regex literals are named const initializers; see docs/rules/convention-tooling.md.
 // GritQL compares bound nodes by source text, so the declarator check keeps an equal regex elsewhere in
 // the same declaration from allowing this one.
 JsRegexLiteralExpression() as $regex where {

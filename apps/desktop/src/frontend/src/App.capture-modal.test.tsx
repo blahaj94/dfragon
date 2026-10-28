@@ -31,7 +31,6 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-// 캡처 대화상자의 창 타일(radio) 중 지금 고른 창
 const SELECTED_SOURCE = '[role="dialog"] input[type="radio"]:checked'
 
 function selectedSourceName(): string | null | undefined {
@@ -45,7 +44,6 @@ async function click(label: string): Promise<void> {
   expect(button).toBeDefined()
   await act(async () => button!.click())
 }
-// 상단 바의 게임 연결 상태 칩이 캡처 대화상자를 연다. 칩의 이름은 현재 상태를 함께 담는다.
 async function openCaptureDialog(): Promise<void> {
   const chip = document.querySelector<HTMLButtonElement>(
     'main > header button[aria-label^="화면 캡처, "]'
@@ -62,7 +60,6 @@ async function select(id: string): Promise<void> {
   await act(async () => option!.click())
 }
 
-// 캡처 대화상자 문구가 섞이지 않도록 대화상자를 뺀 상단 바 글자만 읽는다.
 function topBarText(): string | null {
   const header = document.querySelector('main > header')!.cloneNode(true) as HTMLElement
   for (const dialog of header.querySelectorAll('[role="dialog"]')) {

@@ -9,7 +9,6 @@ export type MenuPopupProps = PublicProps<typeof BaseMenu.Popup> &
   Pick<BaseMenu.Portal.Props, 'container'> &
   Pick<BaseMenu.Positioner.Props, 'side' | 'align' | 'sideOffset'>
 
-// Portal, Positioner, Popup을 묶은 메뉴 목록. Select 목록과 같은 모양으로 trigger 아래에 펼친다.
 function MenuPopupImpl({
   container,
   side = 'bottom',
@@ -53,7 +52,6 @@ const MenuItem: ComponentType<MenuItemProps> = MenuItemImpl
 
 export type MenuRadioItemProps = PublicProps<typeof BaseMenu.RadioItem>
 
-// 선택 상태를 알리는 menuitemradio. 현재 항목은 왼쪽 2px 막대와 신호색 글자로 보인다.
 function MenuRadioItemImpl({
   children,
   className,
@@ -101,10 +99,6 @@ function MenuSeparatorImpl({ className, style, ...props }: MenuSeparatorProps & 
 
 const MenuSeparator: ComponentType<MenuSeparatorProps> = MenuSeparatorImpl
 
-/**
- * Base UI Menu 부품. Root, Trigger, RadioGroup, Group은 Base UI 그대로다. Trigger는 화면마다
- * 모양이 달라 외형을 두지 않으며 `render`로 화면의 버튼을 연결한다.
- */
 export const Menu = {
   Root: BaseMenu.Root,
   Trigger: BaseMenu.Trigger,

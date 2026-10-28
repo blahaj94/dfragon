@@ -54,7 +54,6 @@ test(TITLES.trimWhitespace, () => {
 })
 
 test(TITLES.trimDifference, () => {
-  // CP949 이름 검사, 계정 validator의 문자 제한을 길이/trim 전용 검색 helper에 옮기지 않는다.
   for (const character of ['\u0085', '\u180e', '\u200b']) {
     for (const nickname of [character + '가', '가' + character, '가' + character + '나']) {
       assert.equal(matchesDNFSearchNicknamePolicy(nickname), true, JSON.stringify(nickname))
@@ -63,7 +62,6 @@ test(TITLES.trimDifference, () => {
 })
 
 test(TITLES.generatedCodePoints, () => {
-  // 각 항목은 정확히 한 code point다. 결합 문자, ZWJ, variation selector도 길이에 포함된다.
   const atoms = ['A', '가', '𠀀', '😀', '\u0301', '\u200d', '\ufe0f']
   for (let length = 0; length <= 13; length++) {
     for (let offset = 0; offset < atoms.length; offset++) {

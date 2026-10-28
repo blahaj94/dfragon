@@ -17,7 +17,6 @@ export async function invokeSearchCommand<Channel extends SearchChannel>(
   ...args: Parameters<AsyncIPCFunctions[Channel]>
 ): Promise<SearchCommandResult> {
   const value: unknown = await ipcRenderer.invoke(channel, ...args)
-  // 공대 수명의 채널만 12자리이고 나머지 검색 채널은 파티 4자리다.
   const isRaidChannel =
     channel === 'controlRaidSearch' || channel === 'notifyRaidOcrCandidatesDetected'
   const slotCount = isRaidChannel ? SEARCH_SLOT_COUNTS.raid : SEARCH_SLOT_COUNTS.party

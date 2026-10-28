@@ -1,6 +1,5 @@
 import type { Response } from 'express'
 
-/** 연결이 끊기면 작업을 취소하고 성공, 실패와 관계없이 연결 리스너를 정리한다. */
 export async function respondWithCancellation(
   response: Response,
   operation: (signal: AbortSignal) => Promise<unknown>

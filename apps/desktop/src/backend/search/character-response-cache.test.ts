@@ -116,7 +116,6 @@ describe('완료한 캐릭터 응답 캐시', () => {
             Reflect.set((value as CharacterDetails).character, 'characterName', '변경')
           }
         }
-        // 처음 받은 값과 캐시에서 꺼낸 값을 호출자가 바꿔도 캐시 값은 그대로다.
         rename(await read())
         const cached = await read()
         expect(cached).toEqual(original)

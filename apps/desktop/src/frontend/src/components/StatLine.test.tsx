@@ -55,7 +55,6 @@ function term(label: string): HTMLElement {
 
 const value = (label: string): HTMLElement => term(label).nextElementSibling as HTMLElement
 
-// 값 글자. 보조 기술에만 읽히는 설명(sr-only 칸)은 뺀다.
 const shown = (element: HTMLElement): string | undefined =>
   element.firstChild?.textContent ?? undefined
 

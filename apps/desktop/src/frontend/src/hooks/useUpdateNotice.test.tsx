@@ -9,7 +9,6 @@ import type {
   UpdateNoticeSnapshot
 } from '../../../preload/common/types/update-notice'
 
-// App과 같은 방식으로 hook 결과를 알림 컴포넌트에 연결한다.
 function Harness(): React.JSX.Element | null {
   const { notice, openRelease, dismiss } = useUpdateNotice()
   if (notice == null) {
@@ -69,7 +68,6 @@ function installApi(overrides: Partial<UpdateNoticeApi>): UpdateNoticeApi {
   return api
 }
 
-// 상단 바의 새 버전 칩을 눌러 메뉴를 열고 이름이 같은 메뉴 항목을 누른다.
 async function choose(label: string): Promise<void> {
   const chip = container.querySelector('button')
   if (chip == null) {

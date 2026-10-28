@@ -21,8 +21,7 @@ export type JobOcrReader = (
 ) => Promise<string>
 
 /**
- * renderer의 canvas `imageSmoothingQuality: 'low'` 축소를 node에서 쌍선형 보간으로 근사한다. 브라우저의
- * 결과와 픽셀 단위로 같지는 않다.
+ * 브라우저의 결과와 픽셀 단위로 같지는 않다.
  */
 function resizeBilinear(
   image: Readonly<{ width: number; height: number; rgba: Uint8Array | Uint8ClampedArray }>,
@@ -77,7 +76,6 @@ function recognitionInput(crop: CharacterImage, preprocessing: JobOcrPreprocessi
   return normalize(resized, width, height, MODEL_INPUT_WIDTH)
 }
 
-/** 앱 worker와 같은 WASM 엔진, 사전, CTC 디코딩으로 직업명 크롭의 1위 문자열을 읽는다. */
 export async function createJobOcrReader(
   modelPath: string,
   dictionaryPath: string

@@ -1,4 +1,3 @@
-// Return values are chosen by explicit branches; see docs/rules/convention-tooling.md.
 or {
   JsReturnStatement(argument=$value) where {
     $value <: or {
@@ -19,7 +18,6 @@ or {
       JsObjectExpression(members=$members),
       JsParenthesizedExpression(expression=JsObjectExpression(members=$members))
     },
-    // Report every direct property instead of stopping at the first match.
     $members <: every or {
       bubble JsPropertyObjectMember(value=$value) where {
         $value <: or {

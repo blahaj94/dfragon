@@ -12,7 +12,6 @@ import { createSearchConnection, type SearchConnection } from './search-connecti
 const connections: SearchConnection[] = []
 afterEach(() => connections.splice(0).forEach((connection) => connection.dispose()))
 
-/** 실제 연결의 구독, 명령 응답 순서를 개별적으로 제어한다. */
 function fixture(): {
   connection: SearchConnection
   control: Mock<SearchApi['controlCharacterSearch']>

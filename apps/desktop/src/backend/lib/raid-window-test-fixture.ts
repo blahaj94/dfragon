@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { PNG } from 'pngjs'
 
-/** 합성 창에 붙이는 실제 기준 헤더 경로 */
 const RAID_HEADING_URL = new URL('./raid-heading.png', import.meta.url)
 
 /**

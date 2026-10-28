@@ -43,8 +43,6 @@ describe('OCR public asset 준비', () => {
     const customDictionary = join(directory, 'characters.txt')
     try {
       await copyFile(modelPath, customModel)
-      // 문자 수가 같아도 사전 파일을 기본 파일로 되돌리지 않는지 검사한다.
-      // 이 재배열 사전은 복사 검증용이며 실제 인식 정확도를 검증하는 입력은 아니다.
       const characters = (await readFile(dictionaryPath, 'utf8')).trimEnd().split('\n')
       ;[characters[0], characters[1]] = [characters[1], characters[0]]
       const dictionary = `${characters.join('\n')}\n`

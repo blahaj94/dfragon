@@ -1,4 +1,3 @@
-// 동작 프리미티브는 Base UI이고 외형은 --df-* 토큰만 쓰는 StyleX로 그린다.
 export { Button } from './button'
 export type { ButtonProps, ButtonSize, ButtonVariant } from './button'
 export { IconButton } from './icon-button'

@@ -3,7 +3,6 @@ import type { UpdateNotice } from '../../preload/common/types/update-notice'
 
 const RELEASES_URL = 'https://github.com/blahaj94/dfragon/releases'
 const RELEASE_PAGE_PREFIX = `${RELEASES_URL}/tag/`
-// Release tag는 앱 버전 앞에 `v`를 붙인 형식이다.
 const RELEASE_TAG_PREFIX = 'v'
 export const RELEASE_FEED_URL = `${RELEASES_URL}.atom`
 
@@ -15,17 +14,12 @@ const HREF_PATTERN = /\bhref="([^"]*)"/
 
 type ReleaseTrack = 'stable' | 'beta' | 'alpha'
 
-// 현재 버전의 track마다 알릴 수 있는 Release의 track.
 const ACCEPTED_TRACKS: Record<ReleaseTrack, readonly ReleaseTrack[]> = {
   stable: ['stable'],
   beta: ['beta', 'stable'],
   alpha: ['alpha', 'beta', 'stable']
 }
 
-/**
- * GitHub Release Atom feed에서 항목마다 첫 link의 Release 페이지 주소로 tag를 읽는다.
- * Atom feed가 아니면 null이고, 정식, alpha, beta tag가 아닌 항목은 건너뛴다.
- */
 export function readReleaseFeedTags(feed: string): string[] | null {
   if (!ATOM_ROOT_PATTERN.test(feed)) {
     return null
@@ -47,7 +41,6 @@ export function readReleaseFeedTags(feed: string): string[] | null {
 }
 
 /**
- * 현재 버전의 track이 받을 수 있는 Release 가운데 현재보다 높고 semver로 가장 높은 버전 하나를 고른다.
  * GitHub의 Pre-release 표시와 feed 게시 순서는 보지 않는다.
  */
 export function selectUpdateNotice(
@@ -82,7 +75,6 @@ export function selectUpdateNotice(
   return { tag: best.tag }
 }
 
-/** 검증한 Release tag의 GitHub Release 페이지 주소만 만든다. */
 export function releasePageUrl(tag: string): string | null {
   if (parseReleaseTag(tag) == null) {
     return null
@@ -100,7 +92,6 @@ function readTrack(version: ReleaseVersion): ReleaseTrack {
   return 'stable'
 }
 
-/** semver 우선순위로 비교한다. 정식 버전은 같은 core의 prerelease보다 높다. */
 function compareReleaseVersions(left: ReleaseVersion, right: ReleaseVersion): number {
   for (let index = 0; index < 3; index += 1) {
     const difference = left.core[index] - right.core[index]

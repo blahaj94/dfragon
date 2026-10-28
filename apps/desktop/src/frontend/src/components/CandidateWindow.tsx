@@ -7,12 +7,6 @@ import { characterImageUrl } from '../../../preload/common/search/character-summ
 import type { CharacterChoice } from '../../../preload/common/types/search'
 import type { CandidatePicker } from '../lib/candidate-picker'
 
-/**
- * 얼굴로 확정하지 못한 카드 위에 한 겹 더 뜨는 후보 창. 후보마다 비교에 쓴 얼굴 초상화만 한 줄로 두고, 이름은
- * 후보끼리 같아서 쓰지 않는다. 서버와 모험단은 `title`과 보조 기술 이름에만 둔다. 한 번 누르면 미리보기,
- * 미리보기 중인 후보를 다시 누르면 확정이며 그 판단은 누른 뒤의 상태를 정하는 쪽이 한다. 창을 띄우는 곳은
- * `position: relative`인 카드 자리여야 한다.
- */
 export function CandidateWindow({
   id,
   slot,
@@ -20,7 +14,6 @@ export function CandidateWindow({
   onPick,
   onClose
 }: {
-  /** 창을 여닫는 버튼이 `aria-controls`로 가리킬 id */
   id?: string
   slot: number
   picker: CandidatePicker
@@ -75,7 +68,6 @@ export function CandidateWindow({
   )
 }
 
-/** 색 비교가 맞춘 후보 이미지의 얼굴 창. 창이 없거나 이미지를 받지 못하면 빈 칸이다. */
 function ChoiceFace({ choice }: { choice: CharacterChoice }): React.JSX.Element {
   const [failed, setFailed] = useState(false)
   const face = choice.face

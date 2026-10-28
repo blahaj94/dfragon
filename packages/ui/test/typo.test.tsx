@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it, vi } from 'vitest'
 import { Typo, typographyVariants } from '../src/index'
 
-// 자간 ''는 inline 지정 없이 기본 자간 0을 따른다는 뜻이다.
 const typographyCases = [
   {
     variant: 'h1',

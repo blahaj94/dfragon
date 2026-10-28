@@ -470,7 +470,6 @@ test('본문, 응답 검증이 4,999ms에 끝나면 값을 반환하고 timer를
 })
 
 test('본문 수신 뒤 응답 처리 중 deadline에 도달하면 성공 결과를 거절한다', async () => {
-  // Response 속성을 바꾸지 않고 처리 동안 단조 clock이 진행하는 경계만 제어한다.
   const instants = [0, 4_999, 4_999, 5_000]
   let observed = 0
   const search = createNeopleCharacterSearchForTest('fake-key', {

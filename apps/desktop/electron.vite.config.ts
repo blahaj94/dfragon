@@ -109,7 +109,6 @@ export default defineConfig(({ mode, command }) => {
       worker: { format: 'es' },
       root: frontendRoot,
       build: {
-        // StyleX 규칙을 담은 공통 CSS를 모든 HTML entry에서 읽는다.
         cssCodeSplit: false,
         rollupOptions: {
           input: rendererInput,

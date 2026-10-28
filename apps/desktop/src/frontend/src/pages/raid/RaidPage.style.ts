@@ -34,9 +34,8 @@ export const styles = stylex.create({
     '::-webkit-scrollbar-corner': { backgroundColor: 'transparent' },
     '::-webkit-scrollbar-thumb': { backgroundColor: colors.borderStrong }
   },
-  // DFragon 디자인 캔버스 공대 보드의 배치. 카드 네 열을 간격 8로 두고 폭은 창 폭을 네 등분하며, 높이는 카드
-  // 내용이 정한다. 카드 네 장이 한 줄을 채우므로 순서대로 놓으면 줄마다 한 파티가 된다. 카드는 모두 같은 부모 아래에 두어
-  // 다른 파티와 맞바꿔도 카드의 입력 초안과 포커스가 그대로 옮겨 간다.
+  // 카드는 모두 같은 부모 아래에 두어 다른 파티와 맞바꿔도 카드의 입력 초안과 포커스가
+  // 그대로 옮겨 간다.
   board: {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',

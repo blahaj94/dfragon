@@ -5,13 +5,10 @@ export const UPDATE_NOTICE_CHANNELS = {
   changed: 'updateNoticeChanged'
 } as const
 
-/** 현재 버전보다 높은 Release 하나. */
 export type UpdateNotice = Readonly<{
-  /** `v<semver>` 형식의 정식, alpha, beta Release tag. */
   tag: string
 }>
 
-/** main이 소유한 알림 상태. revision이 클수록 나중 상태다. */
 export type UpdateNoticeSnapshot = Readonly<{
   revision: number
   notice: UpdateNotice | null

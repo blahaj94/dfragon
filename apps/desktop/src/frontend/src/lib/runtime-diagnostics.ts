@@ -18,7 +18,6 @@ const OCR_NICKNAME_REJECTION_REASONS = {
 
 export type OcrNicknameRejection = keyof typeof OCR_NICKNAME_REJECTION_REASONS
 
-/** 검색에 쓰지 못한 OCR 첫 후보의 원문을 메인 진단 기록과 분리해 이 화면의 Console에만 표시한다. */
 export function showRejectedOcrNickname({
   slot,
   text,
@@ -36,7 +35,6 @@ export function showRejectedOcrNickname({
   )
 }
 
-/** 실행 경계에서 정제한 코드만 전달하고 진단 실패는 제품 동작에 전파하지 않는다. */
 export function reportRendererDiagnostic(code: RendererDiagnosticCode): void {
   try {
     void activeApi?.reportRendererDiagnostic(code).catch(() => {})
@@ -45,7 +43,6 @@ export function reportRendererDiagnostic(code: RendererDiagnosticCode): void {
   }
 }
 
-/** 현재 실행의 메인 기록과 화면 오류를 Electron 기본 DevTools Console에 연결한다. */
 export function startRendererDiagnostics(api: DiagnosticApi, target: Window = window): () => void {
   let disposed = false
   let lastSequence = 0

@@ -16,7 +16,6 @@ const IMAGE_ORIGIN = 'https://img-api.neople.co.kr'
 const FACE_SIZE = 16
 const SHOWROOM_URL_PATTERN = /showroom|df\.nexon\.com/
 
-// 운영 정책의 8×8 셀로 나눌 수 있는 합성 얼굴. 같은 픽셀의 후보는 거리 0이다.
 function face(): CharacterImage {
   const rgba = new Uint8Array(FACE_SIZE * FACE_SIZE * 4)
   for (let y = 0; y < FACE_SIZE; y += 1) {
@@ -28,7 +27,6 @@ function face(): CharacterImage {
   return { width: FACE_SIZE, height: FACE_SIZE, rgba }
 }
 
-// 얼굴과 색이 크게 다른 불투명 후보.
 function otherFace(): CharacterImage {
   const rgba = new Uint8Array(FACE_SIZE * FACE_SIZE * 4)
   for (let pixel = 0; pixel < FACE_SIZE * FACE_SIZE; pixel += 1) {
@@ -247,7 +245,6 @@ it('두 슬롯의 후보 이미지는 앞 요청이 끝난 뒤에야 다음 요�
   const imageCount = slots.flatMap((entry) => entry.rows).length
   for (let started = 1; started <= imageCount; started += 1) {
     await vi.waitFor(() => expect(pendingImages).toHaveLength(started))
-    // 다른 슬롯이 대기열을 건너뛰어 요청을 시작할 기회를 준 뒤에도 진행 중 요청은 하나여야 한다.
     await new Promise<void>((resolve) => setImmediate(resolve))
     expect(pendingImages).toHaveLength(started)
     const current = pendingImages[started - 1]

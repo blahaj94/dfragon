@@ -20,7 +20,6 @@ import { createCaptureSearch, type CaptureSearch } from './capture-search'
 const searches: CaptureSearch[] = []
 afterEach(() => searches.splice(0).forEach((search) => search.dispose()))
 
-/** 실제 SearchConnection을 통과시키면서 main 응답, event 순서만 제어한다. */
 async function fixture({ ocrSupported = true }: { ocrSupported?: boolean } = {}): Promise<{
   search: CaptureSearch
   control: Mock<SearchApi['controlCharacterSearch']>

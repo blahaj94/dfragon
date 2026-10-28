@@ -54,7 +54,6 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-// 공대 수명의 합성 main. begin마다 새 수명 ID로 12자리를 비우고 OCR 이름은 그 자리를 조회 중으로 둔다.
 function stubRaidSearch() {
   let snapshot: SearchSnapshot = searchSnapshot({ captureId: null, slots: emptySearchSlots(12) })
   let sequence = 0
@@ -124,7 +123,6 @@ function raidSection(): HTMLElement {
   return document.querySelector<HTMLElement>('section[aria-label="공대"]')!
 }
 
-// 공대 머리는 공대를 보는 동안 상단 바의 화면 머리 자리에 그린다.
 function raidHeader(): HTMLElement {
   const heading = [...document.querySelectorAll('main > header h1')].find(
     (h1) => h1.textContent === '공대'
@@ -143,7 +141,6 @@ function raidCaptureButton(): HTMLButtonElement {
   return button!
 }
 
-// 공대 머리는 캡처 진행 문구를 두지 않으므로 공대 회차 문구는 상단 바의 화면 밖 캡처 안내로 읽는다.
 function announcement(): string | null {
   return document.querySelector('[data-capture-announcer]')!.textContent
 }
@@ -152,8 +149,6 @@ function raidNotice(): string | null {
   return raidHeader().querySelector('[role="status"]')!.textContent
 }
 
-// 보조 기술이 읽는 live region 중 같은 캡처 문구를 알리는 곳은 하나뿐이고 공대 머리에도 보이지 않는다.
-// 캡처 대화상자가 열려 있으면 바깥의 화면 밖 안내는 가려지고 대화상자 안 안내가 그 하나다.
 function expectSingleAnnouncement(text: string): void {
   expect(announcement()).toBe(text)
   const regions = [...document.querySelectorAll('[role="status"], [aria-live]')].filter(
@@ -206,7 +201,6 @@ it('공대 머리에 파티와 같은 모양의 캡처 버튼과 마지막 캡�
   await showScreen('공대')
   const button = raidCaptureButton()
   expect(button.getAttribute('aria-keyshortcuts')).toBe('Alt+R')
-  // 카메라 아이콘과 `Alt R` 글자만 두고 `캡처` 글자와 키 테두리는 없다.
   expect(button.querySelector('kbd')).toBeNull()
   expect(button.querySelector('svg')).not.toBeNull()
   expect(button.textContent).toBe('Alt R')
@@ -304,7 +298,6 @@ it.each(triggers)('창을 등록하기 전 공대 화면의 %s은 회차를 시�
   )
   await showScreen('공대')
   expect(raidCaptureButton().disabled).toBe(true)
-  // 창을 등록하기 전에는 알릴 캡처 문구가 없고 공대 머리에도 `캡처 대기`를 두지 않는다.
   expect(announcement()).toBe('')
   expect(raidNotice()).toBe('')
   expect(raidSection().textContent).not.toContain('캡처 대기')
@@ -336,7 +329,6 @@ it('공대 상세 창이 없으면 화면 밖 캡처 안내와 상태 칩이 확
   expect(chipLabel()).toBe('화면 캡처, 확인 필요')
   expect(raid.notifyOcr).not.toHaveBeenCalled()
   expect(raidCaptureButton().disabled).toBe(false)
-  // 파티 화면의 상태 칩은 파티 회차를 보인다.
   await showScreen('파티')
   expect(chipLabel()).toBe('화면 캡처, 창 감지됨')
 })

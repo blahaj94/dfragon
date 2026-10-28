@@ -1,6 +1,5 @@
 export type CtcCandidate = {
   rank: number
-  /** 문자열의 CTC 경로 확률 합 × 100이며, 실제 정답률이나 후보 내 상대 비율은 아니다. */
   modelScore: number
   nickname: string
 }
@@ -22,7 +21,6 @@ type Beam = Prefix & { blank: number; nonBlank: number; score: number }
 
 const INVALID_CTC_LABEL_SURROGATE_PATTERN = /[\uD800-\uDFFF]/u
 
-/** 제한된 prefix beam으로 후보를 찾고 전체 CTC 경로로 재채점해 요청한 개수까지 반환한다. 기본값은 2개다. */
 export function decodeCtcCandidates(
   data: Float32Array,
   steps: number,
@@ -32,7 +30,6 @@ export function decodeCtcCandidates(
   if (!Number.isSafeInteger(candidateCount) || candidateCount < 1) {
     throw new RangeError('CTC candidate count must be a positive safe integer.')
   }
-  // 요청한 반환 개수가 기존 탐색 폭보다 크면 그만큼 후보를 유지한다.
   const beamWidth = Math.max(BEAM_WIDTH, candidateCount)
   const classes = characters.length + 1
   if (!Number.isSafeInteger(steps) || steps < 0 || data.length !== steps * classes) {
@@ -58,7 +55,6 @@ export function decodeCtcCandidates(
       addPath(next, beam, 'blank', beam.score + blank)
       const lastToken = beam.tokens.at(-1)
       if (lastToken != null) {
-        // 상위 문자에서 탈락했더라도 같은 문자의 연속 출력은 현재 prefix에 합산한다.
         addPath(next, beam, 'nonBlank', beam.nonBlank + logProbability(data, frame, lastToken))
       }
       for (const token of frame.tokens) {
@@ -80,7 +76,6 @@ export function decodeCtcCandidates(
     beams.length = Math.min(beams.length, beamWidth)
   }
 
-  // 탐색 중 잘린 경로까지 포함해 남은 모든 문자열을 채점한 뒤 최종 순위를 정한다.
   for (const beam of beams) {
     beam.score = scoreSequence(data, frames, beam.tokens)
   }
@@ -95,7 +90,6 @@ export function decodeCtcCandidates(
   })
 }
 
-/** 전체 확률을 검사하되 전체 문자 정렬 대신 고정 크기의 상위 문자 배열만 유지한다. */
 function collectFrames(data: Float32Array, steps: number, classes: number): Frame[] {
   const frames: Frame[] = []
   for (let step = 0; step < steps; step += 1) {
@@ -138,7 +132,6 @@ function collectFrames(data: Float32Array, steps: number, classes: number): Fram
   return frames
 }
 
-/** 재등장한 문자의 log 확률을 재사용하며, 사전 가지치기 밖의 문자도 원본에서 읽는다. */
 function logProbability(data: Float32Array, frame: Frame, token: number): number {
   const cached = frame.logProbabilities.get(token)
   if (cached != null) {
@@ -151,7 +144,6 @@ function logProbability(data: Float32Array, frame: Frame, token: number): number
   return score
 }
 
-/** 같은 prefix의 blank 종료와 문자 종료 확률을 각각 합산한다. */
 function addPath(
   beams: Map<string, Beam>,
   prefix: Prefix,
@@ -169,7 +161,6 @@ function addPath(
   beam[ending] = addLogProbabilities(beam[ending], score)
 }
 
-/** 작은 경로 확률을 직접 곱하지 않고 log-sum-exp로 합산한다. */
 function addLogProbabilities(left: number, right: number): number {
   if (left === LOG_ZERO) {
     return right
@@ -184,7 +175,6 @@ function addLogProbabilities(left: number, right: number): number {
   return maximum + Math.log1p(Math.exp(minimum - maximum))
 }
 
-/** 점수 내림차순, 동점은 사전 token 순서로 정렬해 실행 환경에 따른 순위 차이를 막는다. */
 function compareBeams(left: Beam, right: Beam): number {
   if (left.score !== right.score) {
     return right.score - left.score
@@ -199,7 +189,6 @@ function compareBeams(left: Beam, right: Beam): number {
   return left.tokens.length - right.tokens.length
 }
 
-/** blank를 사이에 둔 상태열에서 stay, 한 칸 이동, 허용된 두 칸 이동을 모두 더한다. */
 function scoreSequence(
   data: Float32Array,
   frames: readonly Frame[],

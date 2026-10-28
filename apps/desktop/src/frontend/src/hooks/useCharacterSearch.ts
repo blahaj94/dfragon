@@ -27,9 +27,7 @@ type CharacterSearch = SearchView & {
   submitSlot: (slot: number, nickname: string) => void
   resumeOcr: (slot: number) => void
   lookupSlot: (slot: number, nickname: string, serverId: string) => void
-  /** 슬롯마다 확정하지 않은 후보 줄. 캡처 검색이 후보를 주지 않았거나 확정한 슬롯은 null이다. */
   candidatePickers: readonly (CandidatePicker | null)[]
-  /** 후보 줄의 후보를 누른다. 한 번은 미리보기, 미리보기 중인 후보를 다시 누르면 확정이다. */
   pickCandidate: (slot: number, serverId: string) => void
 }
 
@@ -59,7 +57,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     retryPending: [false, false, false, false],
     connectionFailed: false
   })
-  // 후보를 누를 때 캡처 검색의 최신 슬롯과 누른 후보를 함께 읽는다.
   const viewRef = useRef(view)
   useLayoutEffect(() => {
     viewRef.current = view
@@ -168,7 +165,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     },
     [manualLookup]
   )
-  // 서버 칩이나 이름 칸으로 직접 조회하면 후보 줄에서 고른 것으로 보고 줄을 닫는다.
   const lookupSlot = useCallback(
     (slot: number, nickname: string, serverId: string): void => {
       const requestId = viewRef.current.slots[slot]?.requestId ?? null
@@ -189,7 +185,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
       }
       const shownServerId = toCandidatePicker(captureSlot, previous)?.shownServerId
       setPick(slot, next)
-      // 카드가 이미 그 후보를 보여 주면 다시 조회하지 않는다.
       if (!next.confirmed && shownServerId !== serverId) {
         lookupManually(slot, choice.characterName, serverId)
       }
@@ -203,7 +198,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     if (serverLookupSlots[slot.slot]) {
       const manualSlot = manualView.slots[slot.slot]
       const loading = manualStartingSlots[slot.slot] || manualSlot.state === 'pending'
-      // 후보 미리보기를 불러오는 동안에는 대기 화면 대신 지금 보이는 캐릭터를 그대로 둔다.
       if (loading && candidatePickers[slot.slot]?.previewServerId != null) {
         return slot
       }

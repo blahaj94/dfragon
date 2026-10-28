@@ -30,25 +30,18 @@ import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
 import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
 
 export function Preview(): React.JSX.Element {
-  // 상단 바의 화면 머리 자리. 보이는 화면의 머리를 이 요소에 그린다.
   const [boardSlot, setBoardSlot] = useState<HTMLDivElement | null>(null)
   const [scenario, setScenario] = useState('states')
   const [captureState, setCaptureState] = useState('idle')
   const [source, setSource] = useState('')
-  // 합성 인식 완료 시각. 미리보기에서 인식 완료를 고르면 12초 전으로, 캡처 버튼을 누르면 지금으로 둔다.
   const [completedAt, setCompletedAt] = useState<number | null>(null)
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
-  // 합성 공대 보드의 자리 배치. 카드를 끌거나 Alt와 방향키로 맞바꿔 본다.
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
-  // 모험단 순번 스냅샷 미리보기의 회차. 파티와 공대 모두 캡처 버튼을 누를 때마다 다른 회차로 바뀐다.
   const [partyRound, setPartyRound] = useState(0)
   const [raidRound, setRaidRound] = useState(0)
   const raidCardsId = useId()
-  // 제품 창처럼 보이는 화면의 창 내용 높이(파티 163, 공대 300) 안에 상단 바와 카드를 그리고,
-  // 미리보기 조작부는 그 아래에 둔다.
   const windowHeight =
     searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidHeight : MAIN_WINDOW_SIZE.partyHeight
-  // 후보 줄 미리보기에서 슬롯마다 미리보기 중이거나 확정한 후보의 서버
   const [candidatePicks, setCandidatePicks] = useState<
     readonly ({ serverId: string; confirmed: boolean } | null)[]
   >([null, null, null, null])
@@ -56,7 +49,6 @@ export function Preview(): React.JSX.Element {
   // 바뀔 때만 새 목록을 만든다.
   const sources = useMemo(() => getCapturePreviewSources(captureState), [captureState])
   const phase = getCapturePreviewPhase(captureState)
-  // 제품에서 Alt+R을 받는 단계만 캡처 버튼을 누를 수 있다.
   const canCapture =
     phase === 'selected' ||
     phase === 'recognizing' ||
@@ -68,7 +60,6 @@ export function Preview(): React.JSX.Element {
     ...character,
     characterId: 'preview-selected',
     fame: null,
-    // main이 카드 값을 넘기지 않은 제품 카드처럼 점수를 `-`로 보인다.
     card: null
   }
   let characters: readonly (CardCharacter | null)[] | undefined
@@ -148,7 +139,6 @@ export function Preview(): React.JSX.Element {
       picker: candidatePickers[slot]
     }
   })
-  // 합성 공대 스냅샷 표시는 화면 자리 순서라 슬롯 순서로 다시 배치해 카드 값에 담는다.
   const raidSnapshotMarks = seatValuesToSlotOrder(seatOrder, raidSnapshot.marks)
   const raidCards: SlotCard[] = raidCharacters.map((member, slot) => {
     const state = member == null ? 'idle' : 'success'

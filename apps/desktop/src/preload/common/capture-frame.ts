@@ -13,7 +13,6 @@ const RGBA_CHANNELS = 4
 const MAX_RAID_CROP_WIDTH = 1024
 const MAX_RAID_CROP_HEIGHT = 256
 
-/** 프레임 없이 끝난 캡처 응답(미지원, 가림과 읽기 대기)만 그대로 돌려주고 나머지는 null이다. */
 function parseFramelessResult(value: object): Exclude<WindowFrameResult, { kind: 'frame' }> | null {
   if (!('kind' in value)) {
     return null
@@ -35,7 +34,6 @@ function parseFramelessResult(value: object): Exclude<WindowFrameResult, { kind:
   return null
 }
 
-/** 네이티브 캡처 응답의 크기와 픽셀 수를 IPC 경계에서 확인한다. */
 export function parseWindowFrame(value: unknown): WindowFrameResult {
   if (value === null || typeof value !== 'object' || !('kind' in value)) {
     throw new Error('CAPTURE_RESPONSE_INVALID')
@@ -69,7 +67,6 @@ export function parseWindowFrame(value: unknown): WindowFrameResult {
   throw new Error('CAPTURE_RESPONSE_INVALID')
 }
 
-/** 공대 행 크롭 하나의 크기와 바이트 수를 확인하고 추가 필드가 없는 복사본을 만든다. */
 function parseRaidCrop(value: unknown): CharacterImage {
   if (
     value === null ||
@@ -119,7 +116,6 @@ function isRaidValueColumn(value: unknown): value is RaidValueColumn {
   return RAID_VALUE_COLUMNS.some((column) => column === value)
 }
 
-/** 공대 캡처 응답이 12행의 크롭과 수치 표기, 정해진 미검출, 대기 사유만 담는지 IPC 경계에서 확인한다. */
 export function parseRaidFrame(value: unknown): RaidFrameResult {
   if (value === null || typeof value !== 'object' || !('kind' in value)) {
     throw new Error('CAPTURE_RESPONSE_INVALID')

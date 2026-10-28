@@ -66,9 +66,7 @@ it('후보마다 얼굴 초상화만 두고 서버와 모험단은 title과 보�
   expect(portrait('카인').querySelector('img')?.getAttribute('src')).toBe(
     'https://img-api.neople.co.kr/df/servers/cain/characters/cain-character?zoom=1'
   )
-  // 얼굴 창이 없는 후보는 빈 칸이다.
   expect(portrait('시로코').querySelector('img')).toBeNull()
-  // 이름, 서버, 모험단은 화면 글자로 쓰지 않는다.
   expect(container.textContent).not.toContain('같은이름')
   expect(container.textContent).not.toContain('카인')
   expect(container.textContent).not.toContain('달빛아래늑대무리')

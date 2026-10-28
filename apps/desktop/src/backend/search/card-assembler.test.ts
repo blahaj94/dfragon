@@ -144,7 +144,6 @@ describe('API 카드와 엔진 결과 조립', () => {
     ['엔진 없음', null],
     ['엔진 실패', (() => null) satisfies ScoreEngine]
   ])('%s이면 API가 보낸 점수를 지운다', (_name, score) => {
-    // API는 점수를 null로 보내지만, 값이 와도 엔진 결과가 아니면 카드에 남기지 않는다.
     const apiScore = {
       calculator: 'equipment',
       value: 9999,

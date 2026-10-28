@@ -20,7 +20,6 @@ export type PartySlotRecognition =
       legacyNickname: string
     })
 
-/** 회차 프레임 하나의 모든 크롭을 확보한 뒤 슬롯 순서대로 인식하고 첫 후보를 판정한다. */
 export async function recognizePartyFrame(
   frame: CharacterImage,
   recognize: PartyOcrWorker['recognize']
@@ -51,10 +50,6 @@ export async function recognizePartyFrame(
   return results
 }
 
-/**
- * 첫 후보의 앞뒤 공백만 제거하며 잘못된 후보를 낮은 순위의 이름으로 대체하지 않는다. 파티와 공대 캡처가 같은
- * 판정을 쓴다.
- */
 export function firstCandidate(result: PartyOcrResult): FirstCandidate {
   const text = result.candidates[0]?.nickname
   if (text == null) {

@@ -12,15 +12,10 @@
  * 대화상자 뒤 막 --df-bg-overlay의 다크 값은 2026-10-20 DFragon 디자인 캔버스의 메인 위 설정, 캡처 보드 값
  * (rgba(8, 8, 10, .72))을 들였고, tokens.json의 다크 값(#00000074)과 다르다.
  * tokens.json의 hazard(검색 실패 그림 칸의 사선 색)는 제품에서 쓰지 않아 옮기지 않았다.
- *
- * 테마는 다크 하나이고 :root에 값을 둔다. color-scheme도 다크로 정해 스크롤 막대, 폼 컨트롤 같은 브라우저
- * 기본 부품이 다크로 그려진다. tokens.json의 라이트 값(semantic-light)은 쓰는 앱이 없어 옮기지 않았다.
- * StyleX에서는 같은 이름의 문자열 상수를 @dfragon/ui/tokens.stylex에서 가져온다.
  */
 :root {
   color-scheme: dark;
 
-  /* 의미 색(semantic-dark) */
   --df-bg-canvas: #0f0f11;
   --df-bg-bar: #121214;
   --df-bg-surface: #17171a;
@@ -81,12 +76,10 @@
   --df-hatch-alert: #ff6e6024;
   --df-grid-line: #ffffff09;
 
-  /* 브랜드 색(brand). 두 모드에서 같다 */
   --df-brand-dragon: #e83830;
   --df-brand-cream: #f8e8c8;
   --df-brand-outline: #000000;
 
-  /* 게임 색(game): 희귀도, 마법부여, 강화와 증폭, 속성. 두 모드에서 같다 */
   --df-rarity-common: #ffffff;
   --df-rarity-uncommon: #68d5ed;
   --df-rarity-rare: #b36bff;
@@ -110,7 +103,6 @@
   --df-oath-upgrade-speed: #ffb400;
   --df-oath-upgrade-range: #a066ff;
 
-  /* 간격, 반지름, 형태, 크기(layout) */
   --df-space-4: 4px;
   --df-space-8: 8px;
   --df-space-12: 12px;
@@ -126,7 +118,6 @@
   --df-size-control-md: 40px;
   --df-size-control-lg: 48px;
 
-  /* 모션(motion) */
   --df-ease: cubic-bezier(0.2, 0, 0, 1);
   --df-dur-hover: 120ms;
   --df-dur-state: 180ms;
@@ -134,7 +125,6 @@
   --df-cycle: 4s;
   --df-beat: 0.9s;
 
-  /* 글꼴(typography). UI 글꼴은 Desktop, OCR 전역 글꼴 CSS의 body 대체 순서와 같다 */
   --df-font-ui:
     'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
     'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;

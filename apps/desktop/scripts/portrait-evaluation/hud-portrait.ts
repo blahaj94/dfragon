@@ -3,21 +3,15 @@ import type { CharacterImage, CharacterPortrait } from '../../src/preload/common
 
 const RGBA_CHANNELS = 4
 const OPAQUE_ALPHA = 255
-// party-portrait.ts의 PORTRAIT_REGION과 같은 기준이다. 얼굴 위치는 이 값으로 역산한다.
+// party-portrait.ts의 PORTRAIT_REGION과 같은 기준이다.
 const HUD_FACE = { leftOfTrack: 28, top: 11, size: 26 } as const
 const FRAME_PADDING = 8
-// 크롭이 읽지 않아야 할 프레임 영역을 채우는 색. 얼굴 픽셀이 새어 들어오면 검증에서 드러난다.
 const PADDING_PIXEL = [255, 0, 255, OPAQUE_ALPHA] as const
 
-/** `cropPartyPortrait`가 이 크기의 정사각 얼굴을 한 변으로 읽는다. */
 export function hudFaceSize(rasterScale: number): number {
   return Math.round(HUD_FACE.size * rasterScale)
 }
 
-/**
- * 이미 잘라 둔 HUD 얼굴을 패딩 프레임의 크롭 위치에 붙여 넣고 `cropPartyPortrait`로 다시 읽는다.
- * 제품과 같은 마스크를 얻으면서, 읽은 픽셀이 입력과 같은지 확인해 위치 역산 오류를 막는다.
- */
 export function buildHudPortrait(hud: CharacterImage, rasterScale: number): CharacterPortrait {
   const size = hudFaceSize(rasterScale)
   if (hud.width !== size || hud.height !== size) {

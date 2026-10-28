@@ -74,7 +74,6 @@ function selected(name: string, adventureName = '합성모험단'): SelectedChar
   }
 }
 
-// 공대 수명의 합성 main. begin마다 12자리를 비우고, 조회 응답은 테스트가 원하는 때 publish로 보낸다.
 function stubRaidSearch() {
   let snapshot: SearchSnapshot = searchSnapshot({ captureId: null, slots: emptySearchSlots(12) })
   let sequence = 0
@@ -132,7 +131,6 @@ function raidSection(): HTMLElement {
   return document.querySelector<HTMLElement>('section[aria-label="공대"]')!
 }
 
-// 공대 머리는 공대를 보는 동안 상단 바의 화면 머리 자리에 그린다.
 function raidHeader(): HTMLElement {
   const heading = [...document.querySelectorAll('main > header h1')].find(
     (h1) => h1.textContent === '공대'
@@ -169,7 +167,6 @@ async function lookup(seat: HTMLElement, name: string): Promise<void> {
   })
   const server = seat.querySelector<HTMLButtonElement>('[aria-label$="번 서버"]')!
   await act(async () => server.click())
-  // 앞서 연 다른 자리의 목록이 남아 있어도 이 자리 서버 목록의 항목을 고른다.
   const label = server.getAttribute('aria-label')
   const siroco = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
     (option) =>
@@ -229,7 +226,6 @@ it('맞바꾸면 진행 중 조회의 늦은 응답은 옮겨 간 카드에 들�
   expect(seats()[0].textContent).not.toContain('합성모험단')
   expect(raidHeader().textContent).toContain('1/12')
 
-  // 1번 자리에는 슬롯 1이 놓여 새 조회는 슬롯 1로 가고 슬롯 0의 결과를 건드리지 않는다.
   await lookup(seats()[0], '둘째')
   await vi.waitFor(() => expect(raid.lookups()).toHaveLength(2))
   expect(raid.lookups()[1]).toMatchObject({ slot: 1, nickname: '둘째' })
@@ -257,17 +253,14 @@ it('공대 캡처가 인식하는 동안은 자리를 옮기지 않고, 회차�
 
   await act(async () => late.resolve(recognized))
   await vi.waitFor(() => expect(raid.notifyOcr).toHaveBeenCalledTimes(2))
-  // 1행과 2행의 이름은 1번, 2번 자리의 슬롯 0, 1로 간다.
   expect(raid.notifyOcr.mock.calls.map(([observation]) => observation.slot)).toEqual([0, 1])
   expect(names().slice(0, 3)).toEqual(['첫째공대원', '둘째공대원', ''])
   expect(seats()[0].getAttribute('aria-label')).toBe('1번 자리, 끌어서 옮기기')
 
-  // 인식을 마친 뒤에는 다시 옮길 수 있고 인식한 이름도 카드와 함께 옮겨 간다.
   await moveRight(seats()[0])
   expect(names().slice(0, 2)).toEqual(['둘째공대원', '첫째공대원'])
 })
 
-// 조회를 마친 슬롯. 모험단명만 다르게 줘서 같은 사람인지 모험단으로 가른다.
 function foundSlot(slot: number, name: string, adventure: string): SearchSlot {
   return {
     ...searchSlot({
@@ -311,12 +304,10 @@ it('공대 스냅샷을 켠 뒤 자리를 옮기면 바뀐 카드에 순번 칩�
   expect(snapshotButton().getAttribute('aria-pressed')).toBe('true')
   expect(seats().flatMap(chipsOf)).toEqual([])
 
-  // 자리를 맞바꾸면 두 카드 모두 스냅샷 때의 자리를 칩으로 보인다. 칩은 카드의 현재 자리 기준이다.
   await moveRight(seats()[0])
   expect(chipsOf(seats()[0])).toEqual(['스냅샷 순번 2'])
   expect(chipsOf(seats()[1])).toEqual(['스냅샷 순번 1'])
 
-  // 스냅샷에 없는 모험단은 빈 자리에 들어와도 경고한다.
   await lookup(seats()[2], '낯선사람')
   await vi.waitFor(() => expect(raid.lookups()).toHaveLength(3))
   await act(async () =>
@@ -330,7 +321,6 @@ it('공대 스냅샷을 켠 뒤 자리를 옮기면 바뀐 카드에 순번 칩�
   expect(chipsOf(seats()[1])).toEqual(['스냅샷 순번 1'])
   expect(chipsOf(seats()[2])).toEqual(['스냅샷에 없는 모험단'])
 
-  // 끄기는 확인을 거치고, 취소하면 스냅샷이 남는다.
   await act(async () => snapshotButton().click())
   const choice = (name: string) =>
     [...document.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')].find(

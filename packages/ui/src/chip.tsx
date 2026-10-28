@@ -19,5 +19,4 @@ function ChipImpl({ className, style, ...props }: ChipProps & ForwardedStyle) {
   )
 }
 
-// Base UI Toggle. 켜고 끄는 선택 칩이며 aria-pressed로 상태를 알린다.
 export const Chip: ComponentType<ChipProps> = ChipImpl

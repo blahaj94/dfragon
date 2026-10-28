@@ -90,7 +90,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
   - `sections/`: 카드, 캡처, 검색의 기능 조합을 하위 폴더 없이 배치한다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. `CharacterCard`와 공대 축약 카드 `RaidCard`, 통합 테스트가 띄우는 `ManualSearch`, `PartyCapture`의 요청, 구독 수명을 담당하며 전용 스타일, UI 테스트를 함께 둔다. UI는 `hooks`의 커스텀 hook을 사용한다.
   - `pages/`: `party/PartyScreen`, `raid/RaidScreen`(캡처 결과로 화면 값을 계산하는 파티, 공대 화면 컨테이너), `party/PartyPage`(4개 슬롯), `raid/RaidPage`(공대 보드, 자리 맞바꾸기).
   - `fixture/`: MVP 합성 데이터, 자산, 화면 제어. 공용 글꼴은 `assets/fonts`, UI 자산 원본 고지는 `packages/licenses/notices/desktop`에 두고 공용 도구가 앱별 산출물을 만든다. 제품 페이지가 fixture를 import하지 않는다.
-  - `lib/`: 화면과 독립적인 입력 검증, OCR 계산, 파티 이미지 처리, 검색 초기 슬롯 생성, 검색 연결 및 캡처 수명, OCR worker와 관련 단위 테스트를 하위 폴더 없이 배치한다. 각 유틸리티 함수에는 역할 설명 주석을 둔다.
+  - `lib/`: 화면과 독립적인 입력 검증, OCR 계산, 파티 이미지 처리, 검색 초기 슬롯 생성, 검색 연결 및 캡처 수명, OCR worker와 관련 단위 테스트를 하위 폴더 없이 배치한다.
   - `hooks/`: 캐릭터 검색, 캡처 창 목록, 인식, XState 연결을 담당하는 커스텀 hook과 `ColorThemeProvider`의 공유 상태를 읽는 테마 hook, hook 전용 테스트를 하위 폴더 없이 둔다. 검색, OCR의 기존 비UI 구현은 `lib/capture-search.ts`, `lib/ocr.ts`에서 직접 참조한다. 캡처 전이는 `lib/party-capture-machine.ts`가 소유한다. 창 등록과 회차 시작을 구분하고 회차마다 한 프레임으로 인식하며 이전 회차의 자원과 늦은 결과를 정리한다.
   - `testing/`: 여러 테스트가 공유하는 유틸리티, mock, fixture를 둔다. 현재 `testing/fixtures`의 검색 renderer 도우미를 공유하며, 실제 테스트 파일은 검증하는 코드 옆 또는 기존 `integration`에 둔다.
   - `types/`: 카드, 검색, 캡처, 서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.

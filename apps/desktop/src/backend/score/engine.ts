@@ -6,7 +6,6 @@ import type { DiagnosticCode } from '../../preload/common/types/diagnostics'
 import { reportDiagnostic } from '../diagnostics/log'
 import type { ScoreEngineInput } from './input'
 
-/** 패키지 `resources/score/`에 두는 플랫폼별 라이브러리 이름. 입수 스크립트도 이 이름으로 배치한다. */
 export const SCORE_LIBRARY_FILE_NAMES: Readonly<Partial<Record<NodeJS.Platform, string>>> = {
   win32: 'dnfscore.dll',
   darwin: 'libdnfscore.dylib',
@@ -34,10 +33,7 @@ const resultSchema = z
       buff50: nullableNumber
     })
   })
-  // 점수와 건너뛴 사유는 둘 중 하나만 있다.
   .refine((result) => (result.score === null) !== (result.skipped === null))
-  // 근사값과 출처는 함께 있거나 함께 없고, 점수를 건너뛴 결과에만 경고와 함께 있다.
-  // 근사값이 없는 경고는 정확한 점수에 붙는 알림이라 점수를 낸 결과에만 있다.
   .refine((result) => {
     if (result.approximate_score === null && result.approximate_source === null) {
       return result.warning === null || result.score !== null
@@ -51,7 +47,6 @@ const resultSchema = z
     )
   })
 
-/** 엔진 결과 중 Desktop이 쓰는 부분. 엔진이 더 보내는 칸은 버린다. */
 export type ScoreEngineResult = z.infer<typeof resultSchema>
 
 export type ScoreEngine = (
@@ -60,13 +55,12 @@ export type ScoreEngine = (
 ) => ScoreEngineResult | null
 
 type NativeFunction = (...args: unknown[]) => unknown
-/** `koffi.load`가 돌려주는 라이브러리 중 엔진이 쓰는 부분. 테스트는 같은 모양의 더블을 넘긴다. */
 export type ScoreLibrary = Readonly<{ func(definition: string): NativeFunction }>
 
 export type ScoreEngineOptions = Readonly<{
   path: string | null
   load?: (path: string) => ScoreLibrary
-  /** 엔진이 할당한 NUL 종료 UTF-8 문자열을 읽는다. 해제는 엔진의 `dnfscore_free`가 맡는다. */
+  /** 해제는 엔진의 `dnfscore_free`가 맡는다. */
   decode?: (pointer: unknown) => string
   now?: () => number
   report?: (code: DiagnosticCode) => void
@@ -124,10 +118,6 @@ function parseResult(text: string, calculator: CharacterScoreCalculator): ScoreE
   return parsed.data
 }
 
-/**
- * 점수 엔진 라이브러리를 열고 세 C 함수를 묶는다. 파일이 없거나 열 수 없으면 null이며 점수 없이
- * 카드를 표시한다. 호출은 main에서 동기로 실행하고 실패는 진단 코드로만 남긴다.
- */
 export function loadScoreEngine(options: ScoreEngineOptions): ScoreEngine | null {
   const {
     path,
@@ -204,7 +194,6 @@ export function loadScoreEngine(options: ScoreEngineOptions): ScoreEngine | null
   }
 }
 
-/** 첫 점수 계산 때 한 번만 라이브러리를 연다. 열지 못한 결과도 기억해 다시 시도하지 않는다. */
 export function createLazyScoreEngine(load: () => ScoreEngine | null): ScoreEngine {
   let engine: ScoreEngine | null | undefined
 

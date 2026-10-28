@@ -13,11 +13,9 @@ const libraryFiles = ['index.js', 'tokens.stylex.js', 'typo.js']
 const tokensStyles = ':root{--df-brand-dragon:#e83830}'
 const foundationStyles =
   'body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif}'
-// 앱 전역 글꼴 CSS도 대체 글꼴로 같은 이름을 쓴다. 이 선언은 공용 font stack으로 세지 않는다.
 const appFontStyles =
   "body{font-family:'Pretendard Variable',system-ui,'Apple SD Gothic Neo',sans-serif}"
 
-// 검사하려는 bundle 경계만 작은 임시 산출물로 만든다.
 async function createLibraryFixture(context) {
   const output = await mkdtemp(join(tmpdir(), 'dfragon-ui-build-'))
   context.after(() => rm(output, { recursive: true, force: true }))
@@ -136,7 +134,6 @@ for (const { name, styles } of [
 ]) {
   test(`${name} 소비자 빌드 검사에 실패한다`, async (context) => {
     const output = await createConsumerFixture(context, '')
-    // fixture의 기본 tokens.css 한 번을 덮어써 import 횟수만 바꾼다.
     await writeFile(join(output, 'styles.css'), styles)
     const result = inspect(output, 'consumer')
     assert.notEqual(result.status, 0)
@@ -185,7 +182,6 @@ for (const file of ['index.js', 'index.d.ts', 'typo.js', 'typo.d.ts']) {
   test(`공개 산출물 ${file}이 누락되면 실패한다`, async (context) => {
     const output = await createLibraryFixture(context)
     await rm(join(output, file))
-    // 목록에서 함께 사라져도 package export에 필요한 파일 누락을 잡아야 한다.
     if (file.endsWith('.js')) {
       const remaining = libraryFiles.filter((entry) => entry !== file)
       await writeFile(join(output, 'notices/bundle-files.json'), JSON.stringify(remaining))

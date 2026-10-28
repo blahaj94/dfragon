@@ -7,7 +7,6 @@ const NICKNAME_BACKGROUND = 255
 const HUD_EDGE_MARGIN_RATIO = 1 / 5
 const HUD_FRAME_LINE_WIDTH_RATIO = 3 / 4
 
-/** 글자 밑획에 닿은 긴 프레임 선도 분리하되 본문의 짧은 획과 구두점은 제외하지 않는다. */
 function excludeNicknameFrameLines(
   rgba: Uint8ClampedArray,
   width: number,
@@ -34,7 +33,6 @@ function excludeNicknameFrameLines(
   }
 }
 
-/** 가장자리에 붙고 여백 안에서 끝나는 성분만 표시하며 본문까지 이어진 획은 보존한다. */
 function nicknameFramePixels(rgba: Uint8ClampedArray, width: number, height: number): Uint8Array {
   const excluded = new Uint8Array(width * height)
   const visited = new Uint8Array(width * height)
@@ -94,7 +92,6 @@ function nicknameFramePixels(rgba: Uint8ClampedArray, width: number, height: num
   return excluded
 }
 
-/** 반전 이진화 후 리사이즈한 글자열이 최종 입력의 가로 가운데에 놓일 이동량을 구한다. */
 export function nicknameCenterOffset(
   rgba: Uint8ClampedArray,
   width: number,
@@ -117,7 +114,6 @@ export function nicknameCenterOffset(
   let right = -1
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      // 작은 구두점과 리사이즈 경계 픽셀도 글자에 포함하고 연결 성분 크기로 버리지 않는다.
       const pixel = y * width + x
       if (framePixels[pixel] === 0 && rgba[pixel * RGBA_CHANNELS] < NICKNAME_BACKGROUND) {
         left = Math.min(left, x)
@@ -134,7 +130,6 @@ export function nicknameCenterOffset(
   return destinationLeft - left
 }
 
-/** 닉네임 원본 픽셀을 회색조로 변환한 뒤 블러 없이 Otsu 반전 이진화한다. */
 export function binarizeNicknamePixels(data: Uint8ClampedArray): void {
   if (data.length === 0) {
     return

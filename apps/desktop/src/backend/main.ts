@@ -39,7 +39,6 @@ if (appIdentity != null) {
   }
 }
 
-// 알림 상태는 창을 다시 만들어도 앱 실행 동안 유지한다. 확인은 배포 채널에서만 시작한다.
 const updateNotices = createUpdateNotices({
   currentVersion: app.getVersion(),
   readFeed: (signal) => readReleaseFeed(fetchApi, signal),
@@ -58,12 +57,11 @@ function createWindow(): void {
     throw new Error('Main window already exists.')
   }
   const window = new BrowserWindow({
-    // 크기는 renderer가 보이는 화면에 맞춰 바꾸는 내용 높이와 같은 기준인 내용 크기다. 창은 파티 화면으로 연다.
     useContentSize: true,
     width: MAIN_WINDOW_SIZE.width,
     height: MAIN_WINDOW_SIZE.partyHeight,
-    // dfragon-design layout.md의 최소 창 폭이다. 이 폭에서 상단 바는 제품 이름만 숨기면 Windows 창 버튼(138)과
-    // 내비, 상태 칩, 도구 묶음이 겹치지 않고, 파티 카드 네 장이 한 줄에 들어간다.
+    // 이 폭에서 상단 바는 제품 이름만 숨기면 Windows 창 버튼(138)과 내비, 상태 칩, 도구 묶음이
+    // 겹치지 않고, 파티 카드 네 장이 한 줄에 들어간다.
     minWidth: MAIN_WINDOW_SIZE.minWidth,
     minHeight: MAIN_WINDOW_SIZE.partyHeight,
     show: false,
@@ -151,7 +149,6 @@ function showOrCreateMainWindow(): void {
   window.focus()
 }
 
-// This method will be called when Electron has finished initialization and is ready to create windows.
 app.whenReady().then(() => {
   if (!ownsInstance) {
     return
@@ -164,9 +161,6 @@ app.whenReady().then(() => {
   const disposeMainDiagnostics = registerMainDiagnosticErrors()
   app.on('quit', disposeMainDiagnostics)
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
@@ -202,7 +196,6 @@ app.whenReady().then(() => {
 
   createWindow()
 
-  // 같은 채널을 다시 실행하면 새 인스턴스 대신 열린 창을 앞으로 가져온다.
   app.on('second-instance', () => {
     try {
       showOrCreateMainWindow()
@@ -211,8 +204,6 @@ app.whenReady().then(() => {
     }
   })
   app.on('activate', () => {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length > 0) {
       return
     }

@@ -4,7 +4,6 @@ import { lintSamples } from './fixtures/biome-lint.mjs'
 
 const sourceExtensions = ['js', 'mjs', 'cjs', 'jsx', 'ts', 'mts', 'cts', 'tsx']
 
-// 표본을 한 번에 검사하고, 구문 오류 없이 파싱된 파일의 플러그인 진단만 고른다.
 async function restrictionMessages(sources) {
   const results = await lintSamples(sources)
   const entries = [...results].map(([file, diagnostics]) => {

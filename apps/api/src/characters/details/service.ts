@@ -32,7 +32,6 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
       if (!peerAddress || signal.aborted) {
         throw new CharacterDetailFailure('internal')
       }
-      // 저장하지 않으므로 모든 요청이 Neople에서 새로 받는다. 같은 캐릭터의 동시 요청만 한 번으로 묶는다.
       const rows = await fetches.run(identity, signal, async (fetchSignal) => {
         fetchSignal.throwIfAborted()
         const payloads = await adapter(identity, fetchSignal)

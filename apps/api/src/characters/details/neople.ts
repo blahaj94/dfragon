@@ -48,7 +48,6 @@ export function validateCharacterPayload(
   ) {
     throw new CharacterDetailFailure('api')
   }
-  // Seasonal nested options remain intact; only the section envelope is required here.
   for (const field of sectionFields[section]) {
     if (!Object.hasOwn(body, field) || (body[field] !== null && typeof body[field] !== 'object')) {
       throw new CharacterDetailFailure('api')
@@ -77,7 +76,6 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
     const startedAt = performance.now()
     const results = {} as CharacterPayloads
     const load = async (section: CharacterDetailSection): Promise<void> => {
-      // A canceled section never starts transport.
       signal.throwIfAborted()
       const path = `/df/servers/${encodeURIComponent(identity.serverId)}/characters/${encodeURIComponent(identity.characterId)}${CHARACTER_DETAIL_SECTIONS[section]}`
       const response = await deps.fetch(new URL(path, deps.origin), {
@@ -122,7 +120,6 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
         throw error
       }
       const failure = characterDetailFailure(error)
-      // Transport failures are upstream failures, not an internal exception reflection.
       throw error instanceof NeopleSearchFailure
         ? failure
         : new CharacterDetailFailure('api', { cause: error })

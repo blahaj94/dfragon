@@ -1,6 +1,5 @@
 import type { CharacterPortrait, SelectedCharacterSummary } from './character'
 
-/** 검색 수명 하나가 소유하는 슬롯 수. 파티 캡처와 파티 카드 조회는 4, 공대 카드 조회는 12다. */
 export const SEARCH_SLOT_COUNTS = { party: 4, raid: 12 } as const
 export type SearchSlotCount = (typeof SEARCH_SLOT_COUNTS)[keyof typeof SEARCH_SLOT_COUNTS]
 
@@ -13,10 +12,6 @@ export const SEARCH_ACTIONS = {
   LOOKUP: 'lookup'
 } as const
 
-/**
- * 고른 근거. `portrait`는 파티 얼굴, `job`, `fame`은 공대 행의 직업명, 명성,
- * `highest-fame`은 비교 근거 없이 최고 명성 후보, `manual`은 사용자가 지정한 서버다.
- */
 export const CHARACTER_SELECTION_METHODS = [
   'portrait',
   'job',
@@ -26,10 +21,6 @@ export const CHARACTER_SELECTION_METHODS = [
 ] as const
 export type CharacterSelectionMethod = (typeof CHARACTER_SELECTION_METHODS)[number]
 
-/**
- * 이름과 서버만 정하고 상세와 점수를 아직 채우지 않은 선택의 상태. `pending`은 차례를 기다리거나 받는 중,
- * `failed`는 받지 못한 상태다.
- */
 export const SELECTED_DETAILS_STATES = ['pending', 'failed'] as const
 export type SelectedDetailsState = (typeof SELECTED_DETAILS_STATES)[number]
 
@@ -60,28 +51,22 @@ export type SearchObservation = Readonly<{
   nickname: string
 }>
 
-/** 공대 창 수치 열의 제목으로 판별한 종류. 어느 제목인지 확실하지 않으면 `unknown`이다. */
 export const RAID_VALUE_COLUMNS = ['fame', 'equipment-score', 'unknown'] as const
 export type RaidValueColumn = (typeof RAID_VALUE_COLUMNS)[number]
 
-/** 직업명 OCR 문자열의 상한. 직업명 칸에는 이보다 긴 글자가 들어가지 않는다. */
+/** 직업명 칸에는 이보다 긴 글자가 들어가지 않는다. */
 export const MAX_RAID_JOB_TEXT_LENGTH = 32
-/** 공대 수치 칸 판독기가 돌려주는 표기. 숫자, 쉼표, 마침표, K로 16자까지다. */
 export const RAID_VALUE_TEXT_PATTERN = /^[0-9,.K]{1,16}$/
 
-/** 공대 행 하나에서 이름 밖에 읽은 값. 서버 확정에 쓴다. */
 export type RaidRowObservation = Readonly<{
-  /** 직업명 칸 OCR의 1위 문자열. 읽지 못했으면 null이다. */
   jobText: string | null
   valueColumn: RaidValueColumn
-  /** 수치 칸에 보이는 그대로의 표기(`12,345`, `1000.4K`). 읽지 못했으면 null이다. */
   valueText: string | null
 }>
 
 export type OcrSearchInput = Readonly<{
   candidateNicknames: readonly string[]
   portrait: CharacterPortrait | null
-  /** 공대 캡처만 보낸다. 파티 캡처에는 없다. */
   raidRow?: RaidRowObservation
 }>
 export type OcrSearchObservation = SearchObservation & OcrSearchInput
@@ -94,10 +79,8 @@ export type CharacterSearchRow = Readonly<{
   fame: number | null
 }>
 
-/** 얼굴을 맞춘 후보 이미지 안의 창. 후보 이미지의 픽셀 좌표다. */
 export type CharacterFaceWindow = Readonly<{ x: number; y: number; width: number; height: number }>
 
-/** 얼굴로 확정하지 못했을 때 카드가 보여 주는 후보 한 명. 얼굴 창은 비교하지 못했으면 null이다. */
 export type CharacterChoice = CharacterSearchRow &
   Readonly<{ adventureName: string | null; face: CharacterFaceWindow | null }>
 
@@ -150,9 +133,7 @@ export type SearchSlot = Readonly<{
   error: SearchError | null
   selected?: SelectedCharacterSummary
   selectionMethod?: CharacterSelectionMethod
-  /** 선택이 애매할 때 사용자가 고를 후보. 선택한 캐릭터를 포함하며 확정한 선택에는 없다. */
   choices?: readonly CharacterChoice[]
-  /** 상세와 점수를 아직 채우지 않은 선택의 상태. 상세까지 채운 선택에는 없다. */
   details?: SelectedDetailsState
 }>
 

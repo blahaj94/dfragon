@@ -23,7 +23,6 @@ export const OCR_ASSETS = [
 const defaultDestination = fileURLToPath(new URL('../src/frontend/public/ocr', import.meta.url))
 
 /**
- * 선택한 모델을 검증한 뒤 고정된 runtime 파일명으로 배치한다.
  * @param {string} destination
  * @param {{name: string, modelPath: string, dictionaryPath: string}} selection
  * @returns {Promise<void>}
@@ -70,7 +69,6 @@ export async function prepareOcrAssets(destination = defaultDestination, selecti
 
     return { file, sha256 }
   })
-  // 사용자 파일을 선택했을 때 기본 모델의 upstream revision으로 표시하지 않는다.
   const selectedProvenance =
     usesBundledModel && usesBundledDictionary
       ? { ...provenance, model: selection.name, files }

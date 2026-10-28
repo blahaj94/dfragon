@@ -6,7 +6,6 @@ import { withSearchServer } from './runtime.mjs'
 const apiOrigin = 'https://desktop-search.test.invalid'
 const nickname = 'fixture'
 
-// 후보 값은 외부 사용자 데이터가 아닌 명시적인 synthetic fixture다.
 const upstreamRows = [
   {
     characterId: 'fixture-first',
