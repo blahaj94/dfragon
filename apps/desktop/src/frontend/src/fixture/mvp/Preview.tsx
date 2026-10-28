@@ -10,18 +10,21 @@ import { CaptureButton } from '../../components/CaptureButton'
 import { LastCaptureTime } from '../../components/LastCaptureTime'
 import { SnapshotToggle } from '../../components/SnapshotToggle'
 import { TopBar } from '../../components/TopBar'
+import { MAIN_WINDOW_HEIGHTS } from '../../constants/main-window-heights'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { RaidPage } from '../../pages/raid/RaidPage'
 import { scenarios } from './scenarios'
 import {
+  canCapturePreview,
   getCapturePreviewSources,
   getCapturePreviewStatus,
-  getCapturePreviewPhase
+  getCapturePreviewPhase,
+  hasCapturePreviewSource
 } from './capture-preview'
 import { getCharacterPreview } from './character-preview'
 import { styles } from './Preview.style'
 import {
-  candidatePreviewChoices,
+  candidatePreviewSlots,
   previewCharacter,
   rolePreviewCharacters,
   snapshotPreviewPartyRounds,
@@ -30,37 +33,105 @@ import {
 } from './fixture'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import { useBoardHeaderPortal } from '../../hooks/useBoardHeaderPortal'
-import { useSearchModeStore } from '../../hooks/useSearchModeStore'
+import { useIsPartyMode, useIsRaidMode, useSearchModeStore } from '../../hooks/useSearchModeStore'
 import type { CardCharacter } from '../../types/cards'
+import type { CapturePhase } from '../../types/capture'
+import {
+  type CandidatePick,
+  nextCandidatePick,
+  toCandidatePicker
+} from '../../lib/candidate-picker'
 import { createSeatOrder, seatValuesToSlotOrder, swapSeats } from '../../lib/raid-seats'
 import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
-import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
+
+const EMPTY_CANDIDATE_PICKS: readonly (CandidatePick | null)[] = [null, null, null, null]
+
+type CapturePreviewState = {
+  state: string
+  selectedSourceId: string
+  completedAt: number | null
+  retryStartedAt: number
+}
+
+type CapturePreview = {
+  state: string
+  phase: CapturePhase
+  status: string
+  sources: { id: string; name: string }[]
+  selectedSourceId: string
+  retryStartedAt: number
+  lastCaptureAt: number | null
+  canCapture: boolean
+  selectSource: (id: string) => void
+  stopCapture: () => void
+  completeCapture: () => void
+  changeState: (state: string) => void
+}
+
+function refreshPreviewSources(): void {}
+
+function useCapturePreview(): CapturePreview {
+  const [capture, setCapture] = useState<CapturePreviewState>(() => ({
+    state: 'idle',
+    selectedSourceId: '',
+    completedAt: null,
+    retryStartedAt: performance.now()
+  }))
+  const { state, selectedSourceId, completedAt, retryStartedAt } = capture
+  // 캡처 창은 목록 배열이 바뀔 때 재조회가 끝난 것으로 보고 진행 막대를 다시 채우므로, 미리보기 상태가
+  // 바뀔 때만 새 목록을 만든다.
+  const sources = useMemo(() => getCapturePreviewSources(state), [state])
+  const lastCaptureAt = state === 'complete' ? completedAt : null
+
+  const selectSource = (id: string): void => {
+    const nextState = id.length > 0 ? 'selected' : 'idle'
+    setCapture((current) => ({ ...current, state: nextState, selectedSourceId: id }))
+  }
+  const stopCapture = (): void => {
+    setCapture((current) => ({ ...current, state: 'idle', selectedSourceId: '' }))
+  }
+  const completeCapture = (): void => {
+    const capturedAt = Date.now()
+    setCapture((current) => ({ ...current, state: 'complete', completedAt: capturedAt }))
+  }
+  const changeState = (nextState: string): void => {
+    const nextSourceId = hasCapturePreviewSource(nextState) ? 'preview-game' : ''
+    const nextCompletedAt = nextState === 'complete' ? Date.now() - 12_000 : null
+    setCapture({
+      state: nextState,
+      selectedSourceId: nextSourceId,
+      completedAt: nextCompletedAt,
+      retryStartedAt: performance.now()
+    })
+  }
+
+  return {
+    state,
+    phase: getCapturePreviewPhase(state),
+    status: getCapturePreviewStatus(state),
+    sources,
+    selectedSourceId,
+    retryStartedAt,
+    lastCaptureAt,
+    canCapture: canCapturePreview(state),
+    selectSource,
+    stopCapture,
+    completeCapture,
+    changeState
+  }
+}
 
 export function Preview(): React.JSX.Element {
   const { renderBoardHeader } = useBoardHeaderPortal()
   const [scenario, setScenario] = useState('states')
-  const [captureState, setCaptureState] = useState('idle')
-  const [selectedSourceId, setSelectedSourceId] = useState('')
-  const [completedAt, setCompletedAt] = useState<number | null>(null)
-  const [retryStartedAt, setRetryStartedAt] = useState(() => performance.now())
+  const capture = useCapturePreview()
   const searchMode = useSearchModeStore((state) => state.searchMode)
+  const isPartyMode = useIsPartyMode()
+  const isRaidMode = useIsRaidMode()
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
   const [partyRound, setPartyRound] = useState(0)
   const [raidRound, setRaidRound] = useState(0)
-  const windowHeight =
-    searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidHeight : MAIN_WINDOW_SIZE.partyHeight
-  const [candidatePicks, setCandidatePicks] = useState<
-    readonly ({ serverId: string; confirmed: boolean } | null)[]
-  >([null, null, null, null])
-  // 캡처 창은 목록 배열이 바뀔 때 재조회가 끝난 것으로 보고 진행 막대를 다시 채우므로, 미리보기 상태가
-  // 바뀔 때만 새 목록을 만든다.
-  const sources = useMemo(() => getCapturePreviewSources(captureState), [captureState])
-  const phase = getCapturePreviewPhase(captureState)
-  const canCapture =
-    phase === 'selected' ||
-    phase === 'recognizing' ||
-    phase === 'complete' ||
-    phase === 'unavailable'
+  const [candidatePicks, setCandidatePicks] = useState(EMPTY_CANDIDATE_PICKS)
   const character = getCharacterPreview(scenario, previewCharacter)
   const identification = scenario === 'identification'
   const partySlots = scenarios[scenario]
@@ -104,22 +175,12 @@ export function Preview(): React.JSX.Element {
   const identificationNicknames = [null, '얼굴대기', '기준대기', '오류예시']
   const identificationRetryEnabled = [false, false, false, true]
   const candidates = scenario === 'candidates'
-  const candidatePickers = candidatePreviewChoices.map((choices, slot) => {
-    const pick = candidatePicks[slot]
-    if (!candidates || choices === null || pick?.confirmed === true) {
-      return undefined
-    }
-    const previewServerId = pick?.serverId ?? null
-    const shownServerId = previewServerId ?? choices[0].serverId
-
-    return { choices, shownServerId, previewServerId }
-  })
+  const candidatePickers = candidates
+    ? candidatePreviewSlots.map((slot, index) => toCandidatePicker(slot, candidatePicks[index]))
+    : []
   const pickCandidate = (slot: number, serverId: string): void => {
-    const pick = candidatePicks[slot]
-    const confirmed = pick?.serverId === serverId
-    setCandidatePicks(
-      candidatePicks.map((current, index) => (index === slot ? { serverId, confirmed } : current))
-    )
+    const next = nextCandidatePick(candidatePreviewSlots[slot], candidatePicks[slot], serverId)
+    setCandidatePicks(candidatePicks.map((current, index) => (index === slot ? next : current)))
   }
   const retrySlot = (): void => setScenario('pending')
   const partyCards: SlotCard[] = partySlots.map((state, slot) => {
@@ -128,6 +189,7 @@ export function Preview(): React.JSX.Element {
     const nickname = identification ? (identificationNicknames[slot] ?? undefined) : undefined
     const notice = identification ? identificationNotices[slot] : undefined
     const retryEnabled = identification ? identificationRetryEnabled[slot] : undefined
+    const picker = candidatePickers[slot] ?? undefined
 
     return {
       state,
@@ -136,7 +198,7 @@ export function Preview(): React.JSX.Element {
       notice,
       snapshotMark: partySnapshot.marks[slot],
       retryEnabled,
-      picker: candidatePickers[slot]
+      picker
     }
   })
   const raidSnapshotMarks = seatValuesToSlotOrder(seatOrder, raidSnapshot.marks)
@@ -146,42 +208,65 @@ export function Preview(): React.JSX.Element {
 
     return { state, character: selected, snapshotMark: raidSnapshotMarks[slot] }
   })
+  const canMoveSeats = capture.phase !== 'recognizing'
+
+  const handleCaptureParty = (): void => {
+    capture.completeCapture()
+    setPartyRound((round) => round + 1)
+  }
+  const handleCaptureRaid = (): void => {
+    capture.completeCapture()
+    setRaidRound((round) => round + 1)
+  }
+  const handleSwapSeats = (from: number, to: number): boolean => {
+    if (!canMoveSeats) {
+      return false
+    }
+    const next = swapSeats(seatOrder, from, to)
+    if (next === seatOrder) {
+      return false
+    }
+    setSeatOrder(next)
+
+    return true
+  }
+  const handleCaptureStateChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
+    capture.changeState(event.target.value)
+  }
+  const handleScenarioChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
+    setScenario(event.target.value)
+    setCandidatePicks(EMPTY_CANDIDATE_PICKS)
+  }
 
   return (
     <>
-      <main {...stylex.props(styles.app, styles.windowHeight(windowHeight))}>
+      <main {...stylex.props(styles.app, styles.windowHeight(MAIN_WINDOW_HEIGHTS[searchMode]))}>
         <TopBar
           start={<MainNav />}
           center={<BoardHeaderSlot />}
           end={
             <CaptureControls
               source={{
-                sources,
+                sources: capture.sources,
                 sourcesLoading: false,
                 sourcesFailed: false,
-                retryStartedAt,
-                refreshSources: () => {},
-                selectedSourceId,
-                sourceReady: selectedSourceId.length > 0,
-                selectSource: (id) => {
-                  setSelectedSourceId(id)
-                  setCaptureState(id ? 'selected' : 'idle')
-                }
+                retryStartedAt: capture.retryStartedAt,
+                refreshSources: refreshPreviewSources,
+                selectedSourceId: capture.selectedSourceId,
+                sourceReady: capture.selectedSourceId.length > 0,
+                selectSource: capture.selectSource
               }}
               searchReady
-              stopCapture={() => {
-                setSelectedSourceId('')
-                setCaptureState('idle')
-              }}
-              phase={phase}
-              status={getCapturePreviewStatus(captureState)}
+              stopCapture={capture.stopCapture}
+              phase={capture.phase}
+              status={capture.status}
             />
           }
         />
         <div {...stylex.props(styles.content)}>
-          <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
-            {searchMode === 'party' &&
-              renderBoardHeader(
+          {isPartyMode && (
+            <div {...stylex.props(styles.page)}>
+              {renderBoardHeader(
                 <BoardHeader
                   start={
                     <>
@@ -196,7 +281,7 @@ export function Preview(): React.JSX.Element {
                   }
                   end={
                     <>
-                      <LastCaptureTime at={captureState === 'complete' ? completedAt : null} />
+                      <LastCaptureTime at={capture.lastCaptureAt} />
                       <SnapshotToggle
                         label="파티 모험단 순번 스냅샷"
                         active={partySnapshot.active}
@@ -205,28 +290,25 @@ export function Preview(): React.JSX.Element {
                       />
                       <CaptureButton
                         target="파티"
-                        disabled={!canCapture}
-                        onClick={() => {
-                          setCaptureState('complete')
-                          setCompletedAt(Date.now())
-                          setPartyRound((round) => round + 1)
-                        }}
+                        disabled={!capture.canCapture}
+                        onClick={handleCaptureParty}
                       />
                     </>
                   }
                 />
               )}
-            <PartyPage
-              slots={partyCards}
-              resetKey={scenario}
-              inputEnabled
-              actions={{
-                retrySlot: identification ? retrySlot : undefined,
-                pickCandidate: candidates ? pickCandidate : undefined
-              }}
-            />
-          </div>
-          {searchMode === 'raid' && (
+              <PartyPage
+                slots={partyCards}
+                resetKey={scenario}
+                inputEnabled
+                actions={{
+                  retrySlot: identification ? retrySlot : undefined,
+                  pickCandidate: candidates ? pickCandidate : undefined
+                }}
+              />
+            </div>
+          )}
+          {isRaidMode && (
             <div {...stylex.props(styles.page)}>
               {renderBoardHeader(
                 <BoardHeader
@@ -243,7 +325,7 @@ export function Preview(): React.JSX.Element {
                   }
                   end={
                     <>
-                      <LastCaptureTime at={captureState === 'complete' ? completedAt : null} />
+                      <LastCaptureTime at={capture.lastCaptureAt} />
                       <SnapshotToggle
                         label="공대 모험단 순번 스냅샷"
                         active={raidSnapshot.active}
@@ -252,12 +334,8 @@ export function Preview(): React.JSX.Element {
                       />
                       <CaptureButton
                         target="공대"
-                        disabled={!canCapture}
-                        onClick={() => {
-                          setCaptureState('complete')
-                          setCompletedAt(Date.now())
-                          setRaidRound((round) => round + 1)
-                        }}
+                        disabled={!capture.canCapture}
+                        onClick={handleCaptureRaid}
                       />
                     </>
                   }
@@ -265,19 +343,7 @@ export function Preview(): React.JSX.Element {
               )}
               <RaidPage
                 slots={raidCards}
-                seats={{
-                  seatOrder,
-                  canMoveSeats: phase !== 'recognizing',
-                  swapSeats: (from, to) => {
-                    const next = swapSeats(seatOrder, from, to)
-                    if (phase === 'recognizing' || next === seatOrder) {
-                      return false
-                    }
-                    setSeatOrder(next)
-
-                    return true
-                  }
-                }}
+                seats={{ seatOrder, canMoveSeats, swapSeats: handleSwapSeats }}
               />
             </div>
           )}
@@ -287,20 +353,8 @@ export function Preview(): React.JSX.Element {
         <span>DFragon Desktop</span>
         <select
           aria-label="캡처 미리보기 상태"
-          value={captureState}
-          onChange={(event) => {
-            const state = event.target.value
-            setCaptureState(state)
-            setRetryStartedAt(performance.now())
-            setCompletedAt(state === 'complete' ? Date.now() - 12_000 : null)
-            const hasSource =
-              state === 'selecting' ||
-              state === 'selected' ||
-              state === 'complete' ||
-              state === 'recognizing' ||
-              state === 'unavailable'
-            setSelectedSourceId(hasSource ? 'preview-game' : '')
-          }}
+          value={capture.state}
+          onChange={handleCaptureStateChange}
           {...stylex.props(styles.select)}
         >
           <option value="idle">캡처, 대기</option>
@@ -315,10 +369,7 @@ export function Preview(): React.JSX.Element {
         <select
           aria-label="미리보기 상태"
           value={scenario}
-          onChange={(event) => {
-            setScenario(event.target.value)
-            setCandidatePicks([null, null, null, null])
-          }}
+          onChange={handleScenarioChange}
           {...stylex.props(styles.select)}
         >
           <option value="states">기본, 상태 비교</option>
