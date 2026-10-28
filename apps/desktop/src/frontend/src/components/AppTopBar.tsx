@@ -1,5 +1,5 @@
-import { attachBoardHeaderSlot } from '../hooks/useBoardHeaderPortal'
 import { useScreenCaptureContext } from '../hooks/useScreenCaptureContext'
+import { BoardHeaderSlot } from './BoardHeaderSlot'
 import { CaptureControls } from './CaptureControls'
 import { MainNav } from './MainNav'
 import { TopBar } from './TopBar'
@@ -10,11 +10,13 @@ export function AppTopBar(): React.JSX.Element {
 
   return (
     <TopBar
-      nav={<MainNav />}
-      boardRef={attachBoardHeaderSlot}
-      notice={<UpdateNoticeSlot />}
-      capture={
-        <CaptureControls capture={partyCapture} phase={controls.phase} status={controls.status} />
+      start={<MainNav />}
+      center={<BoardHeaderSlot />}
+      end={
+        <>
+          <UpdateNoticeSlot />
+          <CaptureControls capture={partyCapture} phase={controls.phase} status={controls.status} />
+        </>
       }
     />
   )
