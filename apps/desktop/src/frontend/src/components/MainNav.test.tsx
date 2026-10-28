@@ -2,7 +2,8 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { MainNav, type SearchMode } from './MainNav'
+import type { SearchMode } from '../types/search-mode'
+import { MainNav } from './MainNav'
 
 let root: Root
 let container: HTMLDivElement
