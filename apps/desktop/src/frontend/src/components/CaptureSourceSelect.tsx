@@ -33,29 +33,16 @@ export function CaptureSourceSelect({
     ...detected.map((source) => ({ ...source, group: '감지된 게임' })),
     ...others.map((source) => ({ ...source, group: '다른 창' }))
   ]
-  const hasSelected = sources.some((source) => source.id === value)
+  const selectedGone = isSelectedSourceGone(value, sources)
   const searching = !failed && detected.length === 0
   const disabled = loading || failed || !ready
 
   return (
     <div {...stylex.props(styles.row)}>
-      {failed && (
-        <div role="status" {...stylex.props(styles.tile, styles.failureTile)}>
-          <span {...stylex.props(styles.failureTitle)}>창 목록을 불러오지 못했습니다</span>
-          <span {...stylex.props(styles.line)}>15초마다 다시 확인합니다</span>
-        </div>
-      )}
-      {searching && (
-        <div {...stylex.props(styles.tile, styles.searchingTile)}>
-          <span role="status" {...stylex.props(styles.searching)}>
-            던전앤파이터 찾는 중
-            <StepDots size={5} />
-          </span>
-          <RetryProgress key={retryStartedAt} startedAt={retryStartedAt} />
-        </div>
-      )}
+      {failed && <FailureTile />}
+      {searching && <SearchingTile retryStartedAt={retryStartedAt} />}
       <div role="radiogroup" aria-label="캡처할 창" {...stylex.props(styles.group)}>
-        {value.length > 0 && !hasSelected && (
+        {selectedGone && (
           <SourceTile
             groupName={groupName}
             id={value}
@@ -83,6 +70,35 @@ export function CaptureSourceSelect({
   )
 }
 
+function isSelectedSourceGone(value: string, sources: Source[]): boolean {
+  if (value.length === 0) {
+    return false
+  }
+
+  return !sources.some((source) => source.id === value)
+}
+
+function FailureTile(): React.JSX.Element {
+  return (
+    <div role="status" {...stylex.props(styles.tile, styles.failureTile)}>
+      <span {...stylex.props(styles.failureTitle)}>창 목록을 불러오지 못했습니다</span>
+      <span {...stylex.props(styles.line)}>15초마다 다시 확인합니다</span>
+    </div>
+  )
+}
+
+function SearchingTile({ retryStartedAt }: { retryStartedAt: number }): React.JSX.Element {
+  return (
+    <div {...stylex.props(styles.tile, styles.searchingTile)}>
+      <span role="status" {...stylex.props(styles.searching)}>
+        던전앤파이터 찾는 중
+        <StepDots size={5} />
+      </span>
+      <RetryProgress key={retryStartedAt} startedAt={retryStartedAt} />
+    </div>
+  )
+}
+
 type SourceTileProps = {
   groupName: string
   id: string
@@ -102,6 +118,8 @@ function SourceTile({
   disabled,
   onSelect
 }: SourceTileProps): React.JSX.Element {
+  const handleChange = (): void => onSelect(id)
+
   return (
     <div
       title={name}
@@ -119,7 +137,7 @@ function SourceTile({
         checked={checked}
         disabled={disabled}
         aria-label={name}
-        onChange={() => onSelect(id)}
+        onChange={handleChange}
         {...stylex.props(styles.radio)}
       />
       <span {...stylex.props(styles.text)}>
@@ -131,9 +149,7 @@ function SourceTile({
   )
 }
 
-// 다음 자동 조회까지 남은 시간을 채워 가는 2px 막대. 대화상자를 연 순간 이미 지난 시간만큼 음수 지연으로
-// 앞당겨 시작하므로 실제 재조회 타이머와 같은 순간에 찬다. 조회가 끝나 시작 시각이 바뀌면 key로 새로
-// 그려 처음부터 다시 찬다. 동작 줄이기에서는 연 순간의 위치에서 멈춘다.
+// 대화상자를 연 순간 이미 지난 시간만큼 음수 지연으로 앞당겨 시작해야 실제 재조회 타이머와 같은 순간에 찬다.
 function RetryProgress({ startedAt }: { startedAt: number }): React.JSX.Element {
   const [shownAt] = useState(() => performance.now())
 
