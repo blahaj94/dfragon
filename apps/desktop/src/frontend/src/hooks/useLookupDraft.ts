@@ -7,6 +7,8 @@ import {
   useSlotCardStore
 } from './useSlotCardStore'
 
+type LookupCharacter = Pick<CardCharacter, 'name' | 'serverId'>
+
 type LookupTarget = { name?: string; serverId?: string }
 
 type LookupDraft = {
@@ -34,7 +36,7 @@ export function useLookupDraft({
   onLookup
 }: {
   cardKey: SlotCardKey
-  character?: Pick<CardCharacter, 'name' | 'serverId'>
+  character?: LookupCharacter
   nickname?: string
   onLookup?: (nickname: string, serverId: string) => void
 }): LookupDraft {
@@ -105,7 +107,7 @@ function createDraft({
   nickname,
   source
 }: {
-  character?: Pick<CardCharacter, 'name' | 'serverId'>
+  character?: LookupCharacter
   nickname?: string
   source: StoredLookupDraft['source']
 }): StoredLookupDraft {
@@ -125,7 +127,7 @@ function createDraft({
 function followSource(
   draft: StoredLookupDraft,
   source: StoredLookupDraft['source'],
-  character?: Pick<CardCharacter, 'name' | 'serverId'>
+  character?: LookupCharacter
 ): StoredLookupDraft {
   if (isSameTarget(draft.source, source)) {
     return draft
@@ -140,10 +142,7 @@ function followSource(
   return { ...draft, source, name, serverId }
 }
 
-function keepsUserInput(
-  draft: StoredLookupDraft,
-  character?: Pick<CardCharacter, 'name' | 'serverId'>
-): boolean {
+function keepsUserInput(draft: StoredLookupDraft, character?: LookupCharacter): boolean {
   if (draft.dirty) {
     return true
   }
