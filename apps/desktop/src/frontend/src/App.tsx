@@ -11,7 +11,7 @@ import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { useMainWindowHeight } from './hooks/useMainWindowHeight'
 import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
-import { getRaidScreenCapture } from './lib/capture-presentation'
+import { getTopBarCaptureControls } from './lib/capture-presentation'
 import { MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
 
 function App(): React.JSX.Element {
@@ -33,19 +33,18 @@ function App(): React.JSX.Element {
   useMainWindowHeight(
     searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidHeight : MAIN_WINDOW_SIZE.partyHeight
   )
-  const raidScreenCapture = getRaidScreenCapture({
-    party: { phase: capture.phase, status: capture.status, sourceReady: capture.sourceReady },
+  // 상태 칩과 캡처 모달은 보이는 화면의 회차를 알린다.
+  const captureControls = getTopBarCaptureControls({
+    searchMode,
+    party: {
+      phase: capture.phase,
+      status: capture.status,
+      sourceReady: capture.sourceReady,
+      selectedSourceId: capture.selectedSourceId,
+      connectionFailed: capture.search.connectionFailed
+    },
     raid: { phase: raidCapture.phase, status: raidCapture.status }
   })
-  // 상태 칩과 캡처 모달은 보이는 화면의 회차를 알린다.
-  const screenCapture =
-    searchMode === 'raid' ? raidScreenCapture : { phase: capture.phase, status: capture.status }
-  let captureNotice = ''
-  if (capture.search.connectionFailed) {
-    captureNotice = '캡처 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
-  } else if (capture.selectedSourceId) {
-    captureNotice = screenCapture.status
-  }
 
   return (
     <main {...stylex.props(styles.app)}>
@@ -62,7 +61,11 @@ function App(): React.JSX.Element {
           )
         }
         capture={
-          <CaptureControls capture={capture} phase={screenCapture.phase} status={captureNotice} />
+          <CaptureControls
+            capture={capture}
+            phase={captureControls.phase}
+            status={captureControls.status}
+          />
         }
       />
       <div {...stylex.props(styles.content)}>
