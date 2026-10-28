@@ -9,25 +9,25 @@ import { useCharacterSearch } from './useCharacterSearch'
 import { isDnfCaptureSource } from '../lib/capture-presentation'
 import { useRestartShortcut } from './useRestartShortcut'
 
+export type CaptureSourceSelection = ReturnType<typeof useCaptureSources> & {
+  selectedSourceId: string
+  sourceReady: boolean
+  selectSource: (sourceId: string) => void
+}
+
 export type PartyCapture = {
+  source: CaptureSourceSelection
   search: ReturnType<typeof useCharacterSearch>
   retrySearch: (slot: number) => void
   phase: CapturePhase
   recognizing: boolean
-  sources: { id: string; name: string }[]
-  selectedSourceId: string
-  sourceReady: boolean
   canStartCapture: boolean
-  sourcesLoading: boolean
-  sourcesFailed: boolean
   nicknames: (string | null)[]
   round: number
   startedRounds: number
   status: string
   lastCompletedAt: number | null
   startRound: () => void
-  selectSource: (sourceId: string) => void
-  refreshSources: () => void
   startCapture: () => Promise<void>
   stopCapture: (nextStatus?: string) => void
 }
@@ -92,7 +92,6 @@ export function usePartyCapture({
     await waitFor(actor, (state) => state.context.request !== request || !state.hasTag('busy'))
   }
 
-  const sourceState = { ...sources }
   const recognizing = phase === 'recognizing'
   const nicknames = Array.from({ length: PARTY_SLOT_COUNT }, (_, slot) => {
     const result = snapshot.context.results[slot]
@@ -118,15 +117,18 @@ export function usePartyCapture({
     snapshot.matches('selected') ||
     snapshot.matches('capturing') ||
     snapshot.matches('captureFailed')
-
-  return {
-    ...sourceState,
-    phase,
-    recognizing,
+  const source: CaptureSourceSelection = {
+    ...sources,
     selectedSourceId,
     sourceReady,
+    selectSource
+  }
+
+  return {
+    source,
+    phase,
+    recognizing,
     canStartCapture,
-    selectSource,
     search,
     retrySearch: search.retry,
     nicknames,

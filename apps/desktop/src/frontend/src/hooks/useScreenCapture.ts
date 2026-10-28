@@ -19,8 +19,8 @@ export function useScreenCapture(): ScreenCapture {
     receivesShortcut: isPartyMode
   })
   const raidCapture = useRaidCapture({
-    sourceId: partyCapture.selectedSourceId,
-    sourceReady: partyCapture.sourceReady,
+    sourceId: partyCapture.source.selectedSourceId,
+    sourceReady: partyCapture.source.sourceReady,
     receivesShortcut: isRaidMode
   })
   const controls = getTopBarCaptureControls({
@@ -28,8 +28,8 @@ export function useScreenCapture(): ScreenCapture {
     party: {
       phase: partyCapture.phase,
       status: partyCapture.status,
-      sourceReady: partyCapture.sourceReady,
-      selectedSourceId: partyCapture.selectedSourceId,
+      sourceReady: partyCapture.source.sourceReady,
+      selectedSourceId: partyCapture.source.selectedSourceId,
       connectionFailed: partyCapture.search.connectionFailed
     },
     raid: { phase: raidCapture.phase, status: raidCapture.status }

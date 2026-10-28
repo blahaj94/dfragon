@@ -7,20 +7,17 @@ import { formatPartyCaptureStatus } from '../lib/capture-presentation'
 
 function PartyCapture(): React.JSX.Element {
   const {
-    sources,
-    sourcesFailed,
-    selectedSourceId,
+    source,
     canStartCapture,
     recognizing,
     search,
     retrySearch,
     nicknames,
     status,
-    selectSource,
-    refreshSources,
     startCapture,
     stopCapture
   } = usePartyCapture()
+  const { sources, sourcesFailed, selectedSourceId, selectSource, refreshSources } = source
   const isSearchReady = search.ready
   const cannotStartCapture = !canStartCapture || !isSearchReady
   const statusText = formatPartyCaptureStatus({ status, nicknames })
