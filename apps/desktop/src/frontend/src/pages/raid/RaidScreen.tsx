@@ -5,31 +5,17 @@ import { BoardTitle } from '../../components/BoardTitle'
 import { CaptureButton } from '../../components/CaptureButton'
 import { LastCaptureTime } from '../../components/LastCaptureTime'
 import { SnapshotToggle } from '../../components/SnapshotToggle'
-import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import { useBoardHeaderPortal } from '../../hooks/useBoardHeaderPortal'
+import { useRaidSlotCards } from '../../hooks/useRaidSlotCards'
 import { useScreenCaptureContext } from '../../hooks/useScreenCaptureContext'
-import { slotAdventureName } from '../../lib/adventure-snapshot'
-import { seatValuesToSlotOrder } from '../../lib/raid-seats'
-import { filledSlotCount, toSlotCards } from '../../lib/slot-cards'
+import { filledSlotCount } from '../../lib/slot-cards'
 import { RaidPage } from './RaidPage'
 
 export function RaidScreen({ hidden }: { hidden: boolean }): React.JSX.Element {
   const { raidCapture: capture } = useScreenCaptureContext()
   const cardsId = useId()
-  const { search, seatOrder } = capture
-  const snapshot = useAdventureSnapshot(
-    seatOrder.map((slot) => slotAdventureName(search.slots[slot])),
-    capture.startedRounds
-  )
-  const cards = toSlotCards({
-    slots: search.slots,
-    nicknames: capture.nicknames,
-    manualSlots: search.manualSlots,
-    recognizing: capture.recognizing,
-    snapshotMarks: seatValuesToSlotOrder(seatOrder, snapshot.marks),
-    screen: 'raid'
-  })
-  const notice = search.connectionFailed
+  const { cards, snapshot } = useRaidSlotCards(capture)
+  const notice = capture.search.connectionFailed
     ? '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
     : ''
   const { renderBoardHeader } = useBoardHeaderPortal()
@@ -75,7 +61,7 @@ export function RaidScreen({ hidden }: { hidden: boolean }): React.JSX.Element {
       resetKey={String(capture.round)}
       slots={cards}
       seats={capture}
-      actions={search}
+      actions={capture.search}
     />
   )
 }
