@@ -10,8 +10,11 @@ import {
   DialogAction,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogRoot,
+  DialogTitle,
   DialogTrigger,
   ExampleSection,
   IconButton,
@@ -26,7 +29,10 @@ import {
   Switch,
   Tabs,
   TextField,
+  TextFieldDescription,
+  TextFieldError,
   TextFieldInput,
+  TextFieldLabel,
   Tooltip,
   Typo,
   shapes,
@@ -38,14 +44,20 @@ import type {
   DialogActionProps,
   DialogBodyProps,
   DialogContentProps,
+  DialogDescriptionProps,
   DialogFooterProps,
+  DialogHeaderProps,
   DialogRootProps,
+  DialogTitleProps,
   DialogTriggerProps,
   IconButtonProps,
   ProgressCircleProps,
   SelectPopupProps,
   StatusChipProps,
+  TextFieldDescriptionProps,
+  TextFieldErrorProps,
   TextFieldInputProps,
+  TextFieldLabelProps,
   TextFieldProps,
   TypoProps,
   TypoTag,
@@ -65,8 +77,11 @@ export const components = [
   DialogAction,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogRoot,
+  DialogTitle,
   DialogTrigger,
   ExampleSection,
   IconButton,
@@ -78,7 +93,10 @@ export const components = [
   SupportingText,
   Switch,
   TextField,
+  TextFieldDescription,
+  TextFieldError,
   TextFieldInput,
+  TextFieldLabel,
   Select.Trigger,
   Menu.Popup,
   Tabs.List,
@@ -89,10 +107,16 @@ export type PublicProps = {
   button: ButtonProps
   progress: ProgressCircleProps
   field: TextFieldProps
+  fieldLabel: TextFieldLabelProps
   input: TextFieldInputProps
+  fieldDescription: TextFieldDescriptionProps
+  fieldError: TextFieldErrorProps
   dialogRoot: DialogRootProps
   dialogTrigger: DialogTriggerProps
   dialogContent: DialogContentProps
+  dialogHeader: DialogHeaderProps
+  dialogTitle: DialogTitleProps
+  dialogDescription: DialogDescriptionProps
   dialogBody: DialogBodyProps
   dialogFooter: DialogFooterProps
   dialogAction: DialogActionProps
