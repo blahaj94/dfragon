@@ -97,6 +97,13 @@ function Examples() {
   const [mode, setMode] = useState('party')
   const [activation, setActivation] = useState('아직 실행하지 않았습니다.')
   const [enabled, setEnabled] = useState(false)
+  const handleEnabledChange = (checked: boolean) => setEnabled(checked)
+  const handlePrimaryClick = () => setActivation('주 버튼 실행')
+  const handleSecondaryClick = () => setActivation('보조 버튼 실행')
+  const handleGhostClick = () => setActivation('면 없는 버튼 실행')
+  const handleDangerClick = () => setActivation('위험 버튼 실행')
+  const handleDisabledClick = () => setActivation('비활성 실행')
+  const handleLoadingClick = () => setActivation('진행 중 실행')
 
   return (
     <main {...stylex.props(styles.page)}>
@@ -109,26 +116,26 @@ function Examples() {
           <Switch
             aria-label="예시 스위치"
             checked={enabled}
-            onCheckedChange={(checked) => setEnabled(checked)}
+            onCheckedChange={handleEnabledChange}
           />
           <SupportingText>예시 스위치</SupportingText>
         </div>
         <ExampleSection title="버튼의 변형과 상태">
           <div {...stylex.props(styles.row)}>
-            <Button variant="primary" size="lg" onClick={() => setActivation('주 버튼 실행')}>
+            <Button variant="primary" size="lg" onClick={handlePrimaryClick}>
               주 버튼
             </Button>
-            <Button onClick={() => setActivation('보조 버튼 실행')}>보조 버튼</Button>
-            <Button variant="ghost" onClick={() => setActivation('면 없는 버튼 실행')}>
+            <Button onClick={handleSecondaryClick}>보조 버튼</Button>
+            <Button variant="ghost" onClick={handleGhostClick}>
               면 없는 버튼
             </Button>
-            <Button variant="danger" onClick={() => setActivation('위험 버튼 실행')}>
+            <Button variant="danger" onClick={handleDangerClick}>
               위험 버튼
             </Button>
-            <Button size="sm" disabled onClick={() => setActivation('비활성 실행')}>
+            <Button size="sm" disabled onClick={handleDisabledClick}>
               비활성
             </Button>
-            <Button variant="primary" loading onClick={() => setActivation('진행 중 실행')}>
+            <Button variant="primary" loading onClick={handleLoadingClick}>
               진행 중
             </Button>
             <IconButton aria-label="설정" icon={<SettingsIcon />} />

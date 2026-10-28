@@ -66,7 +66,7 @@ function parseCandidate(value: unknown, where: string): ManifestCandidate {
     fail(where, '후보는 객체여야 합니다')
   }
   const id = readId(value.id, `${where}.id`)
-  const image = value.image === null ? null : readPath(value.image, `${where}.image`)
+  const image = value.image !== null ? readPath(value.image, `${where}.image`) : null
   if (value.correct !== undefined && typeof value.correct !== 'boolean') {
     fail(where, 'correct는 boolean이어야 합니다')
   }
@@ -149,7 +149,7 @@ export function loadCase(manifest: Manifest, entry: ManifestCase): LoadedCase {
     correct: candidate.correct,
     jobName: candidate.jobName,
     image:
-      candidate.image === null ? null : readPng(resolveInside(manifest.directory, candidate.image))
+      candidate.image !== null ? readPng(resolveInside(manifest.directory, candidate.image)) : null
   }))
 
   return { id: entry.id, rasterScale: entry.rasterScale, hud, candidates }

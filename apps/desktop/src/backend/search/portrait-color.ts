@@ -333,9 +333,9 @@ export function createPortraitColorScorer(policy: PortraitColorPolicy): Portrait
       return null
     }
     const range =
-      anchor === null
-        ? searchRange(candidate, bounds, face, accepted.topFraction)
-        : anchorRange(candidate, anchor, face, accepted.anchorRadius)
+      anchor !== null
+        ? anchorRange(candidate, anchor, face, accepted.anchorRadius)
+        : searchRange(candidate, bounds, face, accepted.topFraction)
     if (range === null) {
       return null
     }

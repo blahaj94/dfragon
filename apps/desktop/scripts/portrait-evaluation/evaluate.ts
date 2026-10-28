@@ -138,23 +138,23 @@ export function summarize(gridSize: number, results: readonly CaseResult[]): Eva
   const losers = ranked.filter((result) => result.rank !== 1)
   const allCandidates = results.flatMap((result) => result.candidates)
 
-  const top1Accuracy = ranked.length === 0 ? null : winners.length / ranked.length
+  const top1Accuracy = ranked.length !== 0 ? winners.length / ranked.length : null
 
   const maxCorrectDistance = maximum(
-    results.flatMap((result) => (result.correctDistance === null ? [] : [result.correctDistance]))
+    results.flatMap((result) => (result.correctDistance !== null ? [result.correctDistance] : []))
   )
   const minWrongTop1Distance = minimum(
     losers.flatMap((result) =>
-      result.bestWrongDistance === null ? [] : [result.bestWrongDistance]
+      result.bestWrongDistance !== null ? [result.bestWrongDistance] : []
     )
   )
   const minWrongDistance = minimum(
     results.flatMap((result) =>
-      result.bestWrongDistance === null ? [] : [result.bestWrongDistance]
+      result.bestWrongDistance !== null ? [result.bestWrongDistance] : []
     )
   )
   const minCorrectTop1Margin = minimum(
-    winners.flatMap((result) => (result.margin === null ? [] : [result.margin]))
+    winners.flatMap((result) => (result.margin !== null ? [result.margin] : []))
   )
   const nullScoreCount = allCandidates.filter((candidate) => candidate.score === null).length
 

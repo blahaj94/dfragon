@@ -127,9 +127,9 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
   const { characterId, characterName, serverId, serverName, fame } = candidate
   const rows = [{ characterId, characterName, serverId, serverName, fame }]
   const selected =
-    summary === null
-      ? { summary: candidateSummary(candidate), selectionMethod, details: 'pending' as const }
-      : { summary, selectionMethod }
+    summary !== null
+      ? { summary, selectionMethod }
+      : { summary: candidateSummary(candidate), selectionMethod, details: 'pending' as const }
 
   if (choices === undefined) {
     return { kind: 'success', rows, selected }
