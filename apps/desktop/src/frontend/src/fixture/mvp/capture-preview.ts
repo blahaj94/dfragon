@@ -27,14 +27,30 @@ export function getCapturePreviewStatus(state: string): string {
   return ''
 }
 
+const SOURCE_PHASES = [
+  'selecting',
+  'selected',
+  'recognizing',
+  'complete',
+  'unavailable'
+] as const satisfies readonly CapturePhase[]
+
+type SourcePhase = (typeof SOURCE_PHASES)[number]
+
+export function hasCapturePreviewSource(state: string): state is SourcePhase {
+  return SOURCE_PHASES.some((phase) => phase === state)
+}
+
+export function canCapturePreview(state: string): boolean {
+  if (state === 'selecting') {
+    return false
+  }
+
+  return hasCapturePreviewSource(state)
+}
+
 export function getCapturePreviewPhase(state: string): CapturePhase {
-  if (
-    state === 'selecting' ||
-    state === 'selected' ||
-    state === 'recognizing' ||
-    state === 'complete' ||
-    state === 'unavailable'
-  ) {
+  if (hasCapturePreviewSource(state)) {
     return state
   }
 
