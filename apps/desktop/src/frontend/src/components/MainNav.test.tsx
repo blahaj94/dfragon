@@ -2,6 +2,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { useSearchModeStore } from '../hooks/useSearchModeStore'
 import type { SearchMode } from '../types/search-mode'
 import { MainNav } from './MainNav'
 
@@ -21,10 +22,9 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-async function render(searchMode: SearchMode, onSearchModeChange = vi.fn()): Promise<void> {
-  await act(async () =>
-    root.render(<MainNav searchMode={searchMode} onSearchModeChange={onSearchModeChange} />)
-  )
+async function render(searchMode: SearchMode): Promise<void> {
+  useSearchModeStore.setState({ searchMode })
+  await act(async () => root.render(<MainNav />))
 }
 
 function trigger(): HTMLButtonElement {
@@ -50,9 +50,8 @@ it('주 메뉴는 현재 화면인 검색 하나와 현재 하위 이름만 보�
   expect(trigger().getAttribute('aria-current')).toBe('page')
 })
 
-it('하위 메뉴는 파티와 공대 중 현재 항목을 표시하고 고르면 닫힌다', async () => {
-  const onSearchModeChange = vi.fn()
-  await render('party', onSearchModeChange)
+it('하위 메뉴는 파티와 공대 중 현재 항목을 표시하고 고르면 검색 모드를 바꾸고 닫힌다', async () => {
+  await render('party')
   await act(async () => trigger().click())
 
   expect(document.querySelector('[role="menu"]')?.getAttribute('aria-label')).toBe('검색')
@@ -62,13 +61,13 @@ it('하위 메뉴는 파티와 공대 중 현재 항목을 표시하고 고르�
   ])
   await act(async () => menuItems()[1].click())
 
-  expect(onSearchModeChange).toHaveBeenCalledExactlyOnceWith('raid')
+  expect(useSearchModeStore.getState().searchMode).toBe('raid')
+  expect(trigger().textContent).toBe('검색공대')
   expect(document.querySelector('[role="menu"]')).toBeNull()
 })
 
 it('화살표로 항목을 옮기고 Escape로 닫으면 검색 버튼으로 포커스가 돌아온다', async () => {
-  const onSearchModeChange = vi.fn()
-  await render('party', onSearchModeChange)
+  await render('party')
   trigger().focus()
   await key(trigger(), 'ArrowDown')
   const menu = document.querySelector('[role="menu"]')!
@@ -82,5 +81,5 @@ it('화살표로 항목을 옮기고 Escape로 닫으면 검색 버튼으로 포
 
   expect(document.querySelector('[role="menu"]')).toBeNull()
   expect(document.activeElement).toBe(trigger())
-  expect(onSearchModeChange).not.toHaveBeenCalled()
+  expect(useSearchModeStore.getState().searchMode).toBe('party')
 })
