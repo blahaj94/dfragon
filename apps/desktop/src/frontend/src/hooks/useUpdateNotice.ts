@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type {
   UpdateNotice,
   UpdateNoticeApi,
   UpdateNoticeSnapshot
 } from '../../../preload/common/types/update-notice'
+
+const EMPTY_SNAPSHOT: UpdateNoticeSnapshot = { revision: -1, notice: null }
 
 function readBridge(): UpdateNoticeApi | null {
   const candidate = typeof window === 'undefined' ? undefined : window.updateNotice
@@ -15,22 +17,25 @@ function readBridge(): UpdateNoticeApi | null {
   return null
 }
 
+// 조회 응답과 변경 알림이 어떤 순서로 와도 나중 상태만 반영한다.
+function pickLatest(
+  current: UpdateNoticeSnapshot,
+  next: UpdateNoticeSnapshot
+): UpdateNoticeSnapshot {
+  if (next.revision <= current.revision) {
+    return current
+  }
+
+  return next
+}
+
 export function useUpdateNotice(): {
   notice: UpdateNotice | null
   openRelease: () => void
   dismiss: () => void
 } {
-  const [notice, setNotice] = useState<UpdateNotice | null>(null)
-  const appliedRevision = useRef(-1)
-
-  // 조회 응답과 변경 알림이 어떤 순서로 와도 나중 상태만 반영한다.
-  const apply = useCallback((snapshot: UpdateNoticeSnapshot) => {
-    if (snapshot.revision <= appliedRevision.current) {
-      return
-    }
-    appliedRevision.current = snapshot.revision
-    setNotice(snapshot.notice)
-  }, [])
+  const [snapshot, setSnapshot] = useState(EMPTY_SNAPSHOT)
+  const { notice } = snapshot
 
   useEffect(() => {
     const bridge = readBridge()
@@ -38,9 +43,9 @@ export function useUpdateNotice(): {
       return
     }
     let active = true
-    const receive = (snapshot: UpdateNoticeSnapshot): void => {
+    const receive = (next: UpdateNoticeSnapshot): void => {
       if (active) {
-        apply(snapshot)
+        setSnapshot((current) => pickLatest(current, next))
       }
     }
     const unsubscribe = bridge.onUpdateNoticeChanged(receive)
@@ -53,7 +58,7 @@ export function useUpdateNotice(): {
       active = false
       unsubscribe()
     }
-  }, [apply])
+  }, [])
 
   const openRelease = useCallback(() => {
     const bridge = readBridge()
@@ -70,9 +75,9 @@ export function useUpdateNotice(): {
     }
     bridge
       .dismissUpdateNotice(notice.tag)
-      .then(apply)
+      .then((next) => setSnapshot((current) => pickLatest(current, next)))
       .catch(() => undefined)
-  }, [apply, notice])
+  }, [notice])
 
   return { notice, openRelease, dismiss }
 }
