@@ -55,7 +55,10 @@ export function PartyScreen({ hidden }: { hidden: boolean }): React.JSX.Element 
         resetKey={String(capture.round)}
         slots={cards}
         inputEnabled
-        actions={capture.search}
+        actions={{
+          lookupSlot: capture.search.lookupSlot,
+          pickCandidate: capture.search.pickCandidate
+        }}
       />
     </div>
   )
