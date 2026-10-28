@@ -12,6 +12,18 @@ export type NumericTextProps = {
   countUp?: boolean
 }
 
+function readTokens(element: HTMLElement | null) {
+  if (element == null) {
+    return { duration: '', easing: '' }
+  }
+  const computed = getComputedStyle(element)
+
+  return {
+    duration: computed.getPropertyValue('--df-dur-count'),
+    easing: computed.getPropertyValue('--df-ease')
+  }
+}
+
 export function NumericText({
   value,
   format = (number) => defaultFormatter.format(number),
@@ -24,8 +36,8 @@ export function NumericText({
   // 그리기 전에 시간을 읽어, 바로 최종값을 보일 때 0이 한 번 그려지지 않게 한다.
   useLayoutEffect(() => {
     const from = current.current
-    const computed = element.current == null ? null : getComputedStyle(element.current)
-    const duration = parseDuration(computed?.getPropertyValue('--df-dur-count') ?? '')
+    const tokens = readTokens(element.current)
+    const duration = parseDuration(tokens.duration)
     const shouldAnimate = countUp && duration > 0 && from !== value
     if (!shouldAnimate) {
       current.current = value
@@ -33,7 +45,7 @@ export function NumericText({
 
       return
     }
-    const ease = parseEasing(computed?.getPropertyValue('--df-ease') ?? '')
+    const ease = parseEasing(tokens.easing)
     const start = performance.now()
     let frame = 0
     const step = (now: number) => {

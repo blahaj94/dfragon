@@ -20,6 +20,21 @@ export type ProgressCircleProps = Omit<
 
 const sizeStyles = { '24': styles.size24, '40': styles.size40, inherit: styles.sizeInherit }
 
+function determinateArc(value: number, minValue: number, maxValue: number) {
+  const range = maxValue - minValue
+  const ratio = range > 0 ? (value - minValue) / range : 0
+
+  return CIRCUMFERENCE * Math.min(Math.max(ratio, 0), 1)
+}
+
+function arcLength(value: number | undefined, minValue: number, maxValue: number) {
+  if (value == null) {
+    return INDETERMINATE_ARC
+  }
+
+  return determinateArc(value, minValue, maxValue)
+}
+
 function ProgressCircleImpl({
   value,
   minValue = 0,
@@ -31,12 +46,9 @@ function ProgressCircleImpl({
   ...svgProps
 }: ProgressCircleProps & ForwardedStyle) {
   const isDeterminate = value != null
-  let arc = INDETERMINATE_ARC
-  if (isDeterminate) {
-    const range = maxValue - minValue
-    const ratio = range > 0 ? (value - minValue) / range : 0
-    arc = CIRCUMFERENCE * Math.min(Math.max(ratio, 0), 1)
-  }
+  const arc = arcLength(value, minValue, maxValue)
+  const arcDasharray = `${arc} ${CIRCUMFERENCE}`
+  const indeterminateDasharray = `${INDETERMINATE_ARC} ${CIRCUMFERENCE}`
 
   return (
     <svg
@@ -66,7 +78,7 @@ function ProgressCircleImpl({
         r={RADIUS}
         strokeWidth="3"
         strokeLinecap="square"
-        strokeDasharray={`${arc} ${CIRCUMFERENCE}`}
+        strokeDasharray={arcDasharray}
         transform="rotate(-90 12 12)"
         {...stylex.props(styles.range)}
       />
@@ -77,7 +89,7 @@ function ProgressCircleImpl({
           r={RADIUS}
           strokeWidth="3"
           strokeLinecap="square"
-          strokeDasharray={`${INDETERMINATE_ARC} ${CIRCUMFERENCE}`}
+          strokeDasharray={indeterminateDasharray}
           transform="rotate(90 12 12)"
           {...stylex.props(styles.range)}
         />

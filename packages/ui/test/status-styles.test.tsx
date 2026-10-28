@@ -2,7 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { StatusChip, StepDots, type StatusChipTone } from '../src/index'
+import { ProgressCircle, StatusChip, StepDots, type StatusChipTone } from '../src/index'
 import { colors, motion } from '../src/tokens.stylex'
 
 // StyleX의 atomic class 이름은 속성과 값에서 정해지므로, 같은 선언을 여기서 만들면 같은 class가 나온다.
@@ -70,5 +70,17 @@ describe('StepDots의 움직임', () => {
         expect(dot.className.split(' ')).toContain(name)
       }
     }
+  })
+})
+
+describe('ProgressCircle의 호가 범위가 유효하지 않을 때', () => {
+  it.each([
+    ['minValue가 NaN', { minValue: Number.NaN }],
+    ['maxValue가 NaN', { maxValue: Number.NaN }],
+    ['maxValue가 minValue 이하', { minValue: 10, maxValue: 10 }]
+  ])('%s이면 호가 0이다', (_name, range) => {
+    const circle = render(<ProgressCircle value={50} {...range} />).querySelectorAll('circle')
+
+    expect(circle[1].getAttribute('stroke-dasharray')).toMatch(/^0 /)
   })
 })
