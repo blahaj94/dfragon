@@ -86,7 +86,6 @@ function displayNumber(value: CharacterJsonValue | undefined): number | null {
   return null
 }
 
-// OCR 식별은 이름과 서버만 정하고 상세는 수명이 다른 슬롯의 식별을 마친 뒤 `runDetailsRequest`로 채운다.
 export async function runSearchRequest(input: RequestInput): Promise<SearchOutcome> {
   const adapters = input.runtime.identification
   const outcome = await runSearchOperation(
