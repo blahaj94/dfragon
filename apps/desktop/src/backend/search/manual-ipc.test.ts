@@ -1,15 +1,28 @@
 import { expect, it, vi } from 'vitest'
 import { deferred } from '../lib/async-test-fixture'
-import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
+import {
+  candidateResponse,
+  createSearchFixture,
+  jsonResponse,
+  requestPaths
+} from './search-test-fixture'
 
 it('manual search works without listing, selecting or capturing a window', async () => {
   const fixture = await createSearchFixture('manual')
-  fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: { rows: [candidate] } }))
-  await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
-  await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
+  fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: { rows: [candidateResponse] } }))
+  await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
+  await vi.waitFor(() =>
+    expect(requestPaths(fixture.fetchSearch)).toEqual([
+      '/characters/candidates',
+      '/characters/cain/synthetic-character'
+    ])
+  )
+  expect((await fixture.read()).slots[0].state).toBe('success')
 
   expect(fixture.getSources).not.toHaveBeenCalled()
-  expect(new Request(...fixture.fetchSearch.mock.calls[0]).headers.has('authorization')).toBe(false)
+  for (const args of fixture.fetchSearch.mock.calls) {
+    expect(new Request(...args).headers.has('authorization')).toBe(false)
+  }
   expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
     snapshot: { captureId: null }
   })
@@ -23,7 +36,7 @@ it('capture source and Stop do not cancel manual requests; each channel rejects 
   const fixture = await createSearchFixture('manual')
   const response = deferred<Response>()
   fixture.fetchSearch.mockReturnValueOnce(response.promise)
-  await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+  await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
   await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
   const request = new Request(...fixture.fetchSearch.mock.calls[0])
   await fixture.invoke('selectCaptureSource', 'window:search-fixture')
@@ -33,19 +46,23 @@ it('capture source and Stop do not cancel manual requests; each channel rejects 
   expect(captured.snapshot.captureId).not.toBe(fixture.captureId)
   expect(captured.snapshot.runId).not.toBe((await fixture.read()).runId)
   expect(
-    await fixture.invoke('notifyStableNicknameDetected', {
+    await fixture.invoke('notifyOcrCandidatesDetected', {
       captureId: fixture.captureId,
       slot: 0,
       observationRevision: 2,
-      nickname: '다라'
+      nickname: '다라',
+      candidateNicknames: ['다라'],
+      portrait: null
     })
   ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
   expect(
-    await fixture.invoke('notifyManualNickname', {
+    await fixture.invoke('controlManualSearch', {
+      action: 'lookup',
       captureId: captured.snapshot.captureId,
       slot: 0,
       observationRevision: 2,
-      nickname: '다라'
+      nickname: '다라',
+      serverId: 'cain'
     })
   ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
   await expect(fixture.invoke('readCaptureFrame', fixture.captureId)).rejects.toThrow(
@@ -59,7 +76,7 @@ it('capture source and Stop do not cancel manual requests; each channel rejects 
 
   expect(request.signal.aborted).toBe(false)
   expect((await fixture.read()).captureId).toBe(fixture.captureId)
-  response.resolve(jsonResponse({ body: { rows: [candidate] } }))
+  response.resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
 })
 
@@ -69,7 +86,7 @@ it.each(['navigation', 'destruction', 'render-process-gone'])(
     const fixture = await createSearchFixture('manual')
     const response = deferred<Response>()
     fixture.fetchSearch.mockReturnValueOnce(response.promise)
-    await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+    await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
     await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
     const request = new Request(...fixture.fetchSearch.mock.calls[0])
     if (transition === 'navigation') {
@@ -91,7 +108,7 @@ it.each(['navigation', 'destruction', 'render-process-gone'])(
     await fixture.invoke('controlManualSearch', { action: 'begin' })
     const current = await fixture.read()
     fixture.published.mockClear()
-    response.resolve(jsonResponse({ body: { rows: [candidate] } }))
+    response.resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(await fixture.read()).toEqual(current)
     expect(fixture.published).not.toHaveBeenCalled()
@@ -110,7 +127,7 @@ it.each(['sender', 'frame', 'document'])(
       Object.assign(fixture.event.senderFrame!, { url: 'about:blank' })
     }
     await expect(
-      fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+      fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
     ).rejects.toThrow('SEARCH_NOT_ALLOWED')
     await expect(fixture.read()).rejects.toThrow('SEARCH_NOT_ALLOWED')
     expect(fixture.fetchSearch).not.toHaveBeenCalled()
@@ -120,26 +137,28 @@ it.each(['sender', 'frame', 'document'])(
 it('manual input keeps exact command validation, retry and revision ordering', async () => {
   const fixture = await createSearchFixture('manual')
   expect(
-    await fixture.invoke('notifyManualNickname', {
+    await fixture.invoke('controlManualSearch', {
+      action: 'lookup',
       captureId: fixture.captureId,
       slot: 4,
       observationRevision: 1,
-      nickname: '가나'
+      nickname: '가나',
+      serverId: 'cain'
     })
   ).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })
-  await fixture.observe({ slot: 0, observationRevision: 1, nickname: ' 가나' })
+  await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: ' 가나' })
   expect((await fixture.read()).slots[0].error?.code).toBe('INVALID_SEARCH_QUERY')
   expect(fixture.fetchSearch).not.toHaveBeenCalled()
 
   fixture.fetchSearch.mockResolvedValueOnce(
     jsonResponse({ status: 500, body: { error: { code: 'INTERNAL_SERVER_ERROR' } } })
   )
-  await fixture.observe({ slot: 0, observationRevision: 2, nickname: '가나' })
+  await fixture.startSearch({ slot: 0, observationRevision: 2, nickname: '가나' })
   await vi.waitFor(async () =>
     expect((await fixture.read()).slots[0].error?.code).toBe('INTERNAL_SERVER_ERROR')
   )
   const failed = (await fixture.read()).slots[0]
-  await fixture.observe({ slot: 0, observationRevision: 1, nickname: '다라' })
+  await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '다라' })
   expect((await fixture.read()).slots[0]).toEqual(failed)
   await fixture.invoke('controlManualSearch', {
     action: 'retry',
@@ -148,14 +167,17 @@ it('manual input keeps exact command validation, retry and revision ordering', a
     requestId: failed.requestId
   })
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-  expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
+  expect(requestPaths(fixture.fetchSearch)).toEqual([
+    '/characters/candidates',
+    '/characters/candidates'
+  ])
 })
 
 it('ending manual search leaves an active capture request and its frame access intact', async () => {
   const fixture = await createSearchFixture()
   const response = deferred<Response>()
   fixture.fetchSearch.mockReturnValueOnce(response.promise)
-  await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+  await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
   await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
   const request = new Request(...fixture.fetchSearch.mock.calls[0])
   const manual = (await fixture.invoke('controlManualSearch', { action: 'begin' })) as {
@@ -172,7 +194,7 @@ it('ending manual search leaves an active capture request and its frame access i
   await expect(fixture.invoke('readCaptureFrame', fixture.captureId)).resolves.toEqual({
     kind: 'unsupported'
   })
-  response.resolve(jsonResponse({ body: { rows: [candidate] } }))
+  response.resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
 })
 
@@ -180,7 +202,7 @@ it('manual begin replaces an orphaned session and ignores its late response and 
   const fixture = await createSearchFixture('manual')
   const response = deferred<Response>()
   fixture.fetchSearch.mockReturnValueOnce(response.promise)
-  await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+  await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
   await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
   const request = new Request(...fixture.fetchSearch.mock.calls[0])
   await fixture.invoke('selectCaptureSource', 'window:search-fixture')
@@ -204,17 +226,22 @@ it('manual begin replaces an orphaned session and ignores its late response and 
   await fixture.invoke('controlManualSearch', { action: 'end', captureId: fixture.captureId })
   expect(await fixture.read()).toEqual(current)
   fixture.published.mockClear()
-  response.resolve(jsonResponse({ body: { rows: [candidate] } }))
+  response.resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(await fixture.read()).toEqual(current)
   expect(fixture.published).not.toHaveBeenCalled()
 
-  await fixture.invoke('notifyManualNickname', {
+  await fixture.invoke('controlManualSearch', {
+    action: 'lookup',
     captureId: replacement.snapshot.captureId,
     slot: 0,
     observationRevision: 1,
-    nickname: '다라'
+    nickname: '다라',
+    serverId: 'cain'
   })
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-  expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
+  expect(requestPaths(fixture.fetchSearch)).toEqual([
+    '/characters/candidates',
+    '/characters/candidates'
+  ])
 })

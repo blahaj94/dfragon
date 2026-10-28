@@ -129,7 +129,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
   })
 
   it('식별 서비스가 설정되지 않았으면 조회 실패를 표시한다', async () => {
-    const fixture = await createSearchFixture()
+    const fixture = await createSearchFixture('capture', null)
     await fixture.invoke('notifyOcrCandidatesDetected', observation(fixture))
     const snapshot = await fixture.read()
     expect(snapshot.slots[0]).toMatchObject({
@@ -262,7 +262,12 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     await fixture.invoke('notifyOcrCandidatesDetected', observation(fixture))
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
     const selected = (await fixture.read()).slots[0]
-    await fixture.observe({ slot: 0, observationRevision: 2, nickname: names[0] })
+    await fixture.invoke('notifyStableNicknameDetected', {
+      captureId: fixture.captureId,
+      slot: 0,
+      observationRevision: 2,
+      nickname: names[0]
+    })
     expect((await fixture.read()).slots[0].selected).toBeUndefined()
     expect((await fixture.read()).slots[0].requestId).not.toBe(selected.requestId)
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
