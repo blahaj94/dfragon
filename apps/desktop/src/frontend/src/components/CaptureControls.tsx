@@ -56,14 +56,14 @@ export function CaptureControls({
     hasDetectedSource: detected.length > 0
   })
 
+  function handleOpenChange(open: boolean): void {
+    if (open) {
+      source.refreshSources()
+    }
+  }
+
   return (
-    <DialogRoot
-      onOpenChange={(open) => {
-        if (open) {
-          source.refreshSources()
-        }
-      }}
-    >
+    <DialogRoot onOpenChange={handleOpenChange}>
       <span {...stylex.props(windowChromeStyles.noDrag)}>
         <CaptureChipTrigger state={state} />
         <CaptureAnnouncer>{status}</CaptureAnnouncer>
@@ -167,11 +167,16 @@ function DialogCorners({
 }
 
 function StopCaptureButton({ onClick }: { onClick: () => void }): React.JSX.Element {
+  function handleClick(): void {
+    // 클릭 이벤트가 stopCapture의 nextStatus 인자로 들어가지 않게 인자 없이 부른다.
+    onClick()
+  }
+
   return (
     <Button
       variant="primary"
       size="sm"
-      onClick={() => onClick()}
+      onClick={handleClick}
       {...stylex.props(styles.primaryAction)}
     >
       <Typo.caption as="span" weight={700}>
@@ -188,11 +193,15 @@ function RefreshSourcesButton({
   disabled: boolean
   onClick: () => void
 }): React.JSX.Element {
+  function handleClick(): void {
+    onClick()
+  }
+
   return (
     <Button
       size="sm"
       disabled={disabled}
-      onClick={() => onClick()}
+      onClick={handleClick}
       {...stylex.props(shapes.cutTopRight, styles.secondaryAction)}
     >
       <Typo.caption as="span" weight={700}>

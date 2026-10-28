@@ -59,15 +59,14 @@ function SearchModeRadioGroup(): React.JSX.Element {
   const searchMode = useSearchModeStore((state) => state.searchMode)
   const changeSearchMode = useSearchModeStore((state) => state.changeSearchMode)
 
+  function handleValueChange(value: unknown): void {
+    if (isSearchMode(value)) {
+      changeSearchMode(value)
+    }
+  }
+
   return (
-    <Menu.RadioGroup
-      value={searchMode}
-      onValueChange={(value) => {
-        if (isSearchMode(value)) {
-          changeSearchMode(value)
-        }
-      }}
-    >
+    <Menu.RadioGroup value={searchMode} onValueChange={handleValueChange}>
       {SEARCH_MODES.map((mode) => (
         <Menu.RadioItem key={mode.value} value={mode.value} closeOnClick>
           {mode.label}
