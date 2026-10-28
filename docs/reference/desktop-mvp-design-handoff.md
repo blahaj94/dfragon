@@ -53,8 +53,7 @@ Penpot 파일은 화면별 편집 페이지가 편집 기준이다.
 
 | 저장소 위치                                                                                      | 이어받을 책임                                          |
 | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| `apps/desktop/src/frontend/src/sections/SearchResults.tsx`, `components/CharacterCandidates.tsx` | 기존 슬롯, 후보 표시를 카드 화면으로 연결할 출발점      |
-| `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                                      | 이름 수정, 제출, OCR 복귀, 슬롯별 검색 상태               |
+| `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                                      | 서버, 이름 조회, 후보 선택, 슬롯별 검색 상태              |
 | `apps/desktop/src/frontend/src/lib/capture-search.ts`, `search-connection.ts`                    | capture와 요청 수명, 순서, 취소, 늦은 응답 처리          |
 | `apps/desktop/src/backend/search/`, `src/preload/common/types/search.ts`                         | main 검색 처리와 공유 IPC 계약                         |
 | `apps/desktop/src/backend/main.ts`, `src/preload/index.ts`                                       | 새 상세 기능의 등록 지점. 기능 본문은 별도 모듈로 구성 |
@@ -82,7 +81,7 @@ Renderer에 Neople API key나 임의 URL 호출을 추가하지 않고, 기존 m
 
 ## Renderer 미리보기
 
-`src/frontend/src/pages/party/PartyPage.tsx`가 `sections/CharacterCard.tsx`를 조합해 메인 카드를 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`는 `App.tsx`의 새 카드 화면을 열고 소스 수정은 HMR로 반영한다. 기본 앱은 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 다크 테마로 고정한다. 상단 바의 게임 연결 상태 칩은 `CaptureControls` 캡처 창을 열고, 선택한 창은 기존 `usePartyCapture`를 통해 main에 등록만 한다. 던파 창 하나 자동 감지도 등록만 하며 Alt+R이나 파티 헤더의 캡처 버튼으로 회차를 시작한다. 대상 변경 시 이전 회차와 프레임 읽기, OCR, 검색 수명을 정리하고 새 창만 등록한다. 캡처 창을 닫아도 캡처를 중지하지 않는다. 회차 프레임 한 장의 OCR 첫 후보를 네 카드에 표시하며 연속 관측을 기다리지 않는다. 미검출 슬롯은 비워 두고, 프레임을 쓸 수 없으면 안내 후 다음 회차 시작을 기다린다. 처리를 마친 뒤에는 추가 프레임을 읽지 않고 회차 결과를 유지한다. 합성 미리보기는 `dev:preview`로 분리한다. 통합 테스트가 띄우는 `PartyCapture` 섹션의 캡처 시작 버튼도 Alt+R과 같은 회차 시작을 보내며 인식 간격 선택은 제공하지 않는다.
+`src/frontend/src/pages/party/PartyPage.tsx`가 `sections/CharacterCard.tsx`를 조합해 메인 카드를 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`는 `App.tsx`의 새 카드 화면을 열고 소스 수정은 HMR로 반영한다. 기본 앱은 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 다크 테마로 고정한다. 상단 바의 게임 연결 상태 칩은 `CaptureControls` 캡처 창을 열고, 선택한 창은 기존 `usePartyCapture`를 통해 main에 등록만 한다. 던파 창 하나 자동 감지도 등록만 하며 Alt+R이나 파티 헤더의 캡처 버튼으로 회차를 시작한다. 대상 변경 시 이전 회차와 프레임 읽기, OCR, 검색 수명을 정리하고 새 창만 등록한다. 캡처 창을 닫아도 캡처를 중지하지 않는다. 회차 프레임 한 장의 OCR 첫 후보를 네 카드에 표시하며 연속 관측을 기다리지 않는다. 미검출 슬롯은 비워 두고, 프레임을 쓸 수 없으면 안내 후 다음 회차 시작을 기다린다. 처리를 마친 뒤에는 추가 프레임을 읽지 않고 회차 결과를 유지한다. 합성 미리보기는 `dev:preview`로 분리한다.
 
 ```bash
 pnpm --filter @dfragon/desktop dev

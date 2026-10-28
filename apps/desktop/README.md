@@ -169,7 +169,7 @@ OCR 후보 탐색과 `modelScore`의 의미는 [CTC 후보와 모델 점수](../
 
 ## 테스트 범위와 실행
 
-`App*.test.tsx`는 현재 카드 화면의 캡처, 검색 연결을 확인합니다. `App.capture-controls.test.tsx`는 `PartyCapture` 섹션의 버튼 연결 테스트이며, `integration/search-bridge.test.tsx`, `capture-search.test.tsx`는 `ManualSearch`, `PartyCapture` 섹션을 띄워 검색 흐름을 검증합니다. 이 테스트의 검색 성공은 현재 카드 화면에 검색 결과가 연결됐다는 뜻이 아닙니다.
+`App*.test.tsx`는 현재 카드 화면의 캡처, 검색 연결을 확인합니다. 캡처 회차와 검색 수명의 호출 순서, 취소, 늦은 응답 처리는 `hooks/usePartyCapture.test.tsx`가 앱과 같은 OCR 식별 흐름으로 검증하고, 검색 연결 규칙 자체는 `lib/capture-search.test.ts`, `lib/search-connection.test.ts`가 검증합니다.
 
 관련 Vitest 파일부터 실행한 뒤 변경 영향에 따라 Desktop 전체 검사를 선택합니다.
 

@@ -28,7 +28,6 @@ Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-�
 | `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                                       | XState actor가 구독 후 read, event 동기화와 run/revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                         |
 | `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                | XState가 Start별 시작, 종료 수명을 관리하고, factory와 hook은 로컬 관측 revision, 결과 필터, 슬롯별 retry를 연결한다.                                                   |
 | `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `apps/desktop/src/frontend/src/lib/party-recognition.ts`                                     | 이전 검색, 인식 상태를 비우고 begin 완료 뒤 프레임 한 장으로 OCR과 검색을 연결한다. 늦은 begin의 자기 ID 정리와 회차 종료 뒤 결과 차단을 유지한다.                              |
-| `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                                                                                     | 네 슬롯의 상태, 후보, 고정 오류, 수동 retry를 text로 표시한다.                                                                                                          |
 
 `createCaptureSearch`는 호출마다 연결, actor, 관측 상태를 클로저에 보관하고 제어 함수를 반환한다. 표시할 슬롯의 계산은 상태를 변경하지 않는 순수 함수로 분리한다. 캡처 검색 수명은 `idle → starting → active`와 `invalidated`, 최종 `disposed` 상태로 관리한다. 새 begin, end, 무효화, dispose는 이전 시작 actor를 종료한다. 시작 actor는 종료 뒤에도 직접 응답을 기다려 자신이 생성한 늦은 ID만 end하고 호출자에게 null을 반환한다. Main이 종료를 알린 수명은 로컬 상태만 비우며 END를 중복 전송하지 않는다. 슬롯의 관측 revision, clear, 결과 필터, retry 정책은 기존 일반 로직을 유지한다.
 
@@ -155,7 +154,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 ### OCR 관측 IPC와 슬롯 수명
 
-제품 앱의 캡처 Provider(`sections/ScreenCaptureProvider.tsx`)는 `hooks/useScreenCapture.ts`를 거쳐 OCR 식별 옵션의 `usePartyCapture`를 사용한다. `lib/party-recognition.ts`의 `recognizePartyFrame`은 회차 프레임 한 장의 첫 이름과 얼굴을 슬롯별 결과로 돌려주고, `lib/party-capture-machine.ts`가 유효한 회차의 결과만 `notifyOcrCandidatesDetected`로 전달한다. 두 번 연속 같은 입력인지 기다리지 않는다. 첫 이름은 앞뒤 공백만 제거하고 두 번째 이름으로 보정하지 않는다. 공백을 제거한 첫 이름이 비어 있거나 12 code point를 넘거나 잘못된 Unicode이면 해당 슬롯을 조회 실패로 전달하고, 이유와 모델 원문을 renderer DevTools Console에만 표시한다. 슬롯 OCR에 예외가 있으면 검색 통지 없이 `OCR_FAILED`로 회차를 종료한다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 조회를 시작한 슬롯은 해당 회차에서 고정하며 추가 프레임을 읽거나 검색을 재실행하지 않는다. 통합 테스트가 띄우는 `sections/PartyCapture.tsx`도 같은 회차 방식을 사용한다. 이 화면의 캡처 시작 버튼은 Alt+R과 같은 회차 시작을 보내며 인식 간격 선택은 제공하지 않는다.
+제품 앱의 캡처 Provider(`sections/ScreenCaptureProvider.tsx`)는 `hooks/useScreenCapture.ts`를 거쳐 `usePartyCapture`를 사용한다. `lib/party-recognition.ts`의 `recognizePartyFrame`은 회차 프레임 한 장의 첫 이름과 얼굴을 슬롯별 결과로 돌려주고, `lib/party-capture-machine.ts`가 유효한 회차의 결과만 `notifyOcrCandidatesDetected`로 전달한다. 두 번 연속 같은 입력인지 기다리지 않는다. 첫 이름은 앞뒤 공백만 제거하고 두 번째 이름으로 보정하지 않는다. 공백을 제거한 첫 이름이 비어 있거나 12 code point를 넘거나 잘못된 Unicode이면 해당 슬롯을 조회 실패로 전달하고, 이유와 모델 원문을 renderer DevTools Console에만 표시한다. 슬롯 OCR에 예외가 있으면 검색 통지 없이 `OCR_FAILED`로 회차를 종료한다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 조회를 시작한 슬롯은 해당 회차에서 고정하며 추가 프레임을 읽거나 검색을 재실행하지 않는다.
 
 IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNicknames, portrait }`다. Main은 기존 sender, main frame, exact document 검사를 적용하고 후보 개수, 이름, 별칭의 일치, 이미지와 마스크 크기, 배율을 검증한다. 얼굴은 최대 512px/축, 262,144픽셀이며 원본 버퍼를 복사해 보관한다. 이 데이터는 로컬 프로세스 사이에서만 전달하고 API에 업로드하지 않는다.
 
@@ -211,7 +210,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 제품의 `party` 전처리와 별도 학습 저장소의 전처리와 학습된 가중치의 실제 입력분포 일치는 이 변경에서 검증하지 않았다. 글자 가운데 정렬의 픽셀 검증을 인식률 향상으로 보고하지 않으며 새 val, test에서 완전 일치율과 CER을 재평가해야 한다. 기본 모델을 자동 교체하거나 학습 작업을 실행하지 않는다.
 
-캡처 화면은 게임 창과 캡처 중지를 한국어로 표시한다. 제품은 Alt+R 또는 파티 헤더의 캡처 버튼으로 회차를 시작하며 둘은 같은 회차 시작을 보낸다. 통합 테스트용 `PartyCapture` 섹션의 캡처 시작 버튼도 같은 동작을 수행한다. 주기적인 반복 인식과 간격 선택은 제공하지 않는다. 1920×1080 테두리 없는 창 모드, UI 배율 50%와 닉네임이 보이는 상태를 안내하며, 인식 실패나 오인식 때 닉네임 수정, 직접 검색으로 이어진다. 창 선택, 캡처 준비, OCR 준비, 실행, 종료 상태는 계속 유지되는 `role="status"` 영역에서 표시한다. 상단 바 상태 배지는 회차 진행 중 `인식 중`, 완료 뒤 `인식 완료`, 안내 후 끝난 회차는 `확인 필요`이며 창 등록 중 `준비 중`과 창 감지 표시는 유지한다. 창 목록 실패는 게임 실행 후 앱 다시 열기, 선택 실패는 창 다시 선택, 회차 프레임을 쓸 수 없으면 Alt+R로 다시 시작하도록 안내한다. OCR 실패는 해당 단계의 복구 안내를 제공한다. 외부 오류 원문을 화면으로 전달하지 않는다. 지원 해상도, 배율과 main의 검색, 캡처 수명 검사는 바꾸지 않는다.
+캡처 화면은 게임 창과 캡처 중지를 한국어로 표시한다. 제품은 Alt+R 또는 파티 헤더의 캡처 버튼으로 회차를 시작하며 둘은 같은 회차 시작을 보낸다. 주기적인 반복 인식과 간격 선택은 제공하지 않는다. 1920×1080 테두리 없는 창 모드, UI 배율 50%와 닉네임이 보이는 상태를 안내하며, 인식 실패나 오인식 때 카드의 이름, 서버 입력으로 직접 조회할 수 있다. 창 선택, 캡처 준비, OCR 준비, 실행, 종료 상태는 계속 유지되는 `role="status"` 영역에서 표시한다. 상단 바 상태 배지는 회차 진행 중 `인식 중`, 완료 뒤 `인식 완료`, 안내 후 끝난 회차는 `확인 필요`이며 창 등록 중 `준비 중`과 창 감지 표시는 유지한다. 창 목록 실패는 게임 실행 후 앱 다시 열기, 선택 실패는 창 다시 선택, 회차 프레임을 쓸 수 없으면 Alt+R로 다시 시작하도록 안내한다. OCR 실패는 해당 단계의 복구 안내를 제공한다. 외부 오류 원문을 화면으로 전달하지 않는다. 지원 해상도, 배율과 main의 검색, 캡처 수명 검사는 바꾸지 않는다.
 
 기존 `@dfragon/ui`의 Button, ContentStack, ExampleSection, SupportingText를 조합한다. 후보의 ordered list와 슬롯별 이름 있는 section은 DFragon composition이며 공용 자산의 외형을 덮어쓰는 CSS, style은 없다. 각 슬롯에는 “슬롯 1 검색” 형태의 접근 가능한 이름, 진행 시 `aria-busy`와 상태 안내가 있다. Retry의 loading과 disabled는 함께 적용하며 한 슬롯의 진행이 다른 슬롯 버튼을 막지 않는다.
 
@@ -220,18 +219,16 @@ Keyboard, focus, 좁은 화면, theme, reduced-motion의 실제 Electron 관측�
 ## 검증 경계
 
 ```sh
-pnpm --filter @dfragon/desktop exec vitest run src/backend/search src/backend/capture src/preload src/frontend/src/sections src/frontend/src/lib src/frontend/src/integration src/frontend/src/components
+pnpm --filter @dfragon/desktop exec vitest run src/backend/search src/backend/capture src/preload src/frontend/src/sections src/frontend/src/lib src/frontend/src/components
 pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 
 일반 tests는 API, DB, 네이티브 캡처를 실행하지 않는다. 실제 API, disposable DB 소비 검증은 `apps/desktop/scripts/search-server-integration/README.md`의 별도 command와 격리를 따른다. 이는 Desktop HTTP 클라이언트 소비 검증이며 auth waiter, slot, IPC, renderer, 실제 캡처, OCR 성공을 대신하지 않는다.
 
-## 직접 검색과 수정 검색
+## 카드 직접 조회와 공대 식별
 
-직접 검색과 슬롯 검색은 같은 `CharacterCandidates.tsx`로 후보를 표시한다. 닉네임, 서버명, 명성을 한 묶음으로 보여주고 서버 ID, 캐릭터 ID는 기본적으로 접힌 ‘식별 정보’에서 확인한다. 후보 값과 서버 응답 순서를 유지하며 명성은 자릿수 구분을 적용하고 `0`과 `null`을 구분한다. 알 수 없는 서버는 응답 ID를 표시한다. 화면 전용 StyleX는 `@dfragon/ui` 토큰을 사용하며 긴 문자열을 줄바꿈한다. Native `details`의 키보드 동작과 focus 표시를 유지한다. 검색 상태와 완료 시 결과 수는 같은 `role="status"` 영역의 내용을 갱신하며, 후보 목록은 이 영역 밖에 표시한다.
-
-`ManualSearch.tsx`는 캡처 없이 독립 검색 폼과 결과를 제공한다. `manual-ipc.ts`는 별도의 `createCaptureSearchLifetime` 인스턴스로 기존 HTTP, 입력, 오류, 429, 취소 구현을 재사용한다. 직접 검색의 시작과 종료는 실제 캡처 수명을 변경하지 않는다. 공유 DTO의 이름을 제품 안내에 노출하지 않는다.
+파티 카드의 서버, 이름 조회는 `useCharacterSearch.ts`가 `useManualCharacterLookup`으로 실행한다. `manual-ipc.ts`는 별도의 `createCaptureSearchLifetime` 인스턴스로 기존 HTTP, 입력, 오류, 429, 취소 구현을 재사용한다. 직접 조회의 시작과 종료는 실제 캡처 수명을 변경하지 않는다. 공유 DTO의 이름을 제품 안내에 노출하지 않는다.
 
 공대 카드의 서버, 이름 조회는 같은 `registerManualSearchIpc`의 `raid` 수명으로 실행한다. `capture/ipc-handler.ts`가 파티 카드용(`controlManualSearch`, 4자리)과 공대 카드용(`controlRaidSearch`, 12자리) 수명을 따로 등록하고, 문서 이동, 종료, renderer 종료 때 두 수명을 함께 무효화한다. `commands.ts`는 수명의 슬롯 수로 슬롯 번호를 검사하고, preload와 renderer의 snapshot 검사는 채널이 기대하는 슬롯 수와 정확히 같은 snapshot만 받는다. Renderer의 `useRaidSearch.ts`는 `useManualCharacterLookup`을 공대 API와 12자리로 써서 파티 카드 조회와 다른 연결을 만든다.
 
@@ -247,8 +244,6 @@ Main의 공대 수명은 `SearchRuntime.ocrIdentification`을 `raid`로 두어 `
 
 선택된 요약에는 상세 응답의 `guildName`과 `equipmentScore`, `card`를 둔다. `equipmentScore`는 [검증한 카드](#카드-전달과-점수-엔진)의 점수이며, 카드가 없거나 엔진이 계산하지 못하면 null로 보내고 추정하지 않는다. 엔진이 근사값을 냈어도 `equipmentScore`는 null이다. 카드는 null을 `-`로, 근사값을 `≈`를 붙인 값으로 표시한다.
 
-`SlotNicknameEditor.tsx`와 `useCharacterSearch.ts`는 수정 중 입력을 유지하고 해당 슬롯의 OCR 검색 제출만 멈춘다. 해당 회차의 OCR 결과는 보관해 ‘OCR 다시 사용’ 때 반영하며 새 프레임을 읽지 않는다. 다른 슬롯은 계속 검색한다. Clear/revision을 통해 수정 전 검색의 늦은 결과를 차단한다. 입력 검사는 `manual-input.ts`와 main의 기존 검색 입력 검사를 사용한다.
-
 관련 UI, hook, IPC 검증은 합성 이름을 사용하며 실제 설치 앱과 게임 확인을 대신하지 않는다.
 
-직접 검색은 성공, 0건 결과를 받은 뒤 같은 닉네임도 다시 제출할 수 있다. 진행 중 같은 입력의 중복 제출은 막고, 실패는 기존 retry 경로와 429 대기를 유지한다. 입력 길이는 API와 같은 2–12 Unicode 코드 포인트 기준이며, UTF-16 코드 유닛이나 화면상 글자 묶음(grapheme) 기준으로 변경하거나 정규화하지 않는다. 검색 action과 명령 오류는 shared `SEARCH_ACTIONS`, `SEARCH_COMMAND_ERRORS`에서 타입과 runtime 검증 값을 함께 정의한다.
+검색 입력 길이는 API와 같은 2–12 Unicode 코드 포인트 기준이며, UTF-16 코드 유닛이나 화면상 글자 묶음(grapheme) 기준으로 변경하거나 정규화하지 않는다. 검색 action과 명령 오류는 shared `SEARCH_ACTIONS`, `SEARCH_COMMAND_ERRORS`에서 타입과 runtime 검증 값을 함께 정의한다.
