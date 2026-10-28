@@ -174,20 +174,36 @@ export function loadScoreEngine(options: ScoreEngineOptions): ScoreEngine | null
     }
   }
 
+  function callNativeOrNull(
+    input: ScoreEngineInput,
+    calculator: CharacterScoreCalculator
+  ): string | null {
+    try {
+      return callNative(input, calculator)
+    } catch {
+      return null
+    }
+  }
+
+  function reportFailed(): null {
+    report('SCORE_ENGINE_FAILED')
+
+    return null
+  }
+
   return (input, calculator) => {
     const startedAt = now()
-    let text: string | null
-    try {
-      text = callNative(input, calculator)
-    } catch {
-      text = null
-    }
+    const text = callNativeOrNull(input, calculator)
     if (now() - startedAt > SLOW_SCORE_MS) {
       report('SCORE_ENGINE_SLOW')
     }
-    const result = text === null ? null : parseResult(text, calculator)
+
+    if (text === null) {
+      return reportFailed()
+    }
+    const result = parseResult(text, calculator)
     if (result === null) {
-      report('SCORE_ENGINE_FAILED')
+      return reportFailed()
     }
 
     return result

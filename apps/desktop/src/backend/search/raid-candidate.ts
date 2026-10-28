@@ -25,7 +25,7 @@ export function toRaidObservedValues(row: RaidRowObservation | undefined): RaidO
   if (row === undefined) {
     return NO_RAID_OBSERVED_VALUES
   }
-  const value = row.valueText === null ? null : parseDNFRaidValueNotation(row.valueText)
+  const value = row.valueText !== null ? parseDNFRaidValueNotation(row.valueText) : null
 
   return { jobText: row.jobText, valueColumn: row.valueColumn, value }
 }
@@ -103,7 +103,7 @@ function measure(
   values: readonly Readonly<{ candidate: CharacterCandidate; value: number | null }>[]
 ): Measured[] {
   return values.map(({ candidate, value }) => {
-    const distance = value === null ? null : distanceToNotation(notation, value)
+    const distance = value !== null ? distanceToNotation(notation, value) : null
 
     return { candidate, value, distance }
   })

@@ -1,5 +1,9 @@
 const UNSAFE_RENDERER_URL_CHARACTER_PATTERN = /[\s\\]/u
 
+function hasUrlCredentials(url: URL): boolean {
+  return url.username.length > 0 || url.password.length > 0
+}
+
 export function validateDevRendererUrl(value: string): string {
   const hasWhitespaceOrBackslash = UNSAFE_RENDERER_URL_CHARACTER_PATTERN.test(value)
   const hasControlCharacter = Array.from(value).some((character) => {
@@ -27,12 +31,7 @@ export function validateDevRendererUrl(value: string): string {
   const isIpv4Loopback = url.hostname === '127.0.0.1'
   const isIpv6Loopback = url.hostname === '[::1]'
   const isLoopback = isLocalhost || isIpv4Loopback || isIpv6Loopback
-  const hasUsername = url.username.length > 0
-  let hasPassword = false
-  if (!hasUsername) {
-    hasPassword = url.password.length > 0
-  }
-  const hasCredentials = hasUsername || hasPassword
+  const hasCredentials = hasUrlCredentials(url)
   const isCanonicalUrl = value === url.href
   // Electron Vite는 dev origin을 마지막 slash 없이 제공한다.
   const isBareOrigin = value === url.origin
