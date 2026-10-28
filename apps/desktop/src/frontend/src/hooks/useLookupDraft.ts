@@ -11,7 +11,7 @@ type LookupCharacter = Pick<CardCharacter, 'name' | 'serverId'>
 
 type LookupTarget = { name?: string; serverId?: string }
 
-type LookupDraft = {
+export type LookupDraft = {
   name: string
   serverId: string
   inputNotice: string
