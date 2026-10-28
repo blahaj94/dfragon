@@ -2,7 +2,7 @@ import { getTopBarCaptureControls } from '../lib/capture-presentation'
 import type { CapturePhase } from '../types/capture'
 import { usePartyCapture, type PartyCapture } from './usePartyCapture'
 import { useRaidCapture, type RaidCapture } from './useRaidCapture'
-import { useSearchModeStore } from './useSearchModeStore'
+import { useIsPartyMode, useIsRaidMode, useSearchModeStore } from './useSearchModeStore'
 
 export function useScreenCapture(): {
   partyCapture: PartyCapture
@@ -10,14 +10,16 @@ export function useScreenCapture(): {
   controls: { phase: CapturePhase; status: string }
 } {
   const searchMode = useSearchModeStore((state) => state.searchMode)
+  const isPartyMode = useIsPartyMode()
+  const isRaidMode = useIsRaidMode()
   const partyCapture = usePartyCapture({
     identifyCharacters: true,
-    receivesShortcut: searchMode === 'party'
+    receivesShortcut: isPartyMode
   })
   const raidCapture = useRaidCapture({
     sourceId: partyCapture.selectedSourceId,
     sourceReady: partyCapture.sourceReady,
-    receivesShortcut: searchMode === 'raid'
+    receivesShortcut: isRaidMode
   })
   const controls = getTopBarCaptureControls({
     searchMode,

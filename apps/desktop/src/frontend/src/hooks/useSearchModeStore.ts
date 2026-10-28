@@ -8,3 +8,11 @@ export const useSearchModeStore = create<{
   searchMode: 'party',
   changeSearchMode: (searchMode) => set({ searchMode })
 }))
+
+export function useIsPartyMode(): boolean {
+  return useSearchModeStore((state) => state.searchMode === 'party')
+}
+
+export function useIsRaidMode(): boolean {
+  return useSearchModeStore((state) => state.searchMode === 'raid')
+}
