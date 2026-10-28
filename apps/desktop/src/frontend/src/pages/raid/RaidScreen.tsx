@@ -48,21 +48,24 @@ export function RaidScreen({
   const notice = search.connectionFailed
     ? '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
     : ''
-  const boardHeader = useBoardHeaderPortal(
-    <BoardHeader
-      target="공대"
-      filledCount={filledSlotCount(cards)}
-      notice={notice}
-      capture={capture}
-      snapshot={snapshot}
-    />
-  )
+  const { renderBoardHeader } = useBoardHeaderPortal()
 
   return (
     <RaidPage
       id={cardsId}
       hidden={hidden}
-      header={!hidden && boardHeader}
+      header={
+        !hidden &&
+        renderBoardHeader(
+          <BoardHeader
+            target="공대"
+            filledCount={filledSlotCount(cards)}
+            notice={notice}
+            capture={capture}
+            snapshot={snapshot}
+          />
+        )
+      }
       resetKey={String(capture.round)}
       slots={cards}
       seats={capture}

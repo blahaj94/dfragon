@@ -8,12 +8,17 @@ export function attachBoardHeaderSlot(slot: HTMLElement | null): void {
   useBoardHeaderSlotStore.setState({ slot })
 }
 
-export function useBoardHeaderPortal(header: ReactNode): ReactPortal | null {
+export function useBoardHeaderPortal(): {
+  renderBoardHeader: (header: ReactNode) => ReactPortal | null
+} {
   const slot = useBoardHeaderSlotStore((state) => state.slot)
+  const renderBoardHeader = (header: ReactNode): ReactPortal | null => {
+    if (slot == null) {
+      return null
+    }
 
-  if (slot == null) {
-    return null
+    return createPortal(header, slot)
   }
 
-  return createPortal(header, slot)
+  return { renderBoardHeader }
 }

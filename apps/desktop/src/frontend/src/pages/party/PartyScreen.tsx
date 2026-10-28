@@ -41,19 +41,20 @@ export function PartyScreen({
     snapshotMarks: snapshot.marks,
     pickers: search.candidatePickers
   })
-  const boardHeader = useBoardHeaderPortal(
-    <BoardHeader
-      target="파티"
-      filledCount={filledSlotCount(cards)}
-      notice=""
-      capture={capture}
-      snapshot={snapshot}
-    />
-  )
+  const { renderBoardHeader } = useBoardHeaderPortal()
 
   return (
     <div hidden={hidden} {...stylex.props(styles.party)}>
-      {!hidden && boardHeader}
+      {!hidden &&
+        renderBoardHeader(
+          <BoardHeader
+            target="파티"
+            filledCount={filledSlotCount(cards)}
+            notice=""
+            capture={capture}
+            snapshot={snapshot}
+          />
+        )}
       <PartyPage resetKey={String(capture.round)} slots={cards} inputEnabled actions={search} />
     </div>
   )
