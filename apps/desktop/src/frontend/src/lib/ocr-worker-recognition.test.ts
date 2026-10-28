@@ -50,3 +50,19 @@ it('worker를 만든 뒤 취소되면 정리하고 준비 실패 문구로 던�
   expect(recognize).not.toHaveBeenCalled()
   expect(terminate).toHaveBeenCalledOnce()
 })
+
+it('worker 생성이 끝난 직후 재개되기 전에 취소돼도 인식을 부르지 않고 준비 실패로 던진다', async () => {
+  const controller = new AbortController()
+  mocks.createPartyOcrWorker.mockImplementation(() => {
+    queueMicrotask(() => controller.abort())
+
+    return Promise.resolve({ recognize: vi.fn(), terminate })
+  })
+  const recognize = vi.fn()
+
+  await expect(recognizeWithOcrWorker(controller.signal, '실패', recognize)).rejects.toThrow(
+    '글자 인식을 준비하지 못했습니다'
+  )
+  expect(recognize).not.toHaveBeenCalled()
+  expect(terminate).toHaveBeenCalledOnce()
+})
