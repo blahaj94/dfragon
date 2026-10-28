@@ -165,32 +165,39 @@ function isCurrentSearch(binding: CaptureBinding): boolean {
   return isCurrent
 }
 
-function registerCaptureIpc(configuration?: {
+type SearchConfiguration = {
   apiOrigin: string
   fetch?: typeof fetch
   clock: MonotonicClock
-  portraitColorPolicy?: PortraitColorPolicy & CharacterSelectionPolicy
-  score?: ScoreEngine
-}): () => void {
-  let runtime: SearchRuntime | undefined
-  if (configuration != null) {
-    runtime = { clock: configuration.clock, score: configuration.score }
-    const policy = configuration.portraitColorPolicy
-    if (policy !== undefined) {
-      // 잘못된 정책은 요청마다 실패하지 않도록 등록할 때 거절한다.
-      const scorePortrait = createPortraitColorScorer(policy)
-      const { maxDistance, minMargin, maxCandidates } = policy
-      const selection = { maxDistance, minMargin, maxCandidates }
-      validateSelectionPolicy(selection)
-      runtime.identification = {
-        candidates: createCachedCharacterCandidates(createCharacterCandidatesHttp(configuration)),
-        image: createCharacterImageSource({ image: createCharacterImageHttp(configuration) }),
-        details: createCachedCharacterDetails(createCharacterDetailsHttp(configuration)),
-        scorePortrait,
-        selection
-      }
-    }
+  portraitColorPolicy: PortraitColorPolicy & CharacterSelectionPolicy
+  score: ScoreEngine
+}
+
+function createSearchRuntime(
+  configuration: SearchConfiguration | undefined
+): SearchRuntime | undefined {
+  if (configuration === undefined) {
+    return undefined
   }
+  const policy = configuration.portraitColorPolicy
+  // 잘못된 정책은 요청마다 실패하지 않도록 등록할 때 거절한다.
+  const scorePortrait = createPortraitColorScorer(policy)
+  const { maxDistance, minMargin, maxCandidates } = policy
+  const selection = { maxDistance, minMargin, maxCandidates }
+  validateSelectionPolicy(selection)
+  const candidates = createCachedCharacterCandidates(createCharacterCandidatesHttp(configuration))
+  const image = createCharacterImageSource({ image: createCharacterImageHttp(configuration) })
+  const details = createCachedCharacterDetails(createCharacterDetailsHttp(configuration))
+
+  return {
+    clock: configuration.clock,
+    score: configuration.score,
+    identification: { candidates, image, details, scorePortrait, selection }
+  }
+}
+
+function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
+  const runtime = createSearchRuntime(configuration)
   const lifetime = createCaptureSearchLifetime({
     runtime,
     isCurrent: isCurrentSearch,

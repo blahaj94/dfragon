@@ -288,7 +288,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     input: OcrSearchObservation | ManualCharacterLookup
   ): SearchCommandResult {
     const runtime = options.runtime
-    if (runtime?.identification !== undefined) {
+    if (runtime !== undefined) {
       return startRequest({ input, runtime })
     }
     cancelSlot(input.slot)

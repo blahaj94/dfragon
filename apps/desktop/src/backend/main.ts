@@ -167,9 +167,8 @@ app.whenReady().then(() => {
 
   const apiOrigin = readAppApiOrigin()
   const searchConfiguration =
-    apiOrigin == null
-      ? undefined
-      : {
+    apiOrigin != null
+      ? {
           apiOrigin,
           clock: createMonotonicClock(),
           portraitColorPolicy: INITIAL_PORTRAIT_COLOR_POLICY,
@@ -185,6 +184,7 @@ app.whenReady().then(() => {
             })
           )
         }
+      : undefined
   const disposeCapture = registerCaptureIpc(searchConfiguration)
   app.on('quit', () => {
     disposeCapture()
