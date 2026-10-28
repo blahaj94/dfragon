@@ -2,4 +2,5 @@
 # Git이 hook에 넘긴 GIT_DIR 등을 지운다. 남기면 임시 저장소를 만드는 도구 테스트의 git 명령이 이 저장소를 가리켜
 # worktree에서 push할 때 이 저장소의 core.bare를 true로 바꾼다.
 unset $(git rev-parse --local-env-vars)
-pnpm verify
+# 같은 내용을 직접 pnpm verify로 통과한 직후라면 다시 실행하지 않는다.
+pnpm verify --reuse-pass

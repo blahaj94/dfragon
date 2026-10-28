@@ -1,5 +1,16 @@
 import { spawnSync } from 'node:child_process'
-import { basename, resolve } from 'node:path'
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeFileSync
+} from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url))
@@ -145,12 +156,125 @@ export function runJobs(jobs, cwd = repositoryRoot) {
   return 1
 }
 
-function main(args) {
-  if (args.length === 0) {
-    return runJobs(checkJobs)
+const REUSE_PASS_FLAG = '--reuse-pass'
+const PASS_RECORD_PATH = join('dfragon-verify', 'passed-tree')
+
+function git(cwd, args, env = {}) {
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8', env: { ...process.env, ...env } })
+
+  if (result.status !== 0) {
+    return null
   }
 
-  console.error('Usage: node scripts/verify.mjs')
+  return result.stdout.trim()
+}
+
+// untracked 파일까지 포함한 작업 트리 전체를 tree 객체로 만든다. 실제 index는 바꾸지 않는다.
+// index 수정 시각이 바뀌면 git이 같은 초에 수정된 파일을 놓치므로 복사본의 시각을 원본과 맞춘다.
+function worktreeTree(cwd) {
+  const index = git(cwd, ['rev-parse', '--path-format=absolute', '--git-path', 'index'])
+
+  if (index == null) {
+    return null
+  }
+
+  const directory = mkdtempSync(join(tmpdir(), 'dfragon-verify-'))
+  const temporaryIndex = join(directory, 'index')
+
+  try {
+    try {
+      copyFileSync(index, temporaryIndex)
+      const { atime, mtime } = statSync(index)
+      utimesSync(temporaryIndex, atime, mtime)
+    } catch {
+      // 커밋이 없는 저장소처럼 index가 아직 없으면 빈 index에서 시작한다.
+    }
+
+    const env = { GIT_INDEX_FILE: temporaryIndex }
+
+    if (git(cwd, ['add', '-A'], env) == null) {
+      return null
+    }
+
+    return git(cwd, ['write-tree'], env)
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+
+function passRecordFile(cwd) {
+  const gitDirectory = git(cwd, ['rev-parse', '--absolute-git-dir'])
+
+  if (gitDirectory == null) {
+    return null
+  }
+
+  return join(gitDirectory, PASS_RECORD_PATH)
+}
+
+function readPassedTree(cwd) {
+  const file = passRecordFile(cwd)
+
+  if (file == null) {
+    return null
+  }
+
+  try {
+    return readFileSync(file, 'utf8').trim()
+  } catch {
+    return null
+  }
+}
+
+function writePassedTree(cwd, tree) {
+  const file = passRecordFile(cwd)
+
+  if (file == null) {
+    return
+  }
+
+  mkdirSync(dirname(file), { recursive: true })
+  writeFileSync(file, `${tree}\n`)
+}
+
+// 통과하면 검사한 작업 트리 내용을 worktree의 Git 디렉터리에 기록한다.
+// reusePass이면 커밋하지 않은 변경이 없고 HEAD 내용이 기록과 같을 때 검사를 건너뛴다. pre-push hook만 이 옵션을 쓴다.
+// 의존성 설치 상태, Git이 무시하는 파일, 실행 환경은 기록에 들어가지 않는다.
+export function verify(jobs, { cwd = repositoryRoot, reusePass = false } = {}) {
+  const before = worktreeTree(cwd)
+
+  if (reusePass && before != null) {
+    const isCommitted = before === git(cwd, ['rev-parse', 'HEAD^{tree}'])
+
+    if (isCommitted && before === readPassedTree(cwd)) {
+      console.log(
+        `\n[verify] 같은 내용(tree ${before.slice(0, 12)})을 이미 통과해 검사를 건너뜁니다. 다시 검사하려면 pnpm verify를 실행합니다.`
+      )
+
+      return 0
+    }
+  }
+
+  const code = runJobs(jobs, cwd)
+
+  // 검사 중에 파일이 바뀌었으면 어떤 내용이 통과했는지 특정할 수 없으므로 기록하지 않는다.
+  if (code === 0 && before != null && worktreeTree(cwd) === before) {
+    writePassedTree(cwd, before)
+  }
+
+  return code
+}
+
+function main(args) {
+  if (args.length === 0) {
+    return verify(checkJobs)
+  }
+
+  if (args.length === 1 && args[0] === REUSE_PASS_FLAG) {
+    return verify(checkJobs, { reusePass: true })
+  }
+
+  console.error(`Usage: node scripts/verify.mjs [${REUSE_PASS_FLAG}]`)
 
   return 2
 }
