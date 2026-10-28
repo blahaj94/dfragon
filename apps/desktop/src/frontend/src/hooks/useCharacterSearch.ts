@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
 import {
   createCaptureSearch,
   type CaptureSearch,
@@ -26,6 +26,18 @@ type CharacterSearch = SearchView & {
   pickCandidate: (slot: number, serverId: string) => void
 }
 
+function partySlotValues<T>(value: T): T[] {
+  return Array.from({ length: SEARCH_SLOT_COUNTS.party }, () => value)
+}
+
+function toConfirmedPick(requestId: string | null, serverId: string): CandidatePick | null {
+  if (requestId !== null) {
+    return { requestId, serverId, confirmed: true }
+  }
+
+  return null
+}
+
 export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   const invalidatedRef = useRef(onInvalidated)
   useLayoutEffect(() => {
@@ -34,27 +46,18 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   const bridgeRef = useRef<CaptureSearch | null>(null)
   const {
     view: manualView,
-    startingSlots: manualStartingSlots,
     bridge: manualBridge,
     lookup: manualLookup,
     reset: resetManual
   } = useManualCharacterLookup(window.manualSearch, SEARCH_SLOT_COUNTS.party)
-  const manualSlotsRef = useRef(new Set<number>())
-  const serverLookupSlotsRef = useRef(new Set<number>())
-  const [serverLookupSlots, setServerLookupSlots] = useState([false, false, false, false])
-  const [manualSlots, setManualSlots] = useState<readonly boolean[]>([false, false, false, false])
-  const picksRef = useRef<(CandidatePick | null)[]>([null, null, null, null])
-  const [picks, setPicks] = useState<readonly (CandidatePick | null)[]>([null, null, null, null])
-  const [view, setView] = useState<SearchView>({
+  const [manualSlots, setManualSlots] = useState<readonly boolean[]>(() => partySlotValues(false))
+  const [picks, setPicks] = useState<readonly (CandidatePick | null)[]>(() => partySlotValues(null))
+  const [view, setView] = useState<SearchView>(() => ({
     ready: false,
     slots: emptySearchSlots(),
-    retryPending: [false, false, false, false],
+    retryPending: partySlotValues(false),
     connectionFailed: false
-  })
-  const viewRef = useRef(view)
-  useLayoutEffect(() => {
-    viewRef.current = view
-  }, [view])
+  }))
   const api = window.search
   const notifyOcr = window.api.notifyOcrCandidatesDetected
 
@@ -89,94 +92,80 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     return bridge.begin({ signal })
   }, [])
   const end = useCallback((): void => {
-    manualSlotsRef.current.clear()
-    serverLookupSlotsRef.current.clear()
-    setServerLookupSlots([false, false, false, false])
-    setManualSlots([false, false, false, false])
-    picksRef.current = [null, null, null, null]
-    setPicks(picksRef.current)
+    setManualSlots(partySlotValues(false))
+    setPicks(partySlotValues(null))
     resetManual()
     bridgeRef.current?.end()
   }, [resetManual])
   const setPick = useCallback((slot: number, pick: CandidatePick | null): void => {
-    picksRef.current = picksRef.current.map((current, index) => (index === slot ? pick : current))
-    setPicks(picksRef.current)
+    setPicks((current) => current.map((value, index) => (index === slot ? pick : value)))
   }, [])
-  const observeOcr = useCallback((input: OcrCaptureObservation): void => {
-    if (!manualSlotsRef.current.has(input.slot)) {
+  // 캡처 machine은 처음 받은 함수를 계속 부르므로, 그 함수도 최신 수동 조회 슬롯을 읽어야 한다.
+  const observeOcr = useEffectEvent((input: OcrCaptureObservation): void => {
+    if (!manualSlots[input.slot]) {
       bridgeRef.current?.observe(input)
     }
-  }, [])
+  })
   const retry = useCallback(
     (slot: number): void => {
-      const bridge = serverLookupSlotsRef.current.has(slot)
-        ? manualBridge.current
-        : bridgeRef.current
+      const bridge = manualSlots[slot] ? manualBridge.current : bridgeRef.current
       bridge?.retry(slot)
     },
-    [manualBridge]
+    [manualBridge, manualSlots]
   )
   const lookupManually = useCallback(
     (slot: number, nickname: string, serverId: string): void => {
-      manualSlotsRef.current.add(slot)
-      setManualSlots([0, 1, 2, 3].map((index) => manualSlotsRef.current.has(index)))
-      serverLookupSlotsRef.current.add(slot)
-      setServerLookupSlots((slots) => slots.map((value, index) => index === slot || value))
+      setManualSlots((slots) => slots.map((manual, index) => manual || index === slot))
       manualLookup(slot, nickname, serverId)
     },
     [manualLookup]
   )
   const lookupSlot = useCallback(
     (slot: number, nickname: string, serverId: string): void => {
-      const requestId = viewRef.current.slots[slot]?.requestId ?? null
-      const pick = requestId === null ? null : { requestId, serverId, confirmed: true }
-      setPick(slot, pick)
+      setPick(slot, toConfirmedPick(view.slots[slot].requestId, serverId))
       lookupManually(slot, nickname, serverId)
     },
-    [lookupManually, setPick]
+    [lookupManually, setPick, view.slots]
   )
   const pickCandidate = useCallback(
     (slot: number, serverId: string): void => {
-      const captureSlot = viewRef.current.slots[slot]
-      const previous = picksRef.current[slot]
+      const captureSlot = view.slots[slot]
+      const previous = picks[slot]
       const next = nextCandidatePick(captureSlot, previous, serverId)
+      if (next === null) {
+        return
+      }
       const choice = captureSlot.choices?.find((candidate) => candidate.serverId === serverId)
-      if (next === null || choice === undefined) {
+      if (choice === undefined) {
         return
       }
       const shownServerId = toCandidatePicker(captureSlot, previous)?.shownServerId
       setPick(slot, next)
-      if (!next.confirmed && shownServerId !== serverId) {
-        lookupManually(slot, choice.characterName, serverId)
+      if (next.confirmed || shownServerId === serverId) {
+        return
       }
+      lookupManually(slot, choice.characterName, serverId)
     },
-    [lookupManually, setPick]
+    [lookupManually, picks, setPick, view.slots]
   )
   const candidatePickers = view.slots.map((slot, index) =>
     toCandidatePicker(slot, picks[index] ?? null)
   )
   const slots = view.slots.map((slot) => {
-    if (serverLookupSlots[slot.slot]) {
+    if (manualSlots[slot.slot]) {
       const manualSlot = manualView.slots[slot.slot]
-      const loading = manualStartingSlots[slot.slot] || manualSlot.state === 'pending'
-      if (loading && candidatePickers[slot.slot]?.previewServerId != null) {
+      if (manualSlot.state === 'pending' && candidatePickers[slot.slot]?.previewServerId != null) {
         return slot
       }
 
-      if (manualStartingSlots[slot.slot]) {
-        const state = 'pending' as const
-
-        return { ...manualView.slots[slot.slot], state }
-      }
-
-      return manualView.slots[slot.slot]
+      return manualSlot
     }
 
     return slot
   })
   const connectionFailed = view.connectionFailed || manualView.connectionFailed
   const retryPending = view.retryPending.map((pending, slot) => {
-    if (serverLookupSlots[slot]) {
+    if (manualSlots[slot]) {
       return manualView.retryPending[slot]
     }
 
