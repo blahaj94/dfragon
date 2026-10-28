@@ -99,7 +99,7 @@ async function mount(f: Fixture): Promise<void> {
   )
 }
 
-it('캡처 버튼은 상단 바에 그린 파티 머리에만 있고 대화상자를 열지 않는다', async () => {
+it('캡처 버튼은 상단 바에 그린 파티 헤더에만 있고 대화상자를 열지 않는다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
   await mount(f)
@@ -133,7 +133,7 @@ it.each(triggers)(
 )
 
 it.each(triggers)(
-  '창을 등록한 뒤 %s은 같은 회차를 시작하고 같은 상태로 끝나며 파티 머리에 진행 문구를 두지 않는다',
+  '창을 등록한 뒤 %s은 같은 회차를 시작하고 같은 상태로 끝나며 파티 헤더에 진행 문구를 두지 않는다',
   async (trigger) => {
     const f = createRendererFixture()
     f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])

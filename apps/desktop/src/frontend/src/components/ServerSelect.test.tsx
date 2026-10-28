@@ -202,7 +202,7 @@ it('파티 카드의 서버 목록은 카인, 디레지에, 시로코, 프레이
   ])
 })
 
-it('이름 칸 안 칩은 서버 8개를 4열 목록으로 열고, 카드 머리 칩은 한 줄 목록으로 연다', async () => {
+it('이름 칸 안 칩은 서버 8개를 4열 목록으로 열고, 카드 헤더 칩은 한 줄 목록으로 연다', async () => {
   const options = [
     { id: 'anton', label: '안톤' },
     { id: 'bakal', label: '바칼' },
@@ -223,7 +223,7 @@ it('이름 칸 안 칩은 서버 8개를 4열 목록으로 열고, 카드 머리
           options={options}
           onValueChange={vi.fn()}
         />
-        <ServerSelect label="머리 서버" value="siroco" options={options} onValueChange={vi.fn()} />
+        <ServerSelect label="헤더 서버" value="siroco" options={options} onValueChange={vi.fn()} />
       </>
     )
   )
@@ -238,9 +238,9 @@ it('이름 칸 안 칩은 서버 8개를 4열 목록으로 열고, 카드 머리
     )
   )
 
-  const chip = document.querySelector<HTMLButtonElement>('[aria-label="머리 서버"]')!
+  const chip = document.querySelector<HTMLButtonElement>('[aria-label="헤더 서버"]')!
   await act(async () => chip.click())
-  const chipList = document.querySelector('[role="listbox"][aria-label="머리 서버"]')!
+  const chipList = document.querySelector('[role="listbox"][aria-label="헤더 서버"]')!
   expect(chipList.getAttribute('style') ?? '').not.toContain('repeat(')
 })
 

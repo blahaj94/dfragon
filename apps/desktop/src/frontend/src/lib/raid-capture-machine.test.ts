@@ -70,7 +70,7 @@ it('등록된 창이 없으면 START를 받지 않고 등록 뒤에만 회차를
   expect(actor.getSnapshot().context.status).toBe('공대를 인식하고 있습니다.')
 })
 
-it('회차는 공대 수명을 시작해 프레임 한 장의 12행을 인식하고 인식한 자리만 이름으로 알린다', async () => {
+it('회차는 공대 수명을 시작해 프레임 한 장의 12행을 인식하고 인식한 슬롯만 이름으로 알린다', async () => {
   const { actor, effects } = start()
   actor.send({ type: 'SOURCE', sourceId: 'game' })
   actor.send({ type: 'START' })

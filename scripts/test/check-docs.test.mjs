@@ -144,7 +144,7 @@ test('없는 파일, 맞지 않는 anchor, ignore 대상, 저장소 밖 링크�
   assert.match(result.stderr, /위반 8건/u)
 })
 
-test('code span의 apps, packages, .github 경로가 없으면 보고하고 glob, 자리표시, ignore, submodule 경로와 과거 문서는 건너뛴다', async (t) => {
+test('code span의 apps, packages, .github 경로가 없으면 보고하고 glob, 플레이스홀더, ignore, submodule 경로와 과거 문서는 건너뛴다', async (t) => {
   const result = await checkFixture(t, {
     tracked: {
       '.gitignore': 'dist/\n.env\n',

@@ -187,7 +187,7 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
     expect(f.lifetime.snapshot().slots[1].selected).toMatchObject({ characterName: '다라' })
   })
 
-  it('후보 검색이 호출 제한을 받으면 이름과 서버를 정한 자리의 상세도 받지 않는다', async () => {
+  it('후보 검색이 호출 제한을 받으면 이름과 서버를 정한 슬롯의 상세도 받지 않는다', async () => {
     const f = fixture()
     await f.identify(0)
     await f.identify(1)
@@ -211,7 +211,7 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
     expect(f.getDetails).not.toHaveBeenCalled()
   })
 
-  it('게임 창을 바꾸면 이전 창에서 정한 자리의 상세를 취소하고 남은 상세도 받지 않는다', async () => {
+  it('게임 창을 바꾸면 이전 창에서 정한 슬롯의 상세를 취소하고 남은 상세도 받지 않는다', async () => {
     const f = fixture()
     await f.identify(0)
     await f.identify(1)

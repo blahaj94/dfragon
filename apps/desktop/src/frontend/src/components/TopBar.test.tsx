@@ -69,7 +69,7 @@ it('상단 바는 로고, 내비, 게임 연결 상태 순서로 표시하고 �
   }
 })
 
-it('가운데 자리 내용은 내비와 게임 연결 상태 사이에 둔다', async () => {
+it('가운데 슬롯 내용은 내비와 게임 연결 상태 사이에 둔다', async () => {
   await render({ center: <div data-center="" /> })
   const header = container.querySelector('header')!
   const nav = header.querySelector('nav')!
