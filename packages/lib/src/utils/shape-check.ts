@@ -33,7 +33,6 @@ export function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
-/** null or a finite number. */
 export function isNullableFiniteNumber(value: unknown): value is number | null {
   return value === null || isFiniteNumber(value)
 }
@@ -57,12 +56,10 @@ export function textOrNull(value: unknown): string | null {
   return null
 }
 
-/** A safe integer that is zero or greater. */
 export function isNonNegativeSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
-/** A safe integer that is one or greater. */
 export function isPositiveSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 }
@@ -94,7 +91,6 @@ export function isOffsetTimestamp(value: unknown): value is string {
   )
 }
 
-/** Accepts null or whatever `check` accepts. */
 export function nullable(check: ShapeCheck): ShapeCheck {
   return (value) => value === null || check(value)
 }

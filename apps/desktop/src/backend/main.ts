@@ -151,7 +151,6 @@ function showOrCreateMainWindow(): void {
   window.focus()
 }
 
-// This method will be called when Electron has finished initialization and is ready to create windows.
 app.whenReady().then(() => {
   if (!ownsInstance) {
     return
@@ -211,8 +210,6 @@ app.whenReady().then(() => {
     }
   })
   app.on('activate', () => {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length > 0) {
       return
     }

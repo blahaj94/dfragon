@@ -12,7 +12,6 @@ const ERROR_CODE_PATTERN = /^\w{1,64}$/
 const UNNAMED_ERROR = '<unnamed>'
 const NON_ERROR = '<non-error>'
 
-/** 응답용 failure를 만들 때 넘기는 option이다. 모양은 표준 `ErrorOptions`와 같다. */
 export type FailureOptions = { cause?: unknown }
 
 /**
