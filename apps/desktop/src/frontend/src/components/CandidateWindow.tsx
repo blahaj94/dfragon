@@ -20,42 +20,39 @@ export function CandidateWindow({
   onPick?: (serverId: string) => void
   onClose: () => void
 }): React.JSX.Element {
+  const renderChoice = (choice: CharacterChoice): React.JSX.Element => {
+    const shown = choice.serverId === picker.shownServerId
+    const previewing = choice.serverId === picker.previewServerId
+    const server = choice.serverName ?? choice.serverId
+    const adventure = choice.adventureName ?? '모험단 정보 없음'
+    const description = `${server}, ${adventure}`
+    const state = previewing ? ', 미리보기 중, 한 번 더 누르면 확정' : ''
+    const handlePick = (): void => onPick?.(choice.serverId)
+
+    return (
+      <button
+        key={choice.serverId}
+        type="button"
+        title={description}
+        aria-label={`${description}${state}`}
+        aria-pressed={shown}
+        disabled={onPick === undefined}
+        onClick={handlePick}
+        {...stylex.props(styles.portrait, shown && styles.shown, previewing && styles.preview)}
+      >
+        <ChoiceFace choice={choice} />
+        {previewing && (
+          <span {...stylex.props(styles.check)}>
+            <CheckIcon width="9" height="9" strokeWidth="4" />
+          </span>
+        )}
+      </button>
+    )
+  }
+
   return (
     <div id={id} role="group" aria-label={`${slot}번 후보 고르기`} {...stylex.props(styles.window)}>
-      <div {...stylex.props(styles.portraits)}>
-        {picker.choices.map((choice) => {
-          const shown = choice.serverId === picker.shownServerId
-          const previewing = choice.serverId === picker.previewServerId
-          const server = choice.serverName ?? choice.serverId
-          const adventure = choice.adventureName ?? '모험단 정보 없음'
-          const description = `${server}, ${adventure}`
-          const state = previewing ? ', 미리보기 중, 한 번 더 누르면 확정' : ''
-
-          return (
-            <button
-              key={choice.serverId}
-              type="button"
-              title={description}
-              aria-label={`${description}${state}`}
-              aria-pressed={shown}
-              disabled={onPick === undefined}
-              onClick={() => onPick?.(choice.serverId)}
-              {...stylex.props(
-                styles.portrait,
-                shown && styles.shown,
-                previewing && styles.preview
-              )}
-            >
-              <ChoiceFace choice={choice} />
-              {previewing && (
-                <span {...stylex.props(styles.check)}>
-                  <CheckIcon width="9" height="9" strokeWidth="4" />
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
+      <div {...stylex.props(styles.portraits)}>{picker.choices.map(renderChoice)}</div>
       <button
         type="button"
         aria-label={`${slot}번 후보 창 닫기`}
@@ -71,6 +68,7 @@ export function CandidateWindow({
 function ChoiceFace({ choice }: { choice: CharacterChoice }): React.JSX.Element {
   const [failed, setFailed] = useState(false)
   const face = choice.face
+  const handleError = (): void => setFailed(true)
   if (face === null || failed) {
     return (
       <span aria-hidden="true" {...stylex.props(styles.faceMissing)}>
@@ -84,7 +82,7 @@ function ChoiceFace({ choice }: { choice: CharacterChoice }): React.JSX.Element 
       src={characterImageUrl(choice)}
       alt=""
       draggable={false}
-      onError={() => setFailed(true)}
+      onError={handleError}
       {...stylex.props(styles.faceImage, styles.faceWindow(face.x, face.y, FACE_SIZE / face.width))}
     />
   )
