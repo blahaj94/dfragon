@@ -3,19 +3,26 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { SeatAdventures } from '../lib/adventure-snapshot'
+import type { SearchMode } from '../types/search-mode'
 import { useAdventureSnapshot } from './useAdventureSnapshot'
 
 let container: HTMLDivElement
 let root: Root
 
 function Harness({
+  screen,
   adventures,
   startedRounds
 }: {
+  screen: SearchMode
   adventures: SeatAdventures
   startedRounds: number
 }): React.JSX.Element {
-  const { active, marks, round, take, clear } = useAdventureSnapshot(adventures, startedRounds)
+  const { active, marks, round, take, clear } = useAdventureSnapshot(
+    screen,
+    adventures,
+    startedRounds
+  )
 
   return (
     <>
@@ -26,9 +33,13 @@ function Harness({
   )
 }
 
-async function render(adventures: SeatAdventures, startedRounds = 0): Promise<void> {
+async function render(
+  adventures: SeatAdventures,
+  startedRounds = 0,
+  screen: SearchMode = 'party'
+): Promise<void> {
   await act(async () =>
-    root.render(<Harness adventures={adventures} startedRounds={startedRounds} />)
+    root.render(<Harness screen={screen} adventures={adventures} startedRounds={startedRounds} />)
   )
 }
 
@@ -79,7 +90,7 @@ it('지우면 저장한 자리를 잊고 표시를 걷는다', async () => {
   expect(shown()).toEqual({ active: false, marks: [null, null], round: null })
 })
 
-it('스냅샷은 localStorage에 쓰지 않고 다시 마운트하면 사라진다', async () => {
+it('스냅샷은 localStorage에 쓰지 않고 다시 마운트해도 같은 화면의 스냅샷으로 남는다', async () => {
   const setItem = vi.spyOn(Storage.prototype, 'setItem')
   await render(['가', '나'])
   await press('take')
@@ -87,9 +98,29 @@ it('스냅샷은 localStorage에 쓰지 않고 다시 마운트하면 사라진�
 
   await act(async () => root.unmount())
   root = createRoot(container)
-  await render(['가', '나'])
+  await render(['나', '가'])
 
+  expect(shown()).toEqual({
+    active: true,
+    marks: [
+      { kind: 'moved', seat: 2 },
+      { kind: 'moved', seat: 1 }
+    ],
+    round: 1
+  })
+})
+
+it('파티와 공대는 스냅샷을 따로 가진다', async () => {
+  await render(['가'], 0, 'party')
+  await press('take')
+
+  await render(['가'], 0, 'raid')
   expect(shown().active).toBe(false)
+
+  await press('take')
+  await press('clear')
+  await render(['가'], 0, 'party')
+  expect(shown().active).toBe(true)
 })
 
 it('켠 순간은 1번째 회차이고 켜 둔 동안 시작한 회차마다 번호가 하나씩 오른다', async () => {

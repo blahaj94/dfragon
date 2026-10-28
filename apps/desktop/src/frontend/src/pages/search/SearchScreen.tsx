@@ -15,8 +15,8 @@ export function SearchScreen(): React.JSX.Element {
   return (
     <div {...stylex.props(styles.content)}>
       <div {...stylex.props(styles.page)}>
-        <PartyScreen hidden={!isPartyMode} />
-        <RaidScreen hidden={!isRaidMode} />
+        {isPartyMode && <PartyScreen />}
+        {isRaidMode && <RaidScreen />}
       </div>
     </div>
   )

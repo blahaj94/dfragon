@@ -46,6 +46,8 @@ afterEach(async () => {
   container.remove()
 })
 
+const cardKey = { id: 'party-0', resetKey: '0' }
+
 type RenderProps = Partial<SlotCard> & Partial<Omit<ComponentProps<typeof CharacterCard>, 'card'>>
 
 async function render({
@@ -71,7 +73,9 @@ async function render({
     retryPending,
     picker
   }
-  await act(async () => root.render(<CharacterCard slot={1} inputEnabled {...props} card={card} />))
+  await act(async () =>
+    root.render(<CharacterCard cardKey={cardKey} slot={1} inputEnabled {...props} card={card} />)
+  )
 }
 
 async function enterName(value: string): Promise<HTMLInputElement> {
@@ -176,6 +180,7 @@ it('제출한 수동 이름은 검색 대기와 실패 중 이전 OCR이나 캐�
     root.render(
       <CharacterCard
         key="new-round"
+        cardKey={{ ...cardKey, resetKey: 'new-round' }}
         card={{ state: 'pending', nickname: '다음OCR' }}
         slot={1}
         inputEnabled
@@ -675,14 +680,47 @@ it('확정해 후보가 사라지면 후보 창과 칩이 함께 사라지고, �
 it('다음 회차에 새로 그린 카드는 닫았던 후보 창을 다시 연 채로 시작한다', async () => {
   const picker = { choices, shownServerId: 'cain', previewServerId: null }
   const card = { state: 'success' as const, character: found, picker }
-  await act(async () => root.render(<CharacterCard key="round-1" card={card} slot={1} />))
+  await act(async () =>
+    root.render(
+      <CharacterCard
+        key="round-1"
+        cardKey={{ ...cardKey, resetKey: 'round-1' }}
+        card={card}
+        slot={1}
+      />
+    )
+  )
   await act(async () =>
     container.querySelector<HTMLButtonElement>('[aria-label="1번 후보 창 닫기"]')!.click()
   )
   expect(candidateWindow()).toBeNull()
 
-  await act(async () => root.render(<CharacterCard key="round-2" card={card} slot={1} />))
+  await act(async () =>
+    root.render(
+      <CharacterCard
+        key="round-2"
+        cardKey={{ ...cardKey, resetKey: 'round-2' }}
+        card={card}
+        slot={1}
+      />
+    )
+  )
   expect(candidateWindow()).not.toBeNull()
+})
+
+it('같은 회차의 카드를 다시 그리면 닫았던 후보 창을 닫힌 채로 둔다', async () => {
+  const picker = { choices, shownServerId: 'cain', previewServerId: null }
+  await render({ state: 'success', character: found, picker })
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="1번 후보 창 닫기"]')!.click()
+  )
+
+  await act(async () => root.unmount())
+  root = createRoot(container)
+  await render({ state: 'success', character: found, picker })
+
+  expect(candidateWindow()).toBeNull()
+  expect(candidateChip()).not.toBeNull()
 })
 
 it('미리보기 조회가 실패해도 후보 창은 남는다', async () => {

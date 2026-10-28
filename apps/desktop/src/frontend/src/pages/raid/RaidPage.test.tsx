@@ -522,17 +522,13 @@ it('검색 응답에 없는 길드, 명성, 장비 점수는 -로 보인다', as
   expect(first.textContent).toContain('공대모험단-')
 })
 
-it('화면이 넘긴 헤더를 보드 위에 두고 숨기면 헤더와 보드를 함께 숨긴다', async () => {
+it('화면이 넘긴 헤더를 보드 위에 둔다', async () => {
   await render({ characters: [member], header: <h1>공대 헤더</h1> })
   const header = container.querySelector('section > h1')!
   expect(header.textContent).toBe('공대 헤더')
   const board = container.querySelector('#raid-cards')!
   expect(board.querySelectorAll('article')).toHaveLength(12)
   expect(header.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
-
-  await render({ characters: [member], header: <h1>공대 헤더</h1>, hidden: true })
-  expect(container.querySelector('section')?.hidden).toBe(true)
-  expect(container.querySelector('section')?.contains(header)).toBe(true)
 })
 
 it('보드는 창 폭을 네 등분한 열에 간격 8로 카드를 놓고 넘치면 보드 영역이 스크롤한다', async () => {

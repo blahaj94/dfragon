@@ -83,6 +83,7 @@ export function Preview(): React.JSX.Element {
   const partySlots = scenarios[scenario]
   const raidCharacters = snapshotPreviewRaidRounds[raidRound % snapshotPreviewRaidRounds.length]
   const partySnapshot = useAdventureSnapshot(
+    'party',
     partySlots.map((state, slot) => {
       const shown = characters === undefined ? character : characters[slot]
       if (state !== 'success' || shown == null) {
@@ -94,6 +95,7 @@ export function Preview(): React.JSX.Element {
     partyRound
   )
   const raidSnapshot = useAdventureSnapshot(
+    'raid',
     seatOrder.map((slot) => {
       const adventure = raidCharacters[slot]?.adventure
       if (adventure == null) {

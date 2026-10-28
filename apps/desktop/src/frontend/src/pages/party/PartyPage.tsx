@@ -21,6 +21,7 @@ export function PartyPage({
       {slots.map((card, index) => (
         <CharacterCard
           key={`${resetKey}-${index}`}
+          cardKey={{ id: `party-${index}`, resetKey }}
           card={card}
           slot={index + 1}
           inputEnabled={inputEnabled}

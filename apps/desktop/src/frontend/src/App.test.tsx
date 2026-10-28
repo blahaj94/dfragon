@@ -14,6 +14,13 @@ import type { WindowChromeApi } from '../../preload/common/types/window-chrome'
 let root: Root
 let container: HTMLDivElement
 
+async function typeName(input: HTMLInputElement, value: string): Promise<void> {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+}
+
 beforeEach(() => {
   stubIdleDesktopBridges()
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -209,7 +216,7 @@ it('창 높이를 바꾸지 못해도 화면을 바꿀 수 있다', async () => 
   expect(container.querySelector<HTMLElement>('section[aria-label="공대"]')!.hidden).toBe(false)
 })
 
-it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 자리별 조회는 파티 검색과 따로 보낸다', async () => {
+it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고, 자리별 조회는 파티 검색과 따로 보내며, 화면을 오가도 스냅샷과 입력이 남는다', async () => {
   let raidSnapshot = searchSnapshot({ captureId: null, slots: emptySearchSlots(12) })
   const raidControl = vi.fn<SearchApi['controlCharacterSearch']>(async (command) => {
     if (command.action === 'begin') {
@@ -237,23 +244,28 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
       </ColorThemeProvider>
     )
   )
-  const cards = [...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]
-  const raidSection = container.querySelector<HTMLElement>('section[aria-label="공대"]')!
-  expect(raidSection.hidden).toBe(true)
+  expect(container.querySelector('section[aria-label="공대"]')).toBeNull()
   const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
   expect(trigger.getAttribute('aria-current')).toBe('page')
   expect(trigger.textContent).toBe('검색파티')
   await act(async () =>
     container.querySelector<HTMLButtonElement>('[aria-label="파티 모험단 순번 스냅샷"]')!.click()
   )
+  await typeName(
+    container.querySelector<HTMLInputElement>('[aria-label="2번 캐릭터 이름"]')!,
+    '입력중'
+  )
+  const chooseScreen = async (name: string): Promise<void> => {
+    await act(async () => trigger.click())
+    const item = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+      (candidate) => candidate.textContent === name
+    )!
+    await act(async () => item.click())
+  }
 
-  await act(async () => trigger.click())
-  const raid = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
-    (item) => item.textContent === '공대'
-  )!
-  await act(async () => raid.click())
+  await chooseScreen('공대')
   expect(trigger.textContent).toBe('검색공대')
-  expect(raidSection.hidden).toBe(false)
+  const raidSection = container.querySelector<HTMLElement>('section[aria-label="공대"]')!
   expect([...container.querySelectorAll('header h1')].map((h1) => h1.textContent)).toEqual(['공대'])
   expect(container.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')).toBeNull()
   const raidCards = [...raidSection.querySelectorAll('article')]
@@ -269,14 +281,13 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
     ...Array.from({ length: 4 }, () => '2파티'),
     ...Array.from({ length: 4 }, () => '3파티')
   ])
-  expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).not.toBeNull()
+  expect(container.querySelector('[aria-label="파티 캐릭터"]')).toBeNull()
 
   const tenth = raidCards[9]
-  const input = tenth.querySelector<HTMLInputElement>('[aria-label="10번 캐릭터 이름"]')!
-  await act(async () => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '열번째')
-    input.dispatchEvent(new Event('input', { bubbles: true }))
-  })
+  await typeName(
+    tenth.querySelector<HTMLInputElement>('[aria-label="10번 캐릭터 이름"]')!,
+    '열번째'
+  )
   await act(async () => tenth.querySelector<HTMLButtonElement>('[aria-label="10번 서버"]')!.click())
   const siroco = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
     (option) => option.textContent === '시로코'
@@ -299,17 +310,22 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
     ].map(([call]) => call.action)
   ).not.toContain('lookup')
 
-  await act(async () => trigger.click())
-  const partyItem = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
-    (item) => item.textContent === '파티'
-  )!
-  await act(async () => partyItem.click())
-  expect(raidSection.hidden).toBe(true)
-  expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).toBeNull()
-  expect([...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]).toEqual(cards)
+  await chooseScreen('파티')
+  expect(container.querySelector('section[aria-label="공대"]')).toBeNull()
+  expect(container.querySelectorAll('[aria-label="파티 캐릭터"] article')).toHaveLength(4)
   expect([...container.querySelectorAll('header h1')].map((h1) => h1.textContent)).toEqual(['파티'])
   expect(
     container.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')!.getAttribute('aria-pressed')
   ).toBe('true')
-  expect(input.value).toBe('열번째')
+  expect(container.querySelector<HTMLInputElement>('[aria-label="2번 캐릭터 이름"]')!.value).toBe(
+    '입력중'
+  )
+
+  await chooseScreen('공대')
+  expect(container.querySelector<HTMLInputElement>('[aria-label="10번 캐릭터 이름"]')!.value).toBe(
+    '열번째'
+  )
+  expect(
+    container.querySelector<HTMLButtonElement>('[aria-label="10번 서버"]')!.textContent
+  ).toContain('시로코')
 })

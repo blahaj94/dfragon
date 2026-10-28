@@ -10,6 +10,7 @@ export function useRaidSlotCards(capture: RaidCapture): {
 } {
   const { search, seatOrder } = capture
   const snapshot = useAdventureSnapshot(
+    'raid',
     seatOrder.map((slot) => slotAdventureName(search.slots[slot])),
     capture.startedRounds
   )
