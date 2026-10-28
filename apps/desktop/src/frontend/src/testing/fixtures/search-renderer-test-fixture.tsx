@@ -1,6 +1,6 @@
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, expect, vi, type Mocked } from 'vitest'
+import { afterEach, beforeEach, vi, type Mocked } from 'vitest'
 import type { WindowFrameResult } from '../../../../preload/common/types/capture'
 import type { DesktopShortcutApi } from '../../../../preload/common/types/desktop-shortcut'
 import type { SearchCommandResult, SearchSnapshot } from '../../../../preload/common/types/search'
@@ -11,8 +11,6 @@ import {
   type SearchTestApi,
   type ObservationTestApi
 } from '../../../../preload/api/search-test-fixture'
-import { ManualSearch } from '../../sections/ManualSearch'
-import PartyCapture from '../../sections/PartyCapture'
 import type { PartyOcrWorker } from '../../types/capture'
 import type { PartyFrameSource } from '../../lib/party'
 
@@ -67,15 +65,9 @@ type RendererFixture = {
   }
   resources: CaptureResources
   readCaptureFrame: ReturnType<typeof vi.fn>
-  order: string[]
-  mount: (content?: ReactNode) => Promise<void>
+  mount: (content: ReactNode) => Promise<void>
   unmount: () => Promise<void>
-  button: (label: string, within?: ParentNode) => HTMLButtonElement
-  select: (source?: string) => Promise<void>
-  click: (label: string) => Promise<void>
   restart: () => Promise<void>
-  start: () => Promise<void>
-  emit: (snapshot: SearchSnapshot) => Promise<void>
   current: () => SearchSnapshot
   result: () => SearchCommandResult
 }
@@ -106,15 +98,12 @@ export function createRendererFixture(): RendererFixture {
   let mounted = true
   let currentSearch = searchSnapshot({ captureId: null, revision: 0 })
   let sequence = 0
-  const order: string[] = []
-  const searchListeners = new Set<(snapshot: SearchSnapshot) => void>()
   const resources = captureResources()
   const readCaptureFrame = vi.fn().mockResolvedValue(resources.frame)
   const search = {
     controlCharacterSearch: vi
       .fn<SearchTestApi['controlCharacterSearch']>()
       .mockImplementation(async (command) => {
-        order.push(command.action)
         const isBegin = command.action === 'begin'
         if (isBegin) {
           sequence += 1
@@ -129,15 +118,7 @@ export function createRendererFixture(): RendererFixture {
       }),
     onCharacterSearchChanged: vi
       .fn<SearchTestApi['onCharacterSearchChanged']>()
-      .mockImplementation((listener) => {
-        order.push('subscribe')
-        searchListeners.add(listener)
-
-        return () => {
-          order.push('unsubscribe')
-          searchListeners.delete(listener)
-        }
-      })
+      .mockReturnValue(() => {})
   }
   const capture = {
     onDesktopShortcut: vi.fn<DesktopShortcutApi['onDesktopShortcut']>().mockReturnValue(() => {}),
@@ -213,66 +194,19 @@ export function createRendererFixture(): RendererFixture {
   }
   cleanup.push(unmount)
 
-  function button(label: string, within: ParentNode = container): HTMLButtonElement {
-    const found = Array.from(within.querySelectorAll('button')).find((item) => {
-      const hasLabel = item.textContent === label
-
-      return hasLabel
-    })
-    expect(found, `화면 버튼 ${label}`).toBeDefined()
-
-    return found as HTMLButtonElement
-  }
-  async function select(source = 'game'): Promise<void> {
-    const select = container.querySelector('select')
-    expect(select, 'source 선택').not.toBeNull()
-    await act(async () => {
-      select!.value = source
-      select!.dispatchEvent(new Event('change', { bubbles: true }))
-    })
-  }
-  async function click(label: string): Promise<void> {
-    await act(async () => button(label).click())
-  }
-  async function start(): Promise<void> {
-    await select()
-    await click('캡처 시작')
-  }
-  async function emit(snapshot: SearchSnapshot): Promise<void> {
-    currentSearch = snapshot
-    await act(async () => {
-      for (const listener of searchListeners) {
-        listener(snapshot)
-      }
-    })
-  }
-
   return {
     container,
     search,
     capture,
     resources,
     readCaptureFrame,
-    order,
-    mount: async (
-      content = (
-        <>
-          <ManualSearch api={window.manualSearch} />
-          <PartyCapture />
-        </>
-      )
-    ) => {
+    mount: async (content) => {
       await act(async () => root.render(content))
     },
     unmount,
-    button,
-    select,
-    click,
-    start,
     restart: async () => {
       await act(async () => capture.onDesktopShortcut.mock.lastCall![0]('restart-search'))
     },
-    emit,
     current: () => currentSearch,
     result: (): SearchCommandResult => ({ ok: true, snapshot: currentSearch })
   }
