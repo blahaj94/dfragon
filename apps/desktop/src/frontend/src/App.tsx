@@ -9,8 +9,8 @@ import { RaidScreen } from './pages/raid/RaidScreen'
 import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { useMainWindowHeight } from './hooks/useMainWindowHeight'
 import { UpdateNotice } from './components/UpdateNotice'
+import { MAIN_WINDOW_HEIGHTS } from './constants/main-window-heights'
 import { styles } from './App.style'
-import { MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
 
 function App(): React.JSX.Element {
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
@@ -18,10 +18,8 @@ function App(): React.JSX.Element {
   const [boardSlot, setBoardSlot] = useState<HTMLDivElement | null>(null)
   const { partyCapture, raidCapture, controls } = useScreenCapture(searchMode)
   const updateNotice = useUpdateNotice()
-  // 창 내용 높이는 보이는 화면을 따른다(파티 163, 공대 300).
-  useMainWindowHeight(
-    searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidHeight : MAIN_WINDOW_SIZE.partyHeight
-  )
+  // 창 내용 높이는 보이는 화면을 따른다.
+  useMainWindowHeight(MAIN_WINDOW_HEIGHTS[searchMode])
 
   return (
     <main {...stylex.props(styles.app)}>
