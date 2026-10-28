@@ -6,8 +6,7 @@ import { bgrxToRgba } from './win32-pixels'
 export const WINDOW_CAPTURE_ERRORS = {
   UNAVAILABLE: 'WINDOW_CAPTURE_UNAVAILABLE',
   NOT_FOUND: 'WINDOW_CAPTURE_NOT_FOUND',
-  COVERED: 'WINDOW_CAPTURE_COVERED',
-  ADMIN_REQUIRED: 'WINDOW_CAPTURE_ADMIN_REQUIRED'
+  COVERED: 'WINDOW_CAPTURE_COVERED'
 } as const
 
 export type WindowCaptureFrame = {
@@ -46,15 +45,6 @@ export type Win32PartyApi = {
   GetWindowRect: (hwnd: bigint, rect: Buffer) => number
   GetSystemMetrics: (index: number) => number
   OpenProcess: (access: number, inherit: number, processId: number) => bigint | null
-  GetCurrentProcess: () => bigint | null
-  OpenProcessToken: (process: bigint, access: number, token: Array<bigint | null>) => number
-  GetTokenInformation: (
-    token: bigint,
-    informationClass: number,
-    information: Buffer,
-    informationLength: number,
-    returnLength: number[]
-  ) => number
   QueryFullProcessImageNameW: (
     process: bigint,
     flags: number,
@@ -95,8 +85,6 @@ export type Win32PartyApi = {
 
 const DNF_EXECUTABLE = 'dnf.exe'
 const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-const TOKEN_QUERY = 0x0008
-const TOKEN_ELEVATION = 20
 const PMV2_DPI_CONTEXT = -4n
 const GW_HWNDPREV = 3
 const SRCCOPY_CAPTUREBLT_NOMIRRORBITMAP = 0xc0cc0020
@@ -111,7 +99,6 @@ function loadWin32PartyApi(): Win32PartyApi {
   const koffi = createRequire(__filename)('koffi') as Koffi
   const user32 = koffi.load('user32.dll')
   const kernel32 = koffi.load('kernel32.dll')
-  const advapi32 = koffi.load('advapi32.dll')
   const gdi32 = koffi.load('gdi32.dll')
   const dwmapi = koffi.load('dwmapi.dll')
   const enumWindowsProc = koffi.proto('__stdcall', 'DFC_PARTY_ENUMWINDOWSPROC', 'int32_t', [
@@ -140,13 +127,6 @@ function loadWin32PartyApi(): Win32PartyApi {
   const GetSystemMetrics = user32.func('int __stdcall GetSystemMetrics(int index)')
   const OpenProcess = kernel32.func(
     'void * __stdcall OpenProcess(uint32_t desiredAccess, int inheritHandle, uint32_t processId)'
-  )
-  const GetCurrentProcess = kernel32.func('void * __stdcall GetCurrentProcess()')
-  const OpenProcessToken = advapi32.func(
-    'int __stdcall OpenProcessToken(void *process, uint32_t access, _Out_ void **token)'
-  )
-  const GetTokenInformation = advapi32.func(
-    'int __stdcall GetTokenInformation(void *token, int informationClass, _Out_ void *information, uint32_t informationLength, _Out_ uint32_t *returnLength)'
   )
   const QueryFullProcessImageNameW = kernel32.func(
     'int __stdcall QueryFullProcessImageNameW(void *process, uint32_t flags, _Out_ uint16_t *imagePath, _Inout_ uint32_t *characterCount)'
@@ -185,9 +165,6 @@ function loadWin32PartyApi(): Win32PartyApi {
     GetWindowRect,
     GetSystemMetrics,
     OpenProcess,
-    GetCurrentProcess,
-    OpenProcessToken,
-    GetTokenInformation,
     QueryFullProcessImageNameW,
     CloseHandle,
     GetDC,
@@ -581,87 +558,6 @@ function copyVisibleClient(
   }
 
   return { rgba: pixels, capturedAt }
-}
-
-export type ShortcutAccessApi = Pick<
-  Win32PartyApi,
-  'OpenProcess' | 'GetCurrentProcess' | 'OpenProcessToken' | 'GetTokenInformation' | 'CloseHandle'
->
-
-function readProcessElevation(api: ShortcutAccessApi, processHandle: bigint): boolean {
-  const token: Array<bigint | null> = [null]
-  let elevated: boolean | undefined
-  try {
-    if (!api.OpenProcessToken(processHandle, TOKEN_QUERY, token) || !token[0]) {
-      throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)
-    }
-    const elevation = Buffer.alloc(4)
-    const returnLength = [0]
-    if (
-      !api.GetTokenInformation(
-        token[0],
-        TOKEN_ELEVATION,
-        elevation,
-        elevation.length,
-        returnLength
-      ) ||
-      returnLength[0] !== elevation.length
-    ) {
-      throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)
-    }
-    elevated = elevation.readUInt32LE(0) !== 0
-  } catch {
-    // Close any acquired token before reporting a failed or throwing native query.
-  }
-  if (token[0] && !api.CloseHandle(token[0])) {
-    throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)
-  }
-
-  if (elevated === undefined) {
-    throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)
-  }
-
-  return elevated
-}
-
-/** Checks native token access and closes owned handles before reporting a privilege mismatch. */
-export function assertShortcutProcessAccess(api: ShortcutAccessApi, gameProcessId: number): void {
-  let gameProcess: bigint | null = null
-  let gameElevated = false
-  let appElevated = false
-  let queryFailed = false
-  try {
-    gameProcess = api.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, gameProcessId)
-    if (!gameProcess) {
-      throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)
-    }
-    gameElevated = readProcessElevation(api, gameProcess)
-    const currentProcess = api.GetCurrentProcess()
-    if (!currentProcess) {
-      throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)
-    }
-    // GetCurrentProcess returns a pseudo-handle, which is not owned and must not be closed.
-    appElevated = readProcessElevation(api, currentProcess)
-  } catch {
-    queryFailed = true
-  } finally {
-    if (gameProcess) {
-      try {
-        if (!api.CloseHandle(gameProcess)) {
-          queryFailed = true
-        }
-      } catch {
-        queryFailed = true
-      }
-    }
-  }
-  if (queryFailed) {
-    throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)
-  }
-
-  if (gameElevated && !appElevated) {
-    throw new Error(WINDOW_CAPTURE_ERRORS.ADMIN_REQUIRED)
-  }
 }
 
 export function isDnfForeground(): boolean {

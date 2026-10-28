@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({ capture: vi.fn(), select: vi.fn(), report: vi.
 vi.mock('../lib/win32-window-capture', () => ({
   captureWindowClient: mocks.capture,
   selectWindowClient: mocks.select,
-  WINDOW_CAPTURE_ERRORS: { COVERED: 'WINDOW_COVERED', ADMIN_REQUIRED: 'WINDOW_ADMIN_REQUIRED' }
+  WINDOW_CAPTURE_ERRORS: { COVERED: 'WINDOW_COVERED' }
 }))
 vi.mock('../diagnostics/log', () => ({ reportDiagnostic: mocks.report }))
 
@@ -29,7 +29,6 @@ it('정상 네이티브 프레임은 그대로 반환하고 오류 기록을 만
 
 it.each([
   ['WINDOW_COVERED', 'covered', 'CAPTURE_COVERED'],
-  ['WINDOW_ADMIN_REQUIRED', 'unavailable', 'CAPTURE_ADMIN_REQUIRED'],
   ['synthetic private native error', 'unavailable', 'CAPTURE_UNAVAILABLE']
 ])('네이티브 오류 %s는 기존 대기 상태와 정제된 코드로 전달한다', (message, reason, code) => {
   mocks.capture.mockImplementation(() => {

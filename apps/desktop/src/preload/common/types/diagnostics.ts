@@ -4,7 +4,6 @@ export const DIAGNOSTIC_MESSAGES = {
   CAPTURE_READ_FAILED: '캡처 프레임을 읽지 못했습니다.',
   CAPTURE_COVERED: '선택한 창이 가려져 캡처를 기다립니다.',
   CAPTURE_UNAVAILABLE: '선택한 창에서 캡처할 수 없습니다.',
-  CAPTURE_ADMIN_REQUIRED: '게임 창과 앱의 실행 권한을 확인해야 합니다.',
   OCR_FAILED: '닉네임 인식을 완료하지 못했습니다.',
   SEARCH_FAILED: '캐릭터 조회를 완료하지 못했습니다.',
   SEARCH_TIMEOUT: '캐릭터 조회 시간이 초과되었습니다.',
