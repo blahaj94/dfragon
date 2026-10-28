@@ -1,4 +1,4 @@
-import { attachBoardHeaderSlot } from '../hooks/useBoardHeaderSlot'
+import { attachBoardHeaderSlot } from '../hooks/useBoardHeaderPortal'
 import { useSearchModeStore } from '../hooks/useSearchModeStore'
 import {
   CaptureControls,
