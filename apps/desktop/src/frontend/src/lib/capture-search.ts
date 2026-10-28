@@ -183,21 +183,19 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
 
   function accept(next: SearchSnapshot | null): void {
     snapshot = next
-    if (next != null) {
+    const hasSnapshot = next != null
+    if (hasSnapshot) {
       failed = false
-      if (endsActiveCapture(next)) {
+    }
+    const hasActiveId = lifetime.getSnapshot().context.captureId != null
+    if (hasSnapshot) {
+      const hasEnded = next.captureId === null
+      const isInvalidated = hasActiveId && hasEnded
+      if (isInvalidated) {
         lifetime.send({ type: 'INVALIDATE' })
       }
     }
     publish()
-  }
-
-  function endsActiveCapture(next: SearchSnapshot): boolean {
-    if (lifetime.getSnapshot().context.captureId == null) {
-      return false
-    }
-
-    return next.captureId === null
   }
 
   function publish(): void {
@@ -233,24 +231,29 @@ function getVisibleSearchSlots({
   revisions: readonly number[]
   slotCount: SearchSlotCount
 }): readonly SearchSlot[] {
-  if (captureId == null || snapshot?.captureId !== captureId) {
+  if (captureId == null) {
+    return emptySearchSlots(slotCount)
+  }
+  const hasSnapshot = snapshot != null
+  if (!hasSnapshot) {
+    return emptySearchSlots(slotCount)
+  }
+  const hasSameCapture = captureId === snapshot.captureId
+  if (!hasSameCapture) {
     return emptySearchSlots(slotCount)
   }
   const empty = emptySearchSlots(slotCount)
 
   return snapshot.slots.map((slot) => {
-    if (canShowSlot(slot, revisions[slot.slot])) {
+    const observedRevision = revisions[slot.slot]
+    const hasObserved = observedRevision > 0
+    const isCurrent = slot.observationRevision >= observedRevision
+    const isIdle = slot.state === 'idle'
+    const canShow = isCurrent && (isIdle || hasObserved)
+    if (canShow) {
       return slot
     }
 
     return empty[slot.slot]
   })
-}
-
-function canShowSlot(slot: SearchSlot, observedRevision: number): boolean {
-  if (slot.observationRevision < observedRevision) {
-    return false
-  }
-
-  return slot.state === 'idle' || observedRevision > 0
 }

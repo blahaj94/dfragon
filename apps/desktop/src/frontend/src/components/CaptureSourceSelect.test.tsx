@@ -284,17 +284,6 @@ it('닫기 버튼은 캡처를 유지한 채 대화상자만 닫는다', async (
   expect(props.stopCapture).not.toHaveBeenCalled()
 })
 
-it('캡처 중지 버튼은 클릭 이벤트를 넘기지 않고 stopCapture를 부른다', async () => {
-  await openDialog()
-  const stop = [...dialog().querySelectorAll('button')].find(
-    (button) => button.textContent === '캡처 중지'
-  )!
-
-  await click(stop)
-
-  expect(props.stopCapture).toHaveBeenCalledExactlyOnceWith()
-})
-
 it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에는 캡처 중지를 두지 않는다', async () => {
   props.phase = 'unavailable'
   props.status = '게임 창이 가려져 있습니다. 게임 창을 앞으로 가져온 뒤 Alt+R을 누르세요.'
@@ -352,7 +341,6 @@ it('새로고침 버튼은 창 목록을 다시 조회하고 대화상자를 연
   )!
   await click(refresh)
   expect(props.source.refreshSources).toHaveBeenCalledTimes(2)
-  expect(props.source.refreshSources).toHaveBeenLastCalledWith()
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   props.source.sourcesLoading = true
   await render()

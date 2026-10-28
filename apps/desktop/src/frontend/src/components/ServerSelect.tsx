@@ -24,18 +24,16 @@ export function ServerSelect({
 }: ServerSelectProps): React.JSX.Element {
   const triggerRef = useRef<HTMLButtonElement>(null)
 
-  function handleValueChange(next: string | null): void {
-    if (next != null) {
-      onValueChange(next)
-    }
-  }
-
   return (
     <Select.Root
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next: boolean) => onOpenChange?.(next)}
       value={value || null}
-      onValueChange={handleValueChange}
+      onValueChange={(next: string | null) => {
+        if (next != null) {
+          onValueChange(next)
+        }
+      }}
       items={options.map((option) => ({ value: option.id, label: option.label }))}
       disabled={disabled}
     >

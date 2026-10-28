@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import type { SelectedCharacterSummary } from '../../../preload/common/types/character'
 import type { SearchSlot } from '../../../preload/common/types/search'
 import { dealerCard } from '../testing/fixtures/character-cards'
-import { canRetryCharacterSlot, searchSlotNotice, toCharacterCard } from './character-card'
-
-const nextStep = '다음 안내'
+import {
+  canRetryCharacterSlot,
+  characterSlotNotice,
+  searchSlotNotice,
+  toCharacterCard
+} from './character-card'
 
 const summary: SelectedCharacterSummary = {
   characterId: 'fixture-character',
@@ -63,7 +66,7 @@ it('서버 제한과 중복 요청을 지키고 정제된 오류만 표시한다
     error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 12 }
   }
   expect(canRetryCharacterSlot(slot, false)).toBe(false)
-  expect(searchSlotNotice(slot, nextStep)).toBe('12초 후 다시 시도할 수 있습니다. 다음 안내')
+  expect(characterSlotNotice(slot)).toBe('12초 후 다시 시도할 수 있습니다.')
   const ready: SearchSlot = {
     ...slot,
     error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
@@ -73,9 +76,7 @@ it('서버 제한과 중복 요청을 지키고 정제된 오류만 표시한다
   expect(canRetryCharacterSlot({ ...slot, state: 'waiting-portrait', error: null }, false)).toBe(
     false
   )
-  expect(searchSlotNotice({ ...slot, error: null }, nextStep)).toBe(
-    '검색 결과가 없습니다. 다음 안내'
-  )
+  expect(characterSlotNotice({ ...slot, error: null })).toBeUndefined()
   expect(
     canRetryCharacterSlot(
       { ...slot, error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null } },
@@ -96,12 +97,12 @@ it('외형을 확인하지 못한 최고 명성 후보임을 명시한다', () =
     selected: summary,
     selectionMethod: 'highest-fame'
   }
-  expect(searchSlotNotice(slot, nextStep)).toBe('외형 미확인, 최고 명성 후보입니다.')
-  expect(searchSlotNotice({ ...slot, selectionMethod: 'portrait' }, nextStep)).toBeUndefined()
-  expect(searchSlotNotice({ ...slot, selectionMethod: 'manual' }, nextStep)).toBeUndefined()
+  expect(characterSlotNotice(slot)).toBe('외형 미확인, 최고 명성 후보입니다.')
+  expect(characterSlotNotice({ ...slot, selectionMethod: 'portrait' })).toBeUndefined()
+  expect(characterSlotNotice({ ...slot, selectionMethod: 'manual' })).toBeUndefined()
 })
 
-it('후보 창이 있는 최고 명성 선택은 같은 뜻의 문구를 겹치지 않는다', () => {
+it('후보 줄이 있는 최고 명성 선택은 같은 뜻의 문구를 겹치지 않는다', () => {
   const slot: SearchSlot = {
     slot: 0,
     observationRevision: 1,
@@ -125,7 +126,7 @@ it('후보 창이 있는 최고 명성 선택은 같은 뜻의 문구를 겹치�
       face
     }))
   }
-  expect(searchSlotNotice(slot, nextStep)).toBeUndefined()
+  expect(characterSlotNotice(slot)).toBeUndefined()
 })
 
 describe('공대 카드의 선택 근거 안내', () => {
@@ -154,27 +155,25 @@ describe('공대 카드의 선택 근거 안내', () => {
   it.each(['job', 'fame'] as const)(
     '%s로 확정한 선택은 안내 없이 스탯 줄을 보인다',
     (selectionMethod) => {
-      expect(searchSlotNotice({ ...base, selectionMethod }, nextStep, 'raid')).toBeUndefined()
+      expect(characterSlotNotice({ ...base, selectionMethod }, 'raid')).toBeUndefined()
     }
   )
 
   it.each([['fame', '명성으로 추정한 후보입니다.']] as const)(
     '%s로 확정하지 못한 선택은 추정 안내를 보인다',
     (selectionMethod, notice) => {
-      expect(searchSlotNotice({ ...base, selectionMethod, choices }, nextStep, 'raid')).toBe(notice)
+      expect(characterSlotNotice({ ...base, selectionMethod, choices }, 'raid')).toBe(notice)
     }
   )
 
-  it('최고 명성 선택은 후보 창 여부와 무관하게 직업과 수치를 확인하지 못했다고 안내한다', () => {
+  it('최고 명성 선택은 후보 줄 여부와 무관하게 직업과 수치를 확인하지 못했다고 안내한다', () => {
     const notice = '직업과 수치 미확인, 최고 명성 후보입니다.'
 
-    expect(searchSlotNotice({ ...base, selectionMethod: 'highest-fame' }, nextStep, 'raid')).toBe(
+    expect(characterSlotNotice({ ...base, selectionMethod: 'highest-fame' }, 'raid')).toBe(notice)
+    expect(characterSlotNotice({ ...base, selectionMethod: 'highest-fame', choices }, 'raid')).toBe(
       notice
     )
-    expect(
-      searchSlotNotice({ ...base, selectionMethod: 'highest-fame', choices }, nextStep, 'raid')
-    ).toBe(notice)
-    expect(searchSlotNotice({ ...base, selectionMethod: 'highest-fame' }, nextStep)).toBe(
+    expect(characterSlotNotice({ ...base, selectionMethod: 'highest-fame' })).toBe(
       '외형 미확인, 최고 명성 후보입니다.'
     )
   })
@@ -187,8 +186,8 @@ describe('공대 카드의 선택 근거 안내', () => {
       error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
     }
 
-    expect(searchSlotNotice(failed, nextStep, 'raid')).toBe(
-      '검색 시간이 초과됐습니다. 다시 시도해 주세요. 다음 안내'
+    expect(characterSlotNotice(failed, 'raid')).toBe(
+      '검색 시간이 초과됐습니다. 다시 시도해 주세요.'
     )
   })
 })

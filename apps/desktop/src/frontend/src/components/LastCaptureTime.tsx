@@ -10,36 +10,23 @@ export function LastCaptureTime({ at }: { at: number | null }): React.JSX.Elemen
 
 function ElapsedCaptureTime({ at }: { at: number | null }): React.JSX.Element {
   const time = useElapsedTime(at)
+  const elapsed = at === null || time === null ? null : { at, ...time }
 
   return (
     <div {...stylex.props(styles.root)}>
       <span>
         <span {...stylex.props(styles.label)}>마지막 캡처</span>
-        <CaptureTimeValue at={at} time={time} />
+        {elapsed === null ? (
+          <span {...stylex.props(styles.value)}>
+            <span {...stylex.props(styles.number)}>{MISSING_VALUE}</span>
+          </span>
+        ) : (
+          <time dateTime={new Date(elapsed.at).toISOString()} {...stylex.props(styles.value)}>
+            <span {...stylex.props(styles.number)}>{elapsed.value}</span>
+            {elapsed.unit} 전
+          </time>
+        )}
       </span>
     </div>
-  )
-}
-
-function CaptureTimeValue({
-  at,
-  time
-}: {
-  at: number | null
-  time: ReturnType<typeof useElapsedTime>
-}): React.JSX.Element {
-  if (at !== null && time !== null) {
-    return (
-      <time dateTime={new Date(at).toISOString()} {...stylex.props(styles.value)}>
-        <span {...stylex.props(styles.number)}>{time.value}</span>
-        {time.unit} 전
-      </time>
-    )
-  }
-
-  return (
-    <span {...stylex.props(styles.value)}>
-      <span {...stylex.props(styles.number)}>{MISSING_VALUE}</span>
-    </span>
   )
 }
