@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPartyOcrWorker, OcrWorkerUnavailableError } from './ocr'
+import { createPartyOcrWorker } from './ocr'
 import type { PartyOcrResult } from '../types/capture'
 
 class NativeWorker {
@@ -146,7 +146,9 @@ describe('PaddleOCR worker 수명', () => {
       expect(native.terminate).toHaveBeenCalledOnce()
       expect(vi.getTimerCount()).toBe(0)
       if (worker != null) {
-        await expect(worker.recognize(image)).rejects.toBeInstanceOf(OcrWorkerUnavailableError)
+        await expect(worker.recognize(image)).rejects.toMatchObject({
+          name: 'OcrWorkerUnavailableError'
+        })
         expect(native.postMessage).toHaveBeenCalledTimes(2)
       }
     }
@@ -183,7 +185,9 @@ describe('PaddleOCR worker 수명', () => {
         native.onmessageerror?.()
       }
       await rejected
-      await expect(worker.recognize(image)).rejects.toBeInstanceOf(OcrWorkerUnavailableError)
+      await expect(worker.recognize(image)).rejects.toMatchObject({
+        name: 'OcrWorkerUnavailableError'
+      })
       expect(native.terminate).toHaveBeenCalledOnce()
       expect(native.postMessage).toHaveBeenCalledTimes(2)
       expect(vi.getTimerCount()).toBe(0)
@@ -232,7 +236,9 @@ describe('PaddleOCR worker 수명', () => {
 
     native.reply(value)
     await rejected
-    await expect(worker.recognize(image)).rejects.toBeInstanceOf(OcrWorkerUnavailableError)
+    await expect(worker.recognize(image)).rejects.toMatchObject({
+      name: 'OcrWorkerUnavailableError'
+    })
     expect(native.terminate).toHaveBeenCalledOnce()
     expect(native.postMessage).toHaveBeenCalledTimes(2)
   })
@@ -363,7 +369,9 @@ describe('PaddleOCR worker 수명', () => {
     native.reply({ ready: true })
     const worker = await creating
     const recognizing = worker.recognize(image)
-    const rejected = expect(recognizing).rejects.toBeInstanceOf(OcrWorkerUnavailableError)
+    const rejected = expect(recognizing).rejects.toMatchObject({
+      name: 'OcrWorkerUnavailableError'
+    })
 
     native.reply(value)
 
@@ -371,7 +379,9 @@ describe('PaddleOCR worker 수명', () => {
     expect(native.terminate).toHaveBeenCalledOnce()
     expect(vi.getTimerCount()).toBe(0)
     expect(removeListener).toHaveBeenCalledWith('abort', expect.any(Function))
-    await expect(worker.recognize(image)).rejects.toBeInstanceOf(OcrWorkerUnavailableError)
+    await expect(worker.recognize(image)).rejects.toMatchObject({
+      name: 'OcrWorkerUnavailableError'
+    })
     expect(native.postMessage).toHaveBeenCalledTimes(2)
   })
 

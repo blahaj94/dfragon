@@ -1,8 +1,6 @@
-import { decodeCtcCandidates } from './ctc-candidates'
 import { nicknameCenterOffset } from './nickname-pixels'
 
 export { decodeCtcCandidates } from './ctc-candidates'
-export type { CtcCandidate } from './ctc-candidates'
 
 export const MODEL_INPUT_HEIGHT = 48
 export const MODEL_INPUT_WIDTH = 320
@@ -27,26 +25,6 @@ export function recognitionInputValues(
   const normalize = preprocessing === 'party' ? normalizedNicknameBgr : normalizedBgr
 
   return normalize(rgba, resizedWidth, height, width)
-}
-
-export function recognitionInputRgba(
-  values: Float32Array,
-  width: number,
-  height: number
-): Uint8ClampedArray {
-  const plane = width * height
-  if (values.length !== 3 * plane) {
-    throw new TypeError('Invalid recognition input dimensions')
-  }
-  const rgba = new Uint8ClampedArray(plane * 4)
-  for (let pixel = 0; pixel < plane; pixel += 1) {
-    for (let channel = 0; channel < 3; channel += 1) {
-      rgba[pixel * 4 + (2 - channel)] = (values[channel * plane + pixel] + 1) * 127.5
-    }
-    rgba[pixel * 4 + 3] = 255
-  }
-
-  return rgba
 }
 
 export function normalizedNicknameBgr(
@@ -92,17 +70,4 @@ function normalizedBgrAtOffset(
   }
 
   return values
-}
-
-export function decodeCtc(
-  data: Float32Array,
-  steps: number,
-  characters: readonly string[]
-): string {
-  const first = decodeCtcCandidates(data, steps, characters)[0]
-  if (first == null) {
-    return ''
-  }
-
-  return first.nickname
 }

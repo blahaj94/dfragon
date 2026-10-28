@@ -5,6 +5,7 @@ import { createRendererFixture, media } from './testing/fixtures/search-renderer
 import App from './App'
 import { stubIdleDesktopBridges } from './testing/fixtures/idle-desktop-bridges'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
+import type { SearchCommandResult } from '../../preload/common/types/search'
 
 beforeEach(() => {
   stubIdleDesktopBridges()
@@ -181,7 +182,7 @@ it.each(triggers)(
 it.each(triggers)('검색 수명을 시작하는 동안 누른 %s은 무시한다', async (trigger) => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
-  const begin = Promise.withResolvers<ReturnType<Fixture['result']>>()
+  const begin = Promise.withResolvers<SearchCommandResult>()
   const control = f.search.controlCharacterSearch.getMockImplementation()!
   f.search.controlCharacterSearch.mockImplementation((command) =>
     command.action === 'begin' ? begin.promise : control(command)

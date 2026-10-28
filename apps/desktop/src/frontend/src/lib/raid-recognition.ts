@@ -29,6 +29,19 @@ function toNicknameCanvas(image: CharacterImage): HTMLCanvasElement {
   return canvas
 }
 
+async function recognizeImage(
+  recognize: PartyOcrWorker['recognize'],
+  image: CharacterImage
+): Promise<PartyOcrResult | null> {
+  try {
+    const result = await recognize(toNicknameCanvas(image))
+
+    return result.data
+  } catch {
+    return null
+  }
+}
+
 /**
  * 오프라인 평가에서 원본 색 그대로는 거의 맞지 않았다.
  */
@@ -39,14 +52,11 @@ async function recognizeJob(
   if (image === null) {
     return null
   }
-  let text: string | undefined
-  try {
-    const result = await recognize(toNicknameCanvas(image))
-    text = result.data.candidates[0]?.nickname.trim()
-  } catch {
+  const data = await recognizeImage(recognize, image)
+  if (data === null) {
     return null
   }
-
+  const text = data.candidates[0]?.nickname.trim()
   if (text === undefined || text === '' || text.length > MAX_RAID_JOB_TEXT_LENGTH) {
     return null
   }
@@ -64,11 +74,8 @@ export async function recognizeRaidRows(
       results.push({ kind: 'missing', slot })
       continue
     }
-    let data: PartyOcrResult
-    try {
-      const result = await recognize(toNicknameCanvas(row.nickname))
-      data = result.data
-    } catch {
+    const data = await recognizeImage(recognize, row.nickname)
+    if (data === null) {
       results.push({ kind: 'failed', slot })
       continue
     }

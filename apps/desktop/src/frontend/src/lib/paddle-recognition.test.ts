@@ -1,10 +1,5 @@
 import { expect, it } from 'vitest'
-import {
-  decodeCtc,
-  normalizedBgr,
-  normalizedNicknameBgr,
-  recognitionInputRgba
-} from './paddle-recognition'
+import { normalizedBgr, normalizedNicknameBgr } from './paddle-recognition'
 
 function nickname(width: number, rows: readonly (readonly number[])[]): Uint8ClampedArray {
   const rgba = new Uint8ClampedArray(width * rows.length * 4)
@@ -61,32 +56,4 @@ it('글자가 없는 입력은 좌우 여백까지 흰색으로 채운다', () =
   const values = normalizedNicknameBgr(nickname(4, [[]]), 4, 1, 8)
 
   expect([...values]).toEqual(Array(3 * 8).fill(1))
-})
-
-it('모델 입력을 RGB 순서의 원래 픽셀로 되돌리고 zero padding은 회색으로 표시한다', () => {
-  const values = normalizedBgr(new Uint8ClampedArray([255, 0, 127, 255]), 1, 1, 2)
-
-  expect([...recognitionInputRgba(values, 2, 1)]).toEqual([255, 0, 127, 255, 128, 128, 128, 255])
-})
-
-it('가운데로 옮긴 글자 위치를 그대로 보여준다', () => {
-  const values = normalizedNicknameBgr(nickname(4, [[0, 1]]), 4, 1, 8)
-  const rgba = recognitionInputRgba(values, 8, 1)
-  const red = [...rgba].filter((_, index) => index % 4 === 0)
-
-  expect(red).toEqual([255, 255, 255, 0, 0, 255, 255, 255])
-})
-
-it('모델 입력 크기와 맞지 않는 값은 확인용 이미지로 바꾸지 않는다', () => {
-  const values = normalizedBgr(new Uint8ClampedArray(8 * 4), 8, 1, 8)
-
-  expect(() => recognitionInputRgba(values, 8, 2)).toThrow(TypeError)
-})
-
-it('CTC의 연속 출력은 합치고 blank로 분리한 같은 한글은 보존한다', () => {
-  const data = new Float32Array([
-    0.05, 0.9, 0.05, 0.05, 0.9, 0.05, 0.9, 0.05, 0.05, 0.05, 0.9, 0.05, 0.05, 0.05, 0.9
-  ])
-  expect(decodeCtc(data, 5, ['가', '나'])).toBe('가가나')
-  expect(decodeCtc(new Float32Array([1, 0, 0]), 1, ['가', '나'])).toBe('')
 })
