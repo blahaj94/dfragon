@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 import type { BrowserWindow } from 'electron'
 import { beforeEach, expect, it, vi, type Mock } from 'vitest'
-import type { DesktopShortcut } from '../../preload/common/types/desktop-shortcut'
+import type { DesktopShortcutApi } from '../../preload/common/types/desktop-shortcut'
 import { registerDesktopShortcuts } from './register'
 
 const fixtures = vi.hoisted(() => ({
@@ -14,6 +14,8 @@ vi.mock('../lib/win32-window-capture', () => ({
   isDnfForeground: fixtures.gameForeground,
   isCurrentProcessForeground: fixtures.appForeground
 }))
+
+type DesktopShortcut = Parameters<Parameters<DesktopShortcutApi['onDesktopShortcut']>[0]>[0]
 
 const DOCUMENT_URL = 'file:///dfragon/index.html'
 const VK_R = 0x52
