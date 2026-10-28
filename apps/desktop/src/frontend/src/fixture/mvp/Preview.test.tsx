@@ -94,3 +94,63 @@ it('미리보기 조작부는 제품 창 영역 밖, 창 아래에 둔다', () =
   expect(main.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
   expect(main.querySelector('[aria-label="파티 캐릭터"]')).not.toBeNull()
 })
+
+it('파티와 공대를 오가면 보이는 화면만 그리고, 파티 카드 입력과 스냅샷은 남는다', async () => {
+  const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
+  const chooseScreen = async (name: string): Promise<void> => {
+    await act(async () => trigger.click())
+    const item = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+      (candidate) => candidate.textContent === name
+    )!
+    await act(async () => item.click())
+  }
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="파티 모험단 순번 스냅샷"]')!.click()
+  )
+  const input = container.querySelector<HTMLInputElement>('[aria-label="4번 캐릭터 이름"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '입력중')
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+
+  await chooseScreen('공대')
+  expect(container.querySelector('[aria-label="파티 캐릭터"]')).toBeNull()
+  expect(container.querySelector('section[aria-label="공대"]')).not.toBeNull()
+
+  await chooseScreen('파티')
+  expect(container.querySelector('section[aria-label="공대"]')).toBeNull()
+  expect(container.querySelector<HTMLInputElement>('[aria-label="4번 캐릭터 이름"]')!.value).toBe(
+    '입력중'
+  )
+  expect(
+    container.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')!.getAttribute('aria-pressed')
+  ).toBe('true')
+})
+
+it('후보 고르기 미리보기에서 후보를 누르면 미리보기 중이 되고, 한 번 더 누르면 확정해 후보 창이 사라진다', async () => {
+  const scenario = container.querySelector<HTMLSelectElement>('[aria-label="미리보기 상태"]')!
+  await act(async () => {
+    scenario.value = 'candidates'
+    scenario.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  const firstCard = (): HTMLElement => container.querySelector('article')!
+  const candidateWindow = (): Element | null =>
+    container.querySelector('[role="group"][aria-label="1번 후보 고르기"]')
+  const candidateTile = (server: string): HTMLButtonElement =>
+    [...candidateWindow()!.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+      button.getAttribute('aria-label')?.startsWith(server)
+    )!
+  expect(candidateTile('시로코').getAttribute('aria-pressed')).toBe('true')
+  expect(candidateTile('카인').getAttribute('aria-pressed')).toBe('false')
+
+  await act(async () => candidateTile('카인').click())
+  expect(candidateTile('카인').getAttribute('aria-pressed')).toBe('true')
+  expect(candidateTile('카인').getAttribute('aria-label')).toContain(
+    '미리보기 중, 한 번 더 누르면 확정'
+  )
+  expect(firstCard().getAttribute('data-state')).toBe('selected')
+
+  await act(async () => candidateTile('카인').click())
+  expect(candidateWindow()).toBeNull()
+  expect(firstCard().querySelector('[aria-label="후보 미리보기 중"]')).toBeNull()
+})
