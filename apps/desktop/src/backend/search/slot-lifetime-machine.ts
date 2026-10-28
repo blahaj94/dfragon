@@ -68,7 +68,7 @@ export const slotLifetimeMachine = setup({
           input.complete(request, outcome)
         }
       }
-      void execute()
+      execute()
 
       return () => {
         stopped = true

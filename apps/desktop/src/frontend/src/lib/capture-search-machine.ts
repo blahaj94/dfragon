@@ -73,7 +73,7 @@ export const captureSearchMachine = setup({
             const result = inspectCaptureStart(response, effects.readSnapshot(), request.signal)
             if (controller.signal.aborted) {
               if (result.captureId != null) {
-                void effects.command({ action: SEARCH_ACTIONS.END, captureId: result.captureId })
+                effects.command({ action: SEARCH_ACTIONS.END, captureId: result.captureId })
               }
               request.resolve(null)
 
@@ -88,7 +88,7 @@ export const captureSearchMachine = setup({
             }
           }
         }
-        void start()
+        start()
 
         return () => controller.abort()
       }
@@ -101,7 +101,7 @@ export const captureSearchMachine = setup({
   actions: {
     endCapture: ({ context }) => {
       if (context.captureId != null) {
-        void context.effects.command({ action: SEARCH_ACTIONS.END, captureId: context.captureId })
+        context.effects.command({ action: SEARCH_ACTIONS.END, captureId: context.captureId })
       }
     },
     resetObservations: ({ context }) => context.effects.resetObservations(),
@@ -117,7 +117,7 @@ export const captureSearchMachine = setup({
       }
 
       if (event.result.captureId != null) {
-        void context.effects.command({
+        context.effects.command({
           action: SEARCH_ACTIONS.END,
           captureId: event.result.captureId
         })

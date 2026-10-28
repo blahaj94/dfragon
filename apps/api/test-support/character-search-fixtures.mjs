@@ -23,7 +23,7 @@ export async function isolatedNeople() {
     })
     const hasCustomResponse = upstream.respond != null
     if (hasCustomResponse) {
-      void Promise.resolve(upstream.respond(request, response)).catch((error) => {
+      Promise.resolve(upstream.respond(request, response)).catch((error) => {
         upstream.failure = error
         response.destroy()
       })

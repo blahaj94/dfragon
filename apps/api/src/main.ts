@@ -51,7 +51,7 @@ async function main(): Promise<void> {
     const hasRuntime = ownedRuntime !== undefined
     const canClose = hasRuntime && !starting
     if (canClose) {
-      void close(ownedRuntime)
+      close(ownedRuntime)
     }
   }
 

@@ -35,7 +35,7 @@ export class SharedCharacterFetches {
       const owned = sharedFetch
       this.byCharacter.set(key, owned)
       this.pending.add(owned)
-      void owned.promise
+      owned.promise
         .finally(() => {
           owned.settled = true
           if (this.byCharacter.get(key) === owned) {

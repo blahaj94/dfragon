@@ -85,7 +85,7 @@ export const partyCaptureMachine = setup({
     ),
     lifetime: fromCallback<CaptureEvent, CaptureInput>(({ input }) => () => {
       input.endSearch()
-      void input.selectSource('').catch(() => undefined)
+      input.selectSource('').catch(() => undefined)
     })
   },
   actions: {

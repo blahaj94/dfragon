@@ -79,7 +79,8 @@
         "noUselessEmptyExport": "error",
         "noUselessEscapeInRegex": "error",
         "noUselessRename": "error",
-        "noUselessThisAlias": "error"
+        "noUselessThisAlias": "error",
+        "noVoid": "error"
       },
       "correctness": {
         "noChildrenProp": "error",

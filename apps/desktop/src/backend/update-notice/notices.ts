@@ -90,8 +90,8 @@ export function createUpdateNotices({
     if (disposed || timer != null) {
       return
     }
-    timer = setInterval(() => void check(), UPDATE_CHECK_INTERVAL_MS)
-    void check()
+    timer = setInterval(() => check(), UPDATE_CHECK_INTERVAL_MS)
+    check()
   }
 
   function subscribe(listener: (snapshot: UpdateNoticeSnapshot) => void): () => void {

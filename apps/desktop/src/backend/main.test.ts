@@ -348,7 +348,7 @@ it('배포 채널만 새 버전 확인을 시작하고 앱 종료 때 정리한�
   // 피드는 cookie를 쓰지 않는 앱 API session으로 요청한다.
   const { fetchApi } = await import('./api-fetch')
   const signal = new AbortController().signal
-  void mocks.createUpdateNotices.mock.calls[0][0].readFeed(signal)
+  mocks.createUpdateNotices.mock.calls[0][0].readFeed(signal)
   expect(mocks.readReleaseFeed).toHaveBeenCalledExactlyOnceWith(fetchApi, signal)
   for (const [event, listener] of mocks.appOn.mock.calls) {
     if (event === 'quit') {
