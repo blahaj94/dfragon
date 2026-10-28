@@ -1,0 +1,13 @@
+or {
+  JsxOpeningElement(name=$element, attributes=$attributes),
+  JsxSelfClosingElement(name=$element, attributes=$attributes)
+} where {
+  $attributes <: some JsxAttribute(name=$attribute) as $hidden where {
+    $attribute <: r"hidden",
+    or {
+      $element <: r"[A-Z][\s\S]*",
+      $hidden <: JsxAttribute(initializer=JsxAttributeInitializerClause(value=JsxExpressionAttributeValue()))
+    },
+    register_diagnostic(span=$hidden, message="상태를 남기려고 안 보이는 화면을 hidden으로 마운트해 두지 않고, 보이는 화면만 그립니다.")
+  }
+}

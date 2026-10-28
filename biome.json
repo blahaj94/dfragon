@@ -188,7 +188,13 @@
         "!**/vendor/**",
         "!**/*.generated.*"
       ],
-      "plugins": ["./scripts/biome/regex-literal-constant.grit"]
+      "plugins": [
+        "./scripts/biome/regex-literal-constant.grit",
+        "./scripts/biome/let-branch-assignment.grit",
+        "./scripts/biome/hidden-screen-prop.grit",
+        "./scripts/biome/jsx-prop-callback.grit",
+        "./scripts/biome/absent-first-conditional.grit"
+      ]
     },
     {
       "includes": ["**/*.ts", "**/*.mts", "**/*.cts", "**/*.tsx"],

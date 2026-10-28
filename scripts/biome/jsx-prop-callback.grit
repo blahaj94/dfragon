@@ -1,0 +1,46 @@
+// Biome's GritQL does not run recursive patterns, so a callback is recognized through one wrapper
+// (parentheses, `as`, `satisfies`) inside one container (ternary, logical, object, array).
+or {
+  JsxAttribute(initializer=JsxAttributeInitializerClause(value=JsxExpressionAttributeValue(expression=$value))) where {
+    $value <: or {
+      wrapped_callback(),
+      JsConditionalExpression(consequent=wrapped_callback()),
+      JsConditionalExpression(alternate=wrapped_callback()),
+      JsLogicalExpression(right=wrapped_callback()),
+      object_with_callback(),
+      JsArrayExpression(elements=some wrapped_callback())
+    }
+  },
+  JsxSpreadAttribute(argument=$value) where { $value <: object_with_callback() }
+} where {
+  register_diagnostic(span=$value, message="JSX prop 자리에서 콜백을 만들지 않고 return 위에서 이름 있는 handler로 만듭니다.")
+}
+
+pattern object_with_callback() {
+  JsObjectExpression(members=some or {
+    JsPropertyObjectMember(value=wrapped_callback()),
+    JsMethodObjectMember()
+  })
+}
+
+pattern wrapped_callback() {
+  or {
+    parenthesized_callback(),
+    TsAsExpression(expression=parenthesized_callback()),
+    TsSatisfiesExpression(expression=parenthesized_callback())
+  }
+}
+
+pattern parenthesized_callback() {
+  or {
+    callback(),
+    JsParenthesizedExpression(expression=callback())
+  }
+}
+
+pattern callback() {
+  or {
+    JsArrowFunctionExpression(),
+    JsFunctionExpression()
+  }
+}

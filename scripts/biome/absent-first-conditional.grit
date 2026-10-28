@@ -1,0 +1,30 @@
+// Only branches that compute from the checked value are reported, so labels such as
+// `data === null ? 'unavailable' : 'fresh'` stay allowed. GritQL compares bound nodes by source
+// text, so member and property names (`o.x`, `{ x: 1 }`) are not counted as uses of `x`.
+JsConditionalExpression(test=$test, alternate=$present) as $conditional where {
+  $test <: or {
+    absence_comparison($value),
+    JsParenthesizedExpression(expression=absence_comparison($value))
+  },
+  $present <: contains $use where {
+    $use <: $value,
+    $use <: not or {
+      JsName(),
+      JsLiteralMemberName()
+    }
+  },
+  register_diagnostic(span=$conditional, message="값이 없는 경우를 앞에 둔 삼항 대신 값이 있을 때를 앞에 둡니다.")
+}
+
+pattern absence_comparison($value) {
+  or {
+    `$value == null`,
+    `$value === null`,
+    `$value == undefined`,
+    `$value === undefined`,
+    `null == $value`,
+    `null === $value`,
+    `undefined == $value`,
+    `undefined === $value`
+  }
+}

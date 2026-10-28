@@ -54,7 +54,7 @@ node --check scripts/statement-spacing.mjs
 
 ## Biome lint 플러그인
 
-`scripts/biome/return-expression.grit`은 `return` 식의 삼항, `??`, 반환 객체 속성의 조건식을, `scripts/biome/regex-literal-constant.grit`은 `const` 초기값이 아닌 정규식 리터럴을 보고합니다. Root `biome.json`이 두 GritQL 플러그인을 등록하며 정규식 플러그인은 테스트 코드와 생성물을 제외하는 override에서만 붙습니다. 적용 기준은 [Convention 도구 적용](../docs/rules/convention-tooling.md)을 따릅니다. `pnpm test:tooling`의 `biome-return-expression.test.mjs`, `biome-regex-literal.test.mjs`가 저장소 설정을 임시 디렉터리에 복사해 거부, 허용 사례와 제외 범위를 검증합니다.
+`scripts/biome/return-expression.grit`은 `return` 식의 삼항, `??`, 반환 객체 속성의 조건식을, `scripts/biome/regex-literal-constant.grit`은 `const` 초기값이 아닌 정규식 리터럴을 보고합니다. `let-branch-assignment.grit`은 `let`과 분기로 값 하나를 정하는 블록을, `hidden-screen-prop.grit`은 화면을 `hidden`으로 숨겨 마운트해 두는 prop을, `jsx-prop-callback.grit`은 JSX prop 자리에서 만드는 콜백을, `absent-first-conditional.grit`은 값이 없는 경우를 앞에 둔 삼항을 보고합니다. Root `biome.json`이 여섯 GritQL 플러그인을 등록하며 `return` 식 플러그인을 뺀 다섯 플러그인은 테스트 코드와 생성물을 제외하는 override에서만 붙습니다. 적용 기준은 [Convention 도구 적용](../docs/rules/convention-tooling.md)을 따릅니다. `pnpm test:tooling`의 `biome-return-expression.test.mjs`, `biome-regex-literal.test.mjs`, `biome-refactoring-criteria.test.mjs`가 저장소 설정을 임시 디렉터리에 복사해 거부, 허용 사례와 제외 범위를 검증합니다.
 
 ## `format-date`
 
