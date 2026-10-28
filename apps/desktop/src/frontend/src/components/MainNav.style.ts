@@ -34,7 +34,7 @@ export const styles = stylex.create({
     transitionDuration: motion.durHover,
     transitionTimingFunction: motion.ease
   },
-  // 자른 모서리가 바깥 포커스 선을 가리므로 현재 항목은 면 안쪽에 선을 그린다.
+  // 자른 모서리가 바깥 포커스 링을 가리므로 현재 항목은 면 안쪽에 선을 그린다.
   currentFocus: {
     ':focus-visible': { outline: `2px solid ${colors.signal}`, outlineOffset: -4 }
   },

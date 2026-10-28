@@ -70,7 +70,7 @@ export function useManualCharacterLookup(
     }
   }, [api, notifyOcr, reset, slotCount])
 
-  // 캡처 회차는 수명을 새로 시작해 모든 자리를 비우고, 그 뒤의 서버 지정 조회도 회차의 수명을 쓴다. 회차가
+  // 캡처 회차는 수명을 새로 시작해 모든 슬롯을 비우고, 그 뒤의 서버 지정 조회도 회차의 수명을 쓴다. 회차가
   // 취소되면 그 시작을 버리고 다음 조회가 수명을 다시 시작한다.
   const beginRound = useCallback(
     (signal: AbortSignal): Promise<string | null> => {

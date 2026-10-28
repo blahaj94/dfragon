@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, space } from '@dfragon/ui/tokens.stylex'
 
-// 카드 꺾쇠의 호버 움직임과 자리 포커스 선(바깥 4px)이 스크롤 영역 가장자리에서 잘리지 않도록 영역을 그만큼
+// 카드 꺾쇠의 호버 움직임과 자리 포커스 링(바깥 4px)이 스크롤 영역 가장자리에서 잘리지 않도록 영역을 그만큼
 // 넓히고 안쪽을 비운다.
 const EDGE_ROOM = 4
 // 스크롤 막대 두께. 세로 막대 자리를 늘 비워 두어 막대가 생겨도 카드 폭이 바뀌지 않고 오른쪽 여백이 16으로 같다.
@@ -15,7 +15,7 @@ export const styles = stylex.create({
     minHeight: 0,
     gap: space.s12
   },
-  // 머리는 고정하고 보드만 스크롤한다. 창이 낮아 넘치면 보드 영역이 세로로 스크롤한다. 세로 막대는
+  // 헤더는 고정하고 보드만 스크롤한다. 창이 낮아 넘치면 보드 영역이 세로로 스크롤한다. 세로 막대는
   // 콘텐츠 영역의 오른쪽 여백(App.style.ts `content`의 좌우 16) 안에 둔다. 여백보다 더 튀어나오면 콘텐츠
   // 영역에 가로 스크롤이 생긴다.
   scroller: {

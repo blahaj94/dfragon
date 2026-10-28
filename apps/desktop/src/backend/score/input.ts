@@ -16,7 +16,7 @@ export type ScoreEngineInput = Readonly<{
   items: Readonly<Record<string, JsonObject>>
 }>
 
-// API는 basic 응답의 머리만 character로 남기므로 모든 문서의 머리를 이 값으로 복원한다.
+// API는 basic 응답의 상단 필드만 character로 남기므로 모든 문서의 상단 필드를 이 값으로 복원한다.
 const RESPONSE_HEADER_FIELDS = [
   'serverId',
   'characterId',

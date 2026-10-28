@@ -29,7 +29,7 @@ export const styles = stylex.create({
   },
   round: { color: colors.signal },
   total: { color: colors.fgSubtle },
-  // title 툴팁이 뜨도록 상단 바의 끌기 영역에서 뺀다.
+  // title 툴팁이 뜨도록 상단 바의 드래그 영역에서 뺀다.
   notice: {
     position: 'relative',
     WebkitAppRegion: 'no-drag',

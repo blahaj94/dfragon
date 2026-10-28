@@ -109,7 +109,7 @@ export type CaptureSearchLifetime = {
   begin: (binding: Omit<CaptureBinding, 'captureId'>) => SearchCommandResult
   end: (captureId: string) => SearchCommandResult
   invalidate: () => void
-  /** 진행 중인 OCR 기원 요청을 취소하고 그 자리를 비운다. 끝난 자리와 서버를 고른 조회는 유지한다. */
+  /** 진행 중인 OCR에서 시작한 요청을 취소하고 그 슬롯을 비운다. 끝난 슬롯과 서버를 고른 조회는 유지한다. */
   cancelOcrRequests: () => void
   observe: (input: SearchObservation) => SearchCommandResult
   observeOcr: (input: OcrSearchObservation) => SearchCommandResult
@@ -283,7 +283,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
         changed = true
       }
     }
-    // 이전 창에서 정한 자리의 상세도 받지 않는다. 고른 이름과 서버는 남기고 점수만 비운다.
+    // 이전 창에서 정한 슬롯의 상세도 받지 않는다. 고른 이름과 서버는 남기고 점수만 비운다.
     const failedDetails = failPendingDetails((slot) => ocrInputs[slot] !== null)
 
     if (changed || failedDetails) {
@@ -471,7 +471,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const startedAt = runtime.clock.read().monotonicMs
     const ocrInput = 'candidateNicknames' in input ? cloneOcrInput(input) : null
     const manualServerId = 'serverId' in input ? input.serverId : undefined
-    // 이전 창으로 시작한 OCR 입력은 자리를 지우기 전에 거절해 OCR 기원을 잃은 채 다시 시도되지 않게 한다.
+    // 이전 창으로 시작한 OCR 입력은 슬롯을 지우기 전에 거절해 OCR에서 시작했다는 사실을 잃은 채 다시 시도되지 않게 한다.
     if (ocrInput !== null && binding !== null && !isCurrentOcrBinding(binding)) {
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
@@ -653,7 +653,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   }
 
   /**
-   * 어느 슬롯이든 조회 중이면 시작하지 않아, 회차의 모든 자리가 이름과 서버를 먼저 정한 뒤 상세를 받는다.
+   * 어느 슬롯이든 조회 중이면 시작하지 않아, 회차의 모든 슬롯이 이름과 서버를 먼저 정한 뒤 상세를 받는다.
    */
   function startNextDetails(): void {
     const runtime = options.runtime
