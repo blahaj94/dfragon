@@ -42,6 +42,7 @@ export function Preview(): React.JSX.Element {
   const [captureState, setCaptureState] = useState('idle')
   const [selectedSourceId, setSelectedSourceId] = useState('')
   const [completedAt, setCompletedAt] = useState<number | null>(null)
+  const [retryStartedAt, setRetryStartedAt] = useState(() => performance.now())
   const searchMode = useSearchModeStore((state) => state.searchMode)
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
   const [partyRound, setPartyRound] = useState(0)
@@ -166,6 +167,7 @@ export function Preview(): React.JSX.Element {
                 sources,
                 sourcesLoading: false,
                 sourcesFailed: false,
+                retryStartedAt,
                 refreshSources: () => {},
                 selectedSourceId,
                 sourceReady: selectedSourceId.length > 0,
@@ -298,6 +300,7 @@ export function Preview(): React.JSX.Element {
           onChange={(event) => {
             const state = event.target.value
             setCaptureState(state)
+            setRetryStartedAt(performance.now())
             setCompletedAt(state === 'complete' ? Date.now() - 12_000 : null)
             const hasSource =
               state === 'selecting' ||

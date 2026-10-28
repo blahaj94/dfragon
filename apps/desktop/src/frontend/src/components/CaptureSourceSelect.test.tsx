@@ -25,6 +25,7 @@ beforeEach(() => {
       ],
       sourcesLoading: false,
       sourcesFailed: false,
+      retryStartedAt: 0,
       refreshSources: vi.fn(),
       selectedSourceId: 'game',
       sourceReady: true,
@@ -348,20 +349,19 @@ it('새로고침 버튼은 창 목록을 다시 조회하고 대화상자를 연
 
 it('창을 찾는 동안 재조회 진행 막대가 마지막 조회 완료부터 15초 주기로 차고 새 조회 때 다시 시작한다', async () => {
   const start = 120_000
-  const now = vi.spyOn(performance, 'now').mockReturnValue(start)
+  const now = vi.spyOn(performance, 'now').mockReturnValue(start + 6_000)
   props.phase = 'idle'
   props.source.selectedSourceId = ''
   props.source.sources = []
-  await render()
-  now.mockReturnValue(start + 6_000)
-  await click(chip())
+  props.source.retryStartedAt = start
+  await openDialog()
   const timing = (name: string) => retryProgress()!.style.getPropertyValue(`--x-${name}`)
   expect(timing('animationDuration')).toBe('15000ms')
   expect(timing('animationDelay')).toBe('-6000ms')
   now.mockReturnValue(start + 9_000)
   await render()
   expect(timing('animationDelay')).toBe('-6000ms')
-  props.source.sources = []
+  props.source.retryStartedAt = start + 9_000
   await render()
   expect(timing('animationDelay')).toBe('0ms')
   now.mockRestore()

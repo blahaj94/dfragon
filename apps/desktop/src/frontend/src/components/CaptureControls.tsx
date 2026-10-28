@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId } from 'react'
 import { Dialog } from '@base-ui/react/dialog'
 import * as stylex from '@stylexjs/stylex'
 import { windowChromeStyles } from '../constants/window-chrome.style'
@@ -55,13 +55,6 @@ export function CaptureControls({
     failed: source.sourcesFailed,
     hasDetectedSource: detected.length > 0
   })
-  // 대화상자를 늦게 열어도 재조회 진행 막대가 다음 자동 조회까지 남은 시간과 맞도록, 상단 바에 늘 있는
-  // 이 컴포넌트가 새 목록을 받은 시각을 기억한다. 벽시계가 바뀌어도 실제 타이머와 어긋나지 않도록 단조
-  // 시계로 잰다.
-  const [retry, setRetry] = useState(() => ({ sources, startedAt: performance.now() }))
-  if (retry.sources !== sources) {
-    setRetry({ sources, startedAt: performance.now() })
-  }
 
   return (
     <DialogRoot
@@ -104,7 +97,7 @@ export function CaptureControls({
               loading={source.sourcesLoading}
               failed={source.sourcesFailed}
               ready={searchReady}
-              retryStartedAt={retry.startedAt}
+              retryStartedAt={source.retryStartedAt}
               onSelect={source.selectSource}
             />
           </div>
