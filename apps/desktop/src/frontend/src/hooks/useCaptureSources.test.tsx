@@ -99,13 +99,16 @@ it('조회 실패도 재시도하고 성공하면 목록 오류 상태를 해제
 
 it('재조회 시작 시각은 목록을 받을 때만 그 시각으로 바뀌고 조회 실패와 폐기한 응답은 바꾸지 않는다', async () => {
   const now = vi.spyOn(performance, 'now').mockReturnValue(1_000)
+  const failed = Promise.withResolvers<Awaited<ReturnType<typeof listCaptureSources>>>()
   const late = Promise.withResolvers<Awaited<ReturnType<typeof listCaptureSources>>>()
   listCaptureSources
-    .mockRejectedValueOnce(new Error('synthetic internal error'))
+    .mockReturnValueOnce(failed.promise)
     .mockResolvedValueOnce([other])
     .mockReturnValueOnce(late.promise)
     .mockResolvedValueOnce([other])
   await mount()
+  now.mockReturnValue(1_500)
+  await act(async () => failed.reject(new Error('synthetic internal error')))
   expect(current.sourcesFailed).toBe(true)
   expect(current.retryStartedAt).toBe(1_000)
 
