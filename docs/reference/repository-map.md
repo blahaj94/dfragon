@@ -83,7 +83,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 - Process boundary: `main`, `preload`, `renderer`
 - TypeScript: `tsconfig.node.json`, `tsconfig.web.json`에 `composite: false`, `noEmit: true`와 base 설정의 `noImplicitAny: false`를 덮어쓰는 `noImplicitAny: true`를 정의하며 에디터와 `typecheck`는 같은 설정을 사용한다. Root `tsconfig.json`은 빈 `files`와 두 프로젝트 참조로 에디터의 프로젝트 탐색을 연결한다. 타입 검사는 각 설정에 `tsc -p`를 실행하고 제품 산출물은 electron-vite가 생성한다.
 - Main entry: `src/backend/main.ts` → `out/backend/main.js`
-- 캐릭터 검색: main 검색 수명, HTTP와 preload/renderer의 위치 및 검증은 [`desktop-character-search.md`](desktop-character-search.md)를 참고한다. 실제 서버 소비 검증은 별도 `apps/desktop/scripts/search-server-integration/README.md`를 따른다.
+- 캐릭터 검색: main 검색 수명, HTTP와 preload/renderer의 위치 및 검증은 [`desktop-character-search.md`](desktop-character-search.md)를 참고한다.
 - Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 아래 역할로 나눈다. 실행 진입점 `main.tsx`, `App.tsx`와 App 테스트는 root에 둔다.
   - `constants/`: 서버 목록, 카드 표시 값, 캡처 설정과 공유 StyleX 변수, 테마.
   - `components/`: `CardImage`, `CaptureControls`처럼 독립적으로 쓸 수 있는 UI와 전용 스타일, 테스트를 하위 폴더 없이 둔다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. 이미지 실패, 입력 draft 같은 자체 UI 상태를 가질 수 있다.

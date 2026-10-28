@@ -132,7 +132,7 @@ GitHub 이미지 빌드, 발행은 내장 정보와 선택한 정확한 commit�
 
 ## `verify`
 
-`pnpm verify`는 저장소 검사를 로컬에서 실행합니다. GitHub Actions에는 CI 검사가 없으므로 이 명령이 기본 검사입니다. Root `pnpm test`도 같은 명령입니다. 정적 검사(`lint`, `format:check`, `check:writing`, `check:docs`), 루트 도구 테스트, 공용 package, Desktop test와 typecheck, API, Desktop 검색 통합 job의 run 명령을 차례로 실행합니다.
+`pnpm verify`는 저장소 검사를 로컬에서 실행합니다. GitHub Actions에는 CI 검사가 없으므로 이 명령이 기본 검사입니다. Root `pnpm test`도 같은 명령입니다. 정적 검사(`lint`, `format:check`, `check:writing`, `check:docs`), 루트 도구 테스트, 공용 package, Desktop test와 typecheck, API job의 run 명령을 차례로 실행합니다.
 
 명령 목록은 `scripts/verify.mjs`에 있습니다.
 

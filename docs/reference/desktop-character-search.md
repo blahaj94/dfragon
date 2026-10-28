@@ -21,7 +21,7 @@ Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-�
 | `apps/desktop/src/backend/search/card-assembler.ts`                                                                                                            | 상세 응답의 `card`에서 역할만 읽고 그 역할로 계산기를 골라 점수 엔진 결과를 채운다.                                                                          |
 | `apps/desktop/src/backend/score/input.ts`, `engine.ts`                                                                                                         | 상세 응답을 엔진 입력 문서로 되돌리고, koffi로 연 라이브러리의 호출, 해제, 결과 검증과 실패 정제를 맡는다.                                                           |
 | `apps/desktop/scripts/prepare-score-engine.mjs`, `apps/desktop/score-engine.config.mjs`                                                                        | `@dfragon/models`의 score-engine submodule에서 플랫폼별 엔진을 `resources/score/`로 복사한다. submodule을 받지 않았으면 건너뛴다.                                     |
-| `apps/desktop/src/backend/search/http.ts`                                                                                                                      | 고정 `GET /characters`, 선택 query 생략, HTTP/UTF-8/JSON/전체 후보 검증과 다섯 field projection을 수행한다.                                                          |
+| `apps/desktop/src/backend/search/http.ts` | 검색 HTTP 클라이언트가 함께 쓰는 실패 타입 `SearchHttpFailure`를 둔다. |
 | `apps/desktop/src/backend/search/retry-after.ts`                                                                                                               | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
 | `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                                 | Shared DTO, 오류 문구, feature API와 exact own shape, 상태 조합 검증을 정의한다.                                                                                        |
 | `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                                    | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
@@ -29,15 +29,15 @@ Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-�
 | `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                | XState가 Start별 시작, 종료 수명을 관리하고, factory와 hook은 로컬 관측 revision, 결과 필터, 슬롯별 retry를 연결한다.                                                   |
 | `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `apps/desktop/src/frontend/src/lib/party-recognition.ts`                                     | 이전 검색, 인식 상태를 비우고 begin 완료 뒤 프레임 한 장으로 OCR과 검색을 연결한다. 늦은 begin의 자기 ID 정리와 회차 종료 뒤 결과 차단을 유지한다.                              |
 
-`createCaptureSearch`는 호출마다 연결, actor, 관측 상태를 클로저에 보관하고 제어 함수를 반환한다. 표시할 슬롯의 계산은 상태를 변경하지 않는 순수 함수로 분리한다. 캡처 검색 수명은 `idle → starting → active`와 `invalidated`, 최종 `disposed` 상태로 관리한다. 새 begin, end, 무효화, dispose는 이전 시작 actor를 종료한다. 시작 actor는 종료 뒤에도 직접 응답을 기다려 자신이 생성한 늦은 ID만 end하고 호출자에게 null을 반환한다. Main이 종료를 알린 수명은 로컬 상태만 비우며 END를 중복 전송하지 않는다. 슬롯의 관측 revision, clear, 결과 필터, retry 정책은 기존 일반 로직을 유지한다.
+`createCaptureSearch`는 호출마다 연결, actor, 관측 상태를 클로저에 보관하고 제어 함수를 반환한다. 표시할 슬롯의 계산은 상태를 변경하지 않는 순수 함수로 분리한다. 캡처 검색 수명은 `idle → starting → active`와 `invalidated`, 최종 `disposed` 상태로 관리한다. 새 begin, end, 무효화, dispose는 이전 시작 actor를 종료한다. 시작 actor는 종료 뒤에도 직접 응답을 기다려 자신이 생성한 늦은 ID만 end하고 호출자에게 null을 반환한다. Main이 종료를 알린 수명은 로컬 상태만 비우며 END를 중복 전송하지 않는다. 슬롯의 관측 revision, 결과 필터, retry 정책은 OCR 통지와 서버를 고른 조회가 함께 쓴다.
 
 Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. 응답이 유실되면 read로 상태를 확인하지만 그 결과의 ID를 늦은 Start의 소유로 추정해 end하지 않는다. 해당 시작은 창을 다시 선택하도록 안내하며 같은 begin을 자동 재전송하지 않는다. 새 source 선택은 기존 main 선택/capture 무효화 경로를 사용한다.
 
-`createCaptureSearchLifetime`은 각 슬롯에 XState actor를 만든다. 요청을 준비한 뒤 pending snapshot을 동기 발행하고, 해당 요청이 여전히 유효할 때만 HTTP를 시작한다. 새 이름의 관측, clear, end는 이전 요청과 429 timer를 취소한다. 같은 이름의 새 관측은 기존 요청의 observation revision만 올리며, 15초 예산을 재시작하지 않는다. 429 대기가 끝나면 retry 가능 상태만 발행하고 GET을 자동 재전송하지 않는다.
+`createCaptureSearchLifetime`은 각 슬롯에 XState actor를 만든다. 요청을 준비한 뒤 pending snapshot을 동기 발행하고, 해당 요청이 여전히 유효할 때만 HTTP를 시작한다. 새 OCR 관측이나 조회, end는 이전 요청과 429 timer를 취소한다. 같은 OCR 입력의 새 관측은 기존 요청의 observation revision만 올리며, 15초 예산을 재시작하지 않는다. 429 대기가 끝나면 retry 가능 상태만 발행하고 GET을 자동 재전송하지 않는다.
 
 `createSearchConnection`은 연결마다 별도 XState actor를 클로저에 보관한다. `isReady()`는 호출 시점의 동기화 상태를 읽고, 명령은 호출 당시 actor를 참조해 재연결 후 늦은 응답을 격리한다. 구독의 초기 기준과 마지막 조회의 성공 여부를 병렬 상태로 표현한다. 이미 초기 기준을 세운 연결은 복구 조회에 실패해도 후속 event를 표시할 수 있지만, 다시 조회에 성공하기 전까지 새 begin은 차단한다. 초기 조회 성공 전 event는 최신 revision만 보류하며, 재연결, dispose는 이전 actor와 구독을 종료한다. 슬롯별 명령은 직렬화하지 않고 직접 응답을 각각 돌려준다. 종료된 actor에는 명령, 복구 조회 결과를 반영하지 않지만, 늦은 begin의 직접 응답과 그 ID의 end 전송은 캡처 정리를 위해 유지한다.
 
-검색 run이 바뀌면 이전 구독, 표시, capture resource를 버리고 새 검색 조회를 시작한다. 초기 read가 성공하기 전에는 Start와 직접 begin 호출을 차단하며, 조회 실패 시 기존 앱 화면 다시 열기 안내를 유지하고 event만으로 회복하거나 자동 재시도하지 않는다. 로컬 관측, clear, Stop, source 변경은 main 응답을 기다리지 않고 이전 표시를 가린다. Renderer와 preload는 같은 DTO 검증기를 각각의 경계에서 사용한다.
+검색 run이 바뀌면 이전 구독, 표시, capture resource를 버리고 새 검색 조회를 시작한다. 초기 read가 성공하기 전에는 Start와 직접 begin 호출을 차단하며, 조회 실패 시 기존 앱 화면 다시 열기 안내를 유지하고 event만으로 회복하거나 자동 재시도하지 않는다. 로컬 관측, Stop, source 변경은 main 응답을 기다리지 않고 이전 표시를 가린다. Renderer와 preload는 같은 DTO 검증기를 각각의 경계에서 사용한다.
 
 ## 공통 Windows 화면 획득
 
@@ -57,7 +57,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 각 클라이언트는 호출자의 AbortSignal을 사용하고 자동 재시도나 새로운 전체 검색 시간 예산을 만들지 않는다. 호출 제한은 헤더를 받은 시점을 함께 전달하며, 상세 조회의 오류도 기존 검색 오류 형태로 정제한다. 원격 오류 원문은 화면으로 전달하지 않는다.
 
-제품의 OCR 전용 관측은 아래 IPC 경로로 식별 함수를 사용한다. 기존 수동 검색은 `/characters`의 일반 검색을 유지하며 카드의 수동 서버 조회는 지정한 서버와 이름에 맞는 실제 캐릭터 상세를 선택한다. API origin이 설정된 제품은 후보 이미지 다운로드와 색 비교를 연결한다. 얼굴 크롭을 사용할 수 없어도 이름 검색 결과가 있으면 최고 명성 후보를 대체 표시한다. HTTP 클라이언트 테스트와 실제 게임의 식별 성공을 구분한다.
+제품의 OCR 전용 관측은 아래 IPC 경로로 식별 함수를 사용한다. 카드의 수동 서버 조회는 지정한 서버와 이름에 맞는 실제 캐릭터 상세를 선택한다. 앱은 `/characters`의 일반 검색을 호출하지 않는다. API origin이 설정된 제품은 후보 이미지 다운로드와 색 비교를 연결한다. 얼굴 크롭을 사용할 수 없어도 이름 검색 결과가 있으면 최고 명성 후보를 대체 표시한다. HTTP 클라이언트 테스트와 실제 게임의 식별 성공을 구분한다.
 
 ## 얼굴 크롭의 교체 경계와 비교 입력
 
@@ -123,7 +123,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 `backend/search/identify.ts`의 `createCharacterIdentifier`는 후보 검색, 후보 이미지 한 장 확보, 얼굴 거리 계산이라는 업무 연산과 선택 기준(`maxDistance`, `minMargin`, `maxCandidates`)을 받는다. 전달된 OCR 이름 중 첫 번째만 사용하고 첫 이름이 비어 있거나 잘못돼도 두 번째를 승격하지 않는다. 식별 규칙은 HTTP 구현, clock, 취소 신호, 현재 요청 여부와 실행 제어에 의존하지 않는다.
 
-`backend/search/request.ts`는 일반 검색, 지정 서버 수동 조회와 OCR 식별의 요청 경계다. 요청마다 업무 연산을 `operation.ts`의 실행 범위에 연결하고, 후보 이미지 다운로드와 거리 계산을 식별기에 이어 준다. 선택된 상세는 슬롯 요약으로 투영하며 `selectionMethod`의 `portrait`, `job`, `fame`, `highest-fame`, `manual`로 선택 근거를 전달한다. `job`, `fame`은 공대 식별에서만 나온다. 선택을 확정하지 못했으면 사용자가 고를 후보를 `choices`로 함께 전달한다. HTTP 클라이언트와 이미지 큐, 캐시는 요청마다 다시 생성하지 않는다.
+`backend/search/request.ts`는 지정 서버 수동 조회와 OCR 식별의 요청 경계다. 요청마다 업무 연산을 `operation.ts`의 실행 범위에 연결하고, 후보 이미지 다운로드와 거리 계산을 식별기에 이어 준다. 선택된 상세는 슬롯 요약으로 투영하며 `selectionMethod`의 `portrait`, `job`, `fame`, `highest-fame`, `manual`로 선택 근거를 전달한다. `job`, `fame`은 공대 식별에서만 나온다. 선택을 확정하지 못했으면 사용자가 고를 후보를 `choices`로 함께 전달한다. HTTP 클라이언트와 이미지 큐, 캐시는 요청마다 다시 생성하지 않는다.
 
 첫 이름이 유효하면 한 번 검색한다. 후보가 없으면 조회 실패이며 두 번째 이름을 시도하지 않는다. 후보는 명성 내림차순, null 후순위로 정렬하고 상위 `maxCandidates`명 전원의 얼굴 거리를 구한 뒤에 고른다. 한 후보의 이미지나 점수가 없어도 나머지 후보를 계속 비교한다.
 
@@ -138,7 +138,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 거리를 하나도 구하지 못한 최고 명성 선택은 얼굴 일치와 구분해 진단 코드 `SEARCH_APPEARANCE_FALLBACK`을 남기고, 공대 수명의 최고 명성 선택은 `SEARCH_RAID_ROW_FALLBACK`을 남긴다. 실행 계층은 취소와 만료를 우선하므로 중단된 요청이 대체 선택을 발행하지 않는다. 후보나 상세 조회 실패는 기존 정제된 오류로 남고 상세의 호출 제한도 원래 헤더 수신 시각을 보존한다.
 
-`backend/search/operation.ts`는 일반 검색과 식별 흐름에 처음 접수부터 15초인 공통 시간 예산을 적용한다. 요청 경계에 제공하는 `run`이 각 연산의 호출 전, 성공 후, 실패 후에 현재 요청과 남은 예산을 확인하며 전체 결과 전달 전에도 다시 확인한다. 같은 취소 신호를 HTTP와 이미지 연산에 연결하지만 식별 서비스에 검사 콜백을 전달하지 않는다. 캡처가 끝나거나 요청이 오래된 상태이면 늦은 결과를 버리고 시간 초과 후 대체 후보의 상세를 새로 조회하지 않는다. 취소, 만료와 429는 최고 명성 대체 표시보다 우선한다. 이미지 다운로드가 전체 예산을 소모하면 최고 명성 대신 시간 초과가 표시되는 한계가 있다.
+`backend/search/operation.ts`는 식별과 상세 조회 흐름에 처음 접수부터 15초인 공통 시간 예산을 적용한다. 요청 경계에 제공하는 `run`이 각 연산의 호출 전, 성공 후, 실패 후에 현재 요청과 남은 예산을 확인하며 전체 결과 전달 전에도 다시 확인한다. 같은 취소 신호를 HTTP와 이미지 연산에 연결하지만 식별 서비스에 검사 콜백을 전달하지 않는다. 캡처가 끝나거나 요청이 오래된 상태이면 늦은 결과를 버리고 시간 초과 후 대체 후보의 상세를 새로 조회하지 않는다. 취소, 만료와 429는 최고 명성 대체 표시보다 우선한다. 이미지 다운로드가 전체 예산을 소모하면 최고 명성 대신 시간 초과가 표시되는 한계가 있다.
 
 `identify.test.ts`는 실행 환경 없이 첫 이름만 사용, 후보 순서, 후보 전원 비교, 거리 상한과 margin의 확정 경계, 점수 없는 후보가 섞인 1위 선택, 최고 명성 선택과 `choices`의 내용을 검증한다. `request.test.ts`는 실제 식별기와 요청 경계를 연결해 공통 취소 신호, 15초 예산, 늦은 응답 차단, 실패 우선순위와 공개 결과 변환을 검증한다. 슬롯과 IPC 수명은 기존 통합 테스트를 유지한다.
 
@@ -158,7 +158,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNicknames, portrait }`다. Main은 기존 sender, main frame, exact document 검사를 적용하고 후보 개수, 이름, 별칭의 일치, 이미지와 마스크 크기, 배율을 검증한다. 얼굴은 최대 512px/축, 262,144픽셀이며 원본 버퍼를 복사해 보관한다. 이 데이터는 로컬 프로세스 사이에서만 전달하고 API에 업로드하지 않는다.
 
-크롭 null도 후보를 조회해 최고 명성 선택을 시도한다. 비교기를 구성하지 않은 fixture나 API 미설정 상태의 `waiting-policy`는 유지한다. 제품 main은 `portraitColorPolicy`(`INITIAL_PORTRAIT_COLOR_POLICY`) 하나를 구성하며 정책은 renderer가 보낼 수 없다. clear, 캡처 종료, source와 document 변경은 이전 요청과 얼굴을 모두 비운다. 수동 카드 조회는 별도 수명에서 같은 취소와 최신성 검사를 적용한다.
+크롭 null도 후보를 조회해 최고 명성 선택을 시도한다. 비교기를 구성하지 않은 fixture나 API 미설정 상태의 `waiting-policy`는 유지한다. 제품 main은 `portraitColorPolicy`(`INITIAL_PORTRAIT_COLOR_POLICY`) 하나를 구성하며 정책은 renderer가 보낼 수 없다. 캡처 종료, source와 document 변경은 이전 요청과 얼굴을 모두 비운다. 수동 카드 조회는 별도 수명에서 같은 취소와 최신성 검사를 적용한다.
 
 성공한 슬롯의 `selected`에는 검증된 기본 요약과 [카드](#카드-전달과-점수-엔진)만 넣는다. 명성, 레벨, 직업과 모험단의 잘못된 표시 타입이나 누락은 null이며 다른 값으로 추정하지 않는다. 전체 상세는 main에 남기며 renderer에 보내지 않는다. 일치 기준은 [얼굴 비교와 일치 기준](#얼굴-비교와-일치-기준)의 로컬 실표본 평가로 정했으며 더 많은 실시간 표본의 검증이 필요하다.
 
@@ -224,7 +224,7 @@ pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 
-일반 tests는 API, DB, 네이티브 캡처를 실행하지 않는다. 실제 API, disposable DB 소비 검증은 `apps/desktop/scripts/search-server-integration/README.md`의 별도 command와 격리를 따른다. 이는 Desktop HTTP 클라이언트 소비 검증이며 auth waiter, slot, IPC, renderer, 실제 캡처, OCR 성공을 대신하지 않는다.
+일반 tests는 API, DB, 네이티브 캡처를 실행하지 않는다.
 
 ## 카드 직접 조회와 공대 식별
 
