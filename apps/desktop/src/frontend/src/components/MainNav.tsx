@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Menu, shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import { windowChromeStyles } from '../constants/window-chrome.style'
@@ -18,54 +17,62 @@ function isSearchMode(value: unknown): value is SearchMode {
 
 export function MainNav(): React.JSX.Element {
   const searchMode = useSearchModeStore((state) => state.searchMode)
-  const changeSearchMode = useSearchModeStore((state) => state.changeSearchMode)
-  const [open, setOpen] = useState(false)
   const current = SEARCH_MODES.find((mode) => mode.value === searchMode)
 
   return (
     <nav aria-label="주 메뉴" {...stylex.props(windowChromeStyles.noDrag, styles.nav)}>
-      <Menu.Root open={open} onOpenChange={(next) => setOpen(next)}>
-        <Menu.Trigger
-          aria-current="page"
-          render={
-            <button
-              type="button"
-              {...stylex.props(
-                styles.item,
-                styles.current,
-                styles.currentFocus,
-                open && styles.open,
-                shapes.cutTopRight
-              )}
-            />
-          }
-        >
-          검색
-          <span {...stylex.props(styles.sub, open && styles.onSignal)}>{current?.label}</span>
-          <ChevronDownIcon
-            width={12}
-            height={12}
-            strokeWidth={2.5}
-            {...stylex.props(styles.chevron, open && styles.onSignal, open && styles.chevronOpen)}
-          />
-        </Menu.Trigger>
+      <Menu.Root>
+        <SearchMenuTrigger modeLabel={current?.label} />
         <Menu.Popup aria-label="검색">
-          <Menu.RadioGroup
-            value={searchMode}
-            onValueChange={(value) => {
-              if (isSearchMode(value)) {
-                changeSearchMode(value)
-              }
-            }}
-          >
-            {SEARCH_MODES.map((mode) => (
-              <Menu.RadioItem key={mode.value} value={mode.value} closeOnClick>
-                {mode.label}
-              </Menu.RadioItem>
-            ))}
-          </Menu.RadioGroup>
+          <SearchModeRadioGroup />
         </Menu.Popup>
       </Menu.Root>
     </nav>
+  )
+}
+
+function SearchMenuTrigger({ modeLabel }: { modeLabel: string | undefined }): React.JSX.Element {
+  return (
+    <Menu.Trigger
+      aria-current="page"
+      render={
+        <button
+          type="button"
+          {...stylex.props(
+            styles.item,
+            styles.current,
+            styles.currentFocus,
+            shapes.cutTopRight,
+            stylex.defaultMarker()
+          )}
+        />
+      }
+    >
+      검색
+      <span {...stylex.props(styles.sub)}>{modeLabel}</span>
+      <ChevronDownIcon width={12} height={12} strokeWidth={2.5} {...stylex.props(styles.chevron)} />
+    </Menu.Trigger>
+  )
+}
+
+function SearchModeRadioGroup(): React.JSX.Element {
+  const searchMode = useSearchModeStore((state) => state.searchMode)
+  const changeSearchMode = useSearchModeStore((state) => state.changeSearchMode)
+
+  return (
+    <Menu.RadioGroup
+      value={searchMode}
+      onValueChange={(value) => {
+        if (isSearchMode(value)) {
+          changeSearchMode(value)
+        }
+      }}
+    >
+      {SEARCH_MODES.map((mode) => (
+        <Menu.RadioItem key={mode.value} value={mode.value} closeOnClick>
+          {mode.label}
+        </Menu.RadioItem>
+      ))}
+    </Menu.RadioGroup>
   )
 }
