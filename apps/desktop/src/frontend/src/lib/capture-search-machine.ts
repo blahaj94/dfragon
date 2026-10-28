@@ -30,30 +30,31 @@ type LifetimeContext = {
   captureId: string | null
 }
 
-export function inspectCaptureStart(
+function inspectCaptureStart(
   result: SearchCommandResult | null,
   latest: SearchSnapshot | null,
   signal: AbortSignal
 ): StartResult {
   const captureId = result?.ok === true ? result.snapshot.captureId : null
-  const completed = result?.snapshot
-  let superseded = false
-  if (latest != null) {
-    if (completed != null) {
-      const changedRun = latest.runId !== completed.runId
-      const newerSnapshot = latest.revision > completed.revision
-      const differentCapture = latest.captureId !== captureId
-      superseded = changedRun || (newerSnapshot && differentCapture)
-    } else {
-      // 응답이 없어도 기존 snapshot 접근, 취소 판정 순서를 유지한다.
-      const differentCapture = latest.captureId !== captureId
-      superseded = differentCapture && completed != null
-    }
-  }
-  const aborted = signal.aborted
-  const cancelled = aborted || superseded
+  const cancelled = signal.aborted || isSupersededStart(latest, result?.snapshot, captureId)
 
   return { captureId, cancelled }
+}
+
+function isSupersededStart(
+  latest: SearchSnapshot | null,
+  completed: SearchSnapshot | undefined,
+  captureId: string | null
+): boolean {
+  if (latest == null || completed == null) {
+    return false
+  }
+
+  if (latest.runId !== completed.runId) {
+    return true
+  }
+
+  return latest.revision > completed.revision && latest.captureId !== captureId
 }
 
 // 초기 요청 actor는 종료돼도 직접 응답을 기다려 자신이 만든 늦은 capture만 정리한다.

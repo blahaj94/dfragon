@@ -66,21 +66,29 @@ function raidSelectionNotice(slot: SearchSlot): string | undefined {
   return undefined
 }
 
-export function characterSlotNotice(
-  slot: SearchSlot,
-  screen: SlotCardScreen = 'party'
-): string | undefined {
+function partySelectionNotice(slot: SearchSlot): string | undefined {
+  if (slot.selectionMethod === 'highest-fame' && slot.choices === undefined) {
+    return '외형 미확인, 최고 명성 후보입니다.'
+  }
+
+  return undefined
+}
+
+function selectionNotice(slot: SearchSlot, screen: SlotCardScreen): string | undefined {
+  if (screen === 'raid') {
+    return raidSelectionNotice(slot)
+  }
+
+  return partySelectionNotice(slot)
+}
+
+function characterSlotNotice(slot: SearchSlot, screen: SlotCardScreen): string | undefined {
   if (slot.details === 'failed') {
     return '상세 정보를 불러오지 못했습니다. 서버와 이름을 직접 조회하면 다시 불러옵니다.'
   }
-
-  if (screen === 'raid') {
-    const notice = raidSelectionNotice(slot)
-    if (notice !== undefined) {
-      return notice
-    }
-  } else if (slot.selectionMethod === 'highest-fame' && slot.choices === undefined) {
-    return '외형 미확인, 최고 명성 후보입니다.'
+  const notice = selectionNotice(slot, screen)
+  if (notice !== undefined) {
+    return notice
   }
 
   if (slot.error == null) {
