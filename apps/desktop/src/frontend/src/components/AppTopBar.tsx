@@ -15,7 +15,13 @@ export function AppTopBar(): React.JSX.Element {
       end={
         <>
           <UpdateNoticeSlot />
-          <CaptureControls capture={partyCapture} phase={controls.phase} status={controls.status} />
+          <CaptureControls
+            source={partyCapture.source}
+            searchReady={partyCapture.search.ready}
+            stopCapture={partyCapture.stopCapture}
+            phase={controls.phase}
+            status={controls.status}
+          />
         </>
       }
     />

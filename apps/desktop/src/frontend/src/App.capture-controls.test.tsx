@@ -13,8 +13,12 @@ const capture = vi.hoisted(() => {
   const stopCapture = vi.fn()
 
   return {
-    sources: [{ id: 'example-window', name: 'Example window' }],
-    selectedSourceId: '',
+    source: {
+      sources: [{ id: 'example-window', name: 'Example window' }],
+      selectedSourceId: '',
+      selectSource,
+      refreshSources
+    },
     canStartCapture: false,
     recognizing: false,
     search: {
@@ -27,8 +31,6 @@ const capture = vi.hoisted(() => {
     retrySearch,
     nicknames: [null, null, null, null],
     status: 'Ready',
-    selectSource,
-    refreshSources,
     startCapture,
     stopCapture
   }
@@ -72,13 +74,13 @@ function button(text: string): HTMLButtonElement {
 
 it('refreshes the window list while idle and disables refresh during capture', async () => {
   await act(async () => button('창 목록 새로고침').click())
-  expect(capture.refreshSources).toHaveBeenCalledExactlyOnceWith()
+  expect(capture.source.refreshSources).toHaveBeenCalledExactlyOnceWith()
 
   capture.search.captureActive = true
   await act(async () => root.render(<PartyCapture />))
   expect(button('창 목록 새로고침').disabled).toBe(true)
   await act(async () => button('창 목록 새로고침').click())
-  expect(capture.refreshSources).toHaveBeenCalledTimes(1)
+  expect(capture.source.refreshSources).toHaveBeenCalledTimes(1)
 })
 
 it('선택한 창을 전달하고 인식 간격 입력을 표시하지 않는다', async () => {
@@ -90,7 +92,7 @@ it('선택한 창을 전달하고 인식 간격 입력을 표시하지 않는다
     source.dispatchEvent(new Event('change', { bubbles: true }))
   })
 
-  expect(capture.selectSource).toHaveBeenCalledExactlyOnceWith('example-window')
+  expect(capture.source.selectSource).toHaveBeenCalledExactlyOnceWith('example-window')
 })
 
 it('blocks Start when capture cannot start and preserves allowed Start and Stop callbacks', async () => {

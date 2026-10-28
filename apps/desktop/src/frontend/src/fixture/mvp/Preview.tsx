@@ -40,7 +40,7 @@ export function Preview(): React.JSX.Element {
   const { renderBoardHeader } = useBoardHeaderPortal()
   const [scenario, setScenario] = useState('states')
   const [captureState, setCaptureState] = useState('idle')
-  const [source, setSource] = useState('')
+  const [selectedSourceId, setSelectedSourceId] = useState('')
   const [completedAt, setCompletedAt] = useState<number | null>(null)
   const searchMode = useSearchModeStore((state) => state.searchMode)
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
@@ -162,21 +162,22 @@ export function Preview(): React.JSX.Element {
           center={<BoardHeaderSlot />}
           end={
             <CaptureControls
-              capture={{
+              source={{
                 sources,
-                selectedSourceId: source,
                 sourcesLoading: false,
                 sourcesFailed: false,
-                selectSource: (id) => {
-                  setSource(id)
-                  setCaptureState(id ? 'selected' : 'idle')
-                },
                 refreshSources: () => {},
-                stopCapture: () => {
-                  setSource('')
-                  setCaptureState('idle')
-                },
-                search: { ready: true }
+                selectedSourceId,
+                sourceReady: selectedSourceId.length > 0,
+                selectSource: (id) => {
+                  setSelectedSourceId(id)
+                  setCaptureState(id ? 'selected' : 'idle')
+                }
+              }}
+              searchReady
+              stopCapture={() => {
+                setSelectedSourceId('')
+                setCaptureState('idle')
               }}
               phase={phase}
               status={getCapturePreviewStatus(captureState)}
@@ -304,7 +305,7 @@ export function Preview(): React.JSX.Element {
               state === 'complete' ||
               state === 'recognizing' ||
               state === 'unavailable'
-            setSource(hasSource ? 'preview-game' : '')
+            setSelectedSourceId(hasSource ? 'preview-game' : '')
           }}
           {...stylex.props(styles.select)}
         >
