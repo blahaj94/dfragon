@@ -1,7 +1,6 @@
 import type {
   SearchCommandResult,
   SearchControl,
-  SearchObservation,
   OcrSearchObservation,
   SearchSlot,
   SearchSnapshot
@@ -24,7 +23,6 @@ export type SearchTestApi = {
 }
 export type ObservationTestApi = {
   notifyOcrCandidatesDetected: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
-  notifyStableNicknameDetected: (observation: SearchObservation) => Promise<SearchCommandResult>
 }
 
 export function searchSlot(overrides: Partial<SearchSlot> = {}): SearchSlot {

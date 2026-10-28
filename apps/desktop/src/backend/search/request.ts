@@ -21,7 +21,7 @@ import {
   type RaidIdentificationServices
 } from './identify'
 import { toRaidObservedValues } from './raid-candidate'
-import { SearchHttpFailure, type SearchHttp } from './http'
+import { SearchHttpFailure } from './http'
 import type {
   CharacterCandidatesHttp,
   CharacterDetailsHttp,
@@ -41,7 +41,6 @@ export type IdentificationAdapters = {
 }
 
 export type SearchRuntime = {
-  http: SearchHttp
   clock: MonotonicClock
   identification?: IdentificationAdapters
   ocrIdentification?: 'portrait' | 'raid'
@@ -87,33 +86,12 @@ function displayNumber(value: CharacterJsonValue | undefined): number | null {
   return null
 }
 
-export async function runSearchRequest(input: RequestInput): Promise<SearchOutcome> {
-  if (input.ocrInput !== undefined || input.manualServerId !== undefined) {
-    return runIdentificationRequest(input)
-  }
-  const outcome = await runSearchOperation(
-    {
-      clock: input.runtime.clock,
-      startedAt: input.startedAt,
-      signal: input.signal,
-      isCurrent: input.isCurrent
-    },
-    (execution) =>
-      execution.run((signal) => input.runtime.http({ nickname: input.nickname, signal }))
-  )
-  if (outcome === null || outcome.kind === 'failure') {
-    return outcome
-  }
-
-  return { kind: 'success', rows: outcome.value }
-}
-
 /**
- * OCR 입력은 일반 검색으로 대체하지 않고 선택된 한 캐릭터만 공개 요약으로 투영한다. OCR 식별은 이름과 서버만
+ * OCR 입력과 서버를 정한 조회 모두 선택된 한 캐릭터만 공개 요약으로 투영한다. OCR 식별은 이름과 서버만
  * 정하고 상세는 수명이 다른 슬롯의 식별을 마친 뒤 `runDetailsRequest`로 채운다. 사용자가 서버를 정한 조회는
  * 같은 요청에서 상세까지 채운다.
  */
-async function runIdentificationRequest(input: RequestInput): Promise<SearchOutcome> {
+export async function runSearchRequest(input: RequestInput): Promise<SearchOutcome> {
   const adapters = input.runtime.identification
   if (adapters === undefined) {
     return {

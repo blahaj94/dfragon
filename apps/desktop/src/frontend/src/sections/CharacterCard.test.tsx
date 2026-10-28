@@ -252,7 +252,7 @@ function decorationCount(): number {
   return card().querySelectorAll(':scope > span[aria-hidden="true"]').length
 }
 
-it('머리 줄은 서버 선택을 품은 이름 칸, 상태 표시, 스냅샷 칩 순서이고 자리 번호는 없다', async () => {
+it('헤더 줄은 서버 선택을 품은 이름 칸, 상태 표시, 스냅샷 칩 순서이고 자리 번호는 없다', async () => {
   await render({
     state: 'failure',
     character: undefined,
@@ -302,7 +302,7 @@ it('스냅샷과 자리가 다른 카드는 이름 칸 뒤에 스냅샷 순번 �
   expect(lookup).toHaveBeenCalledExactlyOnceWith('찾은이름', 'bakal')
 })
 
-it('스냅샷에 없는 모험단 카드는 ! 칩과 카드를 덮는 장식 층을 보이고 꺾쇠 상태는 그대로 둔다', async () => {
+it('스냅샷에 없는 모험단 카드는 ! 칩과 카드를 덮는 장식 레이어를 보이고 꺾쇠 상태는 그대로 둔다', async () => {
   await render({ state: 'success', character: found })
   const decorations = decorationCount()
   await render({ state: 'success', character: found, snapshotMark: { kind: 'absent' } })
@@ -314,7 +314,7 @@ it('스냅샷에 없는 모험단 카드는 ! 칩과 카드를 덮는 장식 층
   expect(card().querySelector('[aria-label^="스냅샷 순번"]')).toBeNull()
 })
 
-it('스냅샷 표시를 걷으면 칩과 덮는 층이 함께 사라진다', async () => {
+it('스냅샷 표시를 걷으면 칩과 오버레이가 함께 사라진다', async () => {
   await render({ state: 'success', character: found })
   const decorations = decorationCount()
   await render({ state: 'success', character: found, snapshotMark: { kind: 'absent' } })

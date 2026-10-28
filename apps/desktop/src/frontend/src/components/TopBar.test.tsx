@@ -24,9 +24,9 @@ async function render(props: Partial<ComponentProps<typeof TopBar>> = {}): Promi
   await act(async () =>
     root.render(
       <TopBar
-        nav={<nav aria-label="주 메뉴">내비</nav>}
-        boardRef={() => {}}
-        capture={
+        start={<nav aria-label="주 메뉴">내비</nav>}
+        center={null}
+        end={
           <button aria-label="화면 캡처, 창 감지됨">
             <span data-tone="success">창 감지됨</span>
           </button>
@@ -69,27 +69,12 @@ it('상단 바는 로고, 내비, 게임 연결 상태 순서로 표시하고 �
   }
 })
 
-it('내비와 게임 연결 상태 사이의 화면 머리 자리 요소를 boardRef로 넘긴다', async () => {
-  let slot: HTMLDivElement | null = null
-  await render({
-    boardRef: (element) => {
-      slot = element
-    }
-  })
+it('가운데 슬롯 내용은 내비와 게임 연결 상태 사이에 둔다', async () => {
+  await render({ center: <div data-center="" /> })
   const header = container.querySelector('header')!
   const nav = header.querySelector('nav')!
+  const center = header.querySelector('[data-center]')!
   const chip = header.querySelector('[aria-label="화면 캡처, 창 감지됨"]')!
-  expect(slot).not.toBeNull()
-  expect(header.contains(slot)).toBe(true)
-  expect(nav.compareDocumentPosition(slot!) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
-  expect(slot!.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
-})
-
-it('새 버전 알림은 내비 뒤, 게임 연결 상태 칩 바로 왼쪽에 둔다', async () => {
-  await render({ notice: <button type="button">새 버전 v1.2.0</button> })
-  const header = container.querySelector('header')!
-  const nav = header.querySelector('nav')!
-  const buttons = [...header.querySelectorAll('button')]
-  expect(buttons.map(textOrLabel)).toEqual(['새 버전 v1.2.0', '화면 캡처, 창 감지됨'])
-  expect(nav.compareDocumentPosition(buttons[0]) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(nav.compareDocumentPosition(center) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(center.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
 })

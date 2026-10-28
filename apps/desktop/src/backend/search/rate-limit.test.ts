@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SearchSlot } from '../../preload/common/types/search'
-import { createSearchFixture, jsonResponse } from './search-test-fixture'
+import { createSearchFixture, jsonResponse, requestPaths } from './search-test-fixture'
 import { createCaptureSearchLifetime } from './capture-lifetime'
 import { deferred } from '../lib/async-test-fixture'
 import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { SearchHttpFailure } from './http'
+import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
 type Fixture = Awaited<ReturnType<typeof createSearchFixture>>
 
@@ -21,7 +22,7 @@ async function limited(fixture: Fixture, retryAfter?: string): Promise<SearchSlo
       body: { error: { code: 'SEARCH_RATE_LIMITED', message: 'discard' } }
     })
   )
-  await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+  await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).not.toBe('pending'))
   const slot = (await fixture.read()).slots[0]
   expect(slot).toMatchObject({ state: 'failure', rows: [], error: { code: 'SEARCH_RATE_LIMITED' } })
@@ -49,18 +50,29 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
     const response = deferred<[]>()
     const http = vi.fn(() => response.promise)
     const lifetime = createCaptureSearchLifetime({
-      runtime: { http, clock },
+      runtime: {
+        clock,
+        identification: {
+          candidates: http,
+          image: vi.fn(),
+          details: vi.fn(),
+          scorePortrait: vi.fn(),
+          selection: INITIAL_PORTRAIT_COLOR_POLICY
+        }
+      },
       isCurrent: () => true,
       publish: vi.fn()
     })
     const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot
       .captureId!
-    const pending = lifetime.observe({
+    const pending = lifetime.lookup({
       captureId,
       slot: 0,
       observationRevision: 1,
-      nickname: '가나'
+      nickname: '가나',
+      serverId: 'cain'
     })
+    await vi.waitFor(() => expect(http).toHaveBeenCalledTimes(1))
     const receivedAt = clock.monotonicMs
     clock.advance(3_000)
 
@@ -107,7 +119,7 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
     fixture.fetchSearch.mockResolvedValueOnce(
       new Response(body, { status: 429, headers: { 'Retry-After': '2' } })
     )
-    await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+    await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
 
     try {
       await vi.waitFor(() => expect(pull).toHaveBeenCalled())
@@ -165,7 +177,10 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
       expect(fixture.published).toHaveBeenLastCalledWith('characterSearchChanged', expired)
       expect(await retry(fixture, failed)).toMatchObject({ ok: true })
       await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-      expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
+      expect(requestPaths(fixture.fetchSearch)).toEqual([
+        '/characters/candidates',
+        '/characters/candidates'
+      ])
       expect((await fixture.read()).slots[0].requestId).not.toBe(failed.requestId)
     }
   )
@@ -191,7 +206,10 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
       expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
       expect(await retry(fixture, failed)).toMatchObject({ ok: true })
       await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-      expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
+      expect(requestPaths(fixture.fetchSearch)).toEqual([
+        '/characters/candidates',
+        '/characters/candidates'
+      ])
     }
   )
 
@@ -231,7 +249,7 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
       if (isSourceClear) {
         await fixture.invoke('selectCaptureSource', '')
       } else {
-        await fixture.observe({ slot: 0, observationRevision: 2, nickname: '다라' })
+        await fixture.startSearch({ slot: 0, observationRevision: 2, nickname: '다라' })
         await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
       }
       const before = await fixture.read()

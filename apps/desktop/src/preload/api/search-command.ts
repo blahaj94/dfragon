@@ -5,10 +5,8 @@ import { parseSearchResult } from '../common/search/snapshot'
 
 type SearchChannel =
   | 'controlCharacterSearch'
-  | 'notifyStableNicknameDetected'
   | 'notifyOcrCandidatesDetected'
   | 'controlManualSearch'
-  | 'notifyManualNickname'
   | 'controlRaidSearch'
   | 'notifyRaidOcrCandidatesDetected'
 

@@ -25,13 +25,12 @@ export const styles = stylex.create({
     color: colors.fgDefault,
     position: 'relative'
   },
-  // 상단 바 전체를 덮는 빈 요소만 끌기 영역이다. 자식이 없어 다른 요소가 drag를 상속하지 않는다.
+  // 상단 바 전체를 덮는 빈 요소만 드래그 영역이다. 자식이 없어 다른 요소가 drag를 상속하지 않는다.
   dragArea: { position: 'absolute', inset: 0, WebkitAppRegion: 'drag' },
   brand: { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 },
   mark: { width: 24, height: 24, flexShrink: 0, backgroundColor: colors.brandLogo },
   name: { display: { default: 'inline', [HIDE_NAME]: 'none' }, whiteSpace: 'nowrap' },
   divider: { width: 1, height: 24, flexShrink: 0, backgroundColor: colors.borderDefault },
-  board: { display: 'flex', alignItems: 'center', flexGrow: 1, minWidth: 0 },
   status: {
     display: 'flex',
     alignItems: 'center',

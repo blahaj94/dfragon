@@ -108,7 +108,7 @@ last-reviewed: 2026-10-20
 
 ## 공대 캡처 연결
 
-[#760](https://github.com/blahaj94/dfragon/issues/760)에 따라 일반 공대 캡처가 위 판독을 씁니다. 선택 규칙은 [공대 식별 흐름](../rules/character-search.md#desktop의-공대-식별-흐름), 식별 구현은 [Desktop 캐릭터 검색](desktop-character-search.md#직접-검색과-수정-검색)에 있습니다.
+[#760](https://github.com/blahaj94/dfragon/issues/760)에 따라 일반 공대 캡처가 위 판독을 씁니다. 선택 규칙은 [공대 식별 흐름](../rules/character-search.md#desktop의-공대-식별-흐름), 식별 구현은 [Desktop 캐릭터 검색](desktop-character-search.md#카드-직접-조회와-공대-식별)에 있습니다.
 
 - `backend/lib/raid-window.ts`의 `readRaidWindowValues`가 수치 열 제목과 글자 기준 이미지를 한 번 읽어, `classifyDNFRaidValueColumn`으로 열 종류를, `readDNFRaidParticipantValues`로 행별 수치 표기를 읽습니다. `readDNFRaidParticipantValues`는 파티 표식 기준 없이 수치만 읽는 함수이며 수치 판독 규칙은 `readDNFRaidParticipantMetadata`와 같습니다. 파티 표식 기준 이미지는 저장소에 없습니다.
 - 수치 판독기는 1920×1080 이하 프레임만 받으므로, 더 큰 프레임은 열 종류만 판별하고 수치는 null입니다.

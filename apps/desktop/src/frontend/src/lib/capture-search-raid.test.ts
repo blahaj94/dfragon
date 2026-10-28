@@ -9,7 +9,7 @@ import {
 import type { SearchApi, SearchSnapshot } from '../../../preload/common/types/search'
 import type { SearchView } from '../types/search'
 
-it('공대 연결은 12자리 snapshot만 받아 12번째 자리 결과를 보인다', async () => {
+it('공대 연결은 12자리 snapshot만 받아 12번째 슬롯 결과를 보인다', async () => {
   const raidSlots = (slots: SearchSnapshot['slots'] = []): SearchSnapshot['slots'] =>
     Array.from(
       { length: 12 },

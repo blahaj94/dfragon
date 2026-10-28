@@ -68,7 +68,6 @@ function fixture() {
     publish: vi.fn(),
     isCurrent: () => true,
     runtime: {
-      http: vi.fn(),
       clock: new FakeMonotonicClock(),
       identification: {
         candidates,
@@ -187,7 +186,7 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
     expect(f.lifetime.snapshot().slots[1].selected).toMatchObject({ characterName: '다라' })
   })
 
-  it('후보 검색이 호출 제한을 받으면 이름과 서버를 정한 자리의 상세도 받지 않는다', async () => {
+  it('후보 검색이 호출 제한을 받으면 이름과 서버를 정한 슬롯의 상세도 받지 않는다', async () => {
     const f = fixture()
     await f.identify(0)
     await f.identify(1)
@@ -211,7 +210,7 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
     expect(f.getDetails).not.toHaveBeenCalled()
   })
 
-  it('게임 창을 바꾸면 이전 창에서 정한 자리의 상세를 취소하고 남은 상세도 받지 않는다', async () => {
+  it('게임 창을 바꾸면 이전 창에서 정한 슬롯의 상세를 취소하고 남은 상세도 받지 않는다', async () => {
     const f = fixture()
     await f.identify(0)
     await f.identify(1)
@@ -248,14 +247,21 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
     expect(f.lifetime.snapshot().slots.every((slot) => slot.state === 'idle')).toBe(true)
   })
 
-  it('받는 중인 슬롯을 비우면 그 상세를 취소하고 다음 슬롯으로 넘어간다', async () => {
+  it('받는 중인 슬롯에 검색할 수 없는 새 관측이 오면 그 상세를 취소하고 다음 슬롯으로 넘어간다', async () => {
     const f = fixture()
     await f.identify(0)
     await f.identify(1)
     await f.identify(2)
     await vi.waitFor(() => expect(f.loads).toHaveLength(1))
 
-    f.lifetime.clear({ action: 'clear', captureId: f.captureId, slot: 0, observationRevision: 2 })
+    f.lifetime.observeOcr({
+      captureId: f.captureId,
+      slot: 0,
+      observationRevision: 2,
+      nickname: '',
+      candidateNicknames: [''],
+      portrait: null
+    })
 
     expect(f.loads[0].signal.aborted).toBe(true)
     await vi.waitFor(() =>

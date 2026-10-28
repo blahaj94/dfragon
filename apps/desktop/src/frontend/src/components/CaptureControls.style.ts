@@ -19,7 +19,7 @@ const pulseBottomRight = stylex.keyframes({
 })
 
 export const styles = stylex.create({
-  // 칩의 모양을 그대로 보이고, 칩이 오른쪽 위를 잘라 바깥 outline이 가려지지 않도록 포커스 선은 버튼 바깥에 둔다.
+  // 칩의 모양을 그대로 보이고, 칩이 오른쪽 위를 잘라 바깥 outline이 가려지지 않도록 포커스 링은 버튼 바깥에 둔다.
   trigger: {
     display: 'inline-flex',
     padding: 0,

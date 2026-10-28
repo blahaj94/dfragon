@@ -54,8 +54,7 @@ it.each([' 검사* ', '가 나', '😀'.repeat(12)])(
         kind: 'recognized',
         slot: 0,
         nickname: first.trim(),
-        portrait,
-        legacyNickname: '테스트ABC123'
+        portrait
       },
       { kind: 'missing', slot: 1 },
       { kind: 'missing', slot: 2 },
@@ -86,8 +85,7 @@ it.each([
     slot: 0,
     rejection,
     text,
-    portrait,
-    legacyNickname: ''
+    portrait
   })
 })
 

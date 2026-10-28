@@ -22,7 +22,7 @@ if (!isMediaIsolated) {
 contextBridge.exposeInMainWorld('api', {
   listCaptureSources: async () => [{ id: 'example-window', name: 'Example window' }],
   selectCaptureSource: async () => null,
-  notifyStableNicknameDetected: async () => {
+  notifyOcrCandidatesDetected: async () => {
     throw new Error('UI fixture must not run recognition')
   }
 })

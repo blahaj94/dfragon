@@ -20,9 +20,3 @@ export function hasColorMatch(pixels: Iterable<Rgb>, target: Rgb, tolerance: num
 
   return false
 }
-
-const NICKNAME_COMPARISON_NOISE_PATTERN = /[^\p{Script=Hangul}A-Za-z0-9]/gu
-
-export function normalizeNickname(text: string): string {
-  return text.replace(NICKNAME_COMPARISON_NOISE_PATTERN, '')
-}

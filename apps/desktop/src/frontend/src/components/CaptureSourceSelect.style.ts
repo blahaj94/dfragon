@@ -14,7 +14,7 @@ export const styles = stylex.create({
     height: 44,
     overflowX: 'auto',
     overflowY: 'hidden',
-    // 포커스 선이 타일 안쪽에 그려지므로 넘침을 잘라도 가려지지 않는다.
+    // 포커스 링이 타일 안쪽에 그려지므로 넘침을 잘라도 가려지지 않는다.
     scrollbarWidth: 'thin'
   },
   group: { display: 'flex', alignItems: 'stretch', gap: space.s8 },

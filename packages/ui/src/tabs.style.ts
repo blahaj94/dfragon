@@ -64,7 +64,7 @@ export const styles = stylex.create({
       ':is([data-disabled])': colors.cardBorderStrong
     },
     outlineColor: colors.cardSignal,
-    // 카드 바깥과 옆 탭으로 넘치지 않게 포커스 선을 탭 안쪽에 그린다.
+    // 카드 바깥과 옆 탭으로 넘치지 않게 포커스 링을 탭 안쪽에 그린다.
     outlineOffset: -2
   },
   cardIndicator: { top: -1, bottom: 'auto', backgroundColor: colors.cardSignal }

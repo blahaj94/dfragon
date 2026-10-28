@@ -99,7 +99,7 @@ async function mount(f: Fixture): Promise<void> {
   )
 }
 
-it('캡처 버튼은 상단 바에 그린 파티 머리에만 있고 대화상자를 열지 않는다', async () => {
+it('캡처 버튼은 상단 바에 그린 파티 헤더에만 있고 대화상자를 열지 않는다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
   await mount(f)
@@ -118,6 +118,33 @@ it('캡처 버튼은 상단 바에 그린 파티 머리에만 있고 대화상�
   expect(beginCount(f)).toBe(1)
 })
 
+it('파티 헤더는 제목, 인원수 뒤에 마지막 캡처, 스냅샷, 캡처 버튼 순서로 두고 카드 접기 버튼은 없다', async () => {
+  const f = createRendererFixture()
+  f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
+  await mount(f)
+  const heading = [...document.querySelectorAll('h1')].find((h1) => h1.textContent === '파티')!
+  expect(heading.nextElementSibling?.textContent).toBe('0/4')
+  const buttons = [...heading.parentElement!.parentElement!.querySelectorAll('button')]
+  expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
+    '파티 모험단 순번 스냅샷',
+    '파티 캡처, 단축키 Alt R'
+  ])
+  const time = [...document.querySelectorAll('span')].find(
+    (span) => span.textContent === '마지막 캡처'
+  )!
+  const snapshot = document.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')!
+  for (const [before, after] of [
+    [heading, time],
+    [time, snapshot],
+    [snapshot, captureButton()]
+  ]) {
+    expect(before.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  }
+  expect(
+    document.querySelector('[aria-label$="카드 접기"], [aria-label$="카드 펼치기"]')
+  ).toBeNull()
+})
+
 it.each(triggers)(
   '창을 등록하기 전 %s은 회차를 시작하지 않고 버튼은 누를 수 없다',
   async (trigger) => {
@@ -133,7 +160,7 @@ it.each(triggers)(
 )
 
 it.each(triggers)(
-  '창을 등록한 뒤 %s은 같은 회차를 시작하고 같은 상태로 끝나며 파티 머리에 진행 문구를 두지 않는다',
+  '창을 등록한 뒤 %s은 같은 회차를 시작하고 같은 상태로 끝나며 파티 헤더에 진행 문구를 두지 않는다',
   async (trigger) => {
     const f = createRendererFixture()
     f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])

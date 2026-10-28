@@ -1,6 +1,8 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, motion, space } from '@dfragon/ui/tokens.stylex'
 
+const popupOpen = ':is([data-popup-open])'
+
 export const styles = stylex.create({
   nav: { display: 'flex', alignItems: 'center', gap: space.s4, flexShrink: 0 },
   item: {
@@ -25,8 +27,8 @@ export const styles = stylex.create({
   },
   current: {
     paddingInlineEnd: 14,
-    backgroundColor: colors.bgInset,
-    color: colors.fgDefault,
+    backgroundColor: { default: colors.bgInset, [popupOpen]: colors.signal },
+    color: { default: colors.fgDefault, [popupOpen]: colors.onSignal },
     fontWeight: 700,
     boxShadow: `inset 0 -2px 0 ${colors.signal}`,
     cursor: 'pointer',
@@ -34,19 +36,21 @@ export const styles = stylex.create({
     transitionDuration: motion.durHover,
     transitionTimingFunction: motion.ease
   },
-  // 자른 모서리가 바깥 포커스 선을 가리므로 현재 항목은 면 안쪽에 선을 그린다.
+  // 자른 모서리가 바깥 포커스 링을 가리므로 현재 항목은 면 안쪽에 선을 그린다.
   currentFocus: {
     ':focus-visible': { outline: `2px solid ${colors.signal}`, outlineOffset: -4 }
   },
-  open: { backgroundColor: colors.signal, color: colors.onSignal },
-  sub: { fontSize: 12, fontWeight: 600, color: colors.fgMuted },
+  sub: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: { default: colors.fgMuted, [stylex.when.ancestor(popupOpen)]: colors.onSignal }
+  },
   chevron: {
     flexShrink: 0,
-    color: colors.fgSubtle,
+    color: { default: colors.fgSubtle, [stylex.when.ancestor(popupOpen)]: colors.onSignal },
+    transform: { default: 'none', [stylex.when.ancestor(popupOpen)]: 'scaleY(-1)' },
     transitionProperty: 'transform',
     transitionDuration: motion.durState,
     transitionTimingFunction: motion.ease
-  },
-  onSignal: { color: colors.onSignal },
-  chevronOpen: { transform: 'scaleY(-1)' }
+  }
 })

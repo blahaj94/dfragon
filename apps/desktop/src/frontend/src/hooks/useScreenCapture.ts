@@ -4,21 +4,20 @@ import { usePartyCapture, type PartyCapture } from './usePartyCapture'
 import { useRaidCapture, type RaidCapture } from './useRaidCapture'
 import { useIsPartyMode, useIsRaidMode, useSearchModeStore } from './useSearchModeStore'
 
-export function useScreenCapture(): {
+export type ScreenCapture = {
   partyCapture: PartyCapture
   raidCapture: RaidCapture
   controls: { phase: CapturePhase; status: string }
-} {
+}
+
+export function useScreenCapture(): ScreenCapture {
   const searchMode = useSearchModeStore((state) => state.searchMode)
   const isPartyMode = useIsPartyMode()
   const isRaidMode = useIsRaidMode()
-  const partyCapture = usePartyCapture({
-    identifyCharacters: true,
-    receivesShortcut: isPartyMode
-  })
+  const partyCapture = usePartyCapture({ receivesShortcut: isPartyMode })
   const raidCapture = useRaidCapture({
-    sourceId: partyCapture.selectedSourceId,
-    sourceReady: partyCapture.sourceReady,
+    sourceId: partyCapture.source.selectedSourceId,
+    sourceReady: partyCapture.source.sourceReady,
     receivesShortcut: isRaidMode
   })
   const controls = getTopBarCaptureControls({
@@ -26,8 +25,8 @@ export function useScreenCapture(): {
     party: {
       phase: partyCapture.phase,
       status: partyCapture.status,
-      sourceReady: partyCapture.sourceReady,
-      selectedSourceId: partyCapture.selectedSourceId,
+      sourceReady: partyCapture.source.sourceReady,
+      selectedSourceId: partyCapture.source.selectedSourceId,
       connectionFailed: partyCapture.search.connectionFailed
     },
     raid: { phase: raidCapture.phase, status: raidCapture.status }

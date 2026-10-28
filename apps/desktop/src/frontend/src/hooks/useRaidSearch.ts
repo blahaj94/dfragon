@@ -6,7 +6,7 @@ import { useManualCharacterLookup } from './useManualCharacterLookup'
 type RaidSearch = {
   slots: readonly SearchSlot[]
   connectionFailed: boolean
-  /** 이번 회차가 시작된 뒤 사용자가 서버와 이름으로 조회한 자리. 회차의 OCR 결과가 덮지 않는다. */
+  /** 이번 회차가 시작된 뒤 사용자가 서버와 이름으로 조회한 슬롯. 회차의 OCR 결과가 덮지 않는다. */
   manualSlots: readonly boolean[]
   lookupSlot: (slot: number, nickname: string, serverId: string) => void
   beginRound: (signal: AbortSignal) => Promise<string | null>
@@ -52,7 +52,7 @@ export function useRaidSearch(): RaidSearch {
     },
     [beginLookupRound]
   )
-  // 회차 진행 중 사용자가 직접 조회한 자리는 늦게 끝난 OCR 결과로 바꾸지 않는다.
+  // 회차 진행 중 사용자가 직접 조회한 슬롯은 늦게 끝난 OCR 결과로 바꾸지 않는다.
   const observeOcr = useCallback(
     (input: OcrCaptureObservation): void => {
       if (!manualSlotsRef.current.has(input.slot)) {

@@ -1,7 +1,28 @@
 import { describe, expect, it, vi } from 'vitest'
 import { deferred } from '../lib/async-test-fixture'
+import type { SearchSlot } from '../../preload/common/types/search'
 import { API_ORIGIN } from './search-test-fixture'
-import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
+import {
+  candidate,
+  candidateResponse,
+  createSearchFixture,
+  jsonResponse,
+  requestPaths
+} from './search-test-fixture'
+
+type Fixture = Awaited<ReturnType<typeof createSearchFixture>>
+
+const detailsPath = `/characters/${candidate.serverId}/${candidate.characterId}`
+
+async function detailsSettled(fixture: Fixture): Promise<SearchSlot> {
+  await vi.waitFor(async () => {
+    const slot = (await fixture.read()).slots[0]
+    expect(slot.state).toBe('success')
+    expect(slot).not.toHaveProperty('details')
+  })
+
+  return (await fixture.read()).slots[0]
+}
 
 describe('main 검색 관측과 slot 수명', () => {
   it('유효 관측은 pending을 먼저 반환하고 main이 기본 query로 한 번 검색한다', async () => {
@@ -9,7 +30,11 @@ describe('main 검색 관측과 slot 수명', () => {
     const response = deferred<Response>()
     fixture.fetchSearch.mockReturnValueOnce(response.promise)
 
-    const admitted = await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+    const admitted = await fixture.startSearch({
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나'
+    })
 
     expect(admitted).toMatchObject({
       ok: true,
@@ -33,54 +58,110 @@ describe('main 검색 관측과 slot 수명', () => {
     const request = new Request(...fixture.fetchSearch.mock.calls[0])
     const url = new URL(request.url)
     expect(url.origin).toBe(API_ORIGIN)
-    expect(url.pathname).toBe('/characters')
+    expect(url.pathname).toBe('/characters/candidates')
     expect([...url.searchParams.entries()]).toEqual([['characterName', '가나']])
     expect(request.method).toBe('GET')
     expect(request.headers.get('authorization')).toBeNull()
     expect(request.credentials).toBe('omit')
     expect(request.redirect).toBe('error')
 
-    response.resolve(jsonResponse({ body: { rows: [candidate] } }))
-    await vi.waitFor(async () => {
-      expect((await fixture.read()).slots[0]).toMatchObject({ state: 'success', rows: [candidate] })
-    })
+    response.resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
+    expect(await detailsSettled(fixture)).toMatchObject({ state: 'success', rows: [candidate] })
+    expect(requestPaths(fixture.fetchSearch)).toEqual(['/characters/candidates', detailsPath])
   })
 
-  it('다섯 응답 field와 서버 순서를 유지하고 추가 field는 IPC에 보내지 않는다', async () => {
+  it('후보의 다섯 응답 field만 행으로 보내고 명성 순서의 선택지에도 추가 field를 IPC에 보내지 않는다', async () => {
     const fixture = await createSearchFixture()
-    const rows = [
-      candidate,
-      {
-        ...candidate,
-        characterId: 'unknown-server',
-        serverId: 'future',
-        serverName: null,
-        fame: -1.5
-      }
-    ]
+    const lower = {
+      ...candidateResponse,
+      characterId: 'lower-fame',
+      serverId: 'bakal',
+      serverName: '바칼',
+      fame: -1.5,
+      imageUrl: 'https://img-api.neople.co.kr/df/servers/bakal/characters/lower-fame?zoom=1'
+    }
     fixture.fetchSearch.mockResolvedValueOnce(
       jsonResponse({
-        body: { rows: rows.map((row) => ({ ...row, extra: 'discard' })), extra: true }
+        body: {
+          rows: [lower, candidateResponse].map((row) => ({ ...row, extra: 'discard' })),
+          extra: 'discard'
+        }
       })
     )
 
-    const admitted = await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+    const admitted = await fixture.startSearch({
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나'
+    })
     expect(admitted).toMatchObject({ ok: true })
 
-    await vi.waitFor(async () => {
-      expect((await fixture.read()).slots[0]).toMatchObject({ state: 'success', rows, error: null })
-    })
+    const slot = await detailsSettled(fixture)
+    expect(slot.rows).toEqual([candidate])
+    expect(slot.choices).toEqual([
+      { ...candidate, adventureName: null, face: null },
+      {
+        characterId: 'lower-fame',
+        characterName: '가나',
+        serverId: 'bakal',
+        serverName: '바칼',
+        fame: -1.5,
+        adventureName: null,
+        face: null
+      }
+    ])
     const completed = await fixture.read()
-    expect(completed.slots[0].rows).toEqual(rows)
+    expect(JSON.stringify(completed)).not.toContain('discard')
     expect(fixture.published).toHaveBeenLastCalledWith('characterSearchChanged', completed)
   })
 
-  it.each(['', '가', '가나다라마바사아자차카타파', ' 가나', '가나 ', '😀', '\ud800가', '가\udfff'])(
-    '입력 %j는 보정하거나 HTTP로 보내지 않고 재시도 없는 입력 실패로 끝낸다',
+  it('빈 OCR 이름은 보정하거나 HTTP로 보내지 않고 재시도 없는 입력 실패로 끝낸다', async () => {
+    const fixture = await createSearchFixture()
+
+    const admitted = await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '' })
+
+    expect(admitted).toMatchObject({ ok: true })
+    const snapshot = await fixture.read()
+    expect(snapshot.slots[0]).toMatchObject({
+      state: 'failure',
+      nickname: '',
+      requestId: expect.any(String),
+      rows: [],
+      error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null }
+    })
+    expect(fixture.fetchSearch).not.toHaveBeenCalled()
+    const retry = await fixture.invoke('controlCharacterSearch', {
+      action: 'retry',
+      captureId: fixture.captureId,
+      slot: 0,
+      requestId: snapshot.slots[0].requestId
+    })
+    expect(retry).toMatchObject({ ok: false, error: { code: 'SEARCH_RETRY_NOT_READY' } })
+  })
+
+  it.each(['가나다라마바사아자차카타파', ' 가나', '가나 ', '\ud800가', '가\udfff'])(
+    'OCR 통지의 입력 %j는 보정하거나 HTTP로 보내지 않고 명령 오류로 거절한다',
     async (nickname) => {
       const fixture = await createSearchFixture()
+      const before = await fixture.read()
 
-      const admitted = await fixture.observe({ slot: 0, observationRevision: 1, nickname })
+      const result = await fixture.startSearch({ slot: 0, observationRevision: 1, nickname })
+
+      expect(result).toEqual({
+        ok: false,
+        error: { code: 'INVALID_SEARCH_COMMAND' },
+        snapshot: before
+      })
+      expect(fixture.fetchSearch).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each(['', '가나다라마바사아자차카타파', ' 가나', '가나 ', '\ud800가', '가\udfff'])(
+    '서버 지정 조회의 입력 %j는 보정하거나 HTTP로 보내지 않고 재시도 없는 입력 실패로 끝낸다',
+    async (nickname) => {
+      const fixture = await createSearchFixture('manual')
+
+      const admitted = await fixture.startSearch({ slot: 0, observationRevision: 1, nickname })
 
       expect(admitted).toMatchObject({ ok: true })
       const snapshot = await fixture.read()
@@ -92,7 +173,7 @@ describe('main 검색 관측과 slot 수명', () => {
         error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null }
       })
       expect(fixture.fetchSearch).not.toHaveBeenCalled()
-      const retry = await fixture.invoke('controlCharacterSearch', {
+      const retry = await fixture.invoke('controlManualSearch', {
         action: 'retry',
         captureId: fixture.captureId,
         slot: 0,
@@ -107,7 +188,7 @@ describe('main 검색 관측과 slot 수명', () => {
     const nickname = '😀'.repeat(length)
     fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: { rows: [] } }))
 
-    const admitted = await fixture.observe({ slot: 0, observationRevision: 1, nickname })
+    const admitted = await fixture.startSearch({ slot: 0, observationRevision: 1, nickname })
 
     expect(admitted).toMatchObject({ ok: true })
     await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
@@ -127,7 +208,7 @@ describe('main 검색 관측과 slot 수명', () => {
       fixture.fetchSearch.mockReturnValueOnce(response.promise)
     }
     for (const slot of [0, 1, 2, 3]) {
-      const admitted = await fixture.observe({ slot, observationRevision: 1, nickname: '가나' })
+      const admitted = await fixture.startSearch({ slot, observationRevision: 1, nickname: '가나' })
       expect(admitted).toMatchObject({ ok: true })
     }
     await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(4))
@@ -142,9 +223,9 @@ describe('main 검색 관측과 slot 수명', () => {
         'empty'
       ])
     })
-    responses[1].resolve(jsonResponse({ body: { rows: [candidate] } }))
+    responses[1].resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
     responses[2].resolve(jsonResponse({ body: { rows: [] } }))
-    responses[0].resolve(jsonResponse({ body: { rows: [candidate] } }))
+    responses[0].resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
 
     await vi.waitFor(async () => {
       const snapshot = await fixture.read()
@@ -163,7 +244,11 @@ describe('main 검색 관측과 slot 수명', () => {
       const fixture = await createSearchFixture()
       const response = deferred<Response>()
       fixture.fetchSearch.mockReturnValueOnce(response.promise)
-      const admitted = await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+      const admitted = await fixture.startSearch({
+        slot: 0,
+        observationRevision: 1,
+        nickname: '가나'
+      })
       expect(admitted).toMatchObject({ ok: true })
       await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
       const isPending = state === 'pending'
@@ -175,23 +260,29 @@ describe('main 검색 관측과 slot 수명', () => {
                 status: 500,
                 body: { error: { code: 'INTERNAL_SERVER_ERROR', message: 'discard' } }
               })
-            : jsonResponse({ body: { rows: [candidate] } })
+            : jsonResponse({ body: { rows: [candidateResponse] } })
         )
-        await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe(state))
+        if (isFailure) {
+          await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe(state))
+        } else {
+          await detailsSettled(fixture)
+        }
       }
       const before = await fixture.read()
+      const requestsBefore = requestPaths(fixture.fetchSearch)
 
-      await fixture.observe({ slot: 0, observationRevision: 3, nickname: '가나' })
+      await fixture.startSearch({ slot: 0, observationRevision: 3, nickname: '가나' })
       const promoted = await fixture.read()
       expect(promoted.slots[0]).toEqual({ ...before.slots[0], observationRevision: 3 })
       expect(promoted.revision).toBeGreaterThan(before.revision)
-      await fixture.observe({ slot: 0, observationRevision: 2, nickname: '다라' })
-      await fixture.observe({ slot: 0, observationRevision: 3, nickname: '다라' })
+      await fixture.startSearch({ slot: 0, observationRevision: 2, nickname: '다라' })
+      await fixture.startSearch({ slot: 0, observationRevision: 3, nickname: '다라' })
       expect(await fixture.read()).toEqual(promoted)
-      expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
+      expect(requestPaths(fixture.fetchSearch)).toEqual(requestsBefore)
+      expect(requestsBefore.filter((path) => path === '/characters/candidates')).toHaveLength(1)
 
       if (isPending) {
-        response.resolve(jsonResponse({ body: { rows: [candidate] } }))
+        response.resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
         await vi.waitFor(async () => {
           expect((await fixture.read()).slots[0]).toMatchObject({
             state: 'success',
@@ -210,14 +301,14 @@ describe('main 검색 관측과 slot 수명', () => {
       const previous = deferred<Response>()
       fixture.fetchSearch.mockReturnValueOnce(previous.promise)
       expect(
-        await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+        await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
       ).toMatchObject({ ok: true })
       await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
       const oldRequest = new Request(...fixture.fetchSearch.mock.calls[0])
       const before = await fixture.read()
 
       expect(
-        await fixture.observe({ slot: 0, observationRevision: 2, nickname: '다라' })
+        await fixture.startSearch({ slot: 0, observationRevision: 2, nickname: '다라' })
       ).toMatchObject({ ok: true })
       await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
       const current = await fixture.read()
@@ -227,51 +318,15 @@ describe('main 검색 관측과 slot 수명', () => {
       if (isFailure) {
         previous.reject(new Error('Synthetic late failure'))
       } else {
-        previous.resolve(jsonResponse({ body: { rows: [candidate] } }))
+        previous.resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
       }
       await new Promise<void>((resolve) => setTimeout(resolve, 0))
 
       expect(await fixture.read()).toEqual(current)
-      expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
+      expect(requestPaths(fixture.fetchSearch)).toEqual([
+        '/characters/candidates',
+        '/characters/candidates'
+      ])
     }
   )
-
-  it('clear는 이전 요청을 취소하고 같은 nickname의 다음 관측을 새 검색으로 받는다', async () => {
-    const fixture = await createSearchFixture()
-    const previous = deferred<Response>()
-    fixture.fetchSearch.mockReturnValueOnce(previous.promise)
-    expect(
-      await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
-    ).toMatchObject({ ok: true })
-    await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
-    const before = await fixture.read()
-    const oldRequest = new Request(...fixture.fetchSearch.mock.calls[0])
-
-    const cleared = await fixture.invoke('controlCharacterSearch', {
-      action: 'clear',
-      captureId: fixture.captureId,
-      slot: 0,
-      observationRevision: 2
-    })
-
-    expect(cleared).toMatchObject({ ok: true })
-    expect((await fixture.read()).slots[0]).toEqual({
-      slot: 0,
-      observationRevision: 2,
-      requestId: null,
-      nickname: null,
-      state: 'idle',
-      rows: [],
-      error: null
-    })
-    expect(oldRequest.signal.aborted).toBe(true)
-    previous.resolve(jsonResponse({ body: { rows: [candidate] } }))
-    await new Promise<void>((resolve) => setTimeout(resolve, 0))
-    expect((await fixture.read()).slots[0].state).toBe('idle')
-
-    await fixture.observe({ slot: 0, observationRevision: 3, nickname: '가나' })
-    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-    expect((await fixture.read()).slots[0].requestId).not.toBe(before.slots[0].requestId)
-    expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
-  })
 })
