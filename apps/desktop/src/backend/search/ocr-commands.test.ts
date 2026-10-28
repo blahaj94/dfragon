@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseOcrSearchObservation, parseSearchObservation } from './commands'
+import { parseOcrSearchObservation } from './commands'
 
 const captureId = '00000000-0000-4000-8000-000000000011'
 const portrait = { image: { width: 2, height: 1, rgba: new Uint8Array(8) }, rasterScale: 1 }
@@ -13,14 +13,13 @@ const observation = {
 }
 
 describe('OCR 관측 IPC의 제한된 입력 계약', () => {
-  it('한 글자와 12 code point 후보를 보정 없이 받고 일반 관측 채널과 구분한다', () => {
+  it('한 글자와 12 code point 후보를 보정 없이 받는다', () => {
     const input = { ...observation, candidateNicknames: ['가', '😀'.repeat(12)] }
     expect(parseOcrSearchObservation([input])).toEqual(input)
     expect(parseOcrSearchObservation([{ ...input, portrait: null }])).toEqual({
       ...input,
       portrait: null
     })
-    expect(parseSearchObservation([input])).toBeNull()
   })
 
   it('빈 첫 후보는 조회 실패를 표시하도록 원문 그대로 전달한다', () => {

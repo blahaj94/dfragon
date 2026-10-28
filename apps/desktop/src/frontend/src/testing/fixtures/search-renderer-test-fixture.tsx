@@ -59,7 +59,6 @@ type RendererFixture = {
     listCaptureSources: ReturnType<typeof vi.fn>
     selectCaptureSource: ReturnType<typeof vi.fn>
     readCaptureFrame: ReturnType<typeof vi.fn>
-    notifyStableNicknameDetected: Mocked<ObservationTestApi>['notifyStableNicknameDetected']
     notifyOcrCandidatesDetected: Mocked<ObservationTestApi>['notifyOcrCandidatesDetected']
     onDesktopShortcut: Mocked<DesktopShortcutApi>['onDesktopShortcut']
   }
@@ -151,25 +150,6 @@ export function createRendererFixture(): RendererFixture {
             state,
             rows: []
           })
-        })
-        currentSearch = { ...currentSearch, revision: currentSearch.revision + 1, slots }
-
-        return { ok: true, snapshot: currentSearch }
-      }),
-    notifyStableNicknameDetected: vi
-      .fn<ObservationTestApi['notifyStableNicknameDetected']>()
-      .mockImplementation(async (observation) => {
-        const slots = currentSearch.slots.map((slot) => {
-          const isObserved = slot.slot === observation.slot
-          if (isObserved) {
-            return searchSlot({
-              slot: observation.slot,
-              nickname: observation.nickname,
-              observationRevision: observation.observationRevision
-            })
-          }
-
-          return slot
         })
         currentSearch = { ...currentSearch, revision: currentSearch.revision + 1, slots }
 

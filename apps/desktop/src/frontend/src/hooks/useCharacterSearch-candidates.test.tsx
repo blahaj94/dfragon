@@ -110,7 +110,6 @@ beforeEach(async () => {
   vi.stubGlobal('search', {})
   vi.stubGlobal('api', {
     openCharacterDetails: vi.fn(),
-    notifyStableNicknameDetected: vi.fn(),
     notifyOcrCandidatesDetected: vi.fn()
   })
   container = document.createElement('div')

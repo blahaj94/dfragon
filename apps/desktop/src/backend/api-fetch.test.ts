@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { session } from 'electron'
-import { createSearchHttp } from './search/http'
+import { createCharacterCandidatesHttp } from './search/character-http'
 
 vi.mock('electron', () => {
   const fromPartition = vi.fn()
@@ -35,8 +35,8 @@ describe('Desktop API system networking', () => {
     const apiOrigin = 'https://api.synthetic.test'
     const signal = new AbortController().signal
 
-    const rows = await createSearchHttp({ apiOrigin })({
-      nickname: 'synthetic-character',
+    const rows = await createCharacterCandidatesHttp({ apiOrigin })({
+      nickname: '가나',
       signal
     })
 

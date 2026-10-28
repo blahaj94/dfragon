@@ -7,7 +7,7 @@ import { expect, it, vi } from 'vitest'
 
 const requireDependency = createRequire(import.meta.url)
 
-it.each([['src/backend/search/http.ts', 'createSearchHttp']])(
+it.each([['src/backend/search/character-http.ts', 'createCharacterCandidatesHttp']])(
   '제품 main 설정으로 빌드한 %s는 실제 Ky export로 초기화된다',
   async (entry, factory) => {
     const resolved = await resolveConfig(

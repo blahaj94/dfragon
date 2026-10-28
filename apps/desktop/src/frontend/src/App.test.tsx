@@ -24,8 +24,7 @@ beforeEach(() => {
   root = createRoot(container)
   vi.stubGlobal('api', {
     listCaptureSources: vi.fn(async () => []),
-    selectCaptureSource: vi.fn(async () => null),
-    notifyStableNicknameDetected: vi.fn()
+    selectCaptureSource: vi.fn(async () => null)
   })
   vi.stubGlobal('search', {
     controlCharacterSearch: vi.fn(async () => {

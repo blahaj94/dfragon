@@ -5,7 +5,6 @@ import { SEARCH_ACTIONS, SEARCH_SLOT_COUNTS } from '../../../preload/common/type
 import {
   SEARCH_ERRORS,
   type SearchApi,
-  type SearchObservation,
   type OcrSearchInput,
   type OcrSearchObservation,
   type SearchCommandResult,
@@ -18,7 +17,6 @@ import { captureSearchMachine } from './capture-search-machine'
 
 type SearchOptions = {
   api: SearchApi
-  notify?: (observation: SearchObservation) => Promise<SearchCommandResult>
   notifyOcr?: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
   onChange: (view: SearchView) => void
   onInvalidated: () => void
@@ -26,15 +24,12 @@ type SearchOptions = {
 }
 
 export type OcrCaptureObservation = OcrSearchInput & Readonly<{ slot: number; nickname: string }>
-export type CaptureObservation =
-  | Readonly<{ slot: number; nickname: string | null }>
-  | OcrCaptureObservation
 
 export type CaptureSearch = {
   connect: () => void
   begin: (input: { signal: AbortSignal }) => Promise<string | null>
   end: () => void
-  observe: (input: CaptureObservation) => void
+  observe: (input: OcrCaptureObservation) => void
   lookup: (input: { slot: number; nickname: string; serverId: string }) => void
   retry: (slotIndex: number) => Promise<void>
   dispose: () => void
@@ -43,7 +38,6 @@ export type CaptureSearch = {
 export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   const slotCount = options.slotCount ?? SEARCH_SLOT_COUNTS.party
   let revisions = Array.from({ length: slotCount }, () => 0)
-  let cleared = Array.from({ length: slotCount }, () => true)
   let snapshot: SearchSnapshot | null = null
   const pending = new Map<number, string>()
   let failed = false
@@ -64,7 +58,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       readSnapshot: () => snapshot,
       resetObservations: () => {
         revisions = Array.from({ length: slotCount }, () => 0)
-        cleared = Array.from({ length: slotCount }, () => true)
         pending.clear()
       }
     }
@@ -96,45 +89,25 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     }
   }
 
-  // 로컬 관측을 먼저 표시한 뒤 clear 또는 검색 통지를 보낸다.
-  function observe(input: CaptureObservation): void {
-    const { slot, nickname } = input
+  // 로컬 관측을 먼저 표시한 뒤 OCR 후보 통지를 보낸다.
+  function observe(input: OcrCaptureObservation): void {
+    const { slot } = input
     const captureId = lifetime.getSnapshot().context.captureId
     if (captureId == null) {
       return
     }
     revisions[slot] += 1
-    const isClear = nickname === null
-    cleared[slot] = isClear
     pending.delete(slot)
     const observationRevision = revisions[slot]
     publish()
-    if (isClear) {
-      void connection.command({
-        action: SEARCH_ACTIONS.CLEAR,
-        captureId,
-        slot,
-        observationRevision
-      })
-    } else if ('candidateNicknames' in input) {
-      const notifyOcr = options.notifyOcr
-      if (notifyOcr == null) {
-        failed = true
-        publish()
+    const notifyOcr = options.notifyOcr
+    if (notifyOcr == null) {
+      failed = true
+      publish()
 
-        return
-      }
-      void connection.invoke(() => notifyOcr({ ...input, captureId, observationRevision }))
-    } else {
-      const notify = options.notify
-      if (notify == null) {
-        failed = true
-        publish()
-
-        return
-      }
-      void connection.invoke(() => notify({ captureId, slot, observationRevision, nickname }))
+      return
     }
+    void connection.invoke(() => notifyOcr({ ...input, captureId, observationRevision }))
   }
 
   function lookup(input: { slot: number; nickname: string; serverId: string }): void {
@@ -143,7 +116,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       return
     }
     revisions[input.slot] += 1
-    cleared[input.slot] = false
     pending.delete(input.slot)
     const observationRevision = revisions[input.slot]
     publish()
@@ -157,9 +129,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
 
   async function retry(slotIndex: number): Promise<void> {
     const captureId = lifetime.getSnapshot().context.captureId
-    const slot = getVisibleSearchSlots({ captureId, snapshot, revisions, cleared, slotCount })[
-      slotIndex
-    ]
+    const slot = getVisibleSearchSlots({ captureId, snapshot, revisions, slotCount })[slotIndex]
     const error = slot.error
     const isFailureState = slot.state === 'failure'
     const hasError = error != null
@@ -236,7 +206,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
         captureId: lifetime.getSnapshot().context.captureId,
         snapshot,
         revisions,
-        cleared,
         slotCount
       }),
       retryPending: Array.from({ length: slotCount }, (_, slot) => {
@@ -255,13 +224,11 @@ function getVisibleSearchSlots({
   captureId,
   snapshot,
   revisions,
-  cleared,
   slotCount
 }: {
   captureId: string | null
   snapshot: SearchSnapshot | null
   revisions: readonly number[]
-  cleared: readonly boolean[]
   slotCount: SearchSlotCount
 }): readonly SearchSlot[] {
   if (captureId == null) {
@@ -282,8 +249,7 @@ function getVisibleSearchSlots({
     const hasObserved = observedRevision > 0
     const isCurrent = slot.observationRevision >= observedRevision
     const isIdle = slot.state === 'idle'
-    const isCleared = cleared[slot.slot]
-    const canShow = isCurrent && (isIdle || (hasObserved && !isCleared))
+    const canShow = isCurrent && (isIdle || hasObserved)
     if (canShow) {
       return slot
     }

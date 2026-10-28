@@ -329,48 +329,4 @@ describe('main 검색 관측과 slot 수명', () => {
       ])
     }
   )
-
-  it('clear는 이전 요청을 취소하고 같은 nickname의 다음 관측을 새 검색으로 받는다', async () => {
-    const fixture = await createSearchFixture()
-    const notify = (observationRevision: number): Promise<unknown> =>
-      fixture.invoke('notifyStableNicknameDetected', {
-        captureId: fixture.captureId,
-        slot: 0,
-        observationRevision,
-        nickname: '가나'
-      })
-    const previous = deferred<Response>()
-    fixture.fetchSearch.mockReturnValueOnce(previous.promise)
-    expect(await notify(1)).toMatchObject({ ok: true })
-    await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
-    const before = await fixture.read()
-    const oldRequest = new Request(...fixture.fetchSearch.mock.calls[0])
-
-    const cleared = await fixture.invoke('controlCharacterSearch', {
-      action: 'clear',
-      captureId: fixture.captureId,
-      slot: 0,
-      observationRevision: 2
-    })
-
-    expect(cleared).toMatchObject({ ok: true })
-    expect((await fixture.read()).slots[0]).toEqual({
-      slot: 0,
-      observationRevision: 2,
-      requestId: null,
-      nickname: null,
-      state: 'idle',
-      rows: [],
-      error: null
-    })
-    expect(oldRequest.signal.aborted).toBe(true)
-    previous.resolve(jsonResponse({ body: { rows: [candidate] } }))
-    await new Promise<void>((resolve) => setTimeout(resolve, 0))
-    expect((await fixture.read()).slots[0].state).toBe('idle')
-
-    await notify(3)
-    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-    expect((await fixture.read()).slots[0].requestId).not.toBe(before.slots[0].requestId)
-    expect(requestPaths(fixture.fetchSearch)).toEqual(['/characters', '/characters'])
-  })
 })

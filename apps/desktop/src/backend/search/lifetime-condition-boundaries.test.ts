@@ -4,15 +4,24 @@ import { deferred } from '../lib/async-test-fixture'
 import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { SearchHttpFailure } from './http'
 import type { SearchRuntime } from './request'
-import type { CharacterSearchRow, SearchSnapshot } from '../../preload/common/types/search'
+import type { CharacterCandidatesHttp } from './character-http'
+import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
+import type { CharacterCandidate } from '../../preload/common/types/character'
+import type { OcrSearchObservation, SearchSnapshot } from '../../preload/common/types/search'
 
-const rows: readonly CharacterSearchRow[] = [
+vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
+
+const rows: readonly CharacterCandidate[] = [
   {
     characterId: 'synthetic-character',
     characterName: '가나',
     serverId: 'cain',
     serverName: '카인',
-    fame: 0
+    fame: 0,
+    imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1',
+    adventureName: null,
+    jobName: null,
+    jobGrowName: null
   }
 ]
 
@@ -20,26 +29,53 @@ function binding(): Omit<CaptureBinding, 'captureId'> {
   return { windowGeneration: 2, sourceGeneration: 3 }
 }
 
+function runtime(candidates: CharacterCandidatesHttp, clock: FakeMonotonicClock): SearchRuntime {
+  return {
+    clock,
+    identification: {
+      candidates,
+      image: vi.fn(),
+      details: vi.fn(),
+      scorePortrait: vi.fn(),
+      selection: INITIAL_PORTRAIT_COLOR_POLICY
+    }
+  }
+}
+
+function ocr(input: {
+  captureId: string
+  slot: number
+  observationRevision: number
+  nickname: string
+}): OcrSearchObservation {
+  return { ...input, candidateNicknames: [input.nickname], portrait: null }
+}
+
 async function flushCompletion(): Promise<void> {
   await new Promise<void>((resolve) => setImmediate(resolve))
 }
 
 it('검색 불가 닉네임의 새 관측은 이전 HTTP와 deadline을 취소하고 입력 실패로 교체한다', async () => {
-  const response = deferred<readonly CharacterSearchRow[]>()
+  const response = deferred<readonly CharacterCandidate[]>()
   const clock = new FakeMonotonicClock()
-  const http = vi.fn<SearchRuntime['http']>().mockReturnValue(response.promise)
+  const http = vi.fn<CharacterCandidatesHttp>().mockReturnValue(response.promise)
   const publish = vi.fn<(snapshot: SearchSnapshot) => void>()
   const lifetime = createCaptureSearchLifetime({
     publish,
     isCurrent: () => true,
-    runtime: { http, clock }
+    runtime: runtime(http, clock)
   })
   const captureId = lifetime.begin(binding()).snapshot.captureId!
-  const pending = lifetime.observe({ captureId, slot: 0, observationRevision: 1, nickname: '가나' })
+  const pending = lifetime.observeOcr(
+    ocr({ captureId, slot: 0, observationRevision: 1, nickname: '가나' })
+  )
+  await vi.waitFor(() => expect(http).toHaveBeenCalledTimes(1))
   const previousSignal = http.mock.calls[0][0].signal
   expect(previousSignal.aborted).toBe(false)
 
-  const result = lifetime.observe({ captureId, slot: 0, observationRevision: 2, nickname: '' })
+  const result = lifetime.observeOcr(
+    ocr({ captureId, slot: 0, observationRevision: 2, nickname: '' })
+  )
   await flushCompletion()
 
   expect(result.snapshot.slots[0]).toEqual({
@@ -65,11 +101,11 @@ it('검색 불가 닉네임의 새 관측은 이전 HTTP와 deadline을 취소�
 })
 
 it('Stop은 모든 슬롯의 HTTP와 429 대기를 정리하고 새 수명을 늦은 완료, 종료로부터 보호한다', async () => {
-  const firstResponse = deferred<readonly CharacterSearchRow[]>()
-  const thirdResponse = deferred<readonly CharacterSearchRow[]>()
+  const firstResponse = deferred<readonly CharacterCandidate[]>()
+  const thirdResponse = deferred<readonly CharacterCandidate[]>()
   const clock = new FakeMonotonicClock()
   const http = vi
-    .fn<SearchRuntime['http']>()
+    .fn<CharacterCandidatesHttp>()
     .mockReturnValueOnce(firstResponse.promise)
     .mockRejectedValueOnce(
       new SearchHttpFailure('SEARCH_RATE_LIMITED', {
@@ -83,11 +119,13 @@ it('Stop은 모든 슬롯의 HTTP와 429 대기를 정리하고 새 수명을 �
   const lifetime = createCaptureSearchLifetime({
     publish,
     isCurrent: () => true,
-    runtime: { http, clock }
+    runtime: runtime(http, clock)
   })
   const oldCaptureId = lifetime.begin(binding()).snapshot.captureId!
   for (const slot of [0, 1, 2]) {
-    lifetime.observe({ captureId: oldCaptureId, slot, observationRevision: 1, nickname: '가나' })
+    lifetime.observeOcr(
+      ocr({ captureId: oldCaptureId, slot, observationRevision: 1, nickname: '가나' })
+    )
   }
   await vi.waitFor(() =>
     expect(lifetime.snapshot().slots[1]).toMatchObject({
@@ -127,7 +165,9 @@ it('Stop은 모든 슬롯의 HTTP와 429 대기를 정리하고 새 수명을 �
 
   const newCaptureId = lifetime.begin(binding()).snapshot.captureId!
   expect(newCaptureId).not.toBe(oldCaptureId)
-  lifetime.observe({ captureId: newCaptureId, slot: 0, observationRevision: 1, nickname: '다라' })
+  lifetime.observeOcr(
+    ocr({ captureId: newCaptureId, slot: 0, observationRevision: 1, nickname: '다라' })
+  )
   await vi.waitFor(() => expect(lifetime.snapshot().slots[0].state).toBe('empty'))
   const current = lifetime.snapshot()
   publish.mockClear()
@@ -142,62 +182,64 @@ it('Stop은 모든 슬롯의 HTTP와 429 대기를 정리하고 새 수명을 �
   lifetime.end(newCaptureId)
 })
 
-it('pending 발행 중 clear가 발생하면 HTTP나 deadline을 시작하지 않는다', () => {
+it('pending 발행 중 새 관측이 요청을 대체하면 이전 요청의 HTTP나 deadline을 시작하지 않는다', async () => {
   const clock = new FakeMonotonicClock()
-  const http = vi.fn<SearchRuntime['http']>().mockResolvedValue([])
+  const http = vi.fn<CharacterCandidatesHttp>().mockResolvedValue([])
   const lifetime = createCaptureSearchLifetime({
-    runtime: { http, clock },
+    runtime: runtime(http, clock),
     isCurrent: () => true,
     publish: (snapshot) => {
       if (snapshot.slots[0].state === 'pending') {
-        lifetime.clear({
-          action: 'clear',
-          captureId: snapshot.captureId!,
-          slot: 0,
-          observationRevision: 2
-        })
+        lifetime.observeOcr(
+          ocr({ captureId: snapshot.captureId!, slot: 0, observationRevision: 2, nickname: '' })
+        )
       }
     }
   })
   const captureId = lifetime.begin(binding()).snapshot.captureId!
 
-  const result = lifetime.observe({ captureId, slot: 0, observationRevision: 1, nickname: '가나' })
+  const result = lifetime.observeOcr(
+    ocr({ captureId, slot: 0, observationRevision: 1, nickname: '가나' })
+  )
 
   expect(result.snapshot.slots[0]).toEqual({
     slot: 0,
     observationRevision: 2,
-    requestId: null,
-    nickname: null,
-    state: 'idle',
+    requestId: expect.any(String),
+    nickname: '',
+    state: 'failure',
     rows: [],
-    error: null
+    error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null }
   })
+  await flushCompletion()
   expect(http).not.toHaveBeenCalled()
   expect(clock.scheduled).toHaveLength(0)
   lifetime.end(captureId)
 })
 
 it('한 검색 수명의 종료는 다른 수명의 HTTP, deadline, 결과를 건드리지 않는다', async () => {
-  const firstResponse = deferred<readonly CharacterSearchRow[]>()
-  const secondResponse = deferred<readonly CharacterSearchRow[]>()
-  const firstHttp = vi.fn<SearchRuntime['http']>().mockReturnValue(firstResponse.promise)
-  const secondHttp = vi.fn<SearchRuntime['http']>().mockReturnValue(secondResponse.promise)
+  const firstResponse = deferred<readonly CharacterCandidate[]>()
+  const secondResponse = deferred<readonly CharacterCandidate[]>()
+  const firstHttp = vi.fn<CharacterCandidatesHttp>().mockReturnValue(firstResponse.promise)
+  const secondHttp = vi.fn<CharacterCandidatesHttp>().mockReturnValue(secondResponse.promise)
   const firstClock = new FakeMonotonicClock()
   const secondClock = new FakeMonotonicClock()
   const first = createCaptureSearchLifetime({
-    runtime: { http: firstHttp, clock: firstClock },
+    runtime: runtime(firstHttp, firstClock),
     isCurrent: () => true,
     publish: vi.fn()
   })
   const second = createCaptureSearchLifetime({
-    runtime: { http: secondHttp, clock: secondClock },
+    runtime: runtime(secondHttp, secondClock),
     isCurrent: () => true,
     publish: vi.fn()
   })
   const firstId = first.begin(binding()).snapshot.captureId!
   const secondId = second.begin(binding()).snapshot.captureId!
-  first.observe({ captureId: firstId, slot: 0, observationRevision: 1, nickname: '가나' })
-  second.observe({ captureId: secondId, slot: 0, observationRevision: 1, nickname: '다라' })
+  first.observeOcr(ocr({ captureId: firstId, slot: 0, observationRevision: 1, nickname: '가나' }))
+  second.observeOcr(ocr({ captureId: secondId, slot: 0, observationRevision: 1, nickname: '다라' }))
+  await vi.waitFor(() => expect(secondHttp).toHaveBeenCalledTimes(1))
+  expect(firstHttp).toHaveBeenCalledTimes(1)
   const secondPending = second.snapshot()
 
   first.end(firstId)
@@ -224,22 +266,20 @@ it('한 검색 수명의 종료는 다른 수명의 HTTP, deadline, 결과를 �
 it.each(['성공', '실패'])(
   '현재 binding을 확인할 수 없는 늦은 %s는 상태를 발행하지 않는다',
   async (outcome) => {
-    const response = deferred<readonly CharacterSearchRow[]>()
-    const http = vi.fn<SearchRuntime['http']>().mockReturnValue(response.promise)
+    const response = deferred<readonly CharacterCandidate[]>()
+    const http = vi.fn<CharacterCandidatesHttp>().mockReturnValue(response.promise)
     const publish = vi.fn<(snapshot: SearchSnapshot) => void>()
     let current = true
     const lifetime = createCaptureSearchLifetime({
-      runtime: { http, clock: new FakeMonotonicClock() },
+      runtime: runtime(http, new FakeMonotonicClock()),
       isCurrent: () => current,
       publish
     })
     const captureId = lifetime.begin(binding()).snapshot.captureId!
-    const pending = lifetime.observe({
-      captureId,
-      slot: 0,
-      observationRevision: 1,
-      nickname: '가나'
-    }).snapshot
+    const pending = lifetime.observeOcr(
+      ocr({ captureId, slot: 0, observationRevision: 1, nickname: '가나' })
+    ).snapshot
+    await vi.waitFor(() => expect(http).toHaveBeenCalledTimes(1))
     publish.mockClear()
     current = false
 

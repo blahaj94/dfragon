@@ -83,7 +83,7 @@ function details(characterId: string): CharacterDetails {
 function requestWith(adapters: IdentificationAdapters) {
   return (input: CharacterIdentificationInput & SearchOperationContext) =>
     runSearchRequest({
-      runtime: { clock: input.clock, http: vi.fn(), identification: adapters },
+      runtime: { clock: input.clock, identification: adapters },
       nickname: input.nicknames[0] ?? '',
       startedAt: input.startedAt,
       signal: input.signal,
@@ -504,7 +504,6 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
       runDetailsRequest({
         runtime: {
           clock: f.clock,
-          http: vi.fn(),
           identification: {
             candidates: f.candidates,
             image: f.image,

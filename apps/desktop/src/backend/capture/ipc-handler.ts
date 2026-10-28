@@ -13,12 +13,7 @@ import {
   type CaptureSearchLifetime,
   type CaptureBinding
 } from '../search/capture-lifetime'
-import {
-  parseSearchControl,
-  parseSearchObservation,
-  parseOcrSearchObservation
-} from '../search/commands'
-import { createSearchHttp } from '../search/http'
+import { parseSearchControl, parseOcrSearchObservation } from '../search/commands'
 import {
   createCharacterCandidatesHttp,
   createCharacterDetailsHttp,
@@ -179,11 +174,7 @@ function registerCaptureIpc(configuration?: {
 }): () => void {
   let runtime: SearchRuntime | undefined
   if (configuration != null) {
-    runtime = {
-      http: createSearchHttp(configuration),
-      clock: configuration.clock,
-      score: configuration.score
-    }
+    runtime = { clock: configuration.clock, score: configuration.score }
     const policy = configuration.portraitColorPolicy
     if (policy !== undefined) {
       // 잘못된 정책은 요청마다 실패하지 않도록 등록할 때 거절한다.
@@ -367,10 +358,6 @@ function registerCaptureIpc(configuration?: {
       return lifetime.end(control.captureId)
     }
 
-    const isClear = control.action === SEARCH_ACTIONS.CLEAR
-    if (isClear) {
-      return lifetime.clear(control)
-    }
     const isRetry = control.action === SEARCH_ACTIONS.RETRY
     if (isRetry) {
       return lifetime.retry(control)
@@ -395,17 +382,6 @@ function registerCaptureIpc(configuration?: {
     })
   })
 
-  addHandler('notifyStableNicknameDetected', (event, ...args) => {
-    requireSearchSender(event)
-    const observation = parseSearchObservation(args)
-    const hasValidObservation = observation != null
-    if (!hasValidObservation) {
-      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
-    }
-
-    return lifetime.observe(observation)
-  })
-
   addHandler('notifyOcrCandidatesDetected', (event, ...args) => {
     requireSearchSender(event)
     const observation = parseOcrSearchObservation(args)
@@ -424,7 +400,6 @@ function registerCaptureIpc(configuration?: {
     ipcMain.removeHandler('selectCaptureSource')
     ipcMain.removeHandler('readCaptureFrame')
     ipcMain.removeHandler('readRaidCaptureFrame')
-    ipcMain.removeHandler('notifyStableNicknameDetected')
     ipcMain.removeHandler('notifyOcrCandidatesDetected')
     ipcMain.removeHandler('controlCharacterSearch')
   }

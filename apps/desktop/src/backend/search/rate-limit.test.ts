@@ -5,6 +5,7 @@ import { createCaptureSearchLifetime } from './capture-lifetime'
 import { deferred } from '../lib/async-test-fixture'
 import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { SearchHttpFailure } from './http'
+import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
 type Fixture = Awaited<ReturnType<typeof createSearchFixture>>
 
@@ -49,18 +50,29 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
     const response = deferred<[]>()
     const http = vi.fn(() => response.promise)
     const lifetime = createCaptureSearchLifetime({
-      runtime: { http, clock },
+      runtime: {
+        clock,
+        identification: {
+          candidates: http,
+          image: vi.fn(),
+          details: vi.fn(),
+          scorePortrait: vi.fn(),
+          selection: INITIAL_PORTRAIT_COLOR_POLICY
+        }
+      },
       isCurrent: () => true,
       publish: vi.fn()
     })
     const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot
       .captureId!
-    const pending = lifetime.observe({
+    const pending = lifetime.lookup({
       captureId,
       slot: 0,
       observationRevision: 1,
-      nickname: '가나'
+      nickname: '가나',
+      serverId: 'cain'
     })
+    await vi.waitFor(() => expect(http).toHaveBeenCalledTimes(1))
     const receivedAt = clock.monotonicMs
     clock.advance(3_000)
 
