@@ -56,14 +56,12 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     viewRef.current = view
   }, [view])
   const api = window.search
-  const notify = window.api.notifyStableNicknameDetected
   const notifyOcr = window.api.notifyOcrCandidatesDetected
 
   useEffect(() => {
     let active = true
     const bridge = createCaptureSearch({
       api,
-      notify,
       notifyOcr,
       onChange: (value) => {
         if (active) {
@@ -80,7 +78,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
       bridgeRef.current = null
       bridge.dispose()
     }
-  }, [api, notify, notifyOcr])
+  }, [api, notifyOcr])
 
   const begin = useCallback(async (signal: AbortSignal): Promise<string | null> => {
     const bridge = bridgeRef.current

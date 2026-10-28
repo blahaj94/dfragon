@@ -1,15 +1,12 @@
 import { ipcRenderer } from 'electron'
-import type { ManualSearchApi } from '../common/types/search'
+import type { SearchApi } from '../common/types/search'
 import { parseSearchSnapshot } from '../common/search/snapshot'
 import { invokeSearchCommand } from './search-command'
 
-export const controlCharacterSearch: ManualSearchApi['controlCharacterSearch'] = (control) =>
+export const controlCharacterSearch: SearchApi['controlCharacterSearch'] = (control) =>
   invokeSearchCommand('controlManualSearch', control)
 
-export const notifyManualNickname: ManualSearchApi['notifyManualNickname'] = (observation) =>
-  invokeSearchCommand('notifyManualNickname', observation)
-
-export const onCharacterSearchChanged: ManualSearchApi['onCharacterSearchChanged'] = (listener) => {
+export const onCharacterSearchChanged: SearchApi['onCharacterSearchChanged'] = (listener) => {
   const wrapper = (_event: Electron.IpcRendererEvent, value: unknown): void => {
     const snapshot = parseSearchSnapshot(value)
     if (snapshot != null) {

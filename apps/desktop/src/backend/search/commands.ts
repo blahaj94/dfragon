@@ -8,11 +8,7 @@ import {
 } from '../../preload/common/types/search'
 import { z } from 'zod'
 import { CHARACTER_SERVER_NAMES } from '../../preload/common/search/character-summary'
-import type {
-  OcrSearchObservation,
-  SearchControl,
-  SearchObservation
-} from '../../preload/common/types/search'
+import type { OcrSearchObservation, SearchControl } from '../../preload/common/types/search'
 
 const MAX_NICKNAME_INPUT_LENGTH = 24
 const text = z.string()
@@ -39,12 +35,6 @@ function createControlSchema(slotCount: SearchSlotCount) {
       serverId: z.enum(Object.keys(CHARACTER_SERVER_NAMES))
     }),
     z.strictObject({ action: z.literal(SEARCH_ACTIONS.END), captureId: uuid }),
-    z.strictObject({
-      action: z.literal(SEARCH_ACTIONS.CLEAR),
-      captureId: uuid,
-      slot,
-      observationRevision
-    }),
     z.strictObject({
       action: z.literal(SEARCH_ACTIONS.RETRY),
       captureId: uuid,
@@ -172,10 +162,6 @@ export function parseSearchControl(
   slotCount: SearchSlotCount = SEARCH_SLOT_COUNTS.party
 ): SearchControl | null {
   return parseCommand({ args, schema: controlSchemas[slotCount] })
-}
-
-export function parseSearchObservation(args: unknown[]): SearchObservation | null {
-  return parseCommand({ args, schema: observationSchema })
 }
 
 export function parseOcrSearchObservation(

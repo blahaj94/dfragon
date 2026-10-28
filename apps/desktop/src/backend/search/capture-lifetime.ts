@@ -1,5 +1,4 @@
 import { isCharacterSearchNickname } from './identify'
-import { matchesDNFSearchNicknamePolicy } from '@dfragon/lib'
 import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import { randomUUID } from 'node:crypto'
 import { createActor } from 'xstate'
@@ -22,7 +21,6 @@ import type {
   SearchCommandError,
   SearchCommandResult,
   SearchControl,
-  SearchObservation,
   ManualCharacterLookup,
   OcrSearchObservation,
   OcrSearchInput,
@@ -67,14 +65,6 @@ function idleSlot({
   }
 }
 
-function validNickname(nickname: string): boolean {
-  const matchesPolicy = matchesDNFSearchNicknamePolicy(nickname)
-  const isWellFormed = nickname.isWellFormed()
-  const isValid = matchesPolicy && isWellFormed
-
-  return isValid
-}
-
 function retryAfterForFailure(
   result: Extract<SearchOutcome, { kind: 'failure' }>
 ): Pick<RetryAfter, 'seconds' | 'receivedAt'> | null {
@@ -111,12 +101,8 @@ export type CaptureSearchLifetime = {
   invalidate: () => void
   /** 진행 중인 OCR에서 시작한 요청을 취소하고 그 슬롯을 비운다. 끝난 슬롯과 서버를 고른 조회는 유지한다. */
   cancelOcrRequests: () => void
-  observe: (input: SearchObservation) => SearchCommandResult
   observeOcr: (input: OcrSearchObservation) => SearchCommandResult
   lookup: (input: ManualCharacterLookup) => SearchCommandResult
-  clear: (
-    input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.CLEAR }>
-  ) => SearchCommandResult
   retry: (
     input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.RETRY }>
   ) => SearchCommandResult
@@ -214,48 +200,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     emit()
   }
 
-  function observe(input: SearchObservation): SearchCommandResult {
-    const isCurrentCapture = binding?.captureId === input.captureId
-    if (!isCurrentCapture) {
-      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
-    }
-    const previous = slots[input.slot]
-    const isNewerObservation = input.observationRevision > previous.observationRevision
-    if (!isNewerObservation) {
-      return result()
-    }
-    const hasSameNickname =
-      ocrInputs[input.slot] === null &&
-      manualServers[input.slot] === null &&
-      input.nickname === previous.nickname
-    if (hasSameNickname) {
-      return promoteObservation(input)
-    }
-
-    const runtime = options.runtime
-    if (runtime == null) {
-      cancelSlot(input.slot)
-      slots[input.slot] = {
-        slot: input.slot,
-        observationRevision: input.observationRevision,
-        requestId: randomUUID(),
-        nickname: input.nickname,
-        state: 'failure',
-        rows: [],
-        error: {
-          code: validNickname(input.nickname) ? 'NEOPLE_UNAVAILABLE' : 'INVALID_SEARCH_QUERY',
-          retryAfterSeconds: null
-        }
-      }
-      emit()
-
-      return result()
-    }
-
-    return startRequest({ input, runtime })
-  }
-
-  function promoteObservation(input: SearchObservation): SearchCommandResult {
+  function promoteObservation(input: OcrSearchObservation): SearchCommandResult {
     slots[input.slot] = { ...slots[input.slot], observationRevision: input.observationRevision }
     actors[input.slot].send({ type: 'PROMOTE', observationRevision: input.observationRevision })
     emit()
@@ -369,23 +314,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     return result()
   }
 
-  function clear(
-    input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.CLEAR }>
-  ): SearchCommandResult {
-    const isCurrentCapture = binding?.captureId === input.captureId
-    if (!isCurrentCapture) {
-      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
-    }
-    const isNewer = input.observationRevision > slots[input.slot].observationRevision
-    if (isNewer) {
-      cancelSlot(input.slot)
-      slots[input.slot] = idleSlot(input)
-      emit()
-    }
-
-    return result()
-  }
-
   function retry(
     input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.RETRY }>
   ): SearchCommandResult {
@@ -440,24 +368,16 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     }
 
     const serverId = manualServers[input.slot]
-    if (serverId !== null) {
-      return startCharacterRequest({
-        captureId: input.captureId,
-        slot: input.slot,
-        observationRevision: slot.observationRevision,
-        nickname,
-        serverId
-      })
+    if (serverId === null) {
+      return result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
 
-    return startRequest({
-      input: {
-        captureId: input.captureId,
-        slot: input.slot,
-        observationRevision: slot.observationRevision,
-        nickname
-      },
-      runtime
+    return startCharacterRequest({
+      captureId: input.captureId,
+      slot: input.slot,
+      observationRevision: slot.observationRevision,
+      nickname,
+      serverId
     })
   }
 
@@ -465,7 +385,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     input,
     runtime
   }: {
-    input: SearchObservation | OcrSearchObservation | ManualCharacterLookup
+    input: OcrSearchObservation | ManualCharacterLookup
     runtime: SearchRuntime
   }): SearchCommandResult {
     const startedAt = runtime.clock.read().monotonicMs
@@ -491,10 +411,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     }
 
     const requestId = randomUUID()
-    const isCharacterLookup = ocrInput !== null || manualServerId !== undefined
-    const isValidInput = isCharacterLookup
-      ? isCharacterSearchNickname(input.nickname)
-      : validNickname(input.nickname)
+    const isValidInput = isCharacterSearchNickname(input.nickname)
     ocrInputs[input.slot] = ocrInput
     manualServers[input.slot] = manualServerId ?? null
     slots[input.slot] = {
@@ -750,10 +667,8 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     end,
     invalidate,
     cancelOcrRequests,
-    observe,
     observeOcr,
     lookup,
-    clear,
     retry
   }
 }

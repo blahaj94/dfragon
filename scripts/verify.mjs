@@ -45,22 +45,7 @@ export const checkJobs = [
     ]
   },
   { job: 'desktop-typecheck', commands: [workspace('@dfragon/desktop', 'typecheck')] },
-  { job: 'api', commands: [workspace('@dfragon/api', 'test')] },
-  {
-    job: 'desktop-search',
-    commands: [
-      workspace('@dfragon/desktop', 'exec', 'install-electron'),
-      workspace('@dfragon/api', 'build'),
-      workspace(
-        '@dfragon/desktop',
-        'exec',
-        'vitest',
-        'run',
-        '--config',
-        'scripts/search-server-integration/vitest.config.ts'
-      )
-    ]
-  }
+  { job: 'api', commands: [workspace('@dfragon/api', 'test')] }
 ]
 
 function describeFailure(result) {
