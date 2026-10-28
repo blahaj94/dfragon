@@ -3,7 +3,6 @@ import * as stylex from '@stylexjs/stylex'
 import { createPortal } from 'react-dom'
 import { CaptureControls } from '../../components/CaptureControls'
 import { MainNav } from '../../components/MainNav'
-import type { SearchMode } from '../../types/search-mode'
 import { BoardHeader } from '../../components/BoardHeader'
 import { TopBar } from '../../components/TopBar'
 import { PartyPage } from '../../pages/party/PartyPage'
@@ -25,6 +24,7 @@ import {
   tierPreviewCharacters
 } from './fixture'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
+import { useSearchModeStore } from '../../hooks/useSearchModeStore'
 import type { CardCharacter } from '../../types/cards'
 import { createSeatOrder, seatValuesToSlotOrder, swapSeats } from '../../lib/raid-seats'
 import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
@@ -36,7 +36,7 @@ export function Preview(): React.JSX.Element {
   const [captureState, setCaptureState] = useState('idle')
   const [source, setSource] = useState('')
   const [completedAt, setCompletedAt] = useState<number | null>(null)
-  const [searchMode, setSearchMode] = useState<SearchMode>('party')
+  const searchMode = useSearchModeStore((state) => state.searchMode)
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
   const [partyRound, setPartyRound] = useState(0)
   const [raidRound, setRaidRound] = useState(0)
@@ -152,7 +152,7 @@ export function Preview(): React.JSX.Element {
     <>
       <main {...stylex.props(styles.app, styles.windowHeight(windowHeight))}>
         <TopBar
-          nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
+          nav={<MainNav />}
           boardRef={setBoardSlot}
           capture={
             <CaptureControls
