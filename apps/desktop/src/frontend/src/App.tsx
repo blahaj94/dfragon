@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { useScreenCapture } from './hooks/useScreenCapture'
 import { useSearchModeStore } from './hooks/useSearchModeStore'
@@ -11,23 +10,18 @@ import { styles } from './App.style'
 
 function App(): React.JSX.Element {
   const searchMode = useSearchModeStore((state) => state.searchMode)
-  const [boardSlot, setBoardSlot] = useState<HTMLDivElement | null>(null)
   const { partyCapture, raidCapture, controls } = useScreenCapture()
   useMainWindowHeight(MAIN_WINDOW_HEIGHTS[searchMode])
 
   return (
     <main {...stylex.props(styles.app)}>
-      <AppTopBar boardRef={setBoardSlot} capture={partyCapture} controls={controls} />
+      <AppTopBar capture={partyCapture} controls={controls} />
       <div {...stylex.props(styles.content)}>
         <div {...stylex.props(styles.page)}>
           {/* 파티 카드는 공대를 보는 동안에도 상태를 유지하도록 숨기기만 한다. */}
-          <PartyScreen
-            capture={partyCapture}
-            hidden={searchMode !== 'party'}
-            headerSlot={boardSlot}
-          />
+          <PartyScreen capture={partyCapture} hidden={searchMode !== 'party'} />
           {/* 공대 카드도 파티를 보는 동안 자리별 입력과 검색 상태를 유지하도록 숨기기만 한다. */}
-          <RaidScreen capture={raidCapture} hidden={searchMode !== 'raid'} headerSlot={boardSlot} />
+          <RaidScreen capture={raidCapture} hidden={searchMode !== 'raid'} />
         </div>
       </div>
     </main>

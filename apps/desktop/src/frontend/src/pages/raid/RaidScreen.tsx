@@ -1,6 +1,6 @@
 import { useId } from 'react'
-import { createPortal } from 'react-dom'
 import { BoardHeader } from '../../components/BoardHeader'
+import { BoardHeaderPortal } from '../../components/BoardHeaderPortal'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import type { RaidCapture } from '../../hooks/useRaidCapture'
 import { slotAdventureName } from '../../lib/adventure-snapshot'
@@ -26,12 +26,10 @@ export type RaidScreenCapture = Pick<
 
 export function RaidScreen({
   capture,
-  hidden,
-  headerSlot
+  hidden
 }: {
   capture: RaidScreenCapture
   hidden: boolean
-  headerSlot: HTMLElement | null
 }): React.JSX.Element {
   const cardsId = useId()
   const { search, seatOrder } = capture
@@ -56,17 +54,16 @@ export function RaidScreen({
       id={cardsId}
       hidden={hidden}
       header={
-        !hidden &&
-        headerSlot != null &&
-        createPortal(
-          <BoardHeader
-            target="공대"
-            filledCount={filledSlotCount(cards)}
-            notice={notice}
-            capture={capture}
-            snapshot={snapshot}
-          />,
-          headerSlot
+        !hidden && (
+          <BoardHeaderPortal>
+            <BoardHeader
+              target="공대"
+              filledCount={filledSlotCount(cards)}
+              notice={notice}
+              capture={capture}
+              snapshot={snapshot}
+            />
+          </BoardHeaderPortal>
         )
       }
       resetKey={String(capture.round)}

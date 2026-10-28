@@ -1,4 +1,4 @@
-import type { Ref } from 'react'
+import { attachBoardHeaderSlot } from '../hooks/useBoardHeaderSlot'
 import { useSearchModeStore } from '../hooks/useSearchModeStore'
 import {
   CaptureControls,
@@ -10,11 +10,9 @@ import { TopBar } from './TopBar'
 import { UpdateNoticeSlot } from './UpdateNoticeSlot'
 
 export function AppTopBar({
-  boardRef,
   capture,
   controls
 }: {
-  boardRef: Ref<HTMLDivElement>
   capture: CaptureSourceControl
   controls: Pick<CaptureControlsProps, 'phase' | 'status'>
 }): React.JSX.Element {
@@ -24,7 +22,7 @@ export function AppTopBar({
   return (
     <TopBar
       nav={<MainNav searchMode={searchMode} onSearchModeChange={changeSearchMode} />}
-      boardRef={boardRef}
+      boardRef={attachBoardHeaderSlot}
       notice={<UpdateNoticeSlot />}
       capture={
         <CaptureControls capture={capture} phase={controls.phase} status={controls.status} />

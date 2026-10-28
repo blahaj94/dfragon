@@ -1,6 +1,6 @@
-import { createPortal } from 'react-dom'
 import * as stylex from '@stylexjs/stylex'
 import { BoardHeader } from '../../components/BoardHeader'
+import { BoardHeaderPortal } from '../../components/BoardHeaderPortal'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import type { PartyCapture } from '../../hooks/usePartyCapture'
 import { slotAdventureName } from '../../lib/adventure-snapshot'
@@ -26,12 +26,10 @@ export type PartyScreenCapture = Pick<
 
 export function PartyScreen({
   capture,
-  hidden,
-  headerSlot
+  hidden
 }: {
   capture: PartyScreenCapture
   hidden: boolean
-  headerSlot: HTMLElement | null
 }): React.JSX.Element {
   const { search } = capture
   const snapshot = useAdventureSnapshot(search.slots.map(slotAdventureName), capture.startedRounds)
@@ -46,18 +44,17 @@ export function PartyScreen({
 
   return (
     <div hidden={hidden} {...stylex.props(styles.party)}>
-      {!hidden &&
-        headerSlot != null &&
-        createPortal(
+      {!hidden && (
+        <BoardHeaderPortal>
           <BoardHeader
             target="파티"
             filledCount={filledSlotCount(cards)}
             notice=""
             capture={capture}
             snapshot={snapshot}
-          />,
-          headerSlot
-        )}
+          />
+        </BoardHeaderPortal>
+      )}
       <PartyPage resetKey={String(capture.round)} slots={cards} inputEnabled actions={search} />
     </div>
   )
