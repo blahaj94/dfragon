@@ -1,17 +1,17 @@
 import * as stylex from '@stylexjs/stylex'
-import { useScreenCapture } from './hooks/useScreenCapture'
 import { AppTopBar } from './components/AppTopBar'
+import { ScreenCaptureProvider } from './sections/ScreenCaptureProvider'
 import { SearchScreen } from './pages/search/SearchScreen'
 import { styles } from './App.style'
 
 function App(): React.JSX.Element {
-  const { partyCapture, raidCapture, controls } = useScreenCapture()
-
   return (
-    <main {...stylex.props(styles.app)}>
-      <AppTopBar capture={partyCapture} controls={controls} />
-      <SearchScreen partyCapture={partyCapture} raidCapture={raidCapture} />
-    </main>
+    <ScreenCaptureProvider>
+      <main {...stylex.props(styles.app)}>
+        <AppTopBar />
+        <SearchScreen />
+      </main>
+    </ScreenCaptureProvider>
   )
 }
 

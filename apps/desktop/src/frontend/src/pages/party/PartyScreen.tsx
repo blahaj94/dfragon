@@ -2,35 +2,14 @@ import * as stylex from '@stylexjs/stylex'
 import { BoardHeader } from '../../components/BoardHeader'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import { useBoardHeaderPortal } from '../../hooks/useBoardHeaderPortal'
-import type { PartyCapture } from '../../hooks/usePartyCapture'
+import { useScreenCaptureContext } from '../../hooks/useScreenCaptureContext'
 import { slotAdventureName } from '../../lib/adventure-snapshot'
 import { filledSlotCount, toSlotCards } from '../../lib/slot-cards'
 import { PartyPage } from './PartyPage'
 import { styles } from './PartyScreen.style'
 
-export type PartyScreenCapture = Pick<
-  PartyCapture,
-  | 'nicknames'
-  | 'recognizing'
-  | 'round'
-  | 'startedRounds'
-  | 'lastCompletedAt'
-  | 'canStartCapture'
-  | 'startRound'
-> & {
-  search: Pick<
-    PartyCapture['search'],
-    'slots' | 'manualSlots' | 'lookupSlot' | 'candidatePickers' | 'pickCandidate'
-  >
-}
-
-export function PartyScreen({
-  capture,
-  hidden
-}: {
-  capture: PartyScreenCapture
-  hidden: boolean
-}): React.JSX.Element {
+export function PartyScreen({ hidden }: { hidden: boolean }): React.JSX.Element {
+  const { partyCapture: capture } = useScreenCaptureContext()
   const { search } = capture
   const snapshot = useAdventureSnapshot(search.slots.map(slotAdventureName), capture.startedRounds)
   const cards = toSlotCards({

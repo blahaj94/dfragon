@@ -155,7 +155,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 ### OCR 관측 IPC와 슬롯 수명
 
-제품 `App`은 OCR 식별 옵션의 `usePartyCapture`를 사용한다. `lib/party-recognition.ts`의 `recognizePartyFrame`은 회차 프레임 한 장의 첫 이름과 얼굴을 슬롯별 결과로 돌려주고, `lib/party-capture-machine.ts`가 유효한 회차의 결과만 `notifyOcrCandidatesDetected`로 전달한다. 두 번 연속 같은 입력인지 기다리지 않는다. 첫 이름은 앞뒤 공백만 제거하고 두 번째 이름으로 보정하지 않는다. 공백을 제거한 첫 이름이 비어 있거나 12 code point를 넘거나 잘못된 Unicode이면 해당 슬롯을 조회 실패로 전달하고, 이유와 모델 원문을 renderer DevTools Console에만 표시한다. 슬롯 OCR에 예외가 있으면 검색 통지 없이 `OCR_FAILED`로 회차를 종료한다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 조회를 시작한 슬롯은 해당 회차에서 고정하며 추가 프레임을 읽거나 검색을 재실행하지 않는다. 통합 테스트가 띄우는 `sections/PartyCapture.tsx`도 같은 회차 방식을 사용한다. 이 화면의 캡처 시작 버튼은 Alt+R과 같은 회차 시작을 보내며 인식 간격 선택은 제공하지 않는다.
+제품 앱의 캡처 Provider(`sections/ScreenCaptureProvider.tsx`)는 `hooks/useScreenCapture.ts`를 거쳐 OCR 식별 옵션의 `usePartyCapture`를 사용한다. `lib/party-recognition.ts`의 `recognizePartyFrame`은 회차 프레임 한 장의 첫 이름과 얼굴을 슬롯별 결과로 돌려주고, `lib/party-capture-machine.ts`가 유효한 회차의 결과만 `notifyOcrCandidatesDetected`로 전달한다. 두 번 연속 같은 입력인지 기다리지 않는다. 첫 이름은 앞뒤 공백만 제거하고 두 번째 이름으로 보정하지 않는다. 공백을 제거한 첫 이름이 비어 있거나 12 code point를 넘거나 잘못된 Unicode이면 해당 슬롯을 조회 실패로 전달하고, 이유와 모델 원문을 renderer DevTools Console에만 표시한다. 슬롯 OCR에 예외가 있으면 검색 통지 없이 `OCR_FAILED`로 회차를 종료한다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 조회를 시작한 슬롯은 해당 회차에서 고정하며 추가 프레임을 읽거나 검색을 재실행하지 않는다. 통합 테스트가 띄우는 `sections/PartyCapture.tsx`도 같은 회차 방식을 사용한다. 이 화면의 캡처 시작 버튼은 Alt+R과 같은 회차 시작을 보내며 인식 간격 선택은 제공하지 않는다.
 
 IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNicknames, portrait }`다. Main은 기존 sender, main frame, exact document 검사를 적용하고 후보 개수, 이름, 별칭의 일치, 이미지와 마스크 크기, 배율을 검증한다. 얼굴은 최대 512px/축, 262,144픽셀이며 원본 버퍼를 복사해 보관한다. 이 데이터는 로컬 프로세스 사이에서만 전달하고 API에 업로드하지 않는다.
 
@@ -203,7 +203,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 ## UI 구성
 
-제품 `App`은 파티 캡처 결과를 `PartyScreen`에 넘기고, `PartyScreen`이 `lib/slot-cards.ts`의 `toSlotCards`로 슬롯마다 상태, 표시 캐릭터, 인식한 이름, 안내, 진행 표시, 스냅샷 표시를 묶어 `PartyPage`에 전달한다. `lib/character-card.ts`는 기본 정보만 표시 값으로 바꾸며 누락된 명성을 0으로 대체하거나 장비 점수를 계산하지 않는다. 실제 선택 identity가 바뀌면 카드의 편집 초기 상태도 교체해, 늦게 도착한 결과를 이름 수정 중으로 오인하지 않는다. 카드는 캐릭터 면 하나만 두며 상세 창, 면 탭, 스탯 한 줄과 서버 순위는 없다.
+`PartyScreen`은 캡처 Provider가 Context로 제공하는 파티 캡처 결과를 `hooks/useScreenCaptureContext.ts`로 읽고, `lib/slot-cards.ts`의 `toSlotCards`로 슬롯마다 상태, 표시 캐릭터, 인식한 이름, 안내, 진행 표시, 스냅샷 표시를 묶어 `PartyPage`에 전달한다. `lib/character-card.ts`는 기본 정보만 표시 값으로 바꾸며 누락된 명성을 0으로 대체하거나 장비 점수를 계산하지 않는다. 실제 선택 identity가 바뀌면 카드의 편집 초기 상태도 교체해, 늦게 도착한 결과를 이름 수정 중으로 오인하지 않는다. 카드는 캐릭터 면 하나만 두며 상세 창, 면 탭, 스탯 한 줄과 서버 순위는 없다.
 
 카드는 중앙 진행 표시와 조회 완료, 빈 결과, 정제된 오류를 구분한다. 최고 명성 대체 결과는 얼굴 일치와 다르게 표시한다. 서버와 닉네임은 항상 수정할 수 있으며 Enter나 서버 변경으로 수동 조회한다. Alt+R은 기존 결과를 비우고 전체 OCR부터 새로 실행한다. 합성 미리보기의 이전 대기 상태와 재시도 시나리오는 제품의 새 회차 동작과 구분한다. Electron의 화면 확인은 실제 게임의 얼굴 식별 정확도 검증을 대신하지 않는다.
 
