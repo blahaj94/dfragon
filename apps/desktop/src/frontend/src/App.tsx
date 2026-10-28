@@ -6,9 +6,8 @@ import { TopBar } from './components/TopBar'
 import { MainNav, type SearchMode } from './components/MainNav'
 import { PartyScreen } from './pages/party/PartyScreen'
 import { RaidScreen } from './pages/raid/RaidScreen'
-import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { useMainWindowHeight } from './hooks/useMainWindowHeight'
-import { UpdateNotice } from './components/UpdateNotice'
+import { UpdateNoticeSlot } from './components/UpdateNoticeSlot'
 import { MAIN_WINDOW_HEIGHTS } from './constants/main-window-heights'
 import { styles } from './App.style'
 
@@ -17,7 +16,6 @@ function App(): React.JSX.Element {
   // 상단 바의 화면 머리 자리. 보이는 화면이 자기 머리를 이 요소에 그린다.
   const [boardSlot, setBoardSlot] = useState<HTMLDivElement | null>(null)
   const { partyCapture, raidCapture, controls } = useScreenCapture(searchMode)
-  const updateNotice = useUpdateNotice()
   // 창 내용 높이는 보이는 화면을 따른다.
   useMainWindowHeight(MAIN_WINDOW_HEIGHTS[searchMode])
 
@@ -26,15 +24,7 @@ function App(): React.JSX.Element {
       <TopBar
         nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
         boardRef={setBoardSlot}
-        notice={
-          updateNotice.notice != null && (
-            <UpdateNotice
-              tag={updateNotice.notice.tag}
-              onOpenRelease={updateNotice.openRelease}
-              onDismiss={updateNotice.dismiss}
-            />
-          )
-        }
+        notice={<UpdateNoticeSlot />}
         capture={
           <CaptureControls capture={partyCapture} phase={controls.phase} status={controls.status} />
         }
