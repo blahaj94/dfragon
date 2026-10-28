@@ -146,7 +146,6 @@ it('얼굴 크롭이 없는 OCR 관측의 waiting-portrait 상태를 표시한�
 
   await vi.waitFor(() => expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(waiting))
   expect(f.changed.mock.lastCall?.[0].connectionFailed).toBe(false)
-  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(true)
 })
 
 it.each(['이름 변경', 'end'] as const)(
@@ -192,7 +191,7 @@ it.each(['이름 변경', 'end'] as const)(
     await vi.waitFor(() => expect(f.changed.mock.calls.length).toBeGreaterThan(published))
     expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
     if (action === 'end') {
-      expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
+      expect(f.control).toHaveBeenCalledWith({ action: 'end', captureId: CAPTURE_ID })
     }
   }
 )
@@ -217,7 +216,8 @@ it('OCR 전용 통지를 지원하지 않으면 기존 결과를 숨기고 연�
 
   expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
   expect(f.changed.mock.lastCall?.[0].connectionFailed).toBe(true)
-  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(true)
+  f.search.end()
+  expect(f.control).toHaveBeenCalledWith({ action: 'end', captureId: CAPTURE_ID })
   expect(f.notifyOcr).not.toHaveBeenCalled()
 })
 
@@ -250,7 +250,6 @@ it('연속 begin의 이전 응답은 자신의 ID만 end하고 새 관측 revisi
   expect(f.control.mock.calls.filter(([command]) => command.action === 'end')).toEqual([
     [{ action: 'end', captureId: CAPTURE_ID }]
   ])
-  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(true)
 })
 
 it('실행 중 end, dispose를 반복해도 소유 ID는 한 번만 end하고 폐기 뒤 begin은 보내지 않는다', async () => {
@@ -265,7 +264,6 @@ it('실행 중 end, dispose를 반복해도 소유 ID는 한 번만 end하고 �
 
   expect(await f.search.begin({ signal: new AbortController().signal })).toBeNull()
   expect(f.control.mock.calls.map(([command]) => command.action)).toEqual(['read', 'begin', 'end'])
-  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
 })
 
 it('main이 끝낸 capture는 즉시 비활성화하고 END를 다시 보내지 않는다', async () => {
@@ -275,7 +273,6 @@ it('main이 끝낸 capture는 즉시 비활성화하고 END를 다시 보내지 
   f.emit(searchSnapshot({ captureId: null, revision: 3 }))
 
   expect(f.invalidated).toHaveBeenCalledOnce()
-  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
   f.search.observe(ocr(0, '가나'))
   f.search.end()
   expect(f.notifyOcr).not.toHaveBeenCalled()
@@ -301,7 +298,8 @@ it('run 변경 중 늦은 begin은 정리하고 재연결 뒤 새 begin은 사�
     snapshot: searchSnapshot({ runId: nextRun, captureId: nextId, revision: 1 })
   })
   expect(await f.search.begin({ signal: new AbortController().signal })).toBe(nextId)
-  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(true)
+  f.search.end()
+  expect(f.control).toHaveBeenLastCalledWith({ action: 'end', captureId: nextId })
 })
 
 it('반환 함수를 분리해서 호출해도 각 검색의 관측 상태와 종료가 격리된다', async () => {
@@ -340,7 +338,6 @@ it('반환 함수를 분리해서 호출해도 각 검색의 관측 상태와 �
   })
 
   dispose()
-  expect(second.changed.mock.lastCall?.[0].captureActive).toBe(true)
   expect(second.control).not.toHaveBeenCalledWith({ action: 'end', captureId: otherId })
   second.search.observe(ocr(0, '사아'))
   expect(second.notifyOcr).toHaveBeenLastCalledWith({
@@ -373,7 +370,6 @@ it('시작 응답 전에 취소한 호출은 늦은 ID를 한 번만 종료하�
     { action: 'begin' },
     { action: 'end', captureId: CAPTURE_ID }
   ])
-  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
 })
 
 it('시작 응답이 유실되면 조회의 ID를 임의로 채택하거나 시작을 재전송하지 않는다', async () => {
@@ -391,7 +387,6 @@ it('시작 응답이 유실되면 조회의 ID를 임의로 채택하거나 시�
     { action: 'read' }
   ])
   expect(f.notifyOcr).not.toHaveBeenCalled()
-  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
   expect(f.changed.mock.lastCall?.[0].ready).toBe(true)
 })
 

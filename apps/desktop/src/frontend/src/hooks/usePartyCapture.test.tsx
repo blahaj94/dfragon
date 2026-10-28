@@ -388,7 +388,6 @@ it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 재�
   expect(hook.getCurrent().phase).toBe('complete')
   expect(hook.getCurrent().status).toBe('인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.')
   expect(worker.terminate).toHaveBeenCalledOnce()
-  expect(hook.getCurrent().search.captureActive).toBe(true)
   currentSearch = searchSnapshot({
     revision: currentSearch.revision + 1,
     slots: [
@@ -418,10 +417,7 @@ it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 재�
   })
   await shortcut()
   expect(readCaptureFrame).toHaveBeenCalledTimes(2)
-  expect(search.controlCharacterSearch).toHaveBeenCalledWith({
-    action: 'end',
-    captureId: CAPTURE_ID
-  })
+  expect(endCalls()).toEqual([[{ action: 'end', captureId: CAPTURE_ID }]])
   await hook.unmount()
 })
 
@@ -442,7 +438,6 @@ it.each([
   await shortcut()
   expect(hook.getCurrent().phase).toBe('unavailable')
   expect(hook.getCurrent().status).toBe(status)
-  expect(hook.getCurrent().search.captureActive).toBe(true)
   expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
   expect(moduleMocks.createPartyOcrWorker).toHaveBeenCalledTimes(reason === 'missing' ? 1 : 0)
   await act(async () => vi.advanceTimersByTimeAsync(60_000))
@@ -452,6 +447,9 @@ it.each([
   expect(beginCalls()).toHaveLength(2)
   expect(readCaptureFrame).toHaveBeenCalledTimes(2)
   expect(hook.getCurrent().phase).toBe('complete')
+  expect(endCalls()).toEqual([[{ action: 'end', captureId: CAPTURE_ID }]])
+  await act(async () => hook.getCurrent().stopCapture())
+  expect(endCalls()).toHaveLength(2)
   await hook.unmount()
 })
 
@@ -566,17 +564,12 @@ it.each([
     expect(hook.getCurrent().phase).toBe('failed')
     expect(hook.getCurrent().status).toBe(status)
     expect(report).toHaveBeenCalledWith(code)
-    expect(hook.getCurrent().search.captureActive).toBe(false)
+    expect(endCalls()).toEqual(
+      stage === 'begin' ? [] : [[{ action: 'end', captureId: CAPTURE_ID }]]
+    )
     expect(hook.getCurrent().canStartCapture).toBe(true)
     if (stage === 'ocr') {
       expect(worker.terminate).toHaveBeenCalledOnce()
-    }
-
-    if (stage !== 'begin') {
-      expect(search.controlCharacterSearch).toHaveBeenCalledWith({
-        action: 'end',
-        captureId: CAPTURE_ID
-      })
     }
     expect(beginCalls()).toHaveLength(1)
     await shortcut()
@@ -725,7 +718,7 @@ it('완료 뒤 창 변경은 검색과 이름을 지우고 새 창만 등록한�
   await act(async () => hook.getCurrent().source.selectSource('other'))
   expect(hook.getCurrent().phase).toBe('selected')
   expect(hook.getCurrent().nicknames).toEqual([null, null, null, null])
-  expect(hook.getCurrent().search.captureActive).toBe(false)
+  expect(endCalls()).toEqual([[{ action: 'end', captureId: CAPTURE_ID }]])
   expect(readCaptureFrame).toHaveBeenCalledOnce()
   expect(api.selectCaptureSource).toHaveBeenLastCalledWith('other')
   await hook.unmount()
@@ -794,8 +787,9 @@ it('회차가 끝난 뒤 창 목록 조회 실패는 결과와 검색 수명을 
   expect(hook.getCurrent().phase).toBe('complete')
   expect(hook.getCurrent().status).toBe(state.status)
   expect(hook.getCurrent().nicknames).toEqual(state.nicknames)
-  expect(hook.getCurrent().search.captureActive).toBe(true)
   expect(readCaptureFrame).toHaveBeenCalledOnce()
+  await act(async () => hook.getCurrent().stopCapture())
+  expect(endCalls()).toEqual([[{ action: 'end', captureId: CAPTURE_ID }]])
   await hook.unmount()
 })
 
@@ -825,7 +819,7 @@ it.each(['failed', 'rejected'] as const)(
       '글자 인식에 실패했습니다. Alt+R을 누르거나 캐릭터 직접 검색을 사용해 주세요.'
     )
     expect(hook.getCurrent().nicknames).toEqual([null, null, null, null])
-    expect(hook.getCurrent().search.captureActive).toBe(false)
+    expect(endCalls()).toEqual([[{ action: 'end', captureId: CAPTURE_ID }]])
     expect(worker.terminate).toHaveBeenCalledOnce()
     await hook.unmount()
   }
@@ -931,7 +925,8 @@ it.each(['older end', 'newer same capture'] as const)(
     expect(readCaptureFrame).toHaveBeenCalledExactlyOnceWith(CAPTURE_ID)
     expect(moduleMocks.createPartyOcrWorker).toHaveBeenCalledOnce()
     expect(endCalls()).toEqual([])
-    expect(hook.getCurrent().search.captureActive).toBe(true)
+    await act(async () => hook.getCurrent().stopCapture())
+    expect(endCalls()).toEqual([[{ action: 'end', captureId: CAPTURE_ID }]])
     await hook.unmount()
   }
 )
@@ -951,7 +946,11 @@ it('중지한 회차의 늦은 프레임 읽기 실패는 새 회차의 검색�
   await act(async () => oldFrame.reject(new Error('Synthetic old frame failure')))
   expect(endCalls()).toEqual([[{ action: 'end', captureId: CAPTURE_ID }]])
   expect(hook.getCurrent().phase).toBe('complete')
-  expect(hook.getCurrent().search.captureActive).toBe(true)
+  await act(async () => hook.getCurrent().stopCapture())
+  expect(endCalls()).toEqual([
+    [{ action: 'end', captureId: CAPTURE_ID }],
+    [{ action: 'end', captureId: NEXT_CAPTURE_ID }]
+  ])
   await hook.unmount()
 })
 
@@ -970,7 +969,8 @@ it('취소한 회차의 begin 응답이 유실된 뒤 read가 새 capture를 찾
   expect(search.controlCharacterSearch).toHaveBeenLastCalledWith({ action: 'read' })
   expect(endCalls()).toEqual([])
   expect(readCaptureFrame).toHaveBeenCalledExactlyOnceWith(NEXT_CAPTURE_ID)
-  expect(hook.getCurrent().search.captureActive).toBe(true)
+  await act(async () => hook.getCurrent().stopCapture())
+  expect(endCalls()).toEqual([[{ action: 'end', captureId: NEXT_CAPTURE_ID }]])
   await hook.unmount()
 })
 
