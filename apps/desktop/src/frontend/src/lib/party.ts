@@ -7,10 +7,23 @@ import {
 import { binarizeNicknamePixels } from './nickname-pixels'
 import { PARTY_SLOT_COUNT } from '../constants/capture'
 import type { CharacterImage, CharacterPortrait } from '../../../preload/common/types/character'
-import { cropPartyPortrait, type PartyPortraitCropper } from './party-portrait'
+import { cropPartyPortrait } from './party-portrait'
 
 const RGBA_CHANNELS = 4
 const ALPHA_CHANNEL = 3
+
+function detectGeometry(
+  frame: Parameters<typeof detectPartyFrameGeometry>[0]
+): PartyFrameGeometry | null {
+  try {
+    return detectPartyFrameGeometry(frame)
+  } catch (error) {
+    if (error instanceof PartyFrameGeometryError && error.reason !== 'invalid-frame') {
+      return null
+    }
+    throw error
+  }
+}
 
 function containsExcludedPixels(pixels: ArrayLike<number>): boolean {
   for (let index = ALPHA_CHANNEL; index < pixels.length; index += RGBA_CHANNELS) {
@@ -22,25 +35,19 @@ function containsExcludedPixels(pixels: ArrayLike<number>): boolean {
   return false
 }
 
-export type PartyRecognitionInput = {
+type PartyRecognitionInput = {
   slot: number
   nickname: HTMLCanvasElement
   portrait: CharacterPortrait | null
 }
 
-export type PartyFrameSource = (CharacterImage & { captureId?: string }) | null
-
 export function capturePartyRecognitionInputs(
-  source: PartyFrameSource,
-  portraitCropper: PartyPortraitCropper = cropPartyPortrait
+  source: CharacterImage
 ): (PartyRecognitionInput | null)[] {
   const crops: (PartyRecognitionInput | null)[] = Array.from(
     { length: PARTY_SLOT_COUNT },
     () => null
   )
-  if (source === null) {
-    return crops
-  }
   const { width, height } = source
   if (!isValidPartyFrameSize(width, height)) {
     return crops
@@ -62,14 +69,9 @@ export function capturePartyRecognitionInputs(
   frameContext.putImageData(image, 0, 0)
   const pixels = frameContext.getImageData(0, 0, width, height).data
   const rgba = new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength)
-  let geometry: PartyFrameGeometry
-  try {
-    geometry = detectPartyFrameGeometry({ width, height, rgba })
-  } catch (error) {
-    if (error instanceof PartyFrameGeometryError && error.reason !== 'invalid-frame') {
-      return crops
-    }
-    throw error
+  const geometry = detectGeometry({ width, height, rgba })
+  if (geometry === null) {
+    return crops
   }
 
   for (const region of geometry.slots) {
@@ -92,7 +94,7 @@ export function capturePartyRecognitionInputs(
     }
     nicknameContext.putImageData(nicknamePixels, 0, 0)
     const slot = region.slot - 1
-    const portrait = portraitCropper({
+    const portrait = cropPartyPortrait({
       frame: { width, height, rgba },
       nicknameRegion: region,
       rasterScale: geometry.scale

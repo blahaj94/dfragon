@@ -70,7 +70,7 @@ function isRecognitionReply(value: unknown): value is PartyOcrResult {
   return value.text === firstNickname && value.confidence === firstScore
 }
 
-export class OcrWorkerUnavailableError extends Error {
+class OcrWorkerUnavailableError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'OcrWorkerUnavailableError'

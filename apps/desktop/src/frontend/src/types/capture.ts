@@ -1,7 +1,5 @@
 import type { CtcCandidate } from '../lib/ctc-candidates'
 
-export type Rgb = readonly [red: number, green: number, blue: number]
-
 export type PartyOcrResult = {
   text: string
   confidence: number

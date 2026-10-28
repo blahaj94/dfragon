@@ -1,12 +1,11 @@
 import { isValidPartyFrameSize, type PartyFrameGeometry } from '@dfragon/lib'
 import type { CharacterImage, CharacterPortrait } from '../../../preload/common/types/character'
 
-export type PartyPortraitCropInput = Readonly<{
+type PartyPortraitCropInput = Readonly<{
   frame: CharacterImage
   nicknameRegion: PartyFrameGeometry['slots'][number]
   rasterScale: number
 }>
-export type PartyPortraitCropper = (input: PartyPortraitCropInput) => CharacterPortrait | null
 
 const RGBA_CHANNELS = 4
 const MAX_PORTRAIT_DIMENSION = 512
@@ -14,7 +13,11 @@ const MAX_PORTRAIT_DIMENSION = 512
 const PORTRAIT_REGION = { leftOfTrack: 28, top: 11, size: 26 } as const
 const PORTRAIT_MASK = { border: 1, topBorder: 2, badgeWidth: 12, badgeHeight: 9 } as const
 
-export const cropPartyPortrait: PartyPortraitCropper = ({ frame, nicknameRegion, rasterScale }) => {
+export function cropPartyPortrait({
+  frame,
+  nicknameRegion,
+  rasterScale
+}: PartyPortraitCropInput): CharacterPortrait | null {
   if (
     !isValidPartyFrameSize(frame.width, frame.height) ||
     !(frame.rgba instanceof Uint8Array) ||

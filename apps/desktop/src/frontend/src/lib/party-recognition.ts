@@ -18,6 +18,19 @@ export type PartySlotRecognition =
       portrait: CharacterPortrait | null
     })
 
+async function recognizeNickname(
+  recognize: PartyOcrWorker['recognize'],
+  nickname: HTMLCanvasElement
+): Promise<PartyOcrResult | null> {
+  try {
+    const result = await recognize(nickname)
+
+    return result.data
+  } catch {
+    return null
+  }
+}
+
 export async function recognizePartyFrame(
   frame: CharacterImage,
   recognize: PartyOcrWorker['recognize']
@@ -29,11 +42,8 @@ export async function recognizePartyFrame(
       results.push({ kind: 'missing', slot })
       continue
     }
-    let data: PartyOcrResult
-    try {
-      const result = await recognize(input.nickname)
-      data = result.data
-    } catch {
+    const data = await recognizeNickname(recognize, input.nickname)
+    if (data === null) {
       results.push({ kind: 'failed', slot, portrait: input.portrait })
       continue
     }
