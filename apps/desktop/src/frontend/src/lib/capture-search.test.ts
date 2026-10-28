@@ -3,8 +3,7 @@ import type {
   OcrSearchObservation,
   SearchApi,
   SearchCommandResult,
-  SearchSnapshot,
-  SearchObservation
+  SearchSnapshot
 } from '../../../preload/common/types/search'
 import type { CharacterPortrait } from '../../../preload/common/types/character'
 import {
@@ -15,15 +14,22 @@ import {
   searchSnapshot
 } from '../../../preload/api/search-test-fixture'
 import type { SearchView } from '../types/search'
-import { createCaptureSearch, type CaptureSearch } from './capture-search'
+import {
+  createCaptureSearch,
+  type CaptureSearch,
+  type OcrCaptureObservation
+} from './capture-search'
 
 const searches: CaptureSearch[] = []
 afterEach(() => searches.splice(0).forEach((search) => search.dispose()))
 
+function ocr(slot: number, nickname: string): OcrCaptureObservation {
+  return { slot, nickname, candidateNicknames: [nickname], portrait: null }
+}
+
 async function fixture({ ocrSupported = true }: { ocrSupported?: boolean } = {}): Promise<{
   search: CaptureSearch
   control: Mock<SearchApi['controlCharacterSearch']>
-  notify: Mock<(observation: SearchObservation) => Promise<SearchCommandResult>>
   notifyOcr: Mock<(observation: OcrSearchObservation) => Promise<SearchCommandResult>>
   changed: Mock<(view: SearchView) => void>
   invalidated: Mock
@@ -35,9 +41,6 @@ async function fixture({ ocrSupported = true }: { ocrSupported?: boolean } = {})
     ok: true,
     snapshot: current
   }))
-  const notify = vi.fn<(observation: SearchObservation) => Promise<SearchCommandResult>>(
-    async (): Promise<SearchCommandResult> => ({ ok: true, snapshot: current })
-  )
   const notifyOcr = vi.fn<(observation: OcrSearchObservation) => Promise<SearchCommandResult>>(
     async (): Promise<SearchCommandResult> => ({ ok: true, snapshot: current })
   )
@@ -52,7 +55,6 @@ async function fixture({ ocrSupported = true }: { ocrSupported?: boolean } = {})
         return () => {}
       }
     },
-    notify,
     notifyOcr: ocrSupported ? notifyOcr : undefined,
     onChange: changed,
     onInvalidated: invalidated
@@ -64,7 +66,6 @@ async function fixture({ ocrSupported = true }: { ocrSupported?: boolean } = {})
   return {
     search,
     control,
-    notify,
     notifyOcr,
     changed,
     invalidated,
@@ -124,7 +125,6 @@ it('OCR 후보 순서와 얼굴을 현재 capture ID, 관측 revision과 함께 
       }
     ]
   ])
-  expect(f.notify).not.toHaveBeenCalled()
 })
 
 it('얼굴 크롭이 없는 OCR 관측의 waiting-portrait 상태를 표시한다', async () => {
@@ -147,10 +147,9 @@ it('얼굴 크롭이 없는 OCR 관측의 waiting-portrait 상태를 표시한�
   await vi.waitFor(() => expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(waiting))
   expect(f.changed.mock.lastCall?.[0].connectionFailed).toBe(false)
   expect(f.changed.mock.lastCall?.[0].captureActive).toBe(true)
-  expect(f.notify).not.toHaveBeenCalled()
 })
 
-it.each(['이름 변경', 'clear', 'end'] as const)(
+it.each(['이름 변경', 'end'] as const)(
   '%s 뒤 도착한 이전 OCR 결과는 슬롯에 다시 표시하지 않는다',
   async (action) => {
     const f = await fixture()
@@ -175,8 +174,6 @@ it.each(['이름 변경', 'clear', 'end'] as const)(
         candidateNicknames: ['다라', '다러'],
         portrait: null
       })
-    } else if (action === 'clear') {
-      f.search.observe({ slot: 0, nickname: null })
     } else {
       f.search.end()
     }
@@ -194,7 +191,6 @@ it.each(['이름 변경', 'clear', 'end'] as const)(
 
     await vi.waitFor(() => expect(f.changed.mock.calls.length).toBeGreaterThan(published))
     expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
-    expect(f.notify).not.toHaveBeenCalled()
     if (action === 'end') {
       expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
     }
@@ -205,11 +201,10 @@ it('OCR 전용 통지를 지원하지 않으면 기존 결과를 숨기고 연�
   const f = await fixture({ ocrSupported: false })
   f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
   await f.search.begin({ signal: new AbortController().signal })
-  f.search.observe({ slot: 0, nickname: '가나' })
+  f.search.observe(ocr(0, '가나'))
   const previous = searchSlot({ state: 'success', rows: [searchRow] })
   f.emit(searchSnapshot({ revision: 3, slots: [previous, ...searchSnapshot().slots.slice(1)] }))
   expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(previous)
-  f.notify.mockClear()
 
   expect(() =>
     f.search.observe({
@@ -223,7 +218,6 @@ it('OCR 전용 통지를 지원하지 않으면 기존 결과를 숨기고 연�
   expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
   expect(f.changed.mock.lastCall?.[0].connectionFailed).toBe(true)
   expect(f.changed.mock.lastCall?.[0].captureActive).toBe(true)
-  expect(f.notify).not.toHaveBeenCalled()
   expect(f.notifyOcr).not.toHaveBeenCalled()
 })
 
@@ -239,17 +233,19 @@ it('연속 begin의 이전 응답은 자신의 ID만 end하고 새 관측 revisi
   f.emit(latest)
   second.resolve({ ok: true, snapshot: latest })
   expect(await newStart).toBe(nextId)
-  f.search.observe({ slot: 0, nickname: '가나' })
+  f.search.observe(ocr(0, '가나'))
 
   first.resolve({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
   expect(await oldStart).toBeNull()
-  f.search.observe({ slot: 0, nickname: '다라' })
+  f.search.observe(ocr(0, '다라'))
 
-  expect(f.notify).toHaveBeenLastCalledWith({
+  expect(f.notifyOcr).toHaveBeenLastCalledWith({
     captureId: nextId,
     slot: 0,
     observationRevision: 2,
-    nickname: '다라'
+    nickname: '다라',
+    candidateNicknames: ['다라'],
+    portrait: null
   })
   expect(f.control.mock.calls.filter(([command]) => command.action === 'end')).toEqual([
     [{ action: 'end', captureId: CAPTURE_ID }]
@@ -280,9 +276,9 @@ it('main이 끝낸 capture는 즉시 비활성화하고 END를 다시 보내지 
 
   expect(f.invalidated).toHaveBeenCalledOnce()
   expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
-  f.search.observe({ slot: 0, nickname: '가나' })
+  f.search.observe(ocr(0, '가나'))
   f.search.end()
-  expect(f.notify).not.toHaveBeenCalled()
+  expect(f.notifyOcr).not.toHaveBeenCalled()
   expect(f.control.mock.calls.map(([command]) => command.action)).toEqual(['read', 'begin'])
 })
 
@@ -323,31 +319,37 @@ it('반환 함수를 분리해서 호출해도 각 검색의 관측 상태와 �
   first.emit(searchSnapshot({ revision: 2 }))
   second.emit(searchSnapshot({ captureId: otherId, revision: 2 }))
 
-  observe({ slot: 0, nickname: '가나' })
-  observe({ slot: 0, nickname: '다라' })
-  second.search.observe({ slot: 0, nickname: '마바' })
-  expect(first.notify).toHaveBeenLastCalledWith({
+  observe(ocr(0, '가나'))
+  observe(ocr(0, '다라'))
+  second.search.observe(ocr(0, '마바'))
+  expect(first.notifyOcr).toHaveBeenLastCalledWith({
     captureId: CAPTURE_ID,
     slot: 0,
     observationRevision: 2,
-    nickname: '다라'
+    nickname: '다라',
+    candidateNicknames: ['다라'],
+    portrait: null
   })
-  expect(second.notify).toHaveBeenLastCalledWith({
+  expect(second.notifyOcr).toHaveBeenLastCalledWith({
     captureId: otherId,
     slot: 0,
     observationRevision: 1,
-    nickname: '마바'
+    nickname: '마바',
+    candidateNicknames: ['마바'],
+    portrait: null
   })
 
   dispose()
   expect(second.changed.mock.lastCall?.[0].captureActive).toBe(true)
   expect(second.control).not.toHaveBeenCalledWith({ action: 'end', captureId: otherId })
-  second.search.observe({ slot: 0, nickname: '사아' })
-  expect(second.notify).toHaveBeenLastCalledWith({
+  second.search.observe(ocr(0, '사아'))
+  expect(second.notifyOcr).toHaveBeenLastCalledWith({
     captureId: otherId,
     slot: 0,
     observationRevision: 2,
-    nickname: '사아'
+    nickname: '사아',
+    candidateNicknames: ['사아'],
+    portrait: null
   })
 })
 
@@ -361,11 +363,11 @@ it('시작 응답 전에 취소한 호출은 늦은 ID를 한 번만 종료하�
   pending.resolve({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
 
   expect(await start).toBeNull()
-  f.search.observe({ slot: 0, nickname: '가나' })
+  f.search.observe(ocr(0, '가나'))
   f.search.end()
   f.search.dispose()
 
-  expect(f.notify).not.toHaveBeenCalled()
+  expect(f.notifyOcr).not.toHaveBeenCalled()
   expect(f.control.mock.calls.map(([command]) => command)).toEqual([
     { action: 'read' },
     { action: 'begin' },
@@ -381,66 +383,23 @@ it('시작 응답이 유실되면 조회의 ID를 임의로 채택하거나 시�
     .mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
 
   expect(await f.search.begin({ signal: new AbortController().signal })).toBeNull()
-  f.search.observe({ slot: 0, nickname: '가나' })
+  f.search.observe(ocr(0, '가나'))
 
   expect(f.control.mock.calls.map(([command]) => command)).toEqual([
     { action: 'read' },
     { action: 'begin' },
     { action: 'read' }
   ])
-  expect(f.notify).not.toHaveBeenCalled()
+  expect(f.notifyOcr).not.toHaveBeenCalled()
   expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
   expect(f.changed.mock.lastCall?.[0].ready).toBe(true)
-})
-
-it('clear 응답을 기다려도 후보는 즉시 지우고 이전 관측 결과는 복원하지 않는다', async () => {
-  const f = await fixture()
-  f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
-  await f.search.begin({ signal: new AbortController().signal })
-  f.search.observe({ slot: 0, nickname: '가나' })
-  const success = searchSlot({ state: 'success', rows: [searchRow] })
-  f.emit(searchSnapshot({ revision: 3, slots: [success, ...searchSnapshot().slots.slice(1)] }))
-  expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(success)
-  const clear = Promise.withResolvers<SearchCommandResult>()
-  f.control.mockReturnValueOnce(clear.promise)
-
-  f.search.observe({ slot: 0, nickname: null })
-
-  expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual({
-    slot: 0,
-    observationRevision: 0,
-    requestId: null,
-    nickname: null,
-    state: 'idle',
-    rows: [],
-    error: null
-  })
-  expect(f.control).toHaveBeenLastCalledWith({
-    action: 'clear',
-    captureId: CAPTURE_ID,
-    slot: 0,
-    observationRevision: 2
-  })
-  f.emit(searchSnapshot({ revision: 4, slots: [success, ...searchSnapshot().slots.slice(1)] }))
-  expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
-  const cleared = searchSlot({
-    observationRevision: 2,
-    state: 'idle',
-    requestId: null,
-    nickname: null
-  })
-  clear.resolve({
-    ok: true,
-    snapshot: searchSnapshot({ revision: 5, slots: [cleared, ...searchSnapshot().slots.slice(1)] })
-  })
-  await vi.waitFor(() => expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(cleared))
 })
 
 it('이전 이름의 retry 완료는 새 이름의 retry 대기를 해제하지 않는다', async () => {
   const f = await fixture()
   f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
   await f.search.begin({ signal: new AbortController().signal })
-  f.search.observe({ slot: 0, nickname: '가나' })
+  f.search.observe(ocr(0, '가나'))
   const firstFailure = searchSlot({
     state: 'failure',
     error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
@@ -451,7 +410,7 @@ it('이전 이름의 retry 완료는 새 이름의 retry 대기를 해제하지 
   const firstRetry = f.search.retry(0)
   expect(f.changed.mock.lastCall?.[0].retryPending).toEqual([true, false, false, false])
 
-  f.search.observe({ slot: 0, nickname: '다라' })
+  f.search.observe(ocr(0, '다라'))
   const nextRequestId = '00000000-0000-4000-8000-000000000099'
   const nextFailure = searchSlot({
     state: 'failure',

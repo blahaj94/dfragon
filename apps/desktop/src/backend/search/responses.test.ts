@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SearchSlot } from '../../preload/common/types/search'
-import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
+import { deferred } from '../lib/async-test-fixture'
+import {
+  candidate,
+  candidateResponse,
+  createSearchFixture,
+  jsonResponse,
+  requestPaths
+} from './search-test-fixture'
 
 type Fixture = Awaited<ReturnType<typeof createSearchFixture>>
 
@@ -15,7 +22,7 @@ async function completedSlot(fixture: Fixture): Promise<SearchSlot> {
 async function searchResponse(response: Response): Promise<SearchSlot> {
   const fixture = await createSearchFixture()
   fixture.fetchSearch.mockResolvedValueOnce(response)
-  const result = await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+  const result = await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
   expect(result).toMatchObject({ ok: true })
 
   return completedSlot(fixture)
@@ -47,8 +54,8 @@ describe('검색 전체 응답과 정제 실패', () => {
     { status: 502, body: { error: { code: 'INTERNAL_SERVER_ERROR' } } },
     { status: 401, body: { error: { code: 'NEOPLE_API_ERROR' } } },
     { status: 429, body: { error: { code: 'INTERNAL_SERVER_ERROR' } } },
-    { status: 200, body: { rows: [candidate], error: { code: 'NEOPLE_API_ERROR' } } },
-    { status: 201, body: { rows: [candidate] } }
+    { status: 200, body: { rows: [candidateResponse], error: { code: 'NEOPLE_API_ERROR' } } },
+    { status: 201, body: { rows: [candidateResponse] } }
   ])('HTTP/code 조합 오류 %j는 정상 후보나 서버 code로 통과시키지 않는다', async (input) => {
     const slot = await searchResponse(jsonResponse(input))
 
@@ -64,9 +71,9 @@ describe('검색 전체 응답과 정제 실패', () => {
     [],
     { rows: null },
     { rows: [null] },
-    { rows: [candidate, { ...candidate, fame: '0' }] },
-    { rows: [candidate, { ...candidate, characterName: '  ' }] },
-    { rows: [candidate, { ...candidate, serverName: 1 }] }
+    { rows: [candidateResponse, { ...candidateResponse, fame: '0' }] },
+    { rows: [candidateResponse, { ...candidateResponse, characterName: '  ' }] },
+    { rows: [candidateResponse, { ...candidateResponse, serverName: 1 }] }
   ])('전체 body 또는 후보가 부적합하면 부분 성공 없이 실패한다: %j', async (body) => {
     const slot = await searchResponse(jsonResponse({ body }))
 
@@ -113,7 +120,7 @@ describe('검색 전체 응답과 정제 실패', () => {
     const fixture = await createSearchFixture()
     fixture.fetchSearch.mockRejectedValueOnce(new TypeError('Synthetic transport failure'))
 
-    await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
+    await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
 
     expect(await completedSlot(fixture)).toMatchObject({
       state: 'failure',
@@ -123,11 +130,24 @@ describe('검색 전체 응답과 정제 실패', () => {
   })
 
   it('검색 응답에 인증 JSON의 16 KiB 상한을 적용하지 않는다', async () => {
-    const row = { ...candidate, characterName: '가'.repeat(20_000) }
+    const adventureName = '가'.repeat(20_000)
+    const response = jsonResponse({ body: { rows: [{ ...candidateResponse, adventureName }] } })
+    expect((await response.clone().arrayBuffer()).byteLength).toBeGreaterThan(16 * 1024)
 
-    const slot = await searchResponse(jsonResponse({ body: { rows: [row] } }))
+    const fixture = await createSearchFixture()
+    fixture.fetchSearch
+      .mockResolvedValueOnce(response)
+      .mockReturnValueOnce(deferred<Response>().promise)
 
-    expect(slot).toMatchObject({ state: 'success', rows: [row], error: null })
+    await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
+
+    expect(await completedSlot(fixture)).toMatchObject({
+      state: 'success',
+      rows: [candidate],
+      error: null,
+      selected: { characterId: candidate.characterId, adventureName },
+      details: 'pending'
+    })
   })
 })
 
@@ -137,10 +157,10 @@ describe('검색 입력의 Unicode와 URI 원문', () => {
     async (nickname) => {
       const fixture = await createSearchFixture()
 
-      await fixture.observe({ slot: 0, observationRevision: 1, nickname })
+      await fixture.startSearch({ slot: 0, observationRevision: 1, nickname })
 
       expect(await completedSlot(fixture)).toMatchObject({ state: 'empty', nickname })
-      expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
+      expect(requestPaths(fixture.fetchSearch)).toEqual(['/characters/candidates'])
       const request = new Request(...fixture.fetchSearch.mock.calls[0])
       const url = new URL(request.url)
       expect([...url.searchParams.entries()]).toEqual([['characterName', nickname]])
@@ -148,11 +168,24 @@ describe('검색 입력의 Unicode와 URI 원문', () => {
   )
 
   it.each(['가\ud800', '\udc00나'])(
-    'UTF-8로 원문을 표현할 수 없는 입력 %j를 대체 문자로 바꾸어 보내지 않는다',
+    '캡처 OCR 통지는 UTF-8로 원문을 표현할 수 없는 입력 %j를 명령 오류로 거절하고 보내지 않는다',
     async (nickname) => {
       const fixture = await createSearchFixture()
 
-      await fixture.observe({ slot: 0, observationRevision: 1, nickname })
+      const result = await fixture.startSearch({ slot: 0, observationRevision: 1, nickname })
+
+      expect(result).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })
+      expect((await fixture.read()).slots[0]).toMatchObject({ state: 'idle', nickname: null })
+      expect(fixture.fetchSearch).not.toHaveBeenCalled()
+    }
+  )
+
+  it.each(['가\ud800', '\udc00나'])(
+    '서버 지정 조회는 UTF-8로 원문을 표현할 수 없는 입력 %j를 대체 문자로 바꾸어 보내지 않는다',
+    async (nickname) => {
+      const fixture = await createSearchFixture('manual')
+
+      await fixture.startSearch({ slot: 0, observationRevision: 1, nickname })
 
       expect(await completedSlot(fixture)).toMatchObject({
         state: 'failure',

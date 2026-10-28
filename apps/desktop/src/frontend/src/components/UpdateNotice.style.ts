@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, space } from '@dfragon/ui/tokens.stylex'
 
-// 칩을 감싼 버튼은 면을 두지 않고, 포커스 선은 칩의 자른 모서리에 가리지 않도록 바깥 2px에 그린다.
+// 칩을 감싼 버튼은 면을 두지 않고, 포커스 링은 칩의 자른 모서리에 가리지 않도록 바깥 2px에 그린다.
 export const styles = stylex.create({
   trigger: {
     display: 'inline-flex',

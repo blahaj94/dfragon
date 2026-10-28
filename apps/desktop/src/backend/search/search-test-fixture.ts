@@ -4,8 +4,11 @@ import { afterEach, expect, vi } from 'vitest'
 import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { registerCaptureIpc, registerCaptureWindow } from '../capture/ipc-handler'
 import type { SearchSnapshot } from '../../preload/common/types/search'
+import type { CharacterDetails } from '../../preload/common/types/character'
+import { characterImageUrl } from '../../preload/common/search/character-summary'
 import type { CharacterSelectionPolicy } from './identify'
 import type { PortraitColorPolicy } from './portrait-color'
+import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
 vi.mock('../capture/native-frame', () => ({
   bindWindowFrame: () => () => ({ kind: 'unsupported' })
@@ -38,6 +41,51 @@ export const candidate = {
   fame: 0
 }
 
+export const candidateResponse = { ...candidate, imageUrl: characterImageUrl(candidate) }
+
+const candidateDetailsPath = `/characters/${candidate.serverId}/${candidate.characterId}`
+
+function candidateDetails(): CharacterDetails {
+  const metadata = {
+    revision: 1,
+    contentUpdatedAt: '2026-10-07T00:00:00.000Z',
+    lastSuccessfulFetchAt: '2026-10-07T00:00:00.000Z'
+  }
+
+  return {
+    character: { ...candidate, level: 115 },
+    status: { status: [], buff: null },
+    equipment: { equipment: [], setItemInfo: [] },
+    avatar: null,
+    creature: null,
+    oath: null,
+    mistAssimilation: null,
+    skillStyle: null,
+    buff: { equipment: null, avatar: null, creature: null },
+    sections: {
+      basic: metadata,
+      status: metadata,
+      equipment: metadata,
+      avatar: metadata,
+      creature: metadata,
+      oath: metadata,
+      mist_assimilation: metadata,
+      skill_style: metadata,
+      buff_equipment: metadata,
+      buff_avatar: metadata,
+      buff_creature: metadata
+    },
+    freshness: {
+      lastSuccessfulFetchAt: '2026-10-07T00:00:00.000Z',
+      expiresAt: '2026-10-07T00:05:00.000Z'
+    }
+  }
+}
+
+export function requestPaths(fetchSearch: ReturnType<typeof vi.fn<typeof fetch>>): string[] {
+  return fetchSearch.mock.calls.map((args) => new URL(new Request(...args).url).pathname)
+}
+
 export function jsonResponse({
   body,
   status = 200,
@@ -55,7 +103,10 @@ export function jsonResponse({
 
 export async function createSearchFixture(
   searchKind: 'capture' | 'manual' | 'raid' = 'capture',
-  portraitColorPolicy?: PortraitColorPolicy & CharacterSelectionPolicy
+  // 앱은 식별 정책을 켠 채로 OCR 통지와 서버 지정 조회를 쓴다. null은 식별 서비스가 없는 설정이다.
+  portraitColorPolicy:
+    | (PortraitColorPolicy & CharacterSelectionPolicy)
+    | null = INITIAL_PORTRAIT_COLOR_POLICY
 ): Promise<{
   event: IpcMainInvokeEvent
   getSources: typeof electron.getSources
@@ -63,7 +114,7 @@ export async function createSearchFixture(
   fetchSearch: ReturnType<typeof vi.fn<typeof fetch>>
   captureId: string
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
-  observe: (input: {
+  startSearch: (input: {
     slot: number
     observationRevision: number
     nickname: string
@@ -77,9 +128,15 @@ export async function createSearchFixture(
   electron.getSources.mockClear()
   electron.getSources.mockResolvedValue([source])
   const clock = new FakeMonotonicClock()
-  const fetchSearch = vi
-    .fn<typeof fetch>()
-    .mockImplementation(async () => jsonResponse({ body: { rows: [] } }))
+  // 따로 정하지 않은 요청은 후보 0명으로 답하고, 고정 후보의 상세 조회에는 그 상세를 돌려준다.
+  const fetchSearch = vi.fn<typeof fetch>().mockImplementation(async (...args) => {
+    const path = new URL(new Request(...args).url).pathname
+    if (path === candidateDetailsPath) {
+      return jsonResponse({ body: candidateDetails() })
+    }
+
+    return jsonResponse({ body: { rows: [] } })
+  })
   const frame = { url: rendererUrl, detached: false, isDestroyed: () => false }
   const published = vi.fn()
   const documentEvents = new EventEmitter()
@@ -96,7 +153,7 @@ export async function createSearchFixture(
     apiOrigin: API_ORIGIN,
     fetch: fetchSearch,
     clock,
-    portraitColorPolicy
+    portraitColorPolicy: portraitColorPolicy ?? undefined
   })
   disposeFixtures.push(dispose)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
@@ -120,8 +177,6 @@ export async function createSearchFixture(
     manual: 'controlManualSearch',
     raid: 'controlRaidSearch'
   }[searchKind]
-  const observationChannel =
-    searchKind === 'manual' ? 'notifyManualNickname' : 'notifyStableNicknameDetected'
   const read = async (): Promise<SearchSnapshot> => {
     const result = await invoke(controlChannel, { action: 'read' })
     expect(result).toMatchObject({ ok: true, snapshot: expect.any(Object) })
@@ -138,16 +193,22 @@ export async function createSearchFixture(
   const begun = await read()
   expect(begun.captureId).toEqual(expect.any(String))
   const captureId = begun.captureId as string
-  const observe = (input: {
+  const startSearch = (input: {
     slot: number
     observationRevision: number
     nickname: string
   }): Promise<unknown> => {
-    if (searchKind === 'raid') {
-      return invoke(controlChannel, { action: 'lookup', captureId, ...input, serverId: 'cain' })
+    // 앱의 파티 캡처는 OCR 후보 통지를, 직접 조회와 공대 카드는 서버를 고른 조회를 보낸다.
+    if (searchKind === 'capture') {
+      return invoke('notifyOcrCandidatesDetected', {
+        captureId,
+        ...input,
+        candidateNicknames: [input.nickname],
+        portrait: null
+      })
     }
 
-    return invoke(observationChannel, { captureId, ...input })
+    return invoke(controlChannel, { action: 'lookup', captureId, ...input, serverId: 'cain' })
   }
 
   const replaceDocument = (): void => {
@@ -161,7 +222,7 @@ export async function createSearchFixture(
     fetchSearch,
     captureId,
     invoke,
-    observe,
+    startSearch,
     read,
     published,
     documentEvents,

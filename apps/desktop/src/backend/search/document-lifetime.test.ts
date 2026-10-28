@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import { deferred } from '../lib/async-test-fixture'
-import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
+import { candidateResponse, createSearchFixture, jsonResponse } from './search-test-fixture'
 
 it.each(['navigation', 'destruction', 'render-process-gone'] as const)(
   '%s callback은 pending 요청을 즉시 종료하고 같은 URL의 새 capture에 늦은 성공, 실패를 보내지 않는다',
@@ -11,8 +11,8 @@ it.each(['navigation', 'destruction', 'render-process-gone'] as const)(
     fixture.fetchSearch
       .mockReturnValueOnce(oldSuccess.promise)
       .mockReturnValueOnce(oldFailure.promise)
-    await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
-    await fixture.observe({ slot: 1, observationRevision: 1, nickname: '다라' })
+    await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
+    await fixture.startSearch({ slot: 1, observationRevision: 1, nickname: '다라' })
     await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(2))
     const requests = fixture.fetchSearch.mock.calls.map((args) => new Request(...args))
 
@@ -43,7 +43,7 @@ it.each(['navigation', 'destruction', 'render-process-gone'] as const)(
     expect(current.captureId).not.toBeNull()
     fixture.published.mockClear()
 
-    oldSuccess.resolve(jsonResponse({ body: { rows: [candidate] } }))
+    oldSuccess.resolve(jsonResponse({ body: { rows: [candidateResponse] } }))
     oldFailure.resolve(
       jsonResponse({
         status: 500,

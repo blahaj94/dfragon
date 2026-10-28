@@ -194,7 +194,7 @@ async function mount(f: Fixture): Promise<void> {
   )
 }
 
-it('공대 머리에 파티와 같은 모양의 캡처 버튼과 마지막 캡처를 두고 대화상자를 열지 않는다', async () => {
+it('공대 헤더에 파티와 같은 모양의 캡처 버튼과 마지막 캡처를 두고 대화상자를 열지 않는다', async () => {
   const f = createRendererFixture()
   stubRaidSearch()
   await mount(f)

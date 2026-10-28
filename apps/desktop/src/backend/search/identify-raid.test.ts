@@ -95,7 +95,6 @@ function fixture(engineScores: Record<string, number | null> | null) {
   })
   const runtime = () => ({
     clock,
-    http: vi.fn(),
     identification: {
       candidates,
       image: vi.fn(),
@@ -280,7 +279,6 @@ it.each([[['']], [[' 공대원']], [['가', '나', '다']]])(
     const outcome = await runSearchRequest({
       runtime: {
         clock: f.clock,
-        http: vi.fn(),
         identification: {
           candidates: f.candidates,
           image: vi.fn(),

@@ -1,19 +1,17 @@
 import { PRODUCT_NAME } from '@dfragon/lib'
 import { shapes, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
-import type { ReactNode, Ref } from 'react'
+import type { ReactNode } from 'react'
 import { styles } from './TopBar.style'
 
 export function TopBar({
-  nav,
-  boardRef,
-  notice,
-  capture
+  start,
+  center,
+  end
 }: {
-  nav: ReactNode
-  boardRef: Ref<HTMLDivElement>
-  notice?: ReactNode
-  capture: ReactNode
+  start: ReactNode
+  center: ReactNode
+  end: ReactNode
 }): React.JSX.Element {
   return (
     <header {...stylex.props(styles.header)}>
@@ -25,12 +23,9 @@ export function TopBar({
         </Typo.h6>
       </div>
       <span aria-hidden="true" {...stylex.props(styles.divider)} />
-      {nav}
-      <div ref={boardRef} {...stylex.props(styles.board)} />
-      <span {...stylex.props(styles.status)}>
-        {notice}
-        {capture}
-      </span>
+      {start}
+      {center}
+      <span {...stylex.props(styles.status)}>{end}</span>
     </header>
   )
 }

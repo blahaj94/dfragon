@@ -7,7 +7,6 @@ export const SEARCH_ACTIONS = {
   READ: 'read',
   BEGIN: 'begin',
   END: 'end',
-  CLEAR: 'clear',
   RETRY: 'retry',
   LOOKUP: 'lookup'
 } as const
@@ -31,12 +30,6 @@ export type SearchControl =
   | Readonly<{ action: typeof SEARCH_ACTIONS.BEGIN }>
   | (Readonly<{ action: typeof SEARCH_ACTIONS.LOOKUP }> & ManualCharacterLookup)
   | Readonly<{ action: typeof SEARCH_ACTIONS.END; captureId: string }>
-  | Readonly<{
-      action: typeof SEARCH_ACTIONS.CLEAR
-      captureId: string
-      slot: number
-      observationRevision: number
-    }>
   | Readonly<{
       action: typeof SEARCH_ACTIONS.RETRY
       captureId: string
@@ -161,8 +154,4 @@ export type SearchCommandResult =
 export type SearchApi = {
   controlCharacterSearch: (control: SearchControl) => Promise<SearchCommandResult>
   onCharacterSearchChanged: (listener: (snapshot: SearchSnapshot) => void) => () => void
-}
-
-export type ManualSearchApi = SearchApi & {
-  notifyManualNickname: (observation: SearchObservation) => Promise<SearchCommandResult>
 }

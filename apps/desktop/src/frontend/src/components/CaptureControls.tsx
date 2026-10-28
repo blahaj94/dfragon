@@ -14,22 +14,14 @@ import {
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
 import { CloseIcon } from './CloseIcon'
+import type { CaptureSourceSelection } from '../hooks/usePartyCapture'
 import type { CapturePhase } from '../types/capture'
 import { getCaptureControlState, isDnfCaptureSource } from '../lib/capture-presentation'
 
-export type CaptureSourceControl = {
-  sources: { id: string; name: string }[]
-  selectedSourceId: string
-  sourcesLoading: boolean
-  sourcesFailed: boolean
-  selectSource: (sourceId: string) => void
-  refreshSources: () => void
-  stopCapture: (nextStatus?: string) => void
-  search: { ready: boolean }
-}
-
 export type CaptureControlsProps = {
-  capture: CaptureSourceControl
+  source: CaptureSourceSelection
+  searchReady: boolean
+  stopCapture: () => void
   phase: CapturePhase
   status: string
 }
@@ -42,20 +34,22 @@ const corners = [
 ]
 
 export function CaptureControls({
-  capture,
+  source,
+  searchReady,
+  stopCapture,
   phase,
   status
 }: CaptureControlsProps): React.JSX.Element {
-  const { sources, selectedSourceId } = capture
+  const { sources, selectedSourceId } = source
   const hasSelection = phase !== 'idle' && selectedSourceId.length > 0
   const [open, setOpen] = useState(false)
   const titleId = useId()
   const detected = sources.filter(isDnfCaptureSource)
-  const others = sources.filter((source) => !detected.includes(source))
+  const others = sources.filter((candidate) => !detected.includes(candidate))
   const state = getCaptureControlState({
     phase,
-    loading: capture.sourcesLoading,
-    failed: capture.sourcesFailed,
+    loading: source.sourcesLoading,
+    failed: source.sourcesFailed,
     hasDetectedSource: detected.length > 0
   })
   // 창 목록 조회가 끝날 때마다 새 목록 배열이 오고, 그 순간부터 다음 자동 조회까지 15초를 잰다. 목록을
@@ -79,7 +73,7 @@ export function CaptureControls({
       onOpenChange={(open) => {
         setOpen(open)
         if (open) {
-          capture.refreshSources()
+          source.refreshSources()
         }
       }}
     >
@@ -151,7 +145,7 @@ export function CaptureControls({
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => capture.stopCapture()}
+                onClick={() => stopCapture()}
                 {...stylex.props(styles.primaryAction)}
               >
                 <Typo.caption as="span" weight={700}>
@@ -161,8 +155,8 @@ export function CaptureControls({
             )}
             <Button
               size="sm"
-              disabled={capture.sourcesLoading}
-              onClick={() => capture.refreshSources()}
+              disabled={source.sourcesLoading}
+              onClick={() => source.refreshSources()}
               {...stylex.props(shapes.cutTopRight, styles.secondaryAction)}
             >
               <Typo.caption as="span" weight={700}>
@@ -181,11 +175,11 @@ export function CaptureControls({
               detected={detected}
               others={others}
               value={hasSelection ? selectedSourceId : ''}
-              loading={capture.sourcesLoading}
-              failed={capture.sourcesFailed}
-              ready={capture.search.ready}
+              loading={source.sourcesLoading}
+              failed={source.sourcesFailed}
+              ready={searchReady}
               retryStartedAt={retry.startedAt}
-              onSelect={capture.selectSource}
+              onSelect={source.selectSource}
             />
           </div>
         </Dialog.Popup>

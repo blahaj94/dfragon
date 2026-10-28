@@ -6,7 +6,7 @@ import {
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { addHandler } from '../ipc'
 import { createCaptureSearchLifetime, type CaptureBinding } from './capture-lifetime'
-import { parseOcrSearchObservation, parseSearchControl, parseSearchObservation } from './commands'
+import { parseOcrSearchObservation, parseSearchControl } from './commands'
 import type { SearchRuntime } from './request'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 
@@ -41,7 +41,7 @@ export function registerManualSearchIpc({
 }): {
   readonly current: CaptureBinding | null
   invalidate: () => void
-  /** 게임 창이 바뀌거나 캡처를 멈추면 진행 중인 OCR 기원 요청을 끝낸다. */
+  /** 게임 창이 바뀌거나 캡처를 멈추면 진행 중인 OCR에서 시작한 요청을 끝낸다. */
   cancelOcrRequests: () => void
   dispose: () => void
 } {
@@ -71,8 +71,6 @@ export function registerManualSearchIpc({
         return lifetime.end(control.captureId)
       case SEARCH_ACTIONS.LOOKUP:
         return lifetime.lookup(control)
-      case SEARCH_ACTIONS.CLEAR:
-        return lifetime.clear(control)
       case SEARCH_ACTIONS.RETRY:
         return lifetime.retry(control)
       case SEARCH_ACTIONS.BEGIN:
@@ -85,18 +83,6 @@ export function registerManualSearchIpc({
         })
     }
   })
-
-  if (kind === 'party') {
-    addHandler('notifyManualNickname', (event, ...args) => {
-      requireSender(event)
-      const observation = parseSearchObservation(args)
-      if (observation == null) {
-        return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
-      }
-
-      return lifetime.observe(observation)
-    })
-  }
 
   if (kind === 'raid') {
     addHandler('notifyRaidOcrCandidatesDetected', (event, ...args) => {
@@ -119,10 +105,6 @@ export function registerManualSearchIpc({
     dispose: () => {
       lifetime.invalidate()
       ipcMain.removeHandler(controlChannel)
-      if (kind === 'party') {
-        ipcMain.removeHandler('notifyManualNickname')
-      }
-
       if (kind === 'raid') {
         ipcMain.removeHandler('notifyRaidOcrCandidatesDetected')
       }

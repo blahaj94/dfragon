@@ -1,4 +1,3 @@
-import { filter, join, map, pipe } from 'remeda'
 import type { CapturePhase } from '../types/capture'
 
 const DNF_CAPTURE_WINDOW_TITLE_PATTERN = /던전\s*앤\s*파이터|Dungeon.*Fighter|\bDNF\b/i
@@ -107,27 +106,4 @@ export function getTopBarCaptureControls({
   }
 
   return screenCapture
-}
-
-export function formatPartyCaptureStatus({
-  status,
-  nicknames
-}: {
-  status: string
-  nicknames: readonly (string | null)[]
-}): string {
-  const lines = [
-    status,
-    ...map(nicknames, (nickname, slot) => {
-      const line = nickname != null && nickname.length > 0 ? `슬롯 ${slot + 1}: ${nickname}` : null
-
-      return line
-    })
-  ]
-
-  return pipe(
-    lines,
-    filter((line): line is string => line != null && line.length > 0),
-    join('\n')
-  )
 }

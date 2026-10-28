@@ -55,7 +55,7 @@ afterEach(() => {
   recognize.mockReset()
 })
 
-it('크롭이 없는 행은 OCR 없이 빈 자리로 두고 행 번호를 자리 번호로 쓴다', async () => {
+it('크롭이 없는 행은 OCR 없이 빈 슬롯으로 두고 행 번호를 슬롯 번호로 쓴다', async () => {
   recognize.mockResolvedValue(result('공대원'))
   const rows = Array.from({ length: 12 }, (_, index) => (index === 2 ? row() : null))
 

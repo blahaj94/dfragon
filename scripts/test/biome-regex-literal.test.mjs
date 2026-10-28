@@ -99,7 +99,6 @@ const excludedFiles = [
   'apps/desktop/src/frontend/src/testing/regex.ts',
   'apps/desktop/scripts/ui-fixture-preload.cts',
   'apps/desktop/scripts/ui-fixture.mjs',
-  'apps/desktop/scripts/search-server-integration/runtime.mjs',
   'apps/api/test-support/character-search-fixtures.mjs',
   'packages/ui/scripts/test-consumer-resolution.mjs',
   'packages/lib/generated/regex.ts',

@@ -6,17 +6,16 @@ import { useManualCharacterLookup } from './useManualCharacterLookup'
 import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
 import {
   SEARCH_SLOT_COUNTS,
-  type ManualSearchApi,
+  type SearchApi,
   type SearchCommandResult
 } from '../../../preload/common/types/search'
 
 let current: ReturnType<typeof useManualCharacterLookup>
 let root: ReturnType<typeof createRoot>
-const control = vi.fn<ManualSearchApi['controlCharacterSearch']>()
-const api: ManualSearchApi = {
+const control = vi.fn<SearchApi['controlCharacterSearch']>()
+const api: SearchApi = {
   controlCharacterSearch: control,
-  onCharacterSearchChanged: () => () => {},
-  notifyManualNickname: vi.fn()
+  onCharacterSearchChanged: () => () => {}
 }
 
 function Harness(): null {

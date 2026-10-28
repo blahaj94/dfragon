@@ -43,7 +43,7 @@ export function RaidPage({
   const { lookupSlot } = actions
   const [dragging, setDragging] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
-  // 끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend가 오지 않으므로, 그때와 맞바꿀 수 없게 될 때 끌기를
+  // 드래그하던 카드가 회차나 배치 변경으로 다시 그려지면 dragend가 오지 않으므로, 그때와 맞바꿀 수 없게 될 때 드래그를
   // 끝낸 것으로 본다.
   const [dragBasis, setDragBasis] = useState({ resetKey, seatOrder })
   if (dragBasis.resetKey !== resetKey || dragBasis.seatOrder !== seatOrder) {
@@ -139,7 +139,7 @@ export function RaidPage({
             }
           },
           onDragStart: (event) => {
-            // 이름 칸의 선택한 글자를 끄는 동작은 자리 맞바꾸기가 아니다. 맞바꿀 수 없는 동안 시작한 끌기는
+            // 이름 칸의 선택한 글자를 드래그하는 동작은 자리 맞바꾸기가 아니다. 맞바꿀 수 없는 동안 시작한 드래그는
             // 다음 그리기에서 끝낸 것으로 본다.
             if (event.target !== event.currentTarget) {
               return
@@ -169,7 +169,7 @@ export function RaidPage({
             if (dragging === null || !event.dataTransfer.types.includes(SEAT_DRAG_TYPE)) {
               return
             }
-            // 이름 칸에 놓아도 끈 자리 번호가 입력되지 않게 기본 동작을 막는다.
+            // 이름 칸에 놓아도 드래그한 자리 번호가 입력되지 않게 기본 동작을 막는다.
             event.preventDefault()
             const from = seatOrder.indexOf(dragging)
             if (from !== seat) {

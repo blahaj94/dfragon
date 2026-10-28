@@ -2,7 +2,6 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import {
   createCaptureSearch,
   type CaptureSearch,
-  type CaptureObservation,
   type OcrCaptureObservation
 } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
@@ -19,13 +18,9 @@ import { useManualCharacterLookup } from './useManualCharacterLookup'
 type CharacterSearch = SearchView & {
   begin: (signal: AbortSignal) => Promise<string | null>
   end: () => void
-  observe: (input: { slot: number; nickname: string | null }) => void
   observeOcr: (input: OcrCaptureObservation) => void
   retry: (slot: number) => void
   manualSlots: readonly boolean[]
-  editSlot: (slot: number) => void
-  submitSlot: (slot: number, nickname: string) => void
-  resumeOcr: (slot: number) => void
   lookupSlot: (slot: number, nickname: string, serverId: string) => void
   candidatePickers: readonly (CandidatePicker | null)[]
   pickCandidate: (slot: number, serverId: string) => void
@@ -47,7 +42,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   const manualSlotsRef = useRef(new Set<number>())
   const serverLookupSlotsRef = useRef(new Set<number>())
   const [serverLookupSlots, setServerLookupSlots] = useState([false, false, false, false])
-  const latestOcrRef = useRef<(CaptureObservation | null)[]>([null, null, null, null])
   const [manualSlots, setManualSlots] = useState<readonly boolean[]>([false, false, false, false])
   const picksRef = useRef<(CandidatePick | null)[]>([null, null, null, null])
   const [picks, setPicks] = useState<readonly (CandidatePick | null)[]>([null, null, null, null])
@@ -62,14 +56,12 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     viewRef.current = view
   }, [view])
   const api = window.search
-  const notify = window.api.notifyStableNicknameDetected
   const notifyOcr = window.api.notifyOcrCandidatesDetected
 
   useEffect(() => {
     let active = true
     const bridge = createCaptureSearch({
       api,
-      notify,
       notifyOcr,
       onChange: (value) => {
         if (active) {
@@ -86,7 +78,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
       bridgeRef.current = null
       bridge.dispose()
     }
-  }, [api, notify, notifyOcr])
+  }, [api, notifyOcr])
 
   const begin = useCallback(async (signal: AbortSignal): Promise<string | null> => {
     const bridge = bridgeRef.current
@@ -100,7 +92,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     manualSlotsRef.current.clear()
     serverLookupSlotsRef.current.clear()
     setServerLookupSlots([false, false, false, false])
-    latestOcrRef.current = [null, null, null, null]
     setManualSlots([false, false, false, false])
     picksRef.current = [null, null, null, null]
     setPicks(picksRef.current)
@@ -111,41 +102,11 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     picksRef.current = picksRef.current.map((current, index) => (index === slot ? pick : current))
     setPicks(picksRef.current)
   }, [])
-  const observe = useCallback((input: CaptureObservation): void => {
-    latestOcrRef.current[input.slot] = input
+  const observeOcr = useCallback((input: OcrCaptureObservation): void => {
     if (!manualSlotsRef.current.has(input.slot)) {
       bridgeRef.current?.observe(input)
     }
   }, [])
-  const editSlot = useCallback((slot: number): void => {
-    serverLookupSlotsRef.current.delete(slot)
-    setServerLookupSlots((slots) => slots.map((value, index) => index !== slot && value))
-    manualSlotsRef.current.add(slot)
-    setManualSlots([0, 1, 2, 3].map((index) => manualSlotsRef.current.has(index)))
-    // Clear also cancels the old request before a manual draft can be submitted.
-    bridgeRef.current?.observe({ slot, nickname: null })
-  }, [])
-  const submitSlot = useCallback((slot: number, nickname: string): void => {
-    if (manualSlotsRef.current.has(slot)) {
-      bridgeRef.current?.observe({ slot, nickname: null })
-      bridgeRef.current?.observe({ slot, nickname })
-    }
-  }, [])
-  const resumeOcr = useCallback(
-    (slot: number): void => {
-      setPick(slot, null)
-      serverLookupSlotsRef.current.delete(slot)
-      setServerLookupSlots((slots) => slots.map((value, index) => index !== slot && value))
-      manualSlotsRef.current.delete(slot)
-      setManualSlots([0, 1, 2, 3].map((index) => manualSlotsRef.current.has(index)))
-      bridgeRef.current?.observe({ slot, nickname: null })
-      const latestOcr = latestOcrRef.current[slot]
-      if (latestOcr != null) {
-        bridgeRef.current?.observe(latestOcr)
-      }
-    },
-    [setPick]
-  )
   const retry = useCallback(
     (slot: number): void => {
       const bridge = serverLookupSlotsRef.current.has(slot)
@@ -229,13 +190,9 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     connectionFailed,
     begin,
     end,
-    observe,
-    observeOcr: observe,
+    observeOcr,
     retry,
     manualSlots,
-    editSlot,
-    submitSlot,
-    resumeOcr,
     lookupSlot,
     candidatePickers,
     pickCandidate

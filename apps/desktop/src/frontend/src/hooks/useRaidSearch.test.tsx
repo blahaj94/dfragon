@@ -75,7 +75,7 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-it('공대 검색 API에 12자리 수명으로 연결하고 조회한 자리만 연결을 기다리는 동안 진행 중으로 보인다', async () => {
+it('공대 검색 API에 12자리 수명으로 연결하고 조회한 슬롯만 연결을 기다리는 동안 진행 중으로 보인다', async () => {
   expect(moduleMocks.create).toHaveBeenCalledOnce()
   expect(moduleMocks.create.mock.lastCall![0]).toMatchObject({ api: raidApi, slotCount: 12 })
   expect(value.slots).toHaveLength(12)
@@ -95,7 +95,7 @@ it('공대 검색 API에 12자리 수명으로 연결하고 조회한 자리만 
   expect(value.slots[9].state).toBe('idle')
 })
 
-it('main이 보낸 자리별 검색 상태를 그 자리 번호대로 전한다', async () => {
+it('main이 보낸 슬롯별 검색 상태를 그 슬롯 번호대로 전한다', async () => {
   const slots = emptySearchSlots(12)
   slots[0] = found(0)
   slots[4] = searchSlot({ slot: 4, state: 'pending' })
@@ -121,7 +121,7 @@ function ocr(slot: number, nickname = '공대원') {
   return { slot, nickname, candidateNicknames: [nickname], portrait: null }
 }
 
-it('공대 캡처의 이름 관측은 공대 수명의 OCR 채널로 연결하고 그 자리에 그대로 알린다', async () => {
+it('공대 캡처의 이름 관측은 공대 수명의 OCR 채널로 연결하고 그 슬롯에 그대로 알린다', async () => {
   expect(moduleMocks.create.mock.lastCall![0]).toMatchObject({
     api: raidApi,
     notifyOcr: raidApi.notifyOcrCandidatesDetected,
@@ -151,7 +151,7 @@ it('회차는 수명을 새로 시작하고 그 뒤의 서버 지정 조회는 �
   })
 })
 
-it('회차 중 직접 조회한 자리는 늦게 끝난 OCR 이름으로 덮지 않고 다음 회차에서 다시 받는다', async () => {
+it('회차 중 직접 조회한 슬롯은 늦게 끝난 OCR 이름으로 덮지 않고 다음 회차에서 다시 받는다', async () => {
   await act(async () => {
     void value.beginRound(new AbortController().signal)
   })
