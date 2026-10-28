@@ -13,20 +13,40 @@ const RGBA_CHANNELS = 4
 const MAX_RAID_CROP_WIDTH = 1024
 const MAX_RAID_CROP_HEIGHT = 256
 
-function parseFramelessResult(value: object): Exclude<WindowFrameResult, { kind: 'frame' }> | null {
-  if (!('kind' in value)) {
-    return null
-  }
+function isObject(value: unknown): value is object {
+  return value !== null && typeof value === 'object'
+}
 
-  if (value.kind === 'unsupported' && Reflect.ownKeys(value).length === 1) {
+function hasExactFields<Field extends string>(
+  value: unknown,
+  fields: readonly Field[]
+): value is Record<Field, unknown> {
+  return (
+    isObject(value) &&
+    Reflect.ownKeys(value).length === fields.length &&
+    fields.every((field) => field in value)
+  )
+}
+
+function isWaitingReason(reason: unknown): reason is 'covered' | 'unavailable' {
+  return reason === 'covered' || reason === 'unavailable'
+}
+
+function isMissingReason(reason: unknown): reason is 'not-found' | 'uncertain' {
+  return reason === 'not-found' || reason === 'uncertain'
+}
+
+function parseFramelessResult(
+  value: unknown
+): Exclude<WindowFrameResult, { kind: 'frame' }> | null {
+  if (hasExactFields(value, ['kind']) && value.kind === 'unsupported') {
     return { kind: 'unsupported' }
   }
 
   if (
+    hasExactFields(value, ['kind', 'reason']) &&
     value.kind === 'waiting' &&
-    Reflect.ownKeys(value).length === 2 &&
-    'reason' in value &&
-    (value.reason === 'covered' || value.reason === 'unavailable')
+    isWaitingReason(value.reason)
   ) {
     return { kind: 'waiting', reason: value.reason }
   }
@@ -34,82 +54,94 @@ function parseFramelessResult(value: object): Exclude<WindowFrameResult, { kind:
   return null
 }
 
-export function parseWindowFrame(value: unknown): WindowFrameResult {
-  if (value === null || typeof value !== 'object' || !('kind' in value)) {
+function hasRgbaPixels(rgba: unknown, width: number, height: number): rgba is Uint8Array {
+  return rgba instanceof Uint8Array && rgba.byteLength === width * height * RGBA_CHANNELS
+}
+
+function parsePartyFrameImage(value: unknown): CharacterImage {
+  if (!hasExactFields(value, ['width', 'height', 'rgba'])) {
     throw new Error('CAPTURE_RESPONSE_INVALID')
   }
+  const { width, height, rgba } = value
+  if (typeof width !== 'number' || typeof height !== 'number') {
+    throw new Error('CAPTURE_RESPONSE_INVALID')
+  }
+
+  if (!isValidPartyFrameSize(width, height)) {
+    throw new Error('CAPTURE_RESPONSE_INVALID')
+  }
+
+  if (!hasRgbaPixels(rgba, width, height)) {
+    throw new Error('CAPTURE_RESPONSE_INVALID')
+  }
+
+  return { width, height, rgba }
+}
+
+export function parseWindowFrame(value: unknown): WindowFrameResult {
   const frameless = parseFramelessResult(value)
   if (frameless !== null) {
     return frameless
   }
 
-  if (value.kind === 'frame' && Reflect.ownKeys(value).length === 2 && 'image' in value) {
-    const image = value.image
-    if (
-      image !== null &&
-      typeof image === 'object' &&
-      Reflect.ownKeys(image).length === 3 &&
-      'width' in image &&
-      'height' in image &&
-      'rgba' in image &&
-      typeof image.width === 'number' &&
-      typeof image.height === 'number' &&
-      isValidPartyFrameSize(image.width, image.height) &&
-      image.rgba instanceof Uint8Array &&
-      image.rgba.byteLength === image.width * image.height * RGBA_CHANNELS
-    ) {
-      const { width, height, rgba } = image
+  if (hasExactFields(value, ['kind', 'image']) && value.kind === 'frame') {
+    const image = parsePartyFrameImage(value.image)
 
-      return { kind: 'frame', image: { width, height, rgba } }
-    }
+    return { kind: 'frame', image }
   }
 
   throw new Error('CAPTURE_RESPONSE_INVALID')
 }
 
+function isRaidCropLength(length: unknown, max: number): length is number {
+  return typeof length === 'number' && Number.isSafeInteger(length) && length >= 1 && length <= max
+}
+
 function parseRaidCrop(value: unknown): CharacterImage {
-  if (
-    value === null ||
-    typeof value !== 'object' ||
-    Reflect.ownKeys(value).length !== 3 ||
-    !('width' in value) ||
-    !('height' in value) ||
-    !('rgba' in value) ||
-    !Number.isSafeInteger(value.width) ||
-    !Number.isSafeInteger(value.height) ||
-    typeof value.width !== 'number' ||
-    typeof value.height !== 'number' ||
-    value.width < 1 ||
-    value.height < 1 ||
-    value.width > MAX_RAID_CROP_WIDTH ||
-    value.height > MAX_RAID_CROP_HEIGHT ||
-    !(value.rgba instanceof Uint8Array) ||
-    value.rgba.byteLength !== value.width * value.height * RGBA_CHANNELS
-  ) {
+  if (!hasExactFields(value, ['width', 'height', 'rgba'])) {
     throw new Error('CAPTURE_RESPONSE_INVALID')
   }
   const { width, height, rgba } = value
+  if (!isRaidCropLength(width, MAX_RAID_CROP_WIDTH)) {
+    throw new Error('CAPTURE_RESPONSE_INVALID')
+  }
+
+  if (!isRaidCropLength(height, MAX_RAID_CROP_HEIGHT)) {
+    throw new Error('CAPTURE_RESPONSE_INVALID')
+  }
+
+  if (!hasRgbaPixels(rgba, width, height)) {
+    throw new Error('CAPTURE_RESPONSE_INVALID')
+  }
 
   return { width, height, rgba }
 }
 
+function isRaidValueText(value: unknown): value is string | null {
+  if (value === null) {
+    return true
+  }
+
+  return typeof value === 'string' && RAID_VALUE_TEXT_PATTERN.test(value)
+}
+
 function parseRaidRow(value: unknown): RaidFrameRow {
-  if (
-    value === null ||
-    typeof value !== 'object' ||
-    Reflect.ownKeys(value).length !== 3 ||
-    !('nickname' in value) ||
-    !('job' in value) ||
-    !('valueText' in value) ||
-    (value.valueText !== null &&
-      (typeof value.valueText !== 'string' || !RAID_VALUE_TEXT_PATTERN.test(value.valueText)))
-  ) {
+  if (!hasExactFields(value, ['nickname', 'job', 'valueText'])) {
     throw new Error('CAPTURE_RESPONSE_INVALID')
   }
-  const nickname = parseRaidCrop(value.nickname)
-  const job = value.job === null ? null : parseRaidCrop(value.job)
+  const { nickname, job, valueText } = value
+  if (!isRaidValueText(valueText)) {
+    throw new Error('CAPTURE_RESPONSE_INVALID')
+  }
 
-  return { nickname, job, valueText: value.valueText }
+  const nicknameCrop = parseRaidCrop(nickname)
+  const jobCrop = job !== null ? parseRaidCrop(job) : null
+
+  return { nickname: nicknameCrop, job: jobCrop, valueText }
+}
+
+function isRaidRowList(rows: unknown): rows is unknown[] {
+  return Array.isArray(rows) && rows.length === SEARCH_SLOT_COUNTS.raid
 }
 
 function isRaidValueColumn(value: unknown): value is RaidValueColumn {
@@ -117,31 +149,24 @@ function isRaidValueColumn(value: unknown): value is RaidValueColumn {
 }
 
 export function parseRaidFrame(value: unknown): RaidFrameResult {
-  if (value === null || typeof value !== 'object' || !('kind' in value)) {
-    throw new Error('CAPTURE_RESPONSE_INVALID')
-  }
   const frameless = parseFramelessResult(value)
   if (frameless !== null) {
     return frameless
   }
 
   if (
+    hasExactFields(value, ['kind', 'reason']) &&
     value.kind === 'missing' &&
-    Reflect.ownKeys(value).length === 2 &&
-    'reason' in value &&
-    (value.reason === 'not-found' || value.reason === 'uncertain')
+    isMissingReason(value.reason)
   ) {
     return { kind: 'missing', reason: value.reason }
   }
 
   if (
+    hasExactFields(value, ['kind', 'valueColumn', 'rows']) &&
     value.kind === 'rows' &&
-    Reflect.ownKeys(value).length === 3 &&
-    'valueColumn' in value &&
     isRaidValueColumn(value.valueColumn) &&
-    'rows' in value &&
-    Array.isArray(value.rows) &&
-    value.rows.length === SEARCH_SLOT_COUNTS.raid
+    isRaidRowList(value.rows)
   ) {
     const rows = Array.from(value.rows, (row: unknown) => {
       if (row === null) {

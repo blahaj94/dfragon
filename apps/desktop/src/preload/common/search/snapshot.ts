@@ -5,11 +5,13 @@ import {
   SEARCH_COMMAND_ERRORS,
   SEARCH_ERRORS,
   SEARCH_SLOT_COUNTS,
+  SEARCH_SLOT_STATES,
   SELECTED_DETAILS_STATES,
   type SearchCommandResult,
   type SearchSlotCount,
   type SearchSnapshot
 } from '../types/search'
+import type { CharacterIdentity } from '../types/character'
 
 const SEARCH_ID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
 const uuid = z.string().regex(SEARCH_ID_PATTERN)
@@ -36,109 +38,124 @@ const choice = row.extend({
   adventureName: z.string().nullable(),
   face: faceWindow.nullable()
 })
-const error = z
-  .strictObject({
-    code: z.enum(Object.keys(SEARCH_ERRORS) as Array<keyof typeof SEARCH_ERRORS>),
-    retryAfterSeconds: revision.nullable()
-  })
-  .refine((value) => {
-    const isRateLimit = value.code === 'SEARCH_RATE_LIMITED'
-    const hasNoDelay = value.retryAfterSeconds === null
-    const hasValidDelay = isRateLimit || hasNoDelay
+const errorFields = z.strictObject({
+  code: z.enum(Object.keys(SEARCH_ERRORS) as Array<keyof typeof SEARCH_ERRORS>),
+  retryAfterSeconds: revision.nullable()
+})
+const error = errorFields.refine(hasAllowedRetryDelay)
+const slotFields = z.strictObject({
+  slot: z
+    .int()
+    .min(0)
+    .max(SEARCH_SLOT_COUNTS.raid - 1),
+  observationRevision: revision,
+  requestId: uuid.nullable(),
+  nickname: z.string().nullable(),
+  state: z.enum(SEARCH_SLOT_STATES),
+  rows: z.array(row),
+  error: error.nullable(),
+  selected: selectedCharacterSummarySchema.optional(),
+  selectionMethod: z.enum(CHARACTER_SELECTION_METHODS).optional(),
+  choices: z.array(choice).min(2).optional(),
+  details: z.enum(SELECTED_DETAILS_STATES).optional()
+})
+type SlotFields = z.infer<typeof slotFields>
+const SELECTION_FIELDS = ['selected', 'selectionMethod', 'choices', 'details'] as const
+const slot = slotFields.refine(hasValidSelection).refine(hasResultForState)
 
-    return hasValidDelay
-  })
-const slot = z
-  .strictObject({
-    slot: z
-      .int()
-      .min(0)
-      .max(SEARCH_SLOT_COUNTS.raid - 1),
-    observationRevision: revision,
-    requestId: uuid.nullable(),
-    nickname: z.string().nullable(),
-    state: z.enum([
-      'idle',
-      'pending',
-      'success',
-      'empty',
-      'failure',
-      'waiting-portrait',
-      'waiting-policy'
-    ]),
-    rows: z.array(row),
-    error: error.nullable(),
-    selected: selectedCharacterSummarySchema.optional(),
-    selectionMethod: z.enum(CHARACTER_SELECTION_METHODS).optional(),
-    choices: z.array(choice).min(2).optional(),
-    details: z.enum(SELECTED_DETAILS_STATES).optional()
-  })
-  .refine((value) => {
-    if (Object.hasOwn(value, 'selectionMethod') && value.selected === undefined) {
-      return false
-    }
+function hasAllowedRetryDelay(value: z.infer<typeof errorFields>): boolean {
+  if (value.code === 'SEARCH_RATE_LIMITED') {
+    return true
+  }
 
-    if (Object.hasOwn(value, 'details') && value.selected === undefined) {
-      return false
-    }
+  return value.retryAfterSeconds === null
+}
 
-    if (Object.hasOwn(value, 'choices')) {
-      const selected = value.selected
-      const choices = value.choices ?? []
-      const hasSelectedChoice = choices.some(
-        (choice) =>
-          choice.serverId === selected?.serverId && choice.characterId === selected.characterId
-      )
-      if (!hasSelectedChoice) {
-        return false
-      }
-    }
+function isSameCharacter(left: CharacterIdentity, right: CharacterIdentity): boolean {
+  return left.serverId === right.serverId && left.characterId === right.characterId
+}
 
-    if (Object.hasOwn(value, 'selected')) {
-      const selected = value.selected
-      if (selected === undefined || value.state !== 'success' || value.rows.length !== 1) {
-        return false
-      }
-      const row = value.rows[0]
-      if (row.serverId !== selected.serverId || row.characterId !== selected.characterId) {
-        return false
-      }
-    }
-    const hasRows = value.rows.length > 0
-    const hasError = value.error != null
-    const hasRequestId = value.requestId != null
-    const hasNickname = value.nickname != null
-    const hasIdentity = hasRequestId && hasNickname
-    const isIdle = value.state === 'idle'
-    if (isIdle) {
-      const hasNoRequestId = value.requestId === null
-      const hasNoNickname = value.nickname === null
-      const hasNoIdentity = hasNoRequestId && hasNoNickname
-      const isEmpty = hasNoIdentity && !hasRows && !hasError
+function hasSelectionField(slot: SlotFields): boolean {
+  return SELECTION_FIELDS.some((field) => Object.hasOwn(slot, field))
+}
 
-      return isEmpty
-    }
-    const hasObservation = value.observationRevision > 0
-    const isActive = hasIdentity && hasObservation
-    if (!isActive) {
-      return false
-    }
-    const isSuccess = value.state === 'success'
-    if (isSuccess) {
-      const isComplete = hasRows && !hasError
+function hasSingleSuccessRow(slot: SlotFields): boolean {
+  return slot.state === 'success' && slot.rows.length === 1
+}
 
-      return isComplete
-    }
-    const isFailure = value.state === 'failure'
-    if (isFailure) {
-      const isFailed = !hasRows && hasError
+function hasValidSelection(slot: SlotFields): boolean {
+  const { selected, choices } = slot
+  if (selected === undefined) {
+    return !hasSelectionField(slot)
+  }
 
-      return isFailed
-    }
-    const hasNoResult = !hasRows && !hasError
+  if (!hasSingleSuccessRow(slot)) {
+    return false
+  }
 
-    return hasNoResult
-  })
+  if (!isSameCharacter(slot.rows[0], selected)) {
+    return false
+  }
+
+  if (!Object.hasOwn(slot, 'choices')) {
+    return true
+  }
+
+  if (choices === undefined) {
+    return false
+  }
+
+  return choices.some((choice) => isSameCharacter(choice, selected))
+}
+
+function hasNoRequest(slot: SlotFields): boolean {
+  return slot.requestId === null && slot.nickname === null
+}
+
+function isObservedRequest(slot: SlotFields): boolean {
+  return slot.requestId !== null && slot.nickname !== null && slot.observationRevision > 0
+}
+
+function hasNoResult(slot: SlotFields): boolean {
+  return slot.rows.length === 0 && slot.error === null
+}
+
+function hasResultForState(slot: SlotFields): boolean {
+  if (slot.state === 'idle') {
+    return hasNoRequest(slot) && hasNoResult(slot)
+  }
+
+  if (!isObservedRequest(slot)) {
+    return false
+  }
+
+  if (slot.state === 'success') {
+    return slot.rows.length > 0 && slot.error === null
+  }
+
+  if (slot.state === 'failure') {
+    return slot.rows.length === 0 && slot.error !== null
+  }
+
+  return hasNoResult(slot)
+}
+
+function hasOrderedSlots(slots: readonly SlotFields[]): boolean {
+  return slots.every((slot, index) => slot.slot === index)
+}
+
+function isResetSlot(slot: SlotFields): boolean {
+  return slot.state === 'idle' && slot.observationRevision === 0
+}
+
+function fitsCaptureLifetime(captureId: string | null, slots: readonly SlotFields[]): boolean {
+  if (captureId !== null) {
+    return true
+  }
+
+  return slots.every(isResetSlot)
+}
+
 function createSchemas(slotCount: SearchSlotCount) {
   const snapshot = z
     .strictObject({
@@ -147,25 +164,8 @@ function createSchemas(slotCount: SearchSlotCount) {
       captureId: uuid.nullable(),
       slots: z.array(slot).length(slotCount)
     })
-    .refine((value) => {
-      const hasOrderedSlots = value.slots.every((slot, index) => {
-        const isExpectedSlot = slot.slot === index
-
-        return isExpectedSlot
-      })
-      const hasCapture = value.captureId != null
-      const hasOnlyResetSlots = value.slots.every((slot) => {
-        const isIdle = slot.state === 'idle'
-        const isReset = slot.observationRevision === 0
-        const isResetSlot = isIdle && isReset
-
-        return isResetSlot
-      })
-      const hasValidLifetime = hasCapture || hasOnlyResetSlots
-      const isValid = hasOrderedSlots && hasValidLifetime
-
-      return isValid
-    })
+    .refine(({ slots }) => hasOrderedSlots(slots))
+    .refine(({ captureId, slots }) => fitsCaptureLifetime(captureId, slots))
   const result = z.discriminatedUnion('ok', [
     z.strictObject({ ok: z.literal(true), snapshot }),
     z.strictObject({
@@ -184,29 +184,32 @@ const schemas = {
   [SEARCH_SLOT_COUNTS.raid]: createSchemas(SEARCH_SLOT_COUNTS.raid)
 }
 
+function isObject(value: unknown): value is object {
+  return value !== null && typeof value === 'object'
+}
+
 function hasExactOwnShape(input: unknown, parsed: unknown): boolean {
-  const isParsedObject = parsed != null && typeof parsed === 'object'
-  if (!isParsedObject) {
+  if (!isObject(parsed)) {
     return true
   }
-  const isInputObject = input != null && typeof input === 'object'
-  if (!isInputObject) {
+
+  if (!isObject(input)) {
     return false
   }
   const expectedKeys = Reflect.ownKeys(parsed)
-  const hasSameKeyCount = Reflect.ownKeys(input).length === expectedKeys.length
-  const hasSameFields = expectedKeys.every((key) => {
-    const hasOwnField = Object.hasOwn(input, key)
-    if (!hasOwnField) {
-      return false
-    }
-    const hasSameShape = hasExactOwnShape(Reflect.get(input, key), Reflect.get(parsed, key))
+  if (Reflect.ownKeys(input).length !== expectedKeys.length) {
+    return false
+  }
 
-    return hasSameShape
-  })
-  const isExact = hasSameKeyCount && hasSameFields
+  return expectedKeys.every((key) => hasExactOwnField(input, parsed, key))
+}
 
-  return isExact
+function hasExactOwnField(input: object, parsed: object, key: PropertyKey): boolean {
+  if (!Object.hasOwn(input, key)) {
+    return false
+  }
+
+  return hasExactOwnShape(Reflect.get(input, key), Reflect.get(parsed, key))
 }
 
 export function parseSearchSnapshot(

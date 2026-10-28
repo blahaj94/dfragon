@@ -15,27 +15,41 @@ export function isRendererDiagnosticCode(value: unknown): value is RendererDiagn
   return RENDERER_DIAGNOSTIC_CODES.some((code) => code === value)
 }
 
+function hasExactFields<Field extends string>(
+  value: unknown,
+  fields: readonly Field[]
+): value is Record<Field, unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Reflect.ownKeys(value).length === fields.length &&
+    fields.every((field) => field in value)
+  )
+}
+
+function isSafeIntegerAtLeast(value: unknown, min: number): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= min
+}
+
 export function parseDiagnosticEntry(value: unknown): DiagnosticEntry | null {
-  if (
-    value == null ||
-    typeof value !== 'object' ||
-    Array.isArray(value) ||
-    Reflect.ownKeys(value).length !== 3 ||
-    !('sequence' in value) ||
-    typeof value.sequence !== 'number' ||
-    !Number.isSafeInteger(value.sequence) ||
-    value.sequence < 1 ||
-    !('timestamp' in value) ||
-    typeof value.timestamp !== 'number' ||
-    !Number.isSafeInteger(value.timestamp) ||
-    value.timestamp < 0 ||
-    !('code' in value) ||
-    !isDiagnosticCode(value.code)
-  ) {
+  if (!hasExactFields(value, ['sequence', 'timestamp', 'code'])) {
+    return null
+  }
+  const { sequence, timestamp, code } = value
+  if (!isSafeIntegerAtLeast(sequence, 1)) {
     return null
   }
 
-  return { sequence: value.sequence, timestamp: value.timestamp, code: value.code }
+  if (!isSafeIntegerAtLeast(timestamp, 0)) {
+    return null
+  }
+
+  if (!isDiagnosticCode(code)) {
+    return null
+  }
+
+  return { sequence, timestamp, code }
 }
 
 export function parseDiagnosticHistory(value: unknown): DiagnosticEntry[] | null {

@@ -6,7 +6,7 @@ import {
   searchSnapshot,
   withSearchSlot
 } from '../../api/search-test-fixture'
-import { SEARCH_SLOT_COUNTS } from '../types/search'
+import { SEARCH_SLOT_COUNTS, type SearchSlot } from '../types/search'
 import { characterCardSchema } from './character-summary'
 import { bufferCard, dealerCard } from './card-test-fixture'
 
@@ -272,5 +272,108 @@ describe('검색 수명별 슬롯 수', () => {
   it('파티 채널은 12자리 snapshot을 받지 않는다', () => {
     expect(parseSearchSnapshot(raidSnapshot)).toBeNull()
     expect(parseSearchResult({ ok: true, snapshot: raidSnapshot })).toBeNull()
+  })
+})
+
+describe('슬롯 상태별 판정 경계', () => {
+  const timeout = { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null } as const
+  const rateLimited = (retryAfterSeconds: unknown) =>
+    ({ code: 'SEARCH_RATE_LIMITED', retryAfterSeconds }) as SearchSlot['error']
+  const withoutField = (field: keyof SearchSlot) => {
+    const { [field]: _removed, ...rest } = searchSlot()
+
+    return withSearchSlot(rest as SearchSlot)
+  }
+
+  it.each([
+    ['대기 중 요청', searchSlot()],
+    ['빈 닉네임 요청', searchSlot({ nickname: '' })],
+    ['결과 없음', searchSlot({ state: 'empty' })],
+    ['외형 대기', searchSlot({ state: 'waiting-portrait' })],
+    ['정책 대기', searchSlot({ state: 'waiting-policy' })],
+    ['한 행 성공', searchSlot({ state: 'success', rows: [searchRow] })],
+    ['오류 실패', searchSlot({ state: 'failure', error: timeout })],
+    ['재시도 0초 제한', searchSlot({ state: 'failure', error: rateLimited(0) })],
+    ['재시도 시간 없는 제한', searchSlot({ state: 'failure', error: rateLimited(null) })],
+    ['관찰이 남은 빈 idle', searchSlot({ state: 'idle', requestId: null, nickname: null })]
+  ])('%s 슬롯을 전달한다', (_name, slot) => {
+    const snapshot = withSearchSlot(slot)
+
+    expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
+  })
+
+  it.each([
+    ['알 수 없는 상태', searchSlot({ state: 'done' as never })],
+    ['닉네임만 남은 idle', searchSlot({ state: 'idle', requestId: null })],
+    ['요청만 남은 idle', searchSlot({ state: 'idle', nickname: null })],
+    [
+      '행이 남은 idle',
+      searchSlot({ state: 'idle', requestId: null, nickname: null, rows: [searchRow] })
+    ],
+    [
+      '오류가 남은 idle',
+      searchSlot({ state: 'idle', requestId: null, nickname: null, error: timeout })
+    ],
+    ['음수 관찰', searchSlot({ observationRevision: -1 })],
+    ['소수 관찰', searchSlot({ observationRevision: 1.5 })],
+    ['오류가 붙은 성공', searchSlot({ state: 'success', rows: [searchRow], error: timeout })],
+    ['오류가 붙은 결과 없음', searchSlot({ state: 'empty', error: timeout })],
+    ['행이 붙은 정책 대기', searchSlot({ state: 'waiting-policy', rows: [searchRow] })],
+    [
+      '재시도 0초 시간 초과',
+      searchSlot({ state: 'failure', error: { ...timeout, retryAfterSeconds: 0 } })
+    ],
+    ['소수 재시도 제한', searchSlot({ state: 'failure', error: rateLimited(1.5) })],
+    [
+      '공백 캐릭터명 행',
+      searchSlot({ state: 'success', rows: [{ ...searchRow, characterName: ' ' }] })
+    ]
+  ])('%s 슬롯이 있으면 snapshot을 거절한다', (_name, slot) => {
+    expect(parseSearchSnapshot(withSearchSlot(slot))).toBeNull()
+  })
+
+  it.each([-1, 0.5, 1])('첫 자리에 슬롯 번호 %d가 오면 snapshot을 거절한다', (slot) => {
+    const snapshot = searchSnapshot()
+    const slots = [{ ...snapshot.slots[0], slot }, ...snapshot.slots.slice(1)]
+
+    expect(parseSearchSnapshot({ ...snapshot, slots })).toBeNull()
+  })
+
+  it.each(['rows', 'error', 'nickname', 'requestId', 'observationRevision', 'state'] as const)(
+    '%s 필드가 빠진 슬롯을 거절한다',
+    (field) => {
+      expect(parseSearchSnapshot(withoutField(field))).toBeNull()
+    }
+  )
+
+  it('캡처가 끝난 snapshot은 관찰 번호까지 0으로 돌린 idle 슬롯만 받는다', () => {
+    const reset = searchSnapshot({ captureId: null })
+    expect(parseSearchSnapshot(reset)).toEqual(reset)
+    const observedIdle = withSearchSlot(
+      searchSlot({ state: 'idle', requestId: null, nickname: null, observationRevision: 1 })
+    )
+    expect(parseSearchSnapshot(observedIdle)).toEqual(observedIdle)
+    expect(parseSearchSnapshot({ ...observedIdle, captureId: null })).toBeNull()
+  })
+})
+
+describe('선택과 행, 후보의 identity 비교', () => {
+  const choice = { ...searchRow, adventureName: null, face: null }
+  const other = { ...choice, characterId: 'synthetic-other', serverId: 'siroco' }
+  const selectedSlot = (overrides: Record<string, unknown>) =>
+    withSearchSlot({
+      ...searchSlot({ state: 'success', rows: [searchRow], selected }),
+      ...overrides
+    } as never)
+
+  it.each([
+    ['서버만 다른 행', { rows: [{ ...searchRow, serverId: 'siroco' }] }],
+    ['캐릭터만 다른 행', { rows: [{ ...searchRow, characterId: 'synthetic-other' }] }],
+    ['서버만 다른 후보', { choices: [other, { ...choice, serverId: 'siroco' }] }],
+    ['캐릭터만 다른 후보', { choices: [other, { ...choice, characterId: 'synthetic-third' }] }],
+    ['값이 undefined인 후보', { choices: undefined }],
+    ['선택 근거만 있고 선택 없음', { selected: undefined, selectionMethod: 'job' }]
+  ])('%s는 snapshot 전체를 거절한다', (_name, overrides) => {
+    expect(parseSearchSnapshot(selectedSlot(overrides))).toBeNull()
   })
 })
