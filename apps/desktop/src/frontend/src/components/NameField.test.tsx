@@ -4,7 +4,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import * as stylex from '@stylexjs/stylex'
 import { colors } from '@dfragon/ui/tokens.stylex'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { NameField, type NameFieldProps, type NameFieldTone } from './NameField'
+import type { NameFieldTone } from '../lib/name-field-tone'
+import { NameField, type NameFieldProps } from './NameField'
 import { ServerSelect } from './ServerSelect'
 
 // jsdom은 테두리 색을 계산하지 않으므로 같은 선언에서 나온 class를 칸이 가졌는지로 확인한다.
@@ -76,10 +77,9 @@ it('disabled를 입력에 전달한다', async () => {
   expect(input().disabled).toBe(true)
 })
 
-it('left, right를 입력 양옆 같은 칸 안에 그린다', async () => {
+it('end를 입력 뒤 같은 칸 안에 그린다', async () => {
   await render({
-    left: <span data-testid="left">왼쪽</span>,
-    right: (
+    end: (
       <ServerSelect
         variant="field"
         label="2번 서버"
@@ -90,15 +90,13 @@ it('left, right를 입력 양옆 같은 칸 안에 그린다', async () => {
     )
   })
   const field = input().parentElement!
-  const left = container.querySelector('[data-testid="left"]')!
   const server = container.querySelector('[aria-label="2번 서버"]')!
-  expect(field.firstElementChild).toBe(left)
   expect(field.contains(server)).toBe(true)
   expect(input().compareDocumentPosition(server) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(server.textContent).toContain('시로코')
 })
 
-it('right를 넘기지 않으면 입력만 둔다', async () => {
+it('end를 넘기지 않으면 입력만 둔다', async () => {
   await render()
   expect(input().parentElement!.children).toHaveLength(1)
 })

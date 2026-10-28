@@ -48,8 +48,8 @@ it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은
       card: dealerCard
     })
   ).toMatchObject({ guild: '길드', card: dealerCard })
-  expect(toCharacterCard(undefined)).toBeNull()
-  expect(toCharacterCard({ ...summary, serverId: 'unknown' })).toBeNull()
+  expect(toCharacterCard(undefined)).toBeUndefined()
+  expect(toCharacterCard({ ...summary, serverId: 'unknown' })).toBeUndefined()
 })
 
 it('서버 제한과 중복 요청을 지키고 정제된 오류만 표시한다', () => {
