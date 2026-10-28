@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMachine } from '@xstate/react'
 import { getRaidCapturePhase, raidCaptureMachine } from '../lib/raid-capture-machine'
 import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
+import { getRecognizedNicknames } from '../lib/recognized-nicknames'
 import { createSeatOrder, swapSeats as swapSeatOrder, type SeatOrder } from '../lib/raid-seats'
 import { useRaidSearch } from './useRaidSearch'
 import { useRestartShortcut } from './useRestartShortcut'
@@ -72,14 +73,7 @@ export function useRaidCapture({
 
   const phase = getRaidCapturePhase(snapshot)
   const recognizing = phase === 'recognizing'
-  const nicknames = Array.from({ length: SEARCH_SLOT_COUNTS.raid }, (_, slot) => {
-    const result = snapshot.context.results[slot]
-    if (result?.kind === 'recognized') {
-      return result.nickname
-    }
-
-    return null
-  })
+  const nicknames = getRecognizedNicknames(snapshot.context.results, SEARCH_SLOT_COUNTS.raid)
   const canStartCapture = snapshot.can({ type: 'START' })
   const canMoveSeats = !recognizing
   const swapSeats = (from: number, to: number): boolean => {

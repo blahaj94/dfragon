@@ -1,16 +1,15 @@
 import { assign, fromCallback, fromPromise, setup, type SnapshotFrom } from 'xstate'
-import type { CapturePhase, PartyOcrWorker } from '../types/capture'
+import type { CapturePhase } from '../types/capture'
 import type { WindowFrameResult } from '../../../preload/common/types/capture'
 import type { CharacterImage } from '../../../preload/common/types/character'
 import type { OcrCaptureObservation } from './capture-search'
-import { createPartyOcrWorker } from './ocr'
+import { recognizeWithOcrWorker } from './ocr-worker-recognition'
 import { recognizePartyFrame, type PartySlotRecognition } from './party-recognition'
 import { reportRendererDiagnostic, showRejectedOcrNickname } from './runtime-diagnostics'
 
 const OCR_FAILED_STATUS =
   '글자 인식에 실패했습니다. Alt+R을 누르거나 캐릭터 직접 검색을 사용해 주세요.'
 
-type RoundFrame = CharacterImage & { captureId: string }
 type CaptureInput = {
   selectSource: (sourceId: string) => Promise<unknown>
   beginSearch: (signal: AbortSignal) => Promise<string | null>
@@ -23,7 +22,7 @@ type CaptureContext = {
   effects: CaptureInput
   selectedSourceId: string
   captureId: string | null
-  frame: RoundFrame | null
+  frame: CharacterImage | null
   results: PartySlotRecognition[]
   round: number
   startedRounds: number
@@ -31,10 +30,7 @@ type CaptureContext = {
   completedAt: number | null
 }
 
-type CaptureEvent =
-  | { type: 'SELECT'; sourceId: string }
-  | { type: 'START' }
-  | { type: 'STOP'; status?: string }
+type CaptureEvent = { type: 'SELECT'; sourceId: string } | { type: 'START' } | { type: 'STOP' }
 
 export const partyCaptureMachine = setup({
   types: {
@@ -62,26 +58,10 @@ export const partyCaptureMachine = setup({
     readFrame: fromPromise(({ input }: { input: { captureId: string; effects: CaptureInput } }) =>
       input.effects.readFrame(input.captureId)
     ),
-    recognize: fromPromise(
-      async ({ input, signal }: { input: RoundFrame; signal: AbortSignal }) => {
-        let worker: PartyOcrWorker | null = null
-        let status = '글자 인식을 준비하지 못했습니다. Alt+R을 눌러 다시 인식해 주세요.'
-        try {
-          try {
-            worker = await createPartyOcrWorker(signal)
-            signal.throwIfAborted()
-            status = OCR_FAILED_STATUS
-            const results = await recognizePartyFrame(input, worker.recognize)
-            signal.throwIfAborted()
-
-            return results
-          } finally {
-            await worker?.terminate()
-          }
-        } catch {
-          throw new Error(status)
-        }
-      }
+    recognize: fromPromise(({ input, signal }: { input: CharacterImage; signal: AbortSignal }) =>
+      recognizeWithOcrWorker(signal, OCR_FAILED_STATUS, (recognizeText) =>
+        recognizePartyFrame(input, recognizeText)
+      )
     ),
     lifetime: fromCallback<CaptureEvent, CaptureInput>(({ input }) => () => {
       input.endSearch()
@@ -155,13 +135,7 @@ export const partyCaptureMachine = setup({
         'resetSearch',
         'resetRecognition',
         'clearCompletion',
-        assign({
-          status: ({ event }) => {
-            const status = event.status ?? '캡처를 중지했습니다.'
-
-            return status
-          }
-        })
+        assign({ status: '캡처를 중지했습니다.' })
       ]
     }
   },
@@ -232,15 +206,12 @@ export const partyCaptureMachine = setup({
                 guard: ({ event }) => event.output.kind === 'frame',
                 target: 'recognizing',
                 actions: assign({
-                  frame: ({ context, event }) => {
+                  frame: ({ event }) => {
                     if (event.output.kind !== 'frame') {
                       return null
                     }
 
-                    return {
-                      ...event.output.image,
-                      captureId: context.captureId!
-                    }
+                    return event.output.image
                   }
                 })
               },

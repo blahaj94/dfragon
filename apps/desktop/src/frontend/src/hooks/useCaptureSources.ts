@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CAPTURE_SOURCE_RETRY_INTERVAL_MS } from '../constants/capture'
-import { isDnfCaptureSource } from '../lib/capture-presentation'
+import { findSingleDnfCaptureSource } from '../lib/capture-presentation'
 
 type CaptureSource = { id: string; name: string }
 
@@ -23,23 +23,31 @@ export function useCaptureSources(): {
     let cancelled = false
     let retryTimer: ReturnType<typeof setTimeout> | undefined
 
-    async function loadSources(): Promise<void> {
-      let foundGame = false
-      setSourcesLoading(true)
+    async function applySourceList(): Promise<boolean> {
       try {
         const nextSources = await window.api.listCaptureSources()
         if (cancelled) {
-          return
+          return false
         }
         setSources(nextSources)
         setRetryStartedAt(performance.now())
         setSourcesFailed(false)
-        foundGame = nextSources.filter(isDnfCaptureSource).length === 1
+
+        return findSingleDnfCaptureSource(nextSources) !== null
       } catch {
-        if (cancelled) {
-          return
+        if (!cancelled) {
+          setSourcesFailed(true)
         }
-        setSourcesFailed(true)
+
+        return false
+      }
+    }
+
+    async function loadSources(): Promise<void> {
+      setSourcesLoading(true)
+      const foundGame = await applySourceList()
+      if (cancelled) {
+        return
       }
       setSourcesLoading(false)
       // 완료된 조회 뒤에만 예약해 느린 IPC와 다음 자동 조회가 겹치지 않게 한다.

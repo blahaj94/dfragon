@@ -6,6 +6,15 @@ export function isDnfCaptureSource(source: { name: string }): boolean {
   return DNF_CAPTURE_WINDOW_TITLE_PATTERN.test(source.name)
 }
 
+export function findSingleDnfCaptureSource<T extends { name: string }>(sources: T[]): T | null {
+  const games = sources.filter(isDnfCaptureSource)
+  if (games.length !== 1) {
+    return null
+  }
+
+  return games[0]
+}
+
 type CaptureControlInput = {
   phase: CapturePhase
   loading: boolean

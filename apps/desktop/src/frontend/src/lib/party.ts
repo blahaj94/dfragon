@@ -5,7 +5,7 @@ import {
   type PartyFrameGeometry
 } from '@dfragon/lib'
 import { binarizeNicknamePixels } from './nickname-pixels'
-import { PARTY_SLOT_COUNT } from '../constants/capture'
+import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
 import type { CharacterImage, CharacterPortrait } from '../../../preload/common/types/character'
 import { cropPartyPortrait } from './party-portrait'
 
@@ -45,7 +45,7 @@ export function capturePartyRecognitionInputs(
   source: CharacterImage
 ): (PartyRecognitionInput | null)[] {
   const crops: (PartyRecognitionInput | null)[] = Array.from(
-    { length: PARTY_SLOT_COUNT },
+    { length: SEARCH_SLOT_COUNTS.party },
     () => null
   )
   const { width, height } = source

@@ -3,9 +3,10 @@ import { useMachine } from '@xstate/react'
 import { partyCaptureMachine, getCapturePhase } from '../lib/party-capture-machine'
 import type { CapturePhase } from '../types/capture'
 import { useCaptureSources } from './useCaptureSources'
-import { PARTY_SLOT_COUNT } from '../constants/capture'
+import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
 import { useCharacterSearch } from './useCharacterSearch'
-import { isDnfCaptureSource } from '../lib/capture-presentation'
+import { findSingleDnfCaptureSource } from '../lib/capture-presentation'
+import { getRecognizedNicknames } from '../lib/recognized-nicknames'
 import { useRestartShortcut } from './useRestartShortcut'
 
 export type CaptureSourceSelection = ReturnType<typeof useCaptureSources> & {
@@ -26,14 +27,10 @@ export type PartyCapture = {
   status: string
   lastCompletedAt: number | null
   startRound: () => void
-  stopCapture: (nextStatus?: string) => void
+  stopCapture: () => void
 }
 
-export function usePartyCapture({
-  receivesShortcut = true
-}: {
-  receivesShortcut?: boolean
-} = {}): PartyCapture {
+export function usePartyCapture({ receivesShortcut }: { receivesShortcut: boolean }): PartyCapture {
   const stopRef = useRef<() => void>(() => {})
   const search = useCharacterSearch(() => stopRef.current())
 
@@ -57,19 +54,19 @@ export function usePartyCapture({
     if (!search.ready || !canAutoSelect) {
       return
     }
-    const games = sources.sources.filter(isDnfCaptureSource)
-    if (games.length !== 1 || autoAttemptedSource.current === games[0].id) {
+    const game = findSingleDnfCaptureSource(sources.sources)
+    if (game === null || autoAttemptedSource.current === game.id) {
       return
     }
-    autoAttemptedSource.current = games[0].id
-    send({ type: 'SELECT', sourceId: games[0].id })
+    autoAttemptedSource.current = game.id
+    send({ type: 'SELECT', sourceId: game.id })
   }, [search.ready, canAutoSelect, send, sources.sources])
 
   const startRound = useCallback(() => send({ type: 'START' }), [send])
   useRestartShortcut(receivesShortcut, startRound)
 
-  function stopCapture(status?: string): void {
-    send({ type: 'STOP', status })
+  function stopCapture(): void {
+    send({ type: 'STOP' })
   }
   useLayoutEffect(() => {
     stopRef.current = stopCapture
@@ -80,18 +77,7 @@ export function usePartyCapture({
   }
 
   const recognizing = phase === 'recognizing'
-  const nicknames = Array.from({ length: PARTY_SLOT_COUNT }, (_, slot) => {
-    const result = snapshot.context.results[slot]
-    if (result == null || result.kind === 'missing' || result.kind === 'failed') {
-      return null
-    }
-
-    if (result.kind === 'recognized') {
-      return result.nickname
-    }
-
-    return null
-  })
+  const nicknames = getRecognizedNicknames(snapshot.context.results, SEARCH_SLOT_COUNTS.party)
   const selectedSourceId = snapshot.context.selectedSourceId
   const canStartCapture = snapshot.can({ type: 'START' })
   const sourceReady =
