@@ -1,6 +1,8 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, motion, size, space } from './tokens.stylex'
 
+const onCard = ':is([data-surface="card"])'
+
 export const styles = stylex.create({
   list: {
     position: 'relative',
@@ -13,24 +15,40 @@ export const styles = stylex.create({
   },
   tab: {
     display: 'inline-flex',
+    flex: { default: null, [stylex.when.ancestor(onCard)]: '1 1 0' },
+    minWidth: { default: null, [stylex.when.ancestor(onCard)]: 0 },
     alignItems: 'center',
+    justifyContent: { default: null, [stylex.when.ancestor(onCard)]: 'center' },
     gap: 6,
-    height: 36,
+    height: { default: 36, [stylex.when.ancestor(onCard)]: size.controlMd },
     margin: 0,
-    paddingInline: space.s16,
+    paddingInline: { default: space.s16, [stylex.when.ancestor(onCard)]: space.s4 },
     borderWidth: 0,
     backgroundColor: 'transparent',
     fontFamily: 'inherit',
-    fontSize: 14,
+    fontSize: { default: 14, [stylex.when.ancestor(onCard)]: 13 },
     fontWeight: 600,
     whiteSpace: 'nowrap',
     cursor: { default: 'pointer', ':is([data-disabled])': 'not-allowed' },
     color: {
       default: colors.fgSubtle,
-      ':hover': colors.fgDefault,
-      ':is([data-active])': colors.fgDefault,
-      ':is([data-disabled])': colors.fgDisabled
+      [stylex.when.ancestor(onCard)]: colors.cardFgSubtle,
+      ':hover': { default: colors.fgDefault, [stylex.when.ancestor(onCard)]: colors.cardFg },
+      ':is([data-active])': {
+        default: colors.fgDefault,
+        [stylex.when.ancestor(onCard)]: colors.cardFg
+      },
+      ':is([data-disabled])': {
+        default: colors.fgDisabled,
+        [stylex.when.ancestor(onCard)]: colors.cardBorderStrong
+      }
     }
+  },
+  // controlStyles.focusRing 뒤에 합쳐 카드 면 탭만 포커스 링 색과 위치를 바꾼다.
+  // 카드 바깥과 옆 탭으로 넘치지 않게 카드 면에서는 링을 탭 안쪽에 그린다.
+  focusRing: {
+    outlineColor: { default: colors.signal, [stylex.when.ancestor(onCard)]: colors.cardSignal },
+    outlineOffset: { default: 2, [stylex.when.ancestor(onCard)]: -2 }
   },
   indicator: {
     position: 'absolute',
@@ -49,23 +67,6 @@ export const styles = stylex.create({
     borderTopWidth: 1,
     borderTopStyle: 'solid',
     borderTopColor: colors.cardBorder
-  },
-  cardTab: {
-    flex: '1 1 0',
-    minWidth: 0,
-    justifyContent: 'center',
-    height: size.controlMd,
-    paddingInline: space.s4,
-    fontSize: 13,
-    color: {
-      default: colors.cardFgSubtle,
-      ':hover': colors.cardFg,
-      ':is([data-active])': colors.cardFg,
-      ':is([data-disabled])': colors.cardBorderStrong
-    },
-    outlineColor: colors.cardSignal,
-    // 카드 바깥과 옆 탭으로 넘치지 않게 포커스 링을 탭 안쪽에 그린다.
-    outlineOffset: -2
   },
   cardIndicator: { top: -1, bottom: 'auto', backgroundColor: colors.cardSignal }
 })

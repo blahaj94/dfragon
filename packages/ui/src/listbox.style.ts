@@ -4,6 +4,7 @@ import { colors, motion, shape, space } from './tokens.stylex'
 const cut = shape.cut
 const openShape = `polygon(0 0, 100% 0, 100% calc(100% - ${cut}), calc(100% - ${cut}) 100%, 0 100%)`
 const foldedShape = 'polygon(0 0, 100% 0, 100% 0, 100% 0, 0 0)'
+const onCard = ':is([data-surface="card"])'
 
 export const listboxStyles = stylex.create({
   positioner: { zIndex: 110, outlineStyle: 'none' },
@@ -39,12 +40,27 @@ export const listboxStyles = stylex.create({
     userSelect: 'none',
     color: {
       default: 'inherit',
-      ':is([data-highlighted])': colors.fgDefault,
-      ':is([data-selected], [data-checked])': colors.signal,
-      ':is([data-disabled])': colors.fgDisabled
+      ':is([data-highlighted])': {
+        default: colors.fgDefault,
+        [stylex.when.ancestor(onCard)]: colors.cardFg
+      },
+      ':is([data-selected], [data-checked])': {
+        default: colors.signal,
+        [stylex.when.ancestor(onCard)]: colors.cardSignal
+      },
+      ':is([data-disabled])': {
+        default: colors.fgDisabled,
+        [stylex.when.ancestor(onCard)]: colors.cardBorderStrong
+      }
     },
     fontWeight: { default: 'inherit', ':is([data-selected], [data-checked])': 700 },
-    backgroundColor: { default: 'transparent', ':is([data-highlighted])': colors.bgControlHover },
+    backgroundColor: {
+      default: 'transparent',
+      ':is([data-highlighted])': {
+        default: colors.bgControlHover,
+        [stylex.when.ancestor(onCard)]: colors.cardControlHover
+      }
+    },
     transitionProperty: 'color, background-color',
     transitionDuration: motion.durHover,
     transitionTimingFunction: motion.ease
@@ -55,7 +71,7 @@ export const listboxStyles = stylex.create({
     bottom: 6,
     left: 0,
     width: 2,
-    backgroundColor: colors.signal
+    backgroundColor: { default: colors.signal, [stylex.when.ancestor(onCard)]: colors.cardSignal }
   },
   groupLabel: {
     paddingInline: space.s12,
@@ -63,29 +79,20 @@ export const listboxStyles = stylex.create({
     fontSize: 12,
     lineHeight: '18px',
     fontWeight: 600,
-    color: colors.fgSubtle
+    color: { default: colors.fgSubtle, [stylex.when.ancestor(onCard)]: colors.cardFgSubtle }
   },
   separator: {
     height: 1,
     marginBlock: space.s4,
-    backgroundColor: colors.borderDefault
+    backgroundColor: {
+      default: colors.borderDefault,
+      [stylex.when.ancestor(onCard)]: colors.cardBorder
+    }
   },
   cardPopup: {
     borderTopColor: colors.cardSignal,
     backgroundColor: colors.cardInset,
     boxShadow: `inset 0 0 0 1px ${colors.cardBorderStrong}`,
     color: colors.cardFgMuted
-  },
-  cardItem: {
-    color: {
-      default: 'inherit',
-      ':is([data-highlighted])': colors.cardFg,
-      ':is([data-selected], [data-checked])': colors.cardSignal,
-      ':is([data-disabled])': colors.cardBorderStrong
-    },
-    backgroundColor: { default: 'transparent', ':is([data-highlighted])': colors.cardControlHover }
-  },
-  cardMarker: { backgroundColor: colors.cardSignal },
-  cardGroupLabel: { color: colors.cardFgSubtle },
-  cardSeparator: { backgroundColor: colors.cardBorder }
+  }
 })

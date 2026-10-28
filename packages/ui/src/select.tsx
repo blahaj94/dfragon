@@ -1,6 +1,6 @@
 import { Select as BaseSelect } from '@base-ui/react/select'
 import * as stylex from '@stylexjs/stylex'
-import { type ComponentType, createContext, useContext } from 'react'
+import type { ComponentType } from 'react'
 import { controlStyles } from './control.style'
 import { ChevronDownIcon } from './icons'
 import { listboxStyles } from './listbox.style'
@@ -8,9 +8,6 @@ import { type ForwardedStyle, type PublicProps, withForwardedStyle } from './pub
 import { styles } from './select.style'
 import { shapes } from './shapes'
 import type { ControlSurface } from './surface'
-
-// 목록은 body portal에 그리므로 Popup이 받은 면을 항목, 그룹 라벨, 구분선에 넘긴다.
-const SelectSurfaceContext = createContext<ControlSurface>('default')
 
 export type SelectTriggerProps = PublicProps<typeof BaseSelect.Trigger> & {
   size?: '2xs' | 'xs' | 'sm' | 'md'
@@ -98,7 +95,11 @@ function SelectPopupImpl({
           {...props}
           data-surface={surface}
           {...withForwardedStyle(
-            stylex.props(listboxStyles.popup, surface === 'card' && listboxStyles.cardPopup),
+            stylex.props(
+              listboxStyles.popup,
+              surface === 'card' && listboxStyles.cardPopup,
+              stylex.defaultMarker()
+            ),
             { className, style }
           )}
         >
@@ -108,7 +109,7 @@ function SelectPopupImpl({
             aria-labelledby={labelledBy}
             {...stylex.props(columns !== undefined && styles.grid(columns))}
           >
-            <SelectSurfaceContext value={surface}>{children}</SelectSurfaceContext>
+            {children}
           </BaseSelect.List>
         </BaseSelect.Popup>
       </BaseSelect.Positioner>
@@ -126,22 +127,13 @@ function SelectItemImpl({
   style,
   ...props
 }: SelectItemProps & ForwardedStyle) {
-  const surface = useContext(SelectSurfaceContext)
-  const onCard = surface === 'card'
-
   return (
     <BaseSelect.Item
       {...props}
-      data-surface={surface}
-      {...withForwardedStyle(
-        stylex.props(listboxStyles.item, styles.item, onCard && listboxStyles.cardItem),
-        { className, style }
-      )}
+      {...withForwardedStyle(stylex.props(listboxStyles.item, styles.item), { className, style })}
     >
-      {/* 기본 글자(체크 이모지) 대신 빈 막대로 그린다. */}
-      <BaseSelect.ItemIndicator
-        {...stylex.props(listboxStyles.marker, onCard && listboxStyles.cardMarker)}
-      >
+      {/* Base UI는 children이 없으면 체크 이모지를 넣으므로 null을 넘긴다. */}
+      <BaseSelect.ItemIndicator {...stylex.props(listboxStyles.marker)}>
         {null}
       </BaseSelect.ItemIndicator>
       {children}
@@ -158,15 +150,10 @@ function SelectGroupLabelImpl({
   style,
   ...props
 }: SelectGroupLabelProps & ForwardedStyle) {
-  const onCard = useContext(SelectSurfaceContext) === 'card'
-
   return (
     <BaseSelect.GroupLabel
       {...props}
-      {...withForwardedStyle(
-        stylex.props(listboxStyles.groupLabel, onCard && listboxStyles.cardGroupLabel),
-        { className, style }
-      )}
+      {...withForwardedStyle(stylex.props(listboxStyles.groupLabel), { className, style })}
     />
   )
 }
@@ -180,15 +167,10 @@ function SelectSeparatorImpl({
   style,
   ...props
 }: SelectSeparatorProps & ForwardedStyle) {
-  const onCard = useContext(SelectSurfaceContext) === 'card'
-
   return (
     <BaseSelect.Separator
       {...props}
-      {...withForwardedStyle(
-        stylex.props(listboxStyles.separator, onCard && listboxStyles.cardSeparator),
-        { className, style }
-      )}
+      {...withForwardedStyle(stylex.props(listboxStyles.separator), { className, style })}
     />
   )
 }
