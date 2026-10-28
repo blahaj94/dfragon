@@ -8,7 +8,11 @@ export function usePartySlotCards(capture: PartyCapture): {
   snapshot: ReturnType<typeof useAdventureSnapshot>
 } {
   const { search } = capture
-  const snapshot = useAdventureSnapshot(search.slots.map(slotAdventureName), capture.startedRounds)
+  const snapshot = useAdventureSnapshot(
+    'party',
+    search.slots.map(slotAdventureName),
+    capture.startedRounds
+  )
   const cards = toSlotCards({
     slots: search.slots,
     nicknames: capture.nicknames,
