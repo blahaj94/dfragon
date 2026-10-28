@@ -98,8 +98,6 @@ async function render({
   await act(async () =>
     root.render(
       <RaidPage
-        id="raid-cards"
-        header={null}
         {...props}
         seats={{ seatOrder, canMoveSeats, swapSeats: swap }}
         actions={{ lookupSlot }}
@@ -351,23 +349,26 @@ it('자리 드래그 형식이 없는 드래그는 자리 드래그 중이어도
 
 it('맞바꾸기를 거절하면 알리지 않고, 다음 배치 변경에서 그 카드로 포커스를 가져가지 않는다', async () => {
   const swap = vi.fn(() => false)
-  const header = <button type="button">헤더 버튼</button>
-  await render({ characters: [member], header, swapSeats: swap })
+  await render({ characters: [member], swapSeats: swap })
   await act(async () => seats()[0].focus())
 
   await pressAlt(seats()[0], 'ArrowRight')
   expect(swap).toHaveBeenCalledExactlyOnceWith(0, 1)
   expect(moveNotices()).toEqual(['', ''])
 
-  const headerButton = container.querySelector<HTMLButtonElement>('section > button')!
-  await act(async () => headerButton.focus())
-  await render({
-    characters: [member],
-    header,
-    swapSeats: swap,
-    seatOrder: swapSeats(createSeatOrder(), 0, 1)
-  })
-  expect(document.activeElement).toBe(headerButton)
+  const outsideButton = document.createElement('button')
+  container.after(outsideButton)
+  try {
+    await act(async () => outsideButton.focus())
+    await render({
+      characters: [member],
+      swapSeats: swap,
+      seatOrder: swapSeats(createSeatOrder(), 0, 1)
+    })
+    expect(document.activeElement).toBe(outsideButton)
+  } finally {
+    outsideButton.remove()
+  }
 })
 
 it('같은 두 자리를 연달아 맞바꿔도 알림 영역을 번갈아 채워 다시 읽히게 한다', async () => {
@@ -522,18 +523,9 @@ it('검색 응답에 없는 길드, 명성, 장비 점수는 -로 보인다', as
   expect(first.textContent).toContain('공대모험단-')
 })
 
-it('화면이 넘긴 헤더를 보드 위에 둔다', async () => {
-  await render({ characters: [member], header: <h1>공대 헤더</h1> })
-  const header = container.querySelector('section > h1')!
-  expect(header.textContent).toBe('공대 헤더')
-  const board = container.querySelector('#raid-cards')!
-  expect(board.querySelectorAll('article')).toHaveLength(12)
-  expect(header.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
-})
-
 it('보드는 창 폭을 네 등분한 열에 간격 8로 카드를 놓고 넘치면 보드 영역이 스크롤한다', async () => {
   await render({ characters: [member] })
-  const scroller = container.querySelector<HTMLElement>('#raid-cards')!
+  const scroller = container.querySelector('section')!.firstElementChild!
   const board = scroller.firstElementChild!
   const classes = (element: Element): string[] => element.className.split(' ')
 
@@ -543,9 +535,12 @@ it('보드는 창 폭을 네 등분한 열에 간격 8로 카드를 놓고 넘�
   for (const name of [...classesOf(expectedLayout.columns), ...classesOf(expectedLayout.gap)]) {
     expect(classes(board)).toContain(name)
   }
-  expect(
-    [...board.querySelectorAll('[id^="raid-cards-party-"]')].map((label) => label.textContent)
-  ).toEqual(['1파티', '2파티', '3파티'])
+  expect(board.querySelectorAll('article')).toHaveLength(12)
+  expect([...board.querySelectorAll(':scope > span')].map((label) => label.textContent)).toEqual([
+    '1파티',
+    '2파티',
+    '3파티'
+  ])
 })
 
 it('슬롯에 붙은 스냅샷 표시는 그 슬롯이 놓인 자리 카드에 칩과 경고로 들어간다', async () => {

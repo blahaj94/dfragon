@@ -73,30 +73,30 @@ it('공대 회차가 인식하는 동안 자리 맞바꾸기 요청을 거절하
   raidMocks.recognize.mockReturnValueOnce(late.promise)
   let swapped: boolean | undefined
   await act(async () => {
-    swapped = value.swapSeats(0, 1)
+    swapped = value.seats.swapSeats(0, 1)
   })
   expect(swapped).toBe(true)
-  expect(value.seatOrder.slice(0, 2)).toEqual([1, 0])
+  expect(value.seats.seatOrder.slice(0, 2)).toEqual([1, 0])
 
   await act(async () => value.startRound())
   await vi.waitFor(() => expect(raidMocks.recognize).toHaveBeenCalledOnce())
-  expect(value.seatOrder.slice(0, 2)).toEqual([0, 1])
-  expect(value.canMoveSeats).toBe(false)
+  expect(value.seats.seatOrder.slice(0, 2)).toEqual([0, 1])
+  expect(value.seats.canMoveSeats).toBe(false)
   await act(async () => {
-    swapped = value.swapSeats(0, 1)
+    swapped = value.seats.swapSeats(0, 1)
   })
   expect(swapped).toBe(false)
-  expect(value.seatOrder.slice(0, 2)).toEqual([0, 1])
+  expect(value.seats.seatOrder.slice(0, 2)).toEqual([0, 1])
 
   await act(async () => late.resolve(recognized))
-  await vi.waitFor(() => expect(value.canMoveSeats).toBe(true))
+  await vi.waitFor(() => expect(value.seats.canMoveSeats).toBe(true))
   await act(async () => {
-    swapped = value.swapSeats(0, 1)
+    swapped = value.seats.swapSeats(0, 1)
   })
   expect(swapped).toBe(true)
-  expect(value.seatOrder.slice(0, 2)).toEqual([1, 0])
+  expect(value.seats.seatOrder.slice(0, 2)).toEqual([1, 0])
   await act(async () => {
-    swapped = value.swapSeats(3, 3)
+    swapped = value.seats.swapSeats(3, 3)
   })
   expect(swapped).toBe(false)
 })
