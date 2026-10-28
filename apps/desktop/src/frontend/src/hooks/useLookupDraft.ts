@@ -125,7 +125,7 @@ function createDraft({
 function followSource(
   draft: StoredLookupDraft,
   source: StoredLookupDraft['source'],
-  character?: LookupTarget
+  character?: Pick<CardCharacter, 'name' | 'serverId'>
 ): StoredLookupDraft {
   if (isSameTarget(draft.source, source)) {
     return draft
@@ -140,7 +140,10 @@ function followSource(
   return { ...draft, source, name, serverId }
 }
 
-function keepsUserInput(draft: StoredLookupDraft, character?: LookupTarget): boolean {
+function keepsUserInput(
+  draft: StoredLookupDraft,
+  character?: Pick<CardCharacter, 'name' | 'serverId'>
+): boolean {
   if (draft.dirty) {
     return true
   }
