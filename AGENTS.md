@@ -18,7 +18,7 @@
 
 - GitHub Actions에는 CI 검사 workflow가 없다. 검사는 로컬에서 실행한다.
 - `pnpm verify`가 저장소 검사를 차례로 실행한다. Root `pnpm test`도 `pnpm verify`를 실행한다.
-- `pnpm install`이 husky `pre-push` hook을 설치하며, hook이 push 전에 `pnpm verify`를 실행한다. Windows Test Build와 Product Images는 PR 제목 scope가 `(build)`일 때만 빌드한다. 규칙은 [Repository Map의 배포 workflow 설명](docs/reference/repository-map.md)에 있다.
+- `pnpm install`이 husky `pre-push` hook을 설치하며, hook이 push 전에 `pnpm verify --reuse-pass`를 실행한다. 같은 내용을 직접 `pnpm verify`로 통과한 직후면 다시 검사하지 않는다. Windows Test Build와 Product Images는 PR 제목 scope가 `(build)`일 때만 빌드한다. 규칙은 [Repository Map의 배포 workflow 설명](docs/reference/repository-map.md)에 있다.
 - 변경 범위별 명령 조합은 [Native validation](scripts/README.md#native-validation), 준비 조건은 [`verify` 안내](scripts/README.md#verify)를 따른다.
 - Desktop 테스트는 HOME의 모든 상위 디렉터리가 root나 현재 사용자 소유이고 group, other 쓰기 권한이 없어야 통과한다. [Desktop 테스트 범위](apps/desktop/README.md#테스트-범위와-실행)를 참고한다.
 

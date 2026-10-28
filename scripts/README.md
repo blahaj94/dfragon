@@ -136,7 +136,9 @@ GitHub 이미지 빌드, 발행은 내장 정보와 선택한 정확한 commit�
 
 명령 목록은 `scripts/verify.mjs`에 있습니다.
 
-`pnpm install`이 설치하는 husky `pre-push` hook이 push 전에 `pnpm verify`를 실행합니다. 실패하면 push가 중단됩니다. 의존성 설치는 먼저 끝냈다고 봅니다.
+`pnpm install`이 설치하는 husky `pre-push` hook이 push 전에 `pnpm verify --reuse-pass`를 실행합니다. 실패하면 push가 중단됩니다. 의존성 설치는 먼저 끝냈다고 봅니다.
+
+`pnpm verify`가 통과하면 검사한 작업 트리 내용(untracked 파일 포함)의 tree hash를 worktree의 Git 디렉터리(`dfragon-verify/passed-tree`)에 기록합니다. 검사 중에 파일이 바뀌면 기록하지 않습니다. `--reuse-pass`로 실행하면 커밋하지 않은 변경이 없고 HEAD 내용이 기록과 같을 때 검사를 건너뜁니다. 직접 `pnpm verify`로 확인하고 커밋한 직후 push할 때 같은 검사를 다시 돌지 않게 하기 위해서입니다. 의존성 설치 상태, Git이 무시하는 파일(`.env` 등), Node.js 같은 실행 환경은 기록에 들어가지 않으므로 이것만 바꾼 뒤에는 `pnpm verify`를 직접 다시 실행합니다.
 
 Job 안에서는 앞 명령이 실패하면 남은 명령을 건너뛰고 다른 job은 계속 실행합니다. 끝에 실패한 job, 명령, 종료 코드와 건너뛴 명령 수를 모아 출력하고 non-zero로 종료합니다. Job끼리 같은 build 산출물을 쓰므로 병렬로 실행하지 않습니다. 의존성과 Electron runtime이 준비된 Apple silicon Mac에서 전체 실행에 약 3분 걸렸습니다.
 

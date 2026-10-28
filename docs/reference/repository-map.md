@@ -34,7 +34,7 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 GitHub Actions에는 CI 검사 workflow가 없고 배포 workflow만 둔다. Lint, format, 표기, 문서 검사와 앱 테스트는 로컬에서 `pnpm verify`로 실행한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
 
-Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify`를 실행한다. 실패하면 push를 막는다. Node.js 버전은 root `package.json`의 `devEngines.runtime`으로 고정하며, pnpm이 이 버전을 내려받아 script를 실행하고 workflow의 `actions/setup-node`도 같은 값을 읽는다.
+Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify --reuse-pass`를 실행한다. 실패하면 push를 막는다. 같은 내용을 이미 통과했으면 검사를 건너뛴다. 조건은 [`verify` 안내](../../scripts/README.md#verify)에 있다. Node.js 버전은 root `package.json`의 `devEngines.runtime`으로 고정하며, pnpm이 이 버전을 내려받아 script를 실행하고 workflow의 `actions/setup-node`도 같은 값을 읽는다.
 
 배포 workflow는 다음과 같다. 저장소 Actions 설정은 외부 action을 40자리 commit SHA로 고정하도록 요구하므로 tag로 참조한 action은 실행되지 않는다. Action, npm catalog, Docker base image 갱신은 `.github/dependabot.yml`이 기본 7일 cooldown(npm major는 14일)을 둔 월간 PR로 제안하며, 관련 패키지와 이미지는 group으로 묶는다.
 
