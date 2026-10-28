@@ -11,7 +11,7 @@ import { useScreenCaptureContext } from '../../hooks/useScreenCaptureContext'
 import { filledSlotCount } from '../../lib/slot-cards'
 import { RaidPage } from './RaidPage'
 
-export function RaidScreen({ hidden }: { hidden: boolean }): React.JSX.Element {
+export function RaidScreen(): React.JSX.Element {
   const { raidCapture: capture } = useScreenCaptureContext()
   const cardsId = useId()
   const { cards, snapshot } = useRaidSlotCards(capture)
@@ -23,41 +23,37 @@ export function RaidScreen({ hidden }: { hidden: boolean }): React.JSX.Element {
   return (
     <RaidPage
       id={cardsId}
-      hidden={hidden}
-      header={
-        !hidden &&
-        renderBoardHeader(
-          <BoardHeader
-            start={
-              <>
-                <BoardTitle
-                  label="공대"
-                  filled={filledSlotCount(cards)}
-                  total={cards.length}
-                  round={snapshot.round}
-                />
-                <BoardNotice>{notice}</BoardNotice>
-              </>
-            }
-            end={
-              <>
-                <LastCaptureTime at={capture.lastCompletedAt} />
-                <SnapshotToggle
-                  label="공대 모험단 순번 스냅샷"
-                  active={snapshot.active}
-                  onTake={snapshot.take}
-                  onClear={snapshot.clear}
-                />
-                <CaptureButton
-                  target="공대"
-                  disabled={!capture.canStartCapture}
-                  onClick={capture.startRound}
-                />
-              </>
-            }
-          />
-        )
-      }
+      header={renderBoardHeader(
+        <BoardHeader
+          start={
+            <>
+              <BoardTitle
+                label="공대"
+                filled={filledSlotCount(cards)}
+                total={cards.length}
+                round={snapshot.round}
+              />
+              <BoardNotice>{notice}</BoardNotice>
+            </>
+          }
+          end={
+            <>
+              <LastCaptureTime at={capture.lastCompletedAt} />
+              <SnapshotToggle
+                label="공대 모험단 순번 스냅샷"
+                active={snapshot.active}
+                onTake={snapshot.take}
+                onClear={snapshot.clear}
+              />
+              <CaptureButton
+                target="공대"
+                disabled={!capture.canStartCapture}
+                onClick={capture.startRound}
+              />
+            </>
+          }
+        />
+      )}
       resetKey={String(capture.round)}
       slots={cards}
       seats={capture}

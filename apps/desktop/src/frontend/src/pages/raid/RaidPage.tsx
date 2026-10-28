@@ -20,7 +20,6 @@ const seatKeys: Readonly<Record<string, SeatDirection>> = {
 
 export function RaidPage({
   id,
-  hidden = false,
   header,
   slots,
   resetKey = 'raid',
@@ -28,7 +27,6 @@ export function RaidPage({
   actions = {}
 }: {
   id: string
-  hidden?: boolean
   header: ReactNode
   slots: readonly SlotCard[]
   resetKey?: string
@@ -185,7 +183,7 @@ export function RaidPage({
   }
 
   return (
-    <section aria-label="공대" hidden={hidden} {...stylex.props(styles.page)}>
+    <section aria-label="공대" {...stylex.props(styles.page)}>
       {header}
       <div id={id} {...stylex.props(styles.scroller)}>
         <div {...stylex.props(styles.board)}>
