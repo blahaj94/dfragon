@@ -27,7 +27,7 @@ function Screen(): React.JSX.Element {
   return <main>{renderBoardHeader(<h2>파티</h2>)}</main>
 }
 
-it('화면이 그린 머리 내용은 화면 안이 아니라 머리 자리 안에 들어간다', async () => {
+it('화면이 그린 헤더는 화면 안이 아니라 헤더 슬롯 안에 들어간다', async () => {
   await act(async () =>
     root.render(
       <>
@@ -43,7 +43,7 @@ it('화면이 그린 머리 내용은 화면 안이 아니라 머리 자리 안�
   expect(container.querySelector('main')!.contains(heading)).toBe(false)
 })
 
-it('머리 자리가 없으면 화면은 머리 내용을 그리지 않는다', async () => {
+it('헤더 슬롯이 없으면 화면은 헤더를 그리지 않는다', async () => {
   await act(async () => root.render(<Screen />))
   expect(container.querySelector('h2')).toBeNull()
 })
