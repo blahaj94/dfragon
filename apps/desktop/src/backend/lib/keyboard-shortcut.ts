@@ -7,7 +7,6 @@ export type ShortcutBinding<T extends string> = {
   releaseOnly?: boolean
 }
 
-/** Captures one matching press in an allowed foreground app and defers work outside the hook. */
 export function createKeyboardShortcut<T extends string>({
   bindings,
   isForeground,

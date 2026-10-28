@@ -4,7 +4,6 @@ import { readReleaseFeedTags, selectUpdateNotice } from './release-feed'
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000
 
 export type UpdateNotices = Readonly<{
-  /** 바로 한 번 확인하고 이후 주기마다 다시 확인한다. */
   start: () => void
   snapshot: () => UpdateNoticeSnapshot
   subscribe: (listener: (snapshot: UpdateNoticeSnapshot) => void) => () => void

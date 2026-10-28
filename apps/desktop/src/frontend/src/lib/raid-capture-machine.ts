@@ -12,7 +12,6 @@ const OCR_FAILED_STATUS =
   '글자 인식에 실패했습니다. Alt+R을 누르거나 서버와 이름을 직접 조회해 주세요.'
 
 type RaidCaptureInput = {
-  /** 공대 수명을 새로 시작해 12자리를 비우고 이 회차의 수명 ID를 돌려준다. */
   beginSearch: (signal: AbortSignal) => Promise<string | null>
   readFrame: (captureId: string) => Promise<RaidFrameResult>
   observeOcr: (input: OcrCaptureObservation) => void
@@ -20,18 +19,14 @@ type RaidCaptureInput = {
 
 type RaidCaptureContext = {
   effects: RaidCaptureInput
-  /** 파티 캡처가 main에 등록을 마친 게임 창. 없으면 회차를 시작하지 않는다. */
   sourceId: string | null
   captureId: string | null
-  /** 이 회차 프레임에서 main이 자른 12행. 인식 결과를 관측값으로 보낼 때 수치 표기도 여기서 읽는다. */
   rows: readonly (RaidFrameRow | null)[]
   valueColumn: RaidValueColumn
   results: RaidSlotRecognition[]
   round: number
-  /** START를 받아 회차를 시작한 횟수. 실패하거나 취소된 회차도 센다. */
   startedRounds: number
   status: string
-  /** 마지막으로 인식을 마친 회차의 완료 시각(ms). 진행 중 회차를 취소하면 비운다. */
   completedAt: number | null
 }
 
@@ -121,13 +116,11 @@ export const raidCaptureMachine = setup({
           continue
         }
         const { slot, jobText } = result
-        // 공대 상세 창에는 얼굴이 없어 이름과 그 행의 직업명, 수치로 식별한다.
         const raidRow = {
           jobText,
           valueColumn: context.valueColumn,
           valueText: context.rows[slot]?.valueText ?? null
         }
-        // 검색에 쓰지 못한 첫 후보는 빈 이름으로 알린다.
         if (result.kind === 'rejected') {
           showRejectedOcrNickname(result)
           context.effects.observeOcr({
@@ -328,7 +321,6 @@ export const raidCaptureMachine = setup({
   }
 })
 
-/** 공대 회차의 진행과 완료를 파티 캡처와 같은 UI 단계로 구분한다. 창 선택 단계는 파티 캡처가 소유한다. */
 export function getRaidCapturePhase(
   snapshot: SnapshotFrom<typeof raidCaptureMachine>
 ): Extract<CapturePhase, 'idle' | 'recognizing' | 'complete' | 'unavailable' | 'failed'> {

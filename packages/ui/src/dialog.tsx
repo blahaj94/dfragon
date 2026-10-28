@@ -17,9 +17,7 @@ function isInsideList(target: EventTarget | null) {
   return isElement && target.closest(LIST_SELECTOR) != null
 }
 
-// 바깥을 눌러도 닫지 않는 것이 기본이다. 입력 중인 내용을 실수로 잃지 않게 한다.
-// dialog 안에 펼친 메뉴나 목록에서 누른 Escape는 그 목록만 닫는다. Base UI 부품은 스스로
-// 전파를 멈추지만, 다른 라이브러리의 목록은 같은 keydown이 dialog까지 올라온다.
+// Base UI 부품은 스스로 전파를 멈추지만, 다른 라이브러리의 목록은 같은 keydown이 dialog까지 올라온다.
 export function DialogRoot({
   disablePointerDismissal = true,
   onOpenChange,
@@ -52,9 +50,7 @@ export type DialogContentProps = Omit<PublicProps<typeof Dialog.Popup>, 'title' 
   ref?: Ref<HTMLDivElement>
   title?: ReactNode
   description?: ReactNode
-  /** @default true */
   showCloseButton?: boolean
-  /** sm은 폭 480, lg는 800 × 600이다. @default 'sm' */
   size?: 'sm' | 'lg'
 }
 
@@ -103,7 +99,6 @@ function DialogContentImpl({
   )
 }
 
-// Base UI Dialog의 Portal, Backdrop, Popup을 묶고 제목, 설명, 닫기 버튼을 둔다.
 export const DialogContent: ComponentType<DialogContentProps> = DialogContentImpl
 
 export type DialogBodyProps = PublicProps<'div'>
@@ -126,7 +121,6 @@ export const DialogFooter: ComponentType<DialogFooterProps> = DialogFooterImpl
 
 export type DialogActionProps = ButtonProps
 
-// 누르면 dialog를 닫는 Button. 닫기 전에 할 일은 onClick에 둔다.
 export function DialogAction(props: DialogActionProps) {
   return <Dialog.Close render={<Button {...props} />} />
 }

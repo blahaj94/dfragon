@@ -11,7 +11,6 @@ export const COLUMN_KINDS: readonly DNFRaidValueColumnKind[] = [
   'unknown'
 ]
 
-/** 정답을 아는 상태에서 따로 모은 동명 후보 값이다. 이 도구는 네트워크를 쓰지 않는다. */
 export type ManifestCandidate = Readonly<{
   correct: boolean
   fame: number | null
@@ -21,14 +20,10 @@ export type ManifestCandidate = Readonly<{
 
 export type ManifestRow = Readonly<{
   row: number
-  /** 잘리지 않은 전체 직업명. 화면에 보이는 `眞 직업명` 형식으로 적는다. */
   jobGrowName: string
-  /** 화면에 실제로 보이는 직업명. 돋보기 앞에서 잘린 행은 보이는 글자까지만 적는다. */
   visibleJobText: string
   jobClipped: boolean
-  /** 화면의 수치 표기 그대로(`12,345`, `1000.4K`). */
   valueText: string
-  /** 같은 이름의 후보가 1명뿐인지. 확인하지 못했으면 null이다. */
   uniqueName: boolean | null
   candidates: readonly ManifestCandidate[]
 }>
@@ -187,7 +182,6 @@ export function readPng(file: string): CharacterImage {
   return { width: png.width, height: png.height, rgba: new Uint8Array(png.data) }
 }
 
-/** 케이스의 게임 client 원본을 읽는다. 표본이 커서 케이스를 평가할 때마다 읽고 버린다. */
 export function loadCaseImage(manifest: Manifest, entry: ManifestCase): CharacterImage {
   const resolved = resolve(manifest.directory, entry.image)
   const fromRoot = relative(manifest.directory, resolved)

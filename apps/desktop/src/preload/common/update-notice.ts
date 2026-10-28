@@ -1,6 +1,5 @@
 import type { UpdateNoticeSnapshot } from './types/update-notice'
 
-// 정식과 alpha, beta tag만 받는다. 숫자 식별자의 앞자리 0은 semver처럼 허용하지 않는다.
 const RELEASE_TAG_PATTERN =
   /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:alpha|beta)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$/
 const NUMERIC_IDENTIFIER_PATTERN = /^(?:0|[1-9]\d*)$/
@@ -10,7 +9,6 @@ export type ReleaseVersion = Readonly<{
   prerelease: readonly (number | string)[]
 }>
 
-/** `v<semver>` 형식의 정식, alpha, beta tag를 비교할 수 있는 값으로 해석한다. */
 export function parseReleaseTag(tag: string): ReleaseVersion | null {
   const match = RELEASE_TAG_PATTERN.exec(tag)
   if (match == null) {

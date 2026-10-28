@@ -6,7 +6,6 @@ import {
 } from '../../preload/common/types/diagnostics'
 import { diagnosticLog, type DiagnosticLog } from './log'
 
-/** 신뢰한 메인 화면에 진단 기록과 DevTools 단축키를 연결한다. */
 export function registerDiagnosticsWindow({
   window,
   documentUrl,

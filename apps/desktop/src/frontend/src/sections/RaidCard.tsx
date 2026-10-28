@@ -25,8 +25,6 @@ import { styles } from './RaidCard.style'
 
 const serverOptions = Object.entries(serverNames).map(([id, label]) => ({ id, label }))
 
-// 이름 칸 테두리. 이름 수정 중은 다른 상태보다 앞서고, 아무것도 인식하지 못한 빈 자리는 점선, 인식 대기는
-// 회색, 검색 실패와 0건은 노랑이다. 찾은 카드는 상위, 랭커 단계도 테두리가 없다.
 function nameFieldTone(frameState: CharacterCardFrameState, state: SlotState): NameFieldTone {
   if (frameState === 'selected' || frameState === 'failure') {
     return frameState
@@ -43,42 +41,29 @@ function nameFieldTone(frameState: CharacterCardFrameState, state: SlotState): N
   return 'default'
 }
 
-/** 카드를 끌거나 키보드로 옮기는 자리 조작. 공대 화면이 자리 배치를 소유하고 카드에 연결한다. */
 export type RaidCardMove = Pick<
   HTMLAttributes<HTMLDivElement>,
   'onDragStart' | 'onDragOver' | 'onDragLeave' | 'onDrop' | 'onDragEnd' | 'onKeyDown'
 > & {
-  /** 지금 끌거나 키보드로 옮길 수 있는지. 공대 캡처가 인식하는 동안은 옮기지 않는다. */
   movable: boolean
-  /** 끌고 있는 카드와 놓을 자리로 가리킨 카드 */
   drag?: 'source' | 'target'
-  /** 자리가 속한 파티와 키보드 조작 방법을 설명하는 요소들의 id */
   describedBy?: string
   ref?: Ref<HTMLDivElement>
 }
 
-/**
- * 공대 화면의 축약 캐릭터 카드(DFragon 디자인 캔버스 공대 보드). 파티 카드처럼 서버와 이름으로 그 자리를
- * 조회하고 상태를 꺾쇠로 보이지만, 그림 칸 40 오른쪽에 이름 칸, 소속 줄, 명성과 점수 한 줄만 둔다. 상태,
- * 스냅샷 순번, 자리 번호는 이름 칸 오른쪽 끝에 둔다. 카드 자체가 자리를 옮기는 손잡이라 끌거나 포커스한
- * 뒤 Alt와 방향키로 이웃 자리와 맞바꾼다.
- */
 export function RaidCard({
   card,
   slot,
   onLookup,
   move
 }: {
-  /** 이 자리에 놓인 검색 슬롯이 그릴 검색 상태, 찾은 캐릭터, 인식한 이름, 안내, 진행과 스냅샷 표시 */
   card: SlotCard
-  /** 화면의 자리 번호(1~12) */
   slot: number
   onLookup?: (nickname: string, serverId: string) => void
   move: RaidCardMove
 }): React.JSX.Element {
   const { state, character, notice, snapshotMark, loading = false } = card
   const characterFound = state === 'success' && character != null
-  // 찾은 자리는 공대 캡처가 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
   const nickname = characterFound ? undefined : card.nickname
   const draft = useLookupDraft({ character, nickname, onLookup })
   const serverMenu = useServerMenu()
@@ -87,7 +72,6 @@ export function RaidCard({
   const busy = loading || state === 'pending'
   const cardStatus = getCharacterCardStatus(state)
   const status = draft.inputNotice || notice || cardStatus
-  // 상태 이름은 꺾쇠와 표시로 보이므로 글자로 다시 쓰지 않는다. 0건과 안내 문구만 화면에 남긴다.
   const message = draft.inputNotice || notice || (state === 'empty' ? cardStatus : '')
   const frameState = getCharacterCardFrameState({
     state,
@@ -220,7 +204,6 @@ export function RaidCard({
                   <span {...stylex.props(styles.adventure)}>{character.adventure}</span>
                   <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
                   <span {...stylex.props(styles.guild)}>{character.guild ?? MISSING_VALUE}</span>
-                  {/* 한 줄에는 소속만 보이므로 찾은 카드의 안내는 보조 기술에만 전한다. */}
                   {message !== '' && <span {...stylex.props(shapes.srOnly)}>{message}</span>}
                 </>
               )}

@@ -8,7 +8,6 @@ import { isCurrentProcessForeground, isDnfForeground } from '../lib/win32-window
 
 const VK_R = 0x52
 
-/** Routes foreground product hotkeys only to the live, trusted main document. */
 export function registerDesktopShortcuts({
   window,
   rendererDocumentUrl,

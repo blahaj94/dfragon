@@ -25,11 +25,6 @@ function isJsonObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/**
- * Neople 원문 섹션을 API 상세 응답 모양으로 바꾼다. apps/api의 `projectCharacterDetails`가 섹션 안쪽만
- * 남기고, `enrichCharacterDetails`가 장착 아이템과 clone, emblems, artifact, 서약 info, crystal에만
- * `itemDetail`을 붙이는 규칙을 따른다.
- */
 export function apiDetailsFromEngineInput(
   input: ScoreEngineInput,
   card: CharacterCard | null
@@ -85,7 +80,6 @@ export function apiDetailsFromEngineInput(
   const mappedOath = isJsonObject(oathValue)
     ? { ...oathValue, info: item(oathValue.info), crystal: list(oathValue.crystal, item) }
     : oathValue
-  // API의 character는 basic 응답 머리이고, 벡터는 모든 응답 머리에 같은 값을 넣었다.
   const { status: _stats, buff: _buff, ...header } = status
   const skillStyle = input.skill_style.skill
   const enrichedSkillStyle = isJsonObject(skillStyle)

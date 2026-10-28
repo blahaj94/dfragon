@@ -1,4 +1,3 @@
-/** Windows BGRX 픽셀을 불투명한 RGBA 복사본으로 변환한다. */
 export function bgrxToRgba(bgrx: Uint8Array): Buffer {
   if (bgrx.length % 4 !== 0) {
     throw new Error('BGRX data must contain whole 32-bit pixels.')

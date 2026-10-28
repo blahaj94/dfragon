@@ -44,12 +44,7 @@ export type SearchRuntime = {
   http: SearchHttp
   clock: MonotonicClock
   identification?: IdentificationAdapters
-  /**
-   * OCR 이름의 식별 방식. 파티 캡처는 얼굴 비교(`portrait`, 기본), 공대 캡처는 공대 후보 선택 함수(`raid`)를
-   * 쓴다. 공대 검색 수명만 `raid`로 둔다.
-   */
   ocrIdentification?: 'portrait' | 'raid'
-  /** 선택한 캐릭터의 점수 계산. 엔진이 없으면 생략하고 카드는 점수 없이 표시한다. */
   score?: ScoreEngine
 }
 export type SearchOutcome =
@@ -60,7 +55,6 @@ export type SearchOutcome =
         summary: SelectedCharacterSummary
         selectionMethod: CharacterSelectionMethod
         choices?: readonly CharacterChoice[]
-        /** 이름과 서버만 정했고 상세와 점수는 아직 채우지 않았다. */
         details?: 'pending'
       }
     }
@@ -93,7 +87,6 @@ function displayNumber(value: CharacterJsonValue | undefined): number | null {
   return null
 }
 
-/** 기존 일반 검색을 공통 요청 예산으로 실행하고 기존 rows 응답을 유지한다. */
 export async function runSearchRequest(input: RequestInput): Promise<SearchOutcome> {
   if (input.ocrInput !== undefined || input.manualServerId !== undefined) {
     return runIdentificationRequest(input)
@@ -184,7 +177,6 @@ export type DetailsOutcome =
   | SearchOperationFailure
   | null
 
-/** 이름과 서버를 정한 요약에 그 캐릭터의 상세와 점수를 채운다. 요청마다 처음 접수부터 같은 예산을 쓴다. */
 export async function runDetailsRequest(input: {
   runtime: SearchRuntime
   summary: SelectedCharacterSummary
@@ -216,7 +208,6 @@ export async function runDetailsRequest(input: {
   return { kind: 'success', summary: outcome.value }
 }
 
-/** 후보 검색 응답만으로 만든 요약. 상세에만 있는 레벨, 길드와 카드는 아직 모른다. */
 function candidateSummary(candidate: CharacterCandidate): SelectedCharacterSummary {
   return {
     characterId: candidate.characterId,
@@ -294,7 +285,6 @@ function identifyCharacter(
   return identify({ nicknames, portrait })
 }
 
-/** 요청의 실행 관리를 결합하고 식별 규칙에는 업무 연산만 전달한다. */
 function bindIdentificationServices(
   adapters: IdentificationAdapters,
   execution: SearchOperation

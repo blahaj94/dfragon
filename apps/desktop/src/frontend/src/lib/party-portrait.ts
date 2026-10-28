@@ -14,7 +14,6 @@ const MAX_PORTRAIT_DIMENSION = 512
 const PORTRAIT_REGION = { leftOfTrack: 28, top: 11, size: 26 } as const
 const PORTRAIT_MASK = { border: 1, topBorder: 2, badgeWidth: 12, badgeHeight: 9 } as const
 
-/** 관측한 HUD 배율로 얼굴 원본을 복사하고 테두리, 왕관과 PC 표시 영역을 비교에서 제외한다. */
 export const cropPartyPortrait: PartyPortraitCropper = ({ frame, nicknameRegion, rasterScale }) => {
   if (
     !isValidPartyFrameSize(frame.width, frame.height) ||

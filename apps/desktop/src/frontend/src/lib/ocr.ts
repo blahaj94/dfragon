@@ -6,7 +6,6 @@ type Reply = { ready: true } | PartyOcrResult
 const MAX_OCR_CANDIDATES = 2
 const MAX_MODEL_SCORE = 100
 
-/** 초기화 성공을 인식 결과나 실패와 섞인 메시지로 받아들이지 않는다. */
 function isReadyReply(value: unknown): value is { ready: true } {
   return (
     value != null &&
@@ -21,7 +20,6 @@ function isReadyReply(value: unknown): value is { ready: true } {
   )
 }
 
-/** worker 경계에서 후보의 순서와 1위 호환 필드를 검증하며 원문은 그대로 유지한다. */
 function isRecognitionReply(value: unknown): value is PartyOcrResult {
   if (
     value == null ||
@@ -79,7 +77,6 @@ export class OcrWorkerUnavailableError extends Error {
   }
 }
 
-/** OCR worker를 초기화하고 인식 요청, 시간 초과, 취소에 따른 정리를 관리한다. */
 export async function createPartyOcrWorker(
   signal?: AbortSignal,
   preprocessing: 'party' | 'raw' = 'party'

@@ -4,7 +4,6 @@ import type { CharacterPayload } from '../details/sections.js'
 
 type CharacterDetails = ReturnType<typeof projectCharacterDetails>
 
-// Visit only equipped items and their known attachments. Catalog set members are not equipment.
 export function mapCharacterItems(
   details: CharacterDetails,
   mapItem: (item: CharacterPayload) => CharacterPayload

@@ -186,7 +186,6 @@ export const apiSchemas: Record<string, SchemaObject> = {
       serverId: text,
       serverName: { type: 'string', nullable: true },
       characterName: text,
-      // 기본정보의 부가 필드는 현재 adapter가 타입을 제한하지 않습니다.
       ...Object.fromEntries(
         [
           'level',

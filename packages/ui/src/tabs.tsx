@@ -6,18 +6,12 @@ import { type ForwardedStyle, type PublicProps, withForwardedStyle } from './pub
 import type { ControlSurface } from './surface'
 import { styles } from './tabs.style'
 
-// List가 받은 면을 안의 Tab에 넘긴다.
 const TabsSurfaceContext = createContext<ControlSurface>('default')
 
 export type TabsListProps = PublicProps<typeof BaseTabs.List> & {
-  /**
-   * `card`는 캐릭터 카드 아래의 면 탭이다. 탭이 폭을 나눠 채우고 현재 탭 선이 위쪽에 있으며
-   * card* 토큰으로 그린다. @default 'default'
-   */
   surface?: ControlSurface
 }
 
-// 탭 줄과 현재 탭 선. 선은 Base UI Indicator가 현재 탭 위치를 따라간다.
 function TabsListImpl({
   surface = 'default',
   children,
@@ -68,7 +62,6 @@ function TabsTabImpl({ className, style, ...props }: TabsTabProps & ForwardedSty
 
 const TabsTab: ComponentType<TabsTabProps> = TabsTabImpl
 
-/** Base UI Tabs 부품. Root와 Panel은 Base UI 그대로이고 List와 Tab만 외형을 그린다. */
 export const Tabs = {
   Root: BaseTabs.Root,
   List: TabsList,

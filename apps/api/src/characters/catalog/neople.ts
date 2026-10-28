@@ -18,7 +18,6 @@ export function createNeopleCatalog(apiKey: string, fetchImpl = globalThis.fetch
     const params = new URLSearchParams({ itemIds: keys.map((key) => key.itemId).join(',') })
     const path = `/df/multi/items?${params}`
 
-    // An already canceled catalog request never starts transport.
     if (requestSignal.aborted) {
       throw new Error('Catalog lookup failed')
     }
@@ -49,7 +48,6 @@ export function createNeopleCatalog(apiKey: string, fetchImpl = globalThis.fetch
       return keys.flatMap((key) => {
         const matches = rows.filter((row) => isObject(row) && row.itemId === key.itemId)
         const row: unknown = matches[0]
-        // Missing/duplicate rows do not poison correctly identified neighbors in this batch.
 
         if (
           matches.length === 1 &&

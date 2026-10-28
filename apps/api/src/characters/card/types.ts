@@ -1,4 +1,3 @@
-// Shared with Desktop (blahaj94/dfragon#716). Desktop reads only the role and fills the score itself.
 export type CharacterRole = 'dealer' | 'buffer'
 
 /**

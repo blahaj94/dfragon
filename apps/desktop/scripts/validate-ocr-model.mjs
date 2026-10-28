@@ -5,7 +5,6 @@ const OCR_DICTIONARY_TERMINATOR_PATTERN = /\n$/
 const OCR_LABEL_WHITESPACE_PATTERN = /\s/u
 
 /**
- * 현재 worker의 사전 순서와 암묵적인 blank, 공백 클래스를 확인한다.
  * @param {Uint8Array} dictionary
  * @returns {number}
  */
@@ -30,7 +29,6 @@ export function countOcrClasses(dictionary) {
 }
 
 /**
- * 앱과 같은 WASM 엔진에서 고정 48×320 입력과 CTC 출력, 사전 클래스 수를 검사한다.
  * @param {Uint8Array} model
  * @param {number} classes
  * @returns {Promise<void>}
@@ -65,7 +63,6 @@ export async function validateOcrModel(model, classes) {
       ) {
         throw new Error('Invalid OCR model output.')
       }
-      // 런타임 후보 디코더와 같은 softmax 계약을 빌드 시점에도 확인한다.
       for (let step = 0; step < output.dims[1]; step += 1) {
         let sum = 0
         for (let token = 0; token < classes; token += 1) {

@@ -1,4 +1,3 @@
-// Private pixel matching for the measured participant-window heading.
 export type ParticipantGrayFrame = { width: number; height: number; pixels: Uint8Array }
 export type ParticipantAnchor = { x: number; y: number; scale: number }
 export type ParticipantHeading = { x: number; y: number; scale: number; score: number }
@@ -50,7 +49,6 @@ const searchPolicy = {
   refinement: { scaleRadiusSteps: 10, scaleStep: 0.0025, positionRadiusPx: 2 }
 }
 
-/** The dense scale search is symmetric around the coarse match, including its center. */
 export function participantRefinementScales(center: number): number[] {
   const { scaleRadiusSteps, scaleStep } = searchPolicy.refinement
 
@@ -68,7 +66,6 @@ type Pattern = {
   energy: number
 }
 
-/** Uses the experiment's ties-to-even rounding for raster boundaries. */
 export function roundParticipantPixel(value: number): number {
   const floor = Math.floor(value)
   // Scale refinement and projection can move a mathematical half by a few float ulps.
@@ -80,7 +77,6 @@ export function roundParticipantPixel(value: number): number {
   return Math.round(value)
 }
 
-/** Builds a grayscale copy; raw RGBA is kept intact for the eventual crops. */
 export function participantGrayscale(rgba: Uint8Array | Uint8ClampedArray): Uint8Array {
   const gray = new Uint8Array(rgba.length / 4)
   for (let index = 0; index < gray.length; index += 1) {
@@ -93,7 +89,6 @@ export function participantGrayscale(rgba: Uint8Array | Uint8ClampedArray): Uint
   return gray
 }
 
-/** Finds bounded red components over the entire frame, using eight-neighbor connectivity. */
 export function findParticipantAnchors(
   width: number,
   height: number,
@@ -162,7 +157,6 @@ export function findParticipantAnchors(
     const y = (top + bottom) / 2
     const scale = Math.sqrt(w * h) / anchorPolicy.referenceSizePx
     anchors.push({ x, y, scale })
-    // Do not silently choose a subset on a pathological or unsupported frame.
     if (anchors.length > searchPolicy.maxAnchors) {
       return null
     }
@@ -171,7 +165,6 @@ export function findParticipantAnchors(
   return anchors
 }
 
-/** Resizes the small heading with half-pixel bilinear sampling and centers its intensities. */
 function headingPattern(
   heading: Uint8Array,
   layout: ParticipantHeadingLayout,
@@ -211,7 +204,6 @@ function headingPattern(
   return { width, height, offsets: patternOffsets, weights, energy }
 }
 
-/** Mean-centered normalized correlation, not a probability or OCR confidence. */
 function headingScore(frame: ParticipantGrayFrame, pattern: Pattern, x: number, y: number): number {
   let sum = 0
   let squares = 0
@@ -231,7 +223,6 @@ function headingScore(frame: ParticipantGrayFrame, pattern: Pattern, x: number, 
   return Math.min(1, product / Math.sqrt(energy * pattern.energy))
 }
 
-/** Keeps all template/pattern state local to one frame, without a process-global cache. */
 export function createParticipantHeadingMatcher(
   frame: ParticipantGrayFrame,
   heading: Uint8Array,
@@ -239,7 +230,6 @@ export function createParticipantHeadingMatcher(
   layout: ParticipantHeadingLayout = partyHeadingLayout
 ) {
   const patterns = new Map<string, Pattern>()
-  // Shared by every anchor and both search passes; never return a partial candidate set.
   let remainingSamples = searchPolicy.maxFrameComparisonSamples
 
   function boundedScore(pattern: Pattern, x: number, y: number): number | null {

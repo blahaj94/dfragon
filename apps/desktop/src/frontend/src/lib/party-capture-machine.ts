@@ -28,10 +28,8 @@ type CaptureContext = {
   frame: RoundFrame | null
   results: PartySlotRecognition[]
   round: number
-  /** START를 받아 회차를 시작한 횟수. 실패하거나 취소된 회차도 센다. 창 선택과 중지는 세지 않는다. */
   startedRounds: number
   status: string
-  /** 마지막으로 인식을 마친 회차의 완료 시각(ms). 창을 바꾸거나 중지하면 비운다. */
   completedAt: number | null
 }
 
@@ -160,7 +158,6 @@ export const partyCaptureMachine = setup({
     completedAt: null
   }),
   invoke: { src: 'lifetime', input: ({ context }) => context.effects },
-  // START를 선언한 상태만 Alt+R을 받는다. 중지 뒤에는 창을 다시 선택해야 한다.
   on: {
     SELECT: {
       target: '.selecting',
@@ -356,7 +353,6 @@ export const partyCaptureMachine = setup({
   }
 })
 
-/** 검색 수명은 유지하면서 회차 진행과 완료를 UI 단계로 구분한다. */
 export function getCapturePhase(snapshot: SnapshotFrom<typeof partyCaptureMachine>): CapturePhase {
   if (snapshot.matches({ capturing: 'complete' })) {
     return 'complete'

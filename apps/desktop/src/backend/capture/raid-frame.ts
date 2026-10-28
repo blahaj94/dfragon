@@ -21,7 +21,6 @@ function containsExcludedPixels(rgba: Uint8Array | Uint8ClampedArray): boolean {
   return false
 }
 
-/** 칸의 원본을 복사한다. 가려진 픽셀이 있으면 null이다. */
 function copyRegion(frame: CharacterImage, region: DNFRectangle): CharacterImage | null {
   const { x, y, width, height } = region
   const rgba = new Uint8Array(width * height * RGBA_CHANNELS)

@@ -4,44 +4,27 @@ import type { SnapshotMark } from './adventure-snapshot'
 import type { CandidatePicker } from './candidate-picker'
 import { searchSlotNotice, toCharacterCard, type SlotCardScreen } from './character-card'
 
-/** 실패와 결과 0건 카드의 안내에 덧붙이는 다음 조회 방법. 파티와 공대가 같다. */
 const NEXT_LOOKUP_STEP = 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.'
 
-/** 검색 슬롯 하나가 카드에 그리는 값. `CharacterCard`, `RaidCard`가 이 값 하나를 받는다. */
 export type SlotCard = {
   state: SlotState
-  /** 찾은 캐릭터. 조회하지 않았거나 찾지 못한 슬롯은 undefined다. */
   character?: CardCharacter
-  /** 캡처가 인식한 이름. 캐릭터를 찾기 전까지 카드 이름 칸에 보인다. */
   nickname?: string
   notice?: string
-  /** 캡처가 인식하는 동안 진행 표시를 보일 슬롯 */
   loading?: boolean
-  /** 모험단 순번 스냅샷과 비교한 표시. 표시가 없는 자리는 undefined다. */
   snapshotMark?: SnapshotMark
-  /** 얼굴로 확정하지 못해 사용자가 고를 후보 줄. 없으면 undefined다. */
   picker?: CandidatePicker
-  /** 이름과 서버를 정했고 상세와 점수를 아직 채우는 중인 카드 */
   scorePending?: boolean
-  /** 합성 미리보기만 채운다. 제품 카드는 재시도 버튼을 두지 않는다. */
   retryEnabled?: boolean
   retryPending?: boolean
 }
 
-/**
- * 파티, 공대 페이지가 검색 슬롯 번호로 부르는 카드 동작. 필드 이름은 검색 hook과 같아 화면 컨테이너가 검색
- * 결과를 그대로 넘긴다. 넘기지 않은 동작은 카드에서 쓸 수 없다.
- */
 export type SlotCardActions = {
-  /** 검색 슬롯 번호의 서버와 이름을 조회한다. */
   lookupSlot?: (slot: number, nickname: string, serverId: string) => void
-  /** 검색 슬롯 번호의 후보 줄에서 서버로 후보를 누른다. */
   pickCandidate?: (slot: number, serverId: string) => void
-  /** 합성 미리보기만 채운다. 검색 슬롯 번호의 검색을 다시 시도한다. */
   retrySlot?: (slot: number) => void
 }
 
-/** 검색 슬롯 순서로 슬롯마다 카드 값을 만든다. 슬롯별 입력은 모두 검색 슬롯 순서다. */
 export function toSlotCards({
   slots,
   nicknames,
@@ -52,15 +35,11 @@ export function toSlotCards({
   screen = 'party'
 }: {
   slots: readonly SearchSlot[]
-  /** 캡처가 인식한 슬롯별 이름. 인식하지 못한 슬롯은 null이다. */
   nicknames: readonly (string | null)[]
-  /** 사용자가 직접 조회해 캡처 인식을 기다리지 않는 슬롯 */
   manualSlots: readonly boolean[]
   recognizing: boolean
   snapshotMarks: readonly (SnapshotMark | undefined)[]
-  /** 슬롯별 후보 줄. 후보 줄이 없는 화면은 생략한다. */
   pickers?: readonly (CandidatePicker | null)[]
-  /** 카드가 놓인 화면. 선택 근거 안내가 화면마다 다르다. 기본은 파티다. */
   screen?: SlotCardScreen
 }): SlotCard[] {
   return slots.map((slot, index) => {
@@ -84,7 +63,6 @@ export function toSlotCards({
   })
 }
 
-/** 캐릭터를 찾은 슬롯 수 */
 export function filledSlotCount(cards: readonly SlotCard[]): number {
   return cards.filter((card) => card.state === 'success' && card.character != null).length
 }

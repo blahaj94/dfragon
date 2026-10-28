@@ -9,11 +9,9 @@ export function PartyPage({
   inputEnabled = false,
   actions = {}
 }: {
-  /** 슬롯마다 카드가 그릴 값 */
   slots: readonly SlotCard[]
   resetKey?: string
   inputEnabled?: boolean
-  /** 슬롯 번호로 부르는 조회, 다시 시도, 후보 고르기 */
   actions?: SlotCardActions
 }): React.JSX.Element {
   const { lookupSlot, retrySlot, pickCandidate } = actions

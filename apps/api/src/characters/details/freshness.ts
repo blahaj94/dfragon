@@ -11,7 +11,6 @@ export function characterFreshness(rows: CharacterSectionResponse[]) {
   ) {
     return null
   }
-  // Every section must still be fresh. Changed-content timestamps are not fetch timestamps.
   const oldest = Math.min(...rows.map((row) => row.lastSuccessfulFetchAt.getTime()))
   if (!Number.isFinite(oldest)) {
     return null

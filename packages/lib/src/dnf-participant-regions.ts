@@ -8,7 +8,6 @@ export type ParticipantBounds = Readonly<{
   bottom: number
 }>
 
-/** Projects each edge independently with participant raster rounding, without clipping. */
 export function projectParticipantRectangle(
   heading: Pick<ParticipantHeading, 'x' | 'y' | 'scale'>,
   bounds: ParticipantBounds

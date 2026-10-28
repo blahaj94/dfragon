@@ -3,9 +3,7 @@ import { readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// 기준은 docs/rules/writing.md다.
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url))
-// 규칙 문서, 검사 스크립트와 그 테스트는 금지 표기를 예시로 담고, CP949 문자 표와 OCR 사전은 가운뎃점 자체가 데이터라 제외한다.
 const skippedPaths = new Set([
   'docs/rules/writing.md',
   'scripts/check-writing.mjs',
@@ -13,16 +11,11 @@ const skippedPaths = new Set([
   'packages/lib/src/cp949-characters.ts',
   'apps/desktop/assets/ocr/korean-dict.txt'
 ])
-// 앞뒤에 _, -, 영숫자가 붙은 표기는 환경 변수, 빌드 상수, 파일 이름 같은 식별자로 보고 건너뛴다.
 const legacyBrandName = /(?<![A-Za-z0-9_-])DFRAGON(?![A-Za-z0-9_-])/u
 const mixedCaseBrandName = /(?<![A-Za-z0-9_-])Dfragon(?![A-Za-z0-9_-])/u
-// 한글 뒤의 요, 죠가 문장 끝이나 구두점 뒤의 공백, 따옴표, 태그, 괄호 앞에 있으면 해요체 어미로 본다.
-// 하세요체 세요, 대답 아니요와 필요, 주요, 중요, 개요, 소요, 수요, 동요, 강요 같은 명사는 앞 글자로 구분해 허용한다.
 const casualEnding =
   /(?<=[가-힣])(?:(?<![필주중개소수동강세니])요|죠)[.!?,:]?(?=[\s'"`<)\]}」』]|$)/u
-// 나열의 가운뎃점이다. 양쪽에 공백을 둔 ` · ` 구분자는 제목, 상태 표시에 허용한다.
 const tightMiddleDot = /(?<! )·|·(?! )/u
-// 보조용언 주세요를 붙여 쓴 요청형이다. `열어 주세요`처럼 띄어 쓴다.
 const attachedRequest = /[가-힣]주세요/u
 
 export const rules = [
@@ -64,14 +57,12 @@ export function checkFiles(root, paths) {
     const file = resolve(root, path)
     const stats = statSync(file, { throwIfNoEntry: false })
 
-    // submodule 같은 디렉터리 항목은 읽지 않는다.
     if (!stats?.isFile()) {
       continue
     }
 
     const bytes = readFileSync(file)
 
-    // NUL 바이트가 있는 파일은 이미지, 폰트 같은 이진 파일로 보고 건너뛴다.
     if (bytes.includes(0)) {
       continue
     }

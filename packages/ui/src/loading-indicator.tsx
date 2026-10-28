@@ -7,7 +7,6 @@ export type LoadingIndicatorProps = {
   children?: ReactNode
 }
 
-// 진행 중인 작업 표시. 글자 자리 위에 진행 원을 겹치며 글자 공간을 그대로 둔다.
 export function LoadingIndicator({ children }: LoadingIndicatorProps) {
   return (
     <span {...stylex.props(styles.root)}>

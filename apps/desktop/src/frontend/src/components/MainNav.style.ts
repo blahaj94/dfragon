@@ -1,8 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, motion, space } from '@dfragon/ui/tokens.stylex'
 
-// dfragon-design layout.md 상단 바 구성의 내비 항목: 높이 36, 좌우 16, 사이 4. 현재 항목은 오른쪽 위를
-// 자른 bg.inset 면에 아래 2px signal 선이고, 하위 메뉴를 펼치면 signal 면이 된다(캔버스 내비 보드).
 export const styles = stylex.create({
   nav: { display: 'flex', alignItems: 'center', gap: space.s4, flexShrink: 0 },
   item: {
@@ -49,7 +47,6 @@ export const styles = stylex.create({
     transitionDuration: motion.durState,
     transitionTimingFunction: motion.ease
   },
-  // 펼친 signal 면 위의 하위 이름과 꺾쇠는 onSignal이고, 꺾쇠는 위아래로 뒤집힌다.
   onSignal: { color: colors.onSignal },
   chevronOpen: { transform: 'scaleY(-1)' }
 })

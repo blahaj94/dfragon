@@ -8,9 +8,7 @@ import { styles } from './card-frame.style'
 export type CardFrameState = 'default' | 'selected' | 'failure' | 'waiting' | 'top' | 'ranker'
 
 export type CardFrameProps = Omit<HTMLAttributes<HTMLElement>, 'className' | 'style'> & {
-  /** @default 'default' */
   state?: CardFrameState
-  /** @default 'div' */
   as?: 'div' | 'article' | 'section' | 'li'
   ref?: Ref<HTMLElement>
 }
@@ -55,6 +53,4 @@ function CardFrameImpl({
   )
 }
 
-// 카드 면과 상태 꺾쇠. 상태 색은 꺾쇠로만 보이고 테두리 전체를 칠하지 않는다.
-// 상위와 랭커는 motion.cycle 한 주기에 한 번 빛줄기가 카드를 지나가고, 랭커는 카드에 스캔선을 깐다.
 export const CardFrame: ComponentType<CardFrameProps> = CardFrameImpl

@@ -19,7 +19,6 @@ export type DNFRaidScoreGlyph =
   | '.'
   | 'K'
 export type DNFRaidMetadataTemplates = Readonly<{
-  /** UI-0% 42x17 party regions, including each actual badge and its background. */
   parties: readonly Readonly<{ party: DNFRaidParty; image: DNFParticipantFrame }>[]
   /**
    * UI-0% single-glyph crops, 1..16 pixels wide and 17 pixels high.
@@ -34,15 +33,10 @@ export type DNFRaidMetadataTemplates = Readonly<{
 export type DNFRaidParticipantMetadata = {
   row: DNFRaidParticipantPosition
   party: DNFRaidParty | null
-  /**
-   * Exact visible fame or equipment-score notation, including commas, decimal points and K.
-   * classifyDNFRaidValueColumn tells which value the column shows; never converted here.
-   */
   equipmentScoreText: string | null
 }
 export type DNFRaidParticipantValue = {
   row: DNFRaidParticipantPosition
-  /** Exact visible fame or equipment-score notation, as in DNFRaidParticipantMetadata. */
   valueText: string | null
 }
 type MetadataRow = Pick<
@@ -139,7 +133,6 @@ export function normalizedRegion(
   return rgba
 }
 
-/** Per-channel evidence keeps colored R/Y/G badges distinct even when their borders coincide. */
 function partyPattern(rgba: Uint8Array | Uint8ClampedArray): Float64Array {
   const values = new Float64Array((rgba.length / 4) * 3)
   let sum = 0
@@ -291,7 +284,6 @@ function readEquipmentScore(
     }
     text += best[0]
   }
-  // Reject malformed/partial readings, while preserving every accepted display character.
   if (RAID_EQUIPMENT_SCORE_PATTERN.test(text)) {
     return text
   }
@@ -441,11 +433,6 @@ export function readDNFRaidParticipantMetadata(
   })
 }
 
-/**
- * Reads only the fame or equipment-score notation of each occupied row with the same glyph
- * references and rules as readDNFRaidParticipantMetadata, without party badge references.
- * Returns null for empty rows and unreadable values; nothing is captured, decoded or stored.
- */
 export function readDNFRaidParticipantValues(
   frame: DNFParticipantFrame,
   rows: readonly Pick<MetadataRow, 'row' | 'occupied' | 'equipmentScoreRegion'>[],

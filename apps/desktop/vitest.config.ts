@@ -9,7 +9,6 @@ const SHARED_LIBRARY_IMPORT_PATTERN = /^@dfragon\/lib$/
 const SHARED_UI_IMPORT_PATTERN = /^@dfragon\/ui$/
 const ASSET_IMPORT_SUFFIX = '?asset'
 
-/** Electron Vite가 main 번들 옆에 내보내는 `?asset` 파일을 테스트에서는 원본 파일 경로로 읽는다. */
 function sourceAssetPaths(): Plugin {
   return {
     name: 'dfragon-source-asset-paths',

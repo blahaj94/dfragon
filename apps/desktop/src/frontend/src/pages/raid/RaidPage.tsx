@@ -10,7 +10,6 @@ import { styles } from './RaidPage.style'
 const parties = Array.from({ length: RAID_PARTY_COUNT }, (_, party) =>
   Array.from({ length: RAID_PARTY_SIZE }, (_, member) => party * RAID_PARTY_SIZE + member)
 )
-// 다른 앱에서 끌어 온 글자나 파일은 자리 맞바꾸기로 받지 않는다.
 const SEAT_DRAG_TYPE = 'application/x-dfragon-raid-seat'
 const seatKeys: Readonly<Record<string, SeatDirection>> = {
   ArrowUp: 'up',
@@ -19,12 +18,6 @@ const seatKeys: Readonly<Record<string, SeatDirection>> = {
   ArrowRight: 'right'
 }
 
-/**
- * 공대 12인 화면(DFragon 디자인 캔버스 공대 보드). 축약 카드 네 열, 세 줄을
- * 놓고(한 줄이 한 파티), 카드를 끌거나 Alt와 방향키로 자리를 맞바꾼다. 자리 배치는 화면 밖이 소유하며,
- * 이 화면은 `seatOrder`로 자리마다 놓인 공대 검색 슬롯을 그리고 조회는 그 슬롯 번호로 알린다. 카드 폭은
- * 창 폭을 네 등분하고, 창이 작아 넘치면 보드 영역이 스크롤한다.
- */
 export function RaidPage({
   id,
   hidden = false,
@@ -34,26 +27,16 @@ export function RaidPage({
   seats,
   actions = {}
 }: {
-  /** 보드 영역의 id. 자리 설명과 이동 안내 id의 접두어로도 쓴다. */
   id: string
-  /** 파티를 보는 동안에도 자리별 입력과 검색 상태를 지키려고 그린 채 숨긴다. */
   hidden?: boolean
-  /** 화면이 조립한 머리. 공대 화면은 상단 바의 머리 자리로 보내는 portal을 넘긴다. */
   header: ReactNode
-  /** 공대 검색 슬롯 0~11마다 카드가 그릴 값. 스냅샷 표시도 검색 슬롯 순서다. */
   slots: readonly SlotCard[]
-  /** 캡처 회차가 바뀌면 카드의 입력 초안을 새로 그린다. */
   resetKey?: string
-  /** 공대 캡처가 소유한 자리 배치. 필드 이름은 공대 캡처 hook과 같다. */
   seats: {
-    /** 화면 자리 0~11에 놓인 검색 슬롯 */
     seatOrder: SeatOrder
-    /** 지금 자리를 맞바꿀 수 있는지. 공대 캡처가 인식하는 동안은 맞바꾸지 않는다. */
     canMoveSeats: boolean
-    /** 두 화면 자리(0~11)를 맞바꾸고 맞바꿨는지 돌려준다. 맞바꿀 수 없는 동안에는 false다. */
     swapSeats: (from: number, to: number) => boolean
   }
-  /** 검색 슬롯 번호로 부르는 조회 */
   actions?: Pick<SlotCardActions, 'lookupSlot'>
 }): React.JSX.Element {
   const { seatOrder, canMoveSeats, swapSeats } = seats
@@ -71,10 +54,10 @@ export function RaidPage({
     setDragging(null)
     setDropTarget(null)
   }
-  // 맞바꾼 알림. 같은 쌍을 다시 맞바꿔도 다시 읽히도록 두 알림 영역을 번갈아 채운다.
+  // 같은 쌍을 다시 맞바꿔도 다시 읽히도록 두 알림 영역을 번갈아 채운다.
   const [moveNotice, setMoveNotice] = useState({ text: '', sequence: 0 })
   const seatElements = useRef(new Map<number, HTMLDivElement>())
-  // 키보드로 옮긴 카드. 카드가 새 자리로 옮겨 그려진 뒤 다시 포커스해 이어서 옮길 수 있게 한다.
+  // 카드가 새 자리로 옮겨 그려진 뒤 다시 포커스해 이어서 옮길 수 있게 한다.
   const movedSlot = useRef<number | null>(null)
   const hintId = `${id}-move-hint`
 
@@ -88,7 +71,6 @@ export function RaidPage({
     }
   }, [seatOrder])
 
-  /** 두 자리를 맞바꾸고, 맞바꿨을 때만 알린다. */
   function swap(from: number, to: number): boolean {
     const swapped = swapSeats(from, to)
     if (swapped) {
@@ -143,7 +125,6 @@ export function RaidPage({
             }
           },
           onKeyDown: (event) => {
-            // 카드 안의 입력과 버튼은 방향키를 그대로 쓴다.
             if (event.target !== event.currentTarget || !event.altKey) {
               return
             }
@@ -208,8 +189,7 @@ export function RaidPage({
       <div id={id} {...stylex.props(styles.scroller)}>
         <div {...stylex.props(styles.board)}>
           {parties.flatMap((seats, party) => {
-            // 파티 이름과 카드를 한 배열로 펼쳐 모든 카드가 같은 부모 아래에서 옮겨 다니게 한다. 파티 이름은
-            // 화면에 그리지 않고 자리의 설명으로만 전한다.
+            // 파티 이름과 카드를 한 배열로 펼쳐 모든 카드가 같은 부모 아래에서 옮겨 다니게 한다.
             const partyLabelId = `${id}-party-${party + 1}`
 
             return [

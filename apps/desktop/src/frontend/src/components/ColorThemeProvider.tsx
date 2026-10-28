@@ -1,9 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
 
-/**
- * Desktop 창의 테마를 다크로 고정한다. 시스템 설정이나 이전에 남은 `data-theme`과 관계없이 다크를 쓰고,
- * 해제하면 이전 값을 되돌린다.
- */
 export function ColorThemeProvider({ children }: { children: ReactNode }): React.JSX.Element {
   useEffect(() => {
     const root = document.documentElement

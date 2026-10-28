@@ -14,12 +14,10 @@ const rules = {
 // GitHub는 문서 첫 줄부터 시작하는 YAML front matter를 표로 보여 주고 heading으로 읽지 않는다.
 const frontMatterOpening = /^---\s*$/u
 const frontMatterClosing = /^(?:---|\.\.\.)\s*$/u
-// 과거 revision을 기록한 문서는 지금 없는 경로를 그대로 남긴다.
 const historicalStatus = /^status:[ \t]*historical[ \t]*$/u
 const codeFenceOpening = /^\s*(`{3,}|~{3,})(.*)$/u
 const atxHeading = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?[ \t]*$/u
 const atxClosingSequence = /(?:^|[ \t]+)#+$/u
-// 같은 길이의 백틱 묶음이 열고 닫는 code span이다.
 const codeSpan = /(?<!`)(`+)(?!`)(.*?[^`])\1(?!`)/gu
 const image = /!\[[^\]]*\]\([^)]*\)/gu
 const inlineLink = /\[([^\]]*)\]\([^)]*\)/gu
@@ -28,7 +26,6 @@ const backslashEscape = /\\([!-/:-@[-`{-~])/gu
 const linkDestinationStart = /\]\(/gu
 const referenceDefinition = /^ {0,3}\[[^\]]+\]:[ \t]*(\S+)/u
 const htmlLinkAttribute = /<(?:a|img)\b[^>]*?\b(?:href|src)\s*=\s*(?:"([^"]*)"|'([^']*)')/giu
-// URL scheme(https:, mailto: 등)이나 //로 시작하는 주소는 외부 링크로 보고 검사하지 않는다.
 const externalDestination = /^(?:[a-z][a-z\d+.-]*:|\/\/)/iu
 // github-slugger와 같은 기준이다. 문자, 결합 문자, 십진 숫자, 연결 문장부호, 공백과 하이픈만 남긴다.
 const slugRemovedCharacter = /[^\p{Alphabetic}\p{M}\p{Nd}\p{Pc}\p{Join_Control} -]/gu
@@ -36,8 +33,6 @@ const slugSpace = / /gu
 const markdownFile = /\.md$/iu
 const referenceAngleBrackets = /^<|>$/gu
 const trailingSlashes = /\/+$/u
-// code span 전체가 저장소 루트 기준이 분명한 경로일 때만 확인한다. scripts/, docs/로 시작하는 짧은 경로는
-// 앱 디렉터리나 다른 저장소 기준인 경우가 많다. glob, 자리표시(<name>, ...), 줄 번호가 붙은 표기는 경로로 보지 않는다.
 const repositoryPath = /^(?:\.\/)?((?:apps|packages|\.github)\/[^\s*?<>{}[\]$#:]*)$/u
 const placeholderPath = /\.\.\./u
 
@@ -45,8 +40,6 @@ function slugifyHeading(text) {
   return text.toLowerCase().replace(slugRemovedCharacter, '').replace(slugSpace, '-')
 }
 
-// `<`부터 다음 `>`까지를 HTML 태그로 보고 지운다. 짝이 없는 꺾쇠는 그 글자만 지운다.
-// slug 단계에서도 지워지는 글자라 anchor 결과는 같고, 태그 조각을 남기지 않는다.
 function removeHtmlTags(text) {
   let result = ''
   let index = 0
@@ -70,12 +63,10 @@ function removeHtmlTags(text) {
   return result
 }
 
-// 렌더링된 heading의 글자만 남긴다. code span 안의 글자는 그대로 두고 링크, 이미지, HTML 표기를 걷어 낸다.
 function headingText(source) {
   const parts = source.split(codeSpan)
   let text = ''
 
-  // split은 [본문, 백틱, code span 내용, 본문, ...] 순서로 나눈다.
   for (let index = 0; index < parts.length; index += 3) {
     const withoutLinks = parts[index]
       .replace(image, '')
@@ -207,7 +198,6 @@ function linePaths(text) {
   return paths
 }
 
-// ATX heading의 anchor, code block 밖의 링크 목적지와 code span의 저장소 경로를 줄 번호와 함께 모은다.
 function scanMarkdown(content) {
   const lines = content.split('\n')
   const frontMatter = frontMatterLines(lines)
@@ -369,7 +359,6 @@ function ancestorDirectories(paths) {
   return directories
 }
 
-// 추적 파일과 ignore 대상이 아닌 새 파일을 모두 본다. 아직 add하지 않은 새 문서도 링크 대상이 된다.
 function listRepositoryPaths(root) {
   const args = ['ls-files', '-z', '--deduplicate', '--cached', '--others', '--exclude-standard']
   const output = execFileSync('git', args, { cwd: root, encoding: 'utf8' })

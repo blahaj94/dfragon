@@ -13,9 +13,7 @@ import type { ControlSurface } from './surface'
 const SelectSurfaceContext = createContext<ControlSurface>('default')
 
 export type SelectTriggerProps = PublicProps<typeof BaseSelect.Trigger> & {
-  /** 2xs 16(오른쪽 위를 자른 칩), xs 24, sm 32, md 40px 높이. @default 'sm' */
   size?: '2xs' | 'xs' | 'sm' | 'md'
-  /** 캐릭터 카드 위의 칩은 `card`. 같은 Select의 `Popup`에도 같은 값을 넘긴다. @default 'default' */
   surface?: ControlSurface
 }
 
@@ -69,13 +67,10 @@ const SelectValue: ComponentType<SelectValueProps> = SelectValueImpl
 export type SelectPopupProps = PublicProps<typeof BaseSelect.Popup> &
   Pick<BaseSelect.Portal.Props, 'container'> &
   Pick<BaseSelect.Positioner.Props, 'side' | 'align' | 'sideOffset'> & {
-    /** 캐릭터 카드에서 연 목록은 `card`. @default 'default' */
     surface?: ControlSurface
-    /** 항목을 이 수만큼의 열로 늘어놓는다. 없으면 한 줄 목록이다. */
     columns?: number
   }
 
-// Portal, Positioner, Popup, List를 묶은 목록. trigger 바로 아래에서 위쪽을 기준으로 펼친다.
 function SelectPopupImpl({
   container,
   side = 'bottom',
@@ -201,7 +196,6 @@ function SelectSeparatorImpl({
 const SelectSeparator: ComponentType<SelectSeparatorProps> = SelectSeparatorImpl
 
 /**
- * Base UI Select 부품. Root, ItemText, Group은 Base UI 그대로이고 나머지는 외형만 그린다.
  * 항목 글자는 `Select.ItemText`로 감싸야 trigger의 `Select.Value`에 같은 글자가 보인다.
  */
 export const Select = {

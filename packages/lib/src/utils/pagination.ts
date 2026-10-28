@@ -1,4 +1,3 @@
-/** Split a readonly list into zero-based pages while preserving item order and references. */
 export function paginate<T>(
   items: readonly T[],
   { page, pageSize }: { page: number; pageSize: number }

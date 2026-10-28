@@ -21,5 +21,4 @@ function SwitchImpl({ className, style, ...props }: SwitchProps & ForwardedStyle
   )
 }
 
-// Base UI Switch의 Root와 Thumb. 이름은 감싼 label이나 aria-label로 준다.
 export const Switch: ComponentType<SwitchProps> = SwitchImpl

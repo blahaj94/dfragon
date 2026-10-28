@@ -1,7 +1,5 @@
-/** 5xx 원인 확인용으로 정제한 오류 하나다. 접근 로그에 그대로 JSON으로 쓴다. */
 export type ErrorChainEntry = { name: string; code?: string; frames?: string[] }
 
-// 남길 오류 수, 오류마다 남길 stack frame 수와 frame 한 줄의 길이 상한이다.
 const MAX_ERROR_CHAIN_LENGTH = 5
 const MAX_STACK_FRAMES = 5
 const MAX_STACK_FRAME_LENGTH = 300
@@ -15,8 +13,8 @@ const NON_ERROR = '<non-error>'
 export type FailureOptions = { cause?: unknown }
 
 /**
- * DB, Neople, 인증 서버 오류를 바꾼 응답용 failure의 base class다. `{ cause }`는 표준 ErrorOptions처럼
- * 받지만 원래 오류 object와 message는 보관하지 않고, 그 자리에서 정제한 chain만 `sanitizedCause`에 둔다.
+ * `{ cause }`는 표준 ErrorOptions처럼 받지만 원래 오류 object와 message는 보관하지 않고,
+ * 그 자리에서 정제한 chain만 `sanitizedCause`에 둔다.
  * 그래서 failure의 `cause`는 비어 있고, failure를 그대로 출력해도 SQL이나 요청 값이 나오지 않는다.
  */
 export class SanitizedFailure extends Error {
@@ -33,7 +31,6 @@ function sanitizeCause(cause: unknown): readonly ErrorChainEntry[] | undefined {
   try {
     return describeErrorChain(cause)
   } catch {
-    // getter가 예외를 던지는 등 정제 결과를 믿을 수 없는 오류는 원인 없이 failure만 남긴다.
     return undefined
   }
 }

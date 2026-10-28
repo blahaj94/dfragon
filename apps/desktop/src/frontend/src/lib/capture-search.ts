@@ -18,12 +18,10 @@ import { captureSearchMachine } from './capture-search-machine'
 
 type SearchOptions = {
   api: SearchApi
-  /** 서버 지정 조회만 쓰는 연결은 이름 통지를 두지 않는다. */
   notify?: (observation: SearchObservation) => Promise<SearchCommandResult>
   notifyOcr?: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
   onChange: (view: SearchView) => void
   onInvalidated: () => void
-  /** 연결한 검색 수명의 슬롯 수. 기본은 파티 네 자리다. */
   slotCount?: SearchSlotCount
 }
 
@@ -42,7 +40,6 @@ export type CaptureSearch = {
   dispose: () => void
 }
 
-/** 호출마다 독립된 검색 연결, actor, 관측 상태를 만들고 수명 제어 함수를 반환한다. */
 export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   const slotCount = options.slotCount ?? SEARCH_SLOT_COUNTS.party
   let revisions = Array.from({ length: slotCount }, () => 0)
@@ -79,12 +76,10 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     publish()
   })
 
-  // 구독과 초기 조회를 시작한다.
   function connect(): void {
     connection.connect()
   }
 
-  // 연결이 준비된 경우 시작 actor에 요청하고 해당 요청의 결과를 반환한다.
   async function begin({ signal }: { signal: AbortSignal }): Promise<string | null> {
     if (!connection.isReady() || lifetime.getSnapshot().status !== 'active') {
       return null
@@ -95,7 +90,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     return promise
   }
 
-  // 현재 시작 또는 실행 수명을 종료한다.
   function end(): void {
     if (lifetime.getSnapshot().status === 'active') {
       lifetime.send({ type: 'END' })
@@ -143,7 +137,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     }
   }
 
-  // 서버를 사용자가 정한 조회는 OCR 관측과 별도 명령으로 전달한다.
   function lookup(input: { slot: number; nickname: string; serverId: string }): void {
     const captureId = lifetime.getSnapshot().context.captureId
     if (captureId === null) {
@@ -162,7 +155,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     })
   }
 
-  // 현재 슬롯의 수동 재시도 가능 여부와 중복 요청을 검사한다.
   async function retry(slotIndex: number): Promise<void> {
     const captureId = lifetime.getSnapshot().context.captureId
     const slot = getVisibleSearchSlots({ captureId, snapshot, revisions, cleared, slotCount })[
@@ -219,7 +211,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     connection.dispose()
   }
 
-  // main snapshot을 반영하고 종료된 캡처의 로컬 수명을 무효화한다.
   function accept(next: SearchSnapshot | null): void {
     snapshot = next
     const hasSnapshot = next != null
@@ -237,7 +228,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     publish()
   }
 
-  // 현재 연결, actor, 관측 상태로 화면용 값을 만들어 전달한다.
   function publish(): void {
     options.onChange({
       ready: connection.isReady(),
@@ -261,7 +251,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   return { connect, begin, end, observe, lookup, retry, dispose }
 }
 
-/** 현재 캡처와 로컬 관측 이후의 슬롯만 반환하며 입력 상태를 변경하지 않는다. */
 function getVisibleSearchSlots({
   captureId,
   snapshot,

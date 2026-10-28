@@ -143,7 +143,6 @@ export async function createSearchFixture(
     observationRevision: number
     nickname: string
   }): Promise<unknown> => {
-    // 공대 수명은 이름 통지 채널이 없어 서버를 함께 고른 조회로 관측한다.
     if (searchKind === 'raid') {
       return invoke(controlChannel, { action: 'lookup', captureId, ...input, serverId: 'cain' })
     }

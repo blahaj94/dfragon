@@ -7,7 +7,6 @@ export interface ServerBuildInfo {
 
 const SERVER_COMMIT_PATTERN = /^[0-9a-f]{40}$/
 
-/** Accept only the requested service and a complete image-build revision. */
 export function parseServerBuildInfo(
   value: unknown,
   expectedService: ServerService

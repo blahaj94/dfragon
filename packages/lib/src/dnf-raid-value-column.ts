@@ -5,15 +5,11 @@ import { normalizedRegion, validateImage, validateRegion } from './dnf-raid-meta
 
 export type DNFRaidValueColumnKind = 'fame' | 'equipment-score' | 'unknown'
 export type DNFRaidValueHeadingTemplates = Readonly<{
-  /** UI-0% 75x18 heading cell labelled "명성", including the toggle icon and background. */
   fame: DNFParticipantFrame
-  /** UI-0% 75x18 heading cell labelled "장비 점수", including the toggle icon and background. */
   equipmentScore: DNFParticipantFrame
 }>
 export type DNFRaidValueNotation = {
-  /** Smallest whole value the notation can show. */
   min: number
-  /** Largest whole value the notation can show; equals min when every digit is displayed. */
   max: number
 }
 
@@ -28,7 +24,6 @@ const THOUSANDS_UNIT = 1000
 const RAID_VALUE_NOTATION_PATTERN = /^(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d{1,3}))?(K)?$/
 const DIGIT_GROUP_SEPARATOR_PATTERN = /,/g
 
-/** Zero-mean, unit-energy grayscale; a flat image has no pattern and returns null. */
 function headingPattern(rgba: Uint8Array | Uint8ClampedArray): Float64Array | null {
   const gray = participantGrayscale(rgba)
   const values = new Float64Array(gray.length)
@@ -75,11 +70,6 @@ function correlation(left: Float64Array, right: Float64Array): number {
   return score
 }
 
-/**
- * Compares the numeric column's heading cell with caller-owned UI-0% "명성" and "장비 점수"
- * references. Returns unknown when neither label is clearly closer; no capture, decoding or
- * persistence is performed and the frame is not modified.
- */
 export function classifyDNFRaidValueColumn(
   frame: DNFParticipantFrame,
   region: DNFRectangle,
@@ -115,12 +105,6 @@ export function classifyDNFRaidValueColumn(
   return 'equipment-score'
 }
 
-/**
- * Converts a visible fame or equipment-score notation such as `12,345` or `1000.4K` into the
- * inclusive range of whole values it can show. K notation drops the hidden digits, so `1000.4K`
- * is 1,000,400..1,000,499. Grouped digits must use complete three-digit groups, and a decimal
- * part is accepted only with K. Returns null for any other text instead of guessing.
- */
 export function parseDNFRaidValueNotation(text: string): DNFRaidValueNotation | null {
   const match = RAID_VALUE_NOTATION_PATTERN.exec(text)
   if (match == null) {
@@ -137,7 +121,6 @@ export function parseDNFRaidValueNotation(text: string): DNFRaidValueNotation | 
   if (!Number.isSafeInteger(scaled)) {
     return null
   }
-  // The decimal part has at most three digits, so K values stay whole numbers.
   const min = scaled / fractionUnit
   const hiddenUnit = thousands == null ? 1 : THOUSANDS_UNIT / fractionUnit
   const max = min + hiddenUnit - 1

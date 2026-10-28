@@ -1,9 +1,7 @@
 import { appendFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
-// feat(build):, fix(build)!: 처럼 Conventional Commits scope가 build인 PR 제목만 빌드를 요청한다.
 const BUILD_TITLE_PATTERN = /^[a-z]+\(build\)!?:/iu
-// Dependabot PR은 로컬 pre-push 검사를 거치지 않으므로 제목과 관계없이 빌드한다.
 const DEPENDABOT_LOGIN = 'dependabot[bot]'
 const COMMIT_PATTERN = /^[a-f\d]{40}$/iu
 const GITHUB_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/u

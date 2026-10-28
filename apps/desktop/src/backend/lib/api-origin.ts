@@ -37,7 +37,6 @@ function parseExactUrl(raw: unknown): URL {
   }
 }
 
-/** 검색 API 주소는 경로, query, fragment와 계정 정보가 없는 정규 HTTPS origin이어야 한다. */
 export function validateApiOrigin(apiOrigin: string): string {
   const url = parseExactUrl(apiOrigin)
   const hasNoCredentials = url.username.length === 0 && url.password.length === 0

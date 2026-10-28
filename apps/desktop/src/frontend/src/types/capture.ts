@@ -4,7 +4,6 @@ export type Rgb = readonly [red: number, green: number, blue: number]
 
 export type PartyOcrResult = {
   text: string
-  /** 응답 호환용 confidence 필드는 1위 후보의 modelScore를 전달한다. */
   confidence: number
   candidates: CtcCandidate[]
 }

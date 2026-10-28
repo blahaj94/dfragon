@@ -1,7 +1,6 @@
 import type * as stylex from '@stylexjs/stylex'
 import type { ComponentPropsWithRef, CSSProperties, ElementType } from 'react'
 
-// 공개 props는 semantic 옵션과 ref를 유지하고 화면별 외형 override prop을 제외한다.
 export type PublicProps<T extends ElementType> = Omit<
   ComponentPropsWithRef<T>,
   'style' | 'className'

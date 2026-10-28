@@ -2,11 +2,9 @@ import * as stylex from '@stylexjs/stylex'
 import { colors, motion, shape, space } from './tokens.stylex'
 
 const cut = shape.cut
-// 오른쪽 아래를 자른 모양과, 같은 꼭짓점 수로 위쪽 한 줄에 접힌 모양. 둘 사이를 전환해 위에서 아래로 펼친다.
 const openShape = `polygon(0 0, 100% 0, 100% calc(100% - ${cut}), calc(100% - ${cut}) 100%, 0 100%)`
 const foldedShape = 'polygon(0 0, 100% 0, 100% 0, 100% 0, 0 0)'
 
-// Select와 Menu가 함께 쓰는 아래로 펼치는 목록 모양.
 export const listboxStyles = stylex.create({
   positioner: { zIndex: 110, outlineStyle: 'none' },
   popup: {
@@ -39,7 +37,6 @@ export const listboxStyles = stylex.create({
     outlineStyle: 'none',
     cursor: { default: 'pointer', ':is([data-disabled])': 'not-allowed' },
     userSelect: 'none',
-    // 현재 항목(Select의 data-selected, Menu radio의 data-checked)은 신호색 굵은 글자다.
     color: {
       default: 'inherit',
       ':is([data-highlighted])': colors.fgDefault,
@@ -52,7 +49,6 @@ export const listboxStyles = stylex.create({
     transitionDuration: motion.durHover,
     transitionTimingFunction: motion.ease
   },
-  // 현재 항목 왼쪽의 2px 막대. 선택된 항목에만 렌더링되는 Base UI indicator에 둔다.
   marker: {
     position: 'absolute',
     top: 6,
@@ -74,7 +70,6 @@ export const listboxStyles = stylex.create({
     marginBlock: space.s4,
     backgroundColor: colors.borderDefault
   },
-  // 캐릭터 카드에서 연 목록. 라이트 모드에서도 카드와 같은 다크 면과 카드 신호색을 쓴다.
   cardPopup: {
     borderTopColor: colors.cardSignal,
     backgroundColor: colors.cardInset,

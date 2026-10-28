@@ -664,7 +664,6 @@ export function assertShortcutProcessAccess(api: ShortcutAccessApi, gameProcessI
   }
 }
 
-/** True only when the foreground top-level window is owned by DNF.exe. */
 export function isDnfForeground(): boolean {
   if (process.platform !== 'win32') {
     return false
@@ -685,7 +684,6 @@ export function isDnfForeground(): boolean {
   }
 }
 
-/** Checks process ownership so all DFragon windows can use the product shortcuts. */
 export function isCurrentProcessForeground(): boolean {
   if (process.platform !== 'win32') {
     return false
@@ -710,7 +708,6 @@ export function isDnfExecutablePath(imagePath: string): boolean {
   return win32Path.basename(imagePath).toLowerCase() === DNF_EXECUTABLE
 }
 
-/** Electron이 열거한 창 ID에서 Windows 핸들을 읽는다. */
 export function windowHandleFromSource(sourceId: string): bigint {
   const match = WINDOW_SOURCE_ID_PATTERN.exec(sourceId)
   if (match === null || match[0] !== sourceId) {
@@ -820,7 +817,6 @@ export function selectWindowClient(sourceId: string): WindowCaptureTarget {
   return { hwnd, pid }
 }
 
-/** 선택한 창의 클라이언트 영역을 읽고 다른 창에 가려진 픽셀은 투명하게 제외한다. */
 export function captureWindowClient(target: WindowCaptureTarget): WindowCaptureFrame {
   if (process.platform !== 'win32') {
     throw new Error(WINDOW_CAPTURE_ERRORS.UNAVAILABLE)

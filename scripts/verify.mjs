@@ -23,7 +23,6 @@ function workspace(name, ...args) {
   return pnpm('--filter', name, ...args)
 }
 
-// 저장소 검사 job과 그 run 명령을 차례로 실행한다. 의존성 설치는 먼저 끝냈다고 본다.
 export const checkJobs = [
   {
     job: 'static',
@@ -106,7 +105,6 @@ function formatDuration(milliseconds) {
   return `${minutes}분 ${seconds % 60}초`
 }
 
-// job 안의 명령은 앞 명령이 실패하면 멈추고, 다른 job은 계속 실행해 실패한 job을 모두 보고한다.
 // job끼리 같은 build 산출물을 쓰므로 병렬로 실행하지 않는다.
 export function runJobs(jobs, cwd = repositoryRoot) {
   const startedAt = Date.now()
@@ -169,7 +167,6 @@ function git(cwd, args, env = {}) {
   return result.stdout.trim()
 }
 
-// untracked 파일까지 포함한 작업 트리 전체를 tree 객체로 만든다. 실제 index는 바꾸지 않는다.
 // index 수정 시각이 바뀌면 git이 같은 초에 수정된 파일을 놓치므로 복사본의 시각을 원본과 맞춘다.
 function worktreeTree(cwd) {
   const index = git(cwd, ['rev-parse', '--path-format=absolute', '--git-path', 'index'])
@@ -237,9 +234,6 @@ function writePassedTree(cwd, tree) {
   writeFileSync(file, `${tree}\n`)
 }
 
-// 통과하면 검사한 작업 트리 내용을 worktree의 Git 디렉터리에 기록한다.
-// reusePass이면 커밋하지 않은 변경이 없고 HEAD 내용이 기록과 같을 때 검사를 건너뛴다. pre-push hook만 이 옵션을 쓴다.
-// 의존성 설치 상태, Git이 무시하는 파일, 실행 환경은 기록에 들어가지 않는다.
 export function verify(jobs, { cwd = repositoryRoot, reusePass = false } = {}) {
   const before = worktreeTree(cwd)
 

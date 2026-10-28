@@ -11,7 +11,6 @@ const evidencePolicy = {
   requiredSignals: 2
 }
 
-/** Measures pixels outside the nickname column, without changing raw RGBA or alpha. */
 export function participantEvidenceRatio(
   frame: DNFParticipantFrame,
   region: DNFRectangle,
@@ -38,7 +37,6 @@ export function participantEvidenceRatio(
   return count / (region.width * region.height)
 }
 
-/** Both measured layouts require at least two of the three independent occupancy signals. */
 export function hasParticipantEvidence(evidence: {
   portrait: number
   level: number

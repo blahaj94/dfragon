@@ -4,10 +4,6 @@ import { windowChromeStyles } from '../constants/window-chrome.style'
 import { ExternalLinkIcon } from './ExternalLinkIcon'
 import { styles } from './UpdateNotice.style'
 
-/**
- * 상단 바의 새 버전 알림 칩. 누르면 `Release 열기`와 `닫기`가 있는 메뉴를 연다. 칩이 나타나면 보조 기술에
- * 새 버전을 알린다.
- */
 export function UpdateNotice({
   tag,
   onOpenRelease,

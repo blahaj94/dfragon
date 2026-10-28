@@ -9,13 +9,11 @@ import { invokeSearchCommand } from './search-command'
 export const controlCharacterSearch: SearchApi['controlCharacterSearch'] = (control) =>
   invokeSearchCommand('controlRaidSearch', control)
 
-/** 공대 캡처 회차의 OCR 이름과 그 행의 직업명, 수치를 공대 수명의 자리에 알린다. 서버는 main의 공대 식별이 고른다. */
 export const notifyOcrCandidatesDetected: AsyncIPCFunctions['notifyRaidOcrCandidatesDetected'] = (
   observation
 ) => invokeSearchCommand('notifyRaidOcrCandidatesDetected', observation)
 
 const invokeReadCaptureFrame = makeHandlerInvoker('readRaidCaptureFrame')
-/** 공대 캡처 회차의 프레임 한 장에서 main이 잘라 낸 12행의 닉네임, 직업명 크롭과 수치 표기, 수치 열 종류를 받는다. */
 export const readCaptureFrame: AsyncIPCFunctions['readRaidCaptureFrame'] = async (captureId) => {
   const value: unknown = await invokeReadCaptureFrame(captureId)
 

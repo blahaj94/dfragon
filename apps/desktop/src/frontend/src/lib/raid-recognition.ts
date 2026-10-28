@@ -10,11 +10,9 @@ export type RaidSlotRecognition =
   | { kind: 'failed'; slot: number }
   | (FirstCandidate & {
       slot: number
-      /** 직업명 칸의 1위 문자열. 크롭이 없거나 읽지 못했으면 null이다. */
       jobText: string | null
     })
 
-/** 공대원 닉네임, 직업명 원본을 파티 캡처와 같은 반전 이진화 입력의 canvas로 만든다. */
 function toNicknameCanvas(image: CharacterImage): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
   canvas.width = image.width
@@ -32,8 +30,7 @@ function toNicknameCanvas(image: CharacterImage): HTMLCanvasElement {
 }
 
 /**
- * 직업명 칸을 닉네임과 같은 전처리로 읽는다. 오프라인 평가에서 원본 색 그대로는 거의 맞지 않았다. 직업명은
- * 서버 확정의 보조 근거라 읽지 못해도 행을 실패로 두지 않고 null로 남긴다.
+ * 오프라인 평가에서 원본 색 그대로는 거의 맞지 않았다.
  */
 async function recognizeJob(
   image: CharacterImage | null,
@@ -57,11 +54,6 @@ async function recognizeJob(
   return text
 }
 
-/**
- * 회차 프레임 한 장에서 main이 자른 공대원 닉네임과 직업명을 화면 순서(1~12행)대로 인식하고 첫 후보를
- * 판정한다. 행 번호가 곧 공대 자리 번호이며, 크롭이 없는 행은 빈 자리로 남긴다. 검색에 쓰지 못할 이름의
- * 행은 직업명을 읽지 않는다.
- */
 export async function recognizeRaidRows(
   rows: readonly (RaidFrameRow | null)[],
   recognize: PartyOcrWorker['recognize']

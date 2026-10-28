@@ -11,10 +11,6 @@ function readBridge(): Pick<WindowChromeApi, 'setContentHeight'> | null {
   return null
 }
 
-/**
- * 메인 창의 내용 높이를 보이는 화면의 높이로 맞춘다. 처음 그릴 때와 높이가 바뀔 때마다 한 번 요청한다.
- * 창 높이 bridge가 없는 화면(브라우저 미리보기, 테스트)에서는 아무것도 하지 않는다.
- */
 export function useMainWindowHeight(height: number): void {
   useEffect(() => {
     const bridge = readBridge()

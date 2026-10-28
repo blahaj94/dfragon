@@ -13,11 +13,6 @@ import type {
   SearchSlotCount
 } from '../../../preload/common/types/search'
 
-/**
- * 게임 캡처가 없어도 실행할 수 있는 서버 지정 조회의 연결과 요청 수명을 소유한다. 파티 카드와 공대
- * 카드는 각자의 API와 슬롯 수로 이 hook을 따로 써서 서로의 자리를 덮어쓰지 않는다. 공대 캡처처럼 OCR
- * 이름을 같은 수명에 알리는 화면은 `notifyOcr`를 넘기고 회차마다 `beginRound`로 수명을 새로 시작한다.
- */
 export function useManualCharacterLookup(
   api: SearchApi | undefined,
   slotCount: SearchSlotCount,

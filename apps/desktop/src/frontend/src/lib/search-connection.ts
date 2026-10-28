@@ -26,19 +26,16 @@ export type SearchConnection = {
   dispose: () => void
 }
 
-/** 호출별 actor를 클로저에 격리하고 연결, 명령, 정리 함수를 반환한다. */
 export function createSearchConnection(options: ConnectionOptions): SearchConnection {
   const target = { api: options.api, slotCount: options.slotCount }
   let currentActor = createActor(searchConnectionMachine, { input: target })
 
-  // 현재 actor의 동기화 상태를 호출 시점에 읽는다.
   function isReady(): boolean {
     const state = currentActor.getSnapshot()
 
     return state.status === 'active' && state.hasTag('ready')
   }
 
-  // 이전 actor를 종료하고 구독, 초기 조회를 새 actor에서 시작한다.
   function connect(): void {
     if (currentActor.getSnapshot().status === 'stopped') {
       return
@@ -76,7 +73,6 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
     actor.start()
   }
 
-  // 제어 IPC의 직접 응답을 공통 검증, 복구 경계로 전달한다.
   async function command(control: SearchControl): Promise<SearchCommandResult | null> {
     return invoke(() => options.api.controlCharacterSearch(control))
   }

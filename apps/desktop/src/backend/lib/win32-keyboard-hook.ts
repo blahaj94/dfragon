@@ -80,7 +80,6 @@ function loadWin32Api(): Win32KeyboardApi {
   return nativeApi
 }
 
-/** Shares one native hook so each subscriber observes key releases even when another handles them. */
 export function createWin32KeyboardHook({
   platform = process.platform,
   loadNativeApi = loadWin32Api

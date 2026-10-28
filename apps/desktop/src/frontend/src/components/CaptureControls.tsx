@@ -17,7 +17,6 @@ import { CloseIcon } from './CloseIcon'
 import type { CapturePhase } from '../types/capture'
 import { getCaptureControlState, isDnfCaptureSource } from '../lib/capture-presentation'
 
-/** 상단 바가 파티 캡처에서 읽는 창 목록, 선택, 중지. 필드 이름은 `usePartyCapture` 결과와 같다. */
 export type CaptureSourceControl = {
   sources: { id: string; name: string }[]
   selectedSourceId: string
@@ -25,16 +24,12 @@ export type CaptureSourceControl = {
   sourcesFailed: boolean
   selectSource: (sourceId: string) => void
   refreshSources: () => void
-  /** 안내 문구를 넘기지 않으면 기본 중지 문구를 쓴다. */
   stopCapture: (nextStatus?: string) => void
-  /** 검색 연결이 준비되어 창을 고를 수 있는지 */
   search: { ready: boolean }
 }
 
 export type CaptureControlsProps = {
-  /** 게임 창 연결은 파티 캡처가 소유하고 공대 캡처도 같은 창을 쓴다. */
   capture: CaptureSourceControl
-  /** 상태 칩과 대화상자가 알리는 단계. 보이는 화면(파티, 공대)의 회차를 따른다. */
   phase: CapturePhase
   status: string
 }
@@ -71,7 +66,6 @@ export function CaptureControls({
   if (retry.sources !== sources) {
     setRetry({ sources, startedAt: performance.now() })
   }
-  // 확인 필요와 캡처 실패의 안내 앞에는 상태 색 `!` 칸을 둔다.
   let markLabel: string | null = null
   if (phase === 'unavailable') {
     markLabel = '주의'
@@ -90,8 +84,6 @@ export function CaptureControls({
       }}
     >
       <span {...stylex.props(windowChromeStyles.noDrag)}>
-        {/* 상단 바의 게임 연결 상태 칩이 캡처할 창을 고르는 대화상자를 연다. 회차는 Alt+R이나 파티 머리의
-            캡처 버튼이 시작한다. */}
         <DialogTrigger
           render={
             <button
@@ -112,15 +104,12 @@ export function CaptureControls({
         </span>
       </span>
       {/* 공용 DialogContent는 화면 가운데에 놓고 전체 창을 덮는다. 이 패널은 상단 바 아래에 붙고 상단 바는
-          어둡게 덮지 않으므로 같은 Base UI Dialog를 직접 쓴다. 포커스 가두기, Esc 닫기, 바깥 가리기는 그대로다. */}
+          어둡게 덮지 않으므로 같은 Base UI Dialog를 직접 쓴다. */}
       <Dialog.Portal>
         <Dialog.Backdrop {...stylex.props(styles.backdrop)} />
         <Dialog.Popup aria-labelledby={titleId} {...stylex.props(styles.dialog)}>
-          {/* DFragon 디자인 캔버스의 캡처 보드대로 대화상자 네 모서리 꺾쇠가 상태 색을 따른다. 인식하는
-            동안은 꺾쇠가 박자 두 번마다 바깥에서 조여 든다. */}
           {corners.map(({ position, pulse }, index) => (
             <span
-              // 네 모서리는 순서가 바뀌지 않는 고정 목록이다.
               key={index}
               aria-hidden="true"
               data-tone={state.tone}
@@ -140,8 +129,6 @@ export function CaptureControls({
             <StatusChip tone={state.tone} busy={state.busy} role="status">
               {state.label}
             </StatusChip>
-            {/* 안내는 한 줄이라 길면 말줄임하고 전체 문구는 title과 보조 기술 알림이 전한다. 패널 높이는
-              안내가 있어도 같다. */}
             {status && (
               <p role="status" title={status} {...stylex.props(styles.notice)}>
                 {markLabel != null && (

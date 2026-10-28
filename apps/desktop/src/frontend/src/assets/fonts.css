@@ -1,4 +1,3 @@
-/* 마루미냐 한글(x12y12pxMaruMinyaHangul) 비트맵 글꼴 하나로 모든 굵기를 표시한다. 출처, 체크섬은 packages/licenses/notices/desktop에 있다. */
 @font-face {
   font-family: 'MaruMinya Hangul';
   src: url('./fonts/x12y12pxMaruMinyaHangul.woff2') format('woff2');
@@ -7,10 +6,6 @@
   font-display: swap;
 }
 
-/*
- * 숫자 글꼴 Barlow Condensed 1.408의 600, 700 굵기. 기본 라틴 문자(U+0020-007E)로 줄였고 이름은
- * tokens.css의 --df-font-num이 쓴다. 출처, subset 명령은 packages/licenses/notices/desktop에 있다.
- */
 @font-face {
   font-family: 'Barlow Condensed';
   src: url('./fonts/BarlowCondensed-SemiBold.woff2') format('woff2');
@@ -29,7 +24,6 @@
   unicode-range: U+0020-007E;
 }
 
-/* 공용 tokens.css의 글꼴 토큰을 Desktop에서만 마루미냐 한글 우선으로 바꾼다. */
 :root {
   --df-font-ui:
     'MaruMinya Hangul', -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo',
@@ -39,7 +33,6 @@
     'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
-/* foundation.css 다음에 import해 UI 글꼴과 한국어 줄바꿈 기준을 body에서 한 번 정한다. */
 body {
   font-family:
     'MaruMinya Hangul', -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo',

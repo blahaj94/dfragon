@@ -4,7 +4,6 @@ export type Deferred<T> = Readonly<{
   reject: (reason: unknown) => void
 }>
 
-/** 테스트가 끝나는 시점을 직접 정하는 Promise. */
 export function deferred<T>(): Deferred<T> {
   let resolvePromise!: (value: T) => void
   let rejectPromise!: (reason: unknown) => void

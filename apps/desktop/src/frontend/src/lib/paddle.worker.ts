@@ -13,7 +13,6 @@ const DICTIONARY_FINAL_NEWLINE_PATTERN = /\n$/
 let session: InferenceSession | null = null
 let characters: string[] = []
 
-/** WASM 옵션과 사전을 준비한 뒤 같은 모델 세션으로 이미지를 인식한다. */
 async function initializeModel(root: string): Promise<void> {
   env.logLevel = 'error'
   env.wasm.numThreads = 1

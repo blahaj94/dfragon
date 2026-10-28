@@ -4,7 +4,6 @@ import type { OcrSearchInput, RaidRowObservation } from '../types/search'
 const RGBA_CHANNELS = 4
 const ALPHA_CHANNEL = 3
 
-/** 비교에 사용하는 픽셀만 대조해 가림 표시의 변화로 같은 관측을 다시 조회하지 않는다. */
 export function sameCharacterPortrait(
   left: CharacterPortrait | null,
   right: CharacterPortrait | null
@@ -59,7 +58,6 @@ function sameRaidRow(
   )
 }
 
-/** 같은 순위의 이름, 같은 얼굴과 같은 공대 행 값이면 현재 요청과 기존 시간 예산을 유지한다. */
 export function sameOcrSearchInput(left: OcrSearchInput, right: OcrSearchInput): boolean {
   if (left.candidateNicknames[0] !== right.candidateNicknames[0]) {
     return false

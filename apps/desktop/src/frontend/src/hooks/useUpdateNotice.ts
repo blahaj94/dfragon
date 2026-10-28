@@ -15,7 +15,6 @@ function readBridge(): UpdateNoticeApi | null {
   return null
 }
 
-/** main이 확인한 새 버전 알림을 구독하고 Release 열기, 닫기 명령을 전달한다. */
 export function useUpdateNotice(): {
   notice: UpdateNotice | null
   openRelease: () => void
@@ -45,7 +44,6 @@ export function useUpdateNotice(): {
       }
     }
     const unsubscribe = bridge.onUpdateNoticeChanged(receive)
-    // 알림 조회 실패는 화면에 보이지 않는다. 확인 실패는 main이 진단 기록에 남긴다.
     void bridge
       .getUpdateNotice()
       .then(receive)
@@ -62,7 +60,6 @@ export function useUpdateNotice(): {
     if (bridge == null || notice == null) {
       return
     }
-    // 열기 실패는 main이 진단 기록에 남긴다.
     void bridge.openUpdateRelease(notice.tag).catch(() => undefined)
   }, [notice])
 

@@ -7,7 +7,6 @@ import {
 import type { UpdateNotices } from './notices'
 import { releasePageUrl } from './release-feed'
 
-/** 신뢰한 메인 화면에 새 버전 알림의 조회, 닫기, Release 열기를 연결한다. */
 export function registerUpdateNoticeWindow({
   window,
   documentUrl,

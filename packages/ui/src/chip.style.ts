@@ -2,7 +2,6 @@ import * as stylex from '@stylexjs/stylex'
 import { colors, radius, space } from './tokens.stylex'
 
 export const styles = stylex.create({
-  // 눌린 칩은 신호색 면이 된다. 선택에만 신호색을 쓴다.
   root: {
     display: 'inline-flex',
     alignItems: 'center',

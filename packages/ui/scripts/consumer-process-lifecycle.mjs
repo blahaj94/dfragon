@@ -1,6 +1,5 @@
 import { setTimeout as sleepMilliseconds } from 'node:timers/promises'
 
-// 호출자가 detached: true로 직접 생성한 child만 받는 내부 helper다.
 export async function stopOwnedProcessGroup(options) {
   const {
     child,

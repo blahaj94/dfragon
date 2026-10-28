@@ -5,17 +5,12 @@ import { useRef, useState } from 'react'
 import { SnapshotIcon } from './SnapshotIcon'
 import { styles } from './SnapshotToggle.style'
 
-/**
- * 머리의 모험단 순번 스냅샷 토글(높이 28). 꺼진 버튼을 누르면 바로 스냅샷을 찍고, 켜진 버튼을 누르면 버튼 아래에
- * 끄기 확인을 연다. 확인 팝오버는 되돌릴 수 없는 삭제를 묻는 `alertdialog`라 취소 버튼에 먼저 포커스한다.
- */
 export function SnapshotToggle({
   label,
   active,
   onTake,
   onClear
 }: {
-  /** 켜고 꺼도 바뀌지 않는 접근 가능한 이름 */
   label: string
   active: boolean
   onTake: () => void

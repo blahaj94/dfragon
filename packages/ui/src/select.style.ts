@@ -2,7 +2,6 @@ import * as stylex from '@stylexjs/stylex'
 import { colors, motion, radius, size, space } from './tokens.stylex'
 
 export const styles = stylex.create({
-  // 칩 모양 trigger. 펼쳐진 동안 신호색 면으로 바뀐다.
   trigger: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -29,14 +28,12 @@ export const styles = stylex.create({
       ':is([data-popup-open])': colors.signal
     }
   },
-  // 입력 칸 안에 넣는 작은 칩. 안쪽 여백을 줄인다.
   '2xs': { height: 16, fontSize: 12, paddingInlineStart: 6, paddingInlineEnd: space.s4 },
   xs: { height: 24, fontSize: 12 },
   sm: { height: size.controlSm, fontSize: 13 },
   md: { height: size.controlMd, fontSize: 14 },
   value: { overflow: 'hidden', textOverflow: 'ellipsis' },
   placeholder: { color: colors.fgPlaceholder },
-  // 펼치면 아래 꺾쇠가 위 꺾쇠로 바뀐다.
   icon: {
     display: 'inline-flex',
     flexShrink: 0,
@@ -47,12 +44,10 @@ export const styles = stylex.create({
     transitionTimingFunction: motion.ease
   },
   item: { height: 28, fontSize: 13 },
-  // 낮은 창에서 목록이 잘리지 않도록 항목을 여러 열로 늘어놓는 목록. 항목은 읽는 순서로 채운다.
   grid: (columns: number) => ({
     display: 'grid',
     gridTemplateColumns: `repeat(${columns}, auto)`
   }),
-  // 캐릭터 카드 위의 칩. 라이트 모드에서도 카드가 다크이므로 card* 토큰으로 그린다.
   cardTrigger: {
     color: {
       default: colors.cardFg,

@@ -1,6 +1,5 @@
 import type { SVGProps } from 'react'
 
-// 공용 Component 안에서만 쓰는 선 아이콘. 모서리는 각지게(square, miter) 그린다.
 type IconProps = Omit<SVGProps<SVGSVGElement>, 'children'>
 
 function LineIcon({ d, ...props }: IconProps & { d: string }) {

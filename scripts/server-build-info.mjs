@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url'
 
 const SOURCE_COMMIT_PATTERN = /^[0-9a-f]{40}$/
 
-/** Record the source revision supplied by the image builder, never runtime environment values. */
 export function createServerBuildInfo(service, commit) {
   if (service !== 'api') {
     throw new Error('Expected the API service.')

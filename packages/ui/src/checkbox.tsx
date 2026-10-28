@@ -27,5 +27,4 @@ function CheckboxImpl({ className, style, ...props }: CheckboxProps & ForwardedS
   )
 }
 
-// Base UI Checkbox의 Root와 Indicator. 켜면 신호색 상자에 체크, indeterminate면 가로줄을 그린다.
 export const Checkbox: ComponentType<CheckboxProps> = CheckboxImpl

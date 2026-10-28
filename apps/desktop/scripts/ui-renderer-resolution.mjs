@@ -13,6 +13,5 @@ const server = await createServer({
   server: { ...renderer.server, host: '127.0.0.1', port: 0 }
 })
 
-// HTTP assertion과 이 child의 종료는 부모 regression test가 소유한다.
 await server.listen()
 server.printUrls()

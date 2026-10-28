@@ -1,7 +1,6 @@
 import type { Configuration } from 'electron-builder'
 import { channels, type Channel, type ChannelName } from './channels'
 
-// 설치와 제거 때 이 앱 소유의 legacy protocol 키만 정리한다.
 function readInstallerInclude(
   packaging: Channel['packaging']
 ): Pick<NonNullable<Configuration['nsis']>, 'include'> {
@@ -12,14 +11,9 @@ function readInstallerInclude(
   return { include: packaging.installerInclude }
 }
 
-/**
- * channels.json의 채널 하나로 electron-builder 설정을 만든다.
- * 채널과 무관한 packaging 정책은 여기 한 곳에 두고, 진입 파일은 채널만 고른다.
- */
 export function createBuilderConfig(name: ChannelName): Configuration {
   const { packaging, identity } = channels[name]
   const installerInclude = readInstallerInclude(packaging)
-  // 파일명은 공백 없는 접두어가 필요한 채널만 따로 정하고, 나머지는 electron-builder가 앱 이름으로 채운다.
   const artifactPrefix = packaging.artifactPrefix ?? '${productName}'
 
   return {

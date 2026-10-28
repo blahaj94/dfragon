@@ -5,7 +5,6 @@ import {
   type WindowChromeIPCFunctions
 } from '../../preload/common/types/window-chrome'
 
-/** 신뢰한 메인 화면이 보이는 화면(파티, 공대)에 맞춰 요청한 내용 높이를 창에 적용한다. */
 export function registerWindowChromeWindow({
   window,
   documentUrl
@@ -43,8 +42,6 @@ export function registerWindowChromeWindow({
     }
     const workArea = screen.getDisplayMatching(window.getBounds()).workArea
     const height = Math.min(args[0], workArea.height)
-    // 사용자가 바꾼 폭은 유지하고 높이만 화면의 높이로 맞춘다. 사용자가 키운 높이는 화면을 바꾸면 그 화면의
-    // 높이로 돌아간다.
     const [width] = window.getContentSize()
     window.setContentSize(width, height)
   }

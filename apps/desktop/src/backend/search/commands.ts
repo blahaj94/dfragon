@@ -20,7 +20,6 @@ const SEARCH_ID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{
 const uuid = text.regex(SEARCH_ID_PATTERN)
 const safeInteger = z.int()
 const observationRevision = safeInteger.positive()
-// 슬롯 번호는 0부터 검색 수명의 슬롯 수 미만이다.
 function slotIndex(slotCount: SearchSlotCount) {
   return safeInteger.min(0).max(slotCount - 1)
 }
@@ -107,7 +106,6 @@ const portraitSchema = z
           mask.every((value) => value === 0 || value === 1)))
     )
   })
-// 수치 표기는 판독기가 돌려주는 문자만 받는다. 값 범위 해석은 식별 단계가 한다.
 const raidRowSchema = z.strictObject({
   jobText: text.min(1).max(MAX_RAID_JOB_TEXT_LENGTH).nullable(),
   valueColumn: z.enum(RAID_VALUE_COLUMNS),
@@ -121,7 +119,6 @@ function createOcrObservationSchema(slotCount: SearchSlotCount) {
     portrait: portraitSchema.nullable()
   })
 }
-// 파티 캡처는 네 자리, 공대 캡처는 12자리의 OCR 관측을 받는다. 공대 관측만 그 행의 직업명과 수치를 함께 보낸다.
 const ocrObservationSchemas = {
   [SEARCH_SLOT_COUNTS.party]: createOcrObservationSchema(SEARCH_SLOT_COUNTS.party).refine(
     (input) => input.nickname === input.candidateNicknames[0]

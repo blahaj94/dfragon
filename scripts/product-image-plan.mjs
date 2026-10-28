@@ -169,7 +169,6 @@ function positiveId(value) {
 
 const GITHUB_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/
 const GITHUB_API_BASE_PATH_SUFFIX_PATTERN = /\/$/
-// 이 수만큼의 최근 성공 실행에 발행 계획이 없으면 baseline 없이 모든 이미지를 다시 만든다.
 const BASELINE_RUN_LIMIT = 30
 
 export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = fetch }) {

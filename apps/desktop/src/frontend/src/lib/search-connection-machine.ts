@@ -22,7 +22,6 @@ type ConnectionContext = ConnectionTarget & {
   queued: SearchSnapshot | null
 }
 
-/** 초기 동기화와 응답 유실 복구에서 같은 검증 경계로 검색 상태를 조회한다. */
 export async function readSearchSnapshot({
   api,
   slotCount

@@ -1,4 +1,3 @@
-// 서버 선택 목록이 이 순서대로 보인다.
 export const serverNames = {
   cain: '카인',
   diregie: '디레지에',

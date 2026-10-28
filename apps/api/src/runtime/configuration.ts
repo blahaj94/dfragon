@@ -37,7 +37,6 @@ async function readLocalHttps(environment: NodeJS.ProcessEnv, port: number, apiO
   return { cert, key }
 }
 
-/** 기본 entry가 전달한 환경과 파일을 한 번 읽고 앱 시작 전에 검증을 끝낸다. */
 export async function readRuntimeConfiguration(environment: NodeJS.ProcessEnv) {
   try {
     const port = parsePort(environment.PORT)

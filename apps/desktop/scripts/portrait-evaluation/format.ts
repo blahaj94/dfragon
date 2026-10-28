@@ -35,7 +35,6 @@ export function formatCaseTable(results: readonly CaseResult[]): string {
   )
 }
 
-/** 후보별 점수. 점수가 없는 후보는 null로 남긴다. */
 export function formatCandidateTable(results: readonly CaseResult[]): string {
   return table(
     ['N', 'case', 'candidate', 'correct', 'distance', 'coverage', 'cells'],

@@ -14,7 +14,6 @@ export const previewCharacter: CardCharacter = {
   image: characterImage
 }
 
-// 버퍼 카드를 딜러 카드 옆에 둔다.
 export const bufferPreviewCharacter: CardCharacter = {
   ...previewCharacter,
   name: '미리보기인챈',
@@ -23,7 +22,6 @@ export const bufferPreviewCharacter: CardCharacter = {
   card: bufferCard
 }
 
-// 합성 카드 값. 역할과 장비 점수만 바꾼다.
 function previewCard({
   base = dealerCard,
   score
@@ -36,8 +34,6 @@ function previewCard({
   return { ...base, score: scoreValue }
 }
 
-// 상위 유저 매칭 캔버스처럼 기본, 상위, 랭커 카드를 나란히 둔다. 단계를 나누는 기준이 아직 없어
-// 단계와 숫자는 모두 합성 값이다.
 export const tierPreviewCharacters: readonly (CardCharacter | null)[] = [
   previewCharacter,
   {
@@ -57,8 +53,6 @@ export const tierPreviewCharacters: readonly (CardCharacter | null)[] = [
   null
 ]
 
-// 점수 라벨과 색 비교. 딜러(장비 점수, 파랑), 버퍼(버프 점수, 초록), 역할을 모르는 카드(장비 점수, 기본색),
-// 상위 단계 버퍼(버프 점수, 단계 색)를 나란히 둔다. 이름, 단계, 숫자는 모두 합성 값이다.
 export const rolePreviewCharacters: readonly (CardCharacter | null)[] = [
   previewCharacter,
   bufferPreviewCharacter,
@@ -76,7 +70,6 @@ export const rolePreviewCharacters: readonly (CardCharacter | null)[] = [
   }
 ]
 
-// 공대원마다 이름, 직업, 명성, 카드 값 여부, 단계다.
 const raidMembers = [
   ['미리보기검사', '眞 웨펀마스터', 125850, true, undefined],
   ['샘플크루', '眞 크루세이더', 131204, true, 'top'],
@@ -93,9 +86,6 @@ const raidMembers = [
 
 const bufferJobs = new Set(['眞 크루세이더', '眞 인챈트리스', '眞 뮤즈'])
 
-// 공대 12인 화면의 합성 공대원. 세 파티 네 명씩이고 마지막 자리는 비어 있다. 이름, 단계, 숫자는 모두
-// 합성 값이다. 카드 값이 없는 공대원은 main이 카드 값을 넘기지 않은 경우처럼 길드와 장비 점수도 없어 `-`로
-// 보인다.
 export const raidPreviewCharacters: readonly (CardCharacter | null)[] = [
   ...raidMembers.map(([name, job, fame, hasCard, tier], index) => {
     const base = bufferJobs.has(job) ? bufferCard : dealerCard
@@ -118,7 +108,6 @@ function withAdventure(character: CardCharacter, name: string, adventure: string
   return { ...character, name, adventure }
 }
 
-// 공대원에게 자리 번호별 합성 모험단을 준다. 빈 자리는 vacant로 채운다.
 function withSampleAdventure(
   member: CardCharacter | null,
   index: number,
@@ -140,9 +129,6 @@ const snapshotMembers = {
   stranger: withAdventure(previewCharacter, '미리보기외부', '낯선모험단')
 }
 
-// 모험단 순번 스냅샷 미리보기의 파티. 첫 회차에서 스냅샷을 켠 뒤 캡처 버튼을 누르면 다음 회차가 되어 1번과
-// 2번의 자리가 바뀌고, 3번은 같은 모험단의 다른 캐릭터가 들어오고, 4번은 스냅샷에 없는 모험단이 들어온다.
-// 캡처를 한 번 더 누르면 처음 회차로 돌아온다. 이름과 모험단은 모두 합성 값이다.
 export const snapshotPreviewPartyRounds: readonly (readonly CardCharacter[])[] = [
   [snapshotMembers.first, snapshotMembers.second, snapshotMembers.third, snapshotMembers.fourth],
   [
@@ -153,9 +139,6 @@ export const snapshotPreviewPartyRounds: readonly (readonly CardCharacter[])[] =
   ]
 ]
 
-// 모험단 순번 스냅샷 미리보기의 공대. 공대원마다 다른 모험단이고 빈 자리가 하나 있다. 캡처 버튼을 누르면
-// 다음 회차가 되어 빈 자리에 스냅샷에 없는 모험단의 공대원이 들어온다. 캡처를 한 번 더 누르면 처음 회차로
-// 돌아온다.
 export const snapshotPreviewRaidRounds: readonly (readonly (CardCharacter | null)[])[] = [
   raidPreviewCharacters.map((member, index) => withSampleAdventure(member, index, null)),
   raidPreviewCharacters.map((member, index) =>
@@ -163,7 +146,6 @@ export const snapshotPreviewRaidRounds: readonly (readonly (CardCharacter | null
   )
 ]
 
-// 후보 줄 미리보기. 얼굴 창은 합성 좌표이며, 이미지는 미리보기에서 받지 못하면 빈 칸으로 보인다.
 const previewFace = { x: 150, y: 50, width: 40, height: 40 }
 function previewChoice(
   serverId: string,
@@ -182,7 +164,6 @@ function previewChoice(
   }
 }
 
-/** 슬롯마다 후보 넷, 둘, 얼굴 없는 여덟, 없음 */
 export const candidatePreviewChoices: readonly (readonly CharacterChoice[] | null)[] = [
   [
     previewChoice('siroco', '시로코', '샘플모험단'),

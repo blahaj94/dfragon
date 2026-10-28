@@ -5,20 +5,16 @@ import { styles } from './progress-circle.style'
 
 const RADIUS = 9
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
-// 값이 없을 때 도는 호의 길이. 원의 4분의 1이다.
 const INDETERMINATE_ARC = CIRCUMFERENCE / 4
 
 export type ProgressCircleProps = Omit<
   ComponentPropsWithRef<'svg'>,
   'children' | 'className' | 'style' | 'color'
 > & {
-  /** 없으면 진행률을 모르는 대기 표시로 돈다. */
   value?: number
   minValue?: number
   maxValue?: number
-  /** `inherit`는 글자 크기(1em)를 따른다. */
   size?: '24' | '40' | 'inherit'
-  /** `inherit`는 글자색을 따른다. */
   tone?: 'neutral' | 'brand' | 'staticWhite' | 'inherit'
 }
 
@@ -90,5 +86,4 @@ function ProgressCircleImpl({
   )
 }
 
-// 자체 SVG 진행 표시. 값이 있으면 track 위에 진행 호를, 없으면 마주 보는 두 호를 끊어 돌린다.
 export const ProgressCircle: ComponentType<ProgressCircleProps> = ProgressCircleImpl

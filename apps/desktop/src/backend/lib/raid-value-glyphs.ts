@@ -2,10 +2,7 @@ import type { DNFParticipantFrame, DNFRaidMetadataTemplates, DNFRaidScoreGlyph }
 
 const RGBA_CHANNELS = 4
 
-/**
- * `raid-value-glyphs.png`에 왼쪽부터 이어 붙인 수치 글자와 각 글자의 폭. 글자 사이에 여백은 없고 높이는
- * 모두 17px이다. 글자를 더하거나 바꾸면 sprite와 이 표를 함께 고친다.
- */
+/** 글자를 더하거나 바꾸면 sprite와 이 표를 함께 고친다. */
 const RAID_VALUE_GLYPH_LAYOUT: readonly Readonly<{
   character: DNFRaidScoreGlyph
   width: number
@@ -25,7 +22,6 @@ const RAID_VALUE_GLYPH_LAYOUT: readonly Readonly<{
   { character: 'K', width: 7 }
 ]
 
-/** 수치 글자 sprite를 글자마다 잘라 판독기의 글자 기준으로 바꾼다. 픽셀은 바꾸지 않는다. */
 export function sliceRaidValueGlyphs(
   sprite: DNFParticipantFrame
 ): DNFRaidMetadataTemplates['equipmentScoreGlyphs'] {

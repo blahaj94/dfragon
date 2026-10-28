@@ -7,7 +7,6 @@ export const searchClock: SearchClock = {
   clearTimer: (timer) => clearTimeout(timer as ReturnType<typeof setTimeout>)
 }
 
-/** 갱신 시작 전 DB 대기에 monotonic 2초 deadline을 사용한다. */
 export class SearchDeadline {
   private readonly controller = new AbortController()
   private readonly expiresAt: number

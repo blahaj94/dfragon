@@ -11,10 +11,8 @@ import { styles } from './App.style'
 
 function App(): React.JSX.Element {
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
-  // 상단 바의 화면 머리 자리. 보이는 화면이 자기 머리를 이 요소에 그린다.
   const [boardSlot, setBoardSlot] = useState<HTMLDivElement | null>(null)
   const { partyCapture, raidCapture, controls } = useScreenCapture(searchMode)
-  // 창 내용 높이는 보이는 화면을 따른다.
   useMainWindowHeight(MAIN_WINDOW_HEIGHTS[searchMode])
 
   return (

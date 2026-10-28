@@ -17,7 +17,6 @@ export function createCharacterImageCache(): CompletedCache<CharacterImage> {
 type Waiter = { start: () => void }
 
 /**
- * 이미지 다운로드를 FIFO로 제한하고 성공한 이미지만 공유한다.
  * 각 요청은 자기 signal만 사용하므로 한 슬롯의 취소가 다른 요청을 중단하지 않는다.
  */
 export function createCharacterImageSource({

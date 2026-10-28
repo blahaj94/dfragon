@@ -12,7 +12,6 @@ import { cropPartyPortrait, type PartyPortraitCropper } from './party-portrait'
 const RGBA_CHANNELS = 4
 const ALPHA_CHANNEL = 3
 
-/** GDI 원본에서 다른 창의 가림 때문에 제외된 픽셀이 있는지 확인한다. */
 function containsExcludedPixels(pixels: ArrayLike<number>): boolean {
   for (let index = ALPHA_CHANNEL; index < pixels.length; index += RGBA_CHANNELS) {
     if (pixels[index] === 0) {
@@ -31,7 +30,6 @@ export type PartyRecognitionInput = {
 
 export type PartyFrameSource = (CharacterImage & { captureId?: string }) | null
 
-/** 같은 프레임의 닉네임과 교체 가능한 얼굴 크롭 결과를 슬롯 번호와 함께 묶는다. */
 export function capturePartyRecognitionInputs(
   source: PartyFrameSource,
   portraitCropper: PartyPortraitCropper = cropPartyPortrait
@@ -69,7 +67,6 @@ export function capturePartyRecognitionInputs(
     geometry = detectPartyFrameGeometry({ width, height, rgba })
   } catch (error) {
     if (error instanceof PartyFrameGeometryError && error.reason !== 'invalid-frame') {
-      // 프레임이 없거나 모호하면 빈 회차 결과로 돌려준다.
       return crops
     }
     throw error

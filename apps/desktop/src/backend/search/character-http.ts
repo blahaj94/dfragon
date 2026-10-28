@@ -154,7 +154,6 @@ function assertApiSuccess(
   throw new SearchHttpFailure(code, { retryAfterSeconds, retryAfterReceivedAt })
 }
 
-/** OCR 이름 하나를 정확히 검색하고 API가 정한 명성과 null 후보 순서를 유지한다. */
 export function createCharacterCandidatesHttp({
   apiOrigin,
   fetch: transport = fetchApi,
@@ -190,7 +189,6 @@ export function createCharacterCandidatesHttp({
   }
 }
 
-/** 검증한 식별자로 고정 네오플 캐릭터 이미지 경로를 구성해 다운로드한다. */
 export function createCharacterImageHttp({
   fetch: transport = fetchApi,
   clock
@@ -236,7 +234,6 @@ export function createCharacterImageHttp({
   }
 }
 
-/** 선택한 캐릭터의 식별자를 확인하고 시즌별 섹션 JSON을 보존한다. */
 export function createCharacterDetailsHttp({
   apiOrigin,
   fetch: transport = fetchApi,

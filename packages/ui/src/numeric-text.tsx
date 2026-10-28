@@ -8,13 +8,10 @@ const defaultFormatter = new Intl.NumberFormat('ko-KR')
 
 export type NumericTextProps = {
   value: number
-  /** 화면에 보일 글자. 기본은 한국어 천 단위 구분이다. */
   format?: (value: number) => string
-  /** 처음 보일 때와 값이 바뀔 때 400ms 동안 올라간다. @default true */
   countUp?: boolean
 }
 
-// 숫자 글꼴의 tabular-nums 값. 올라가는 동안의 글자는 보조 기술에 숨기고 최종값만 읽힌다.
 export function NumericText({
   value,
   format = (number) => defaultFormatter.format(number),

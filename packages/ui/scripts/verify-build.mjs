@@ -123,7 +123,6 @@ const cssFiles = files.filter((file) => {
 
 const NONPORTABLE_DECLARATION_PATTERN = /node:|NodeJS|\.pnpm/
 const STYLESHEET_IMPORT_PATTERN = /\.css(?:$|\?)/
-// tokens.css에서 한 번만 정의하는 변수로 import 횟수를 센다.
 const TOKENS_DEFINITION_PATTERN = /--df-brand-dragon\s*:/g
 // foundation.css의 system font stack 첫머리로 센다. 앱 전역 글꼴 CSS의 대체 글꼴 목록은 세지 않는다.
 const FOUNDATION_FONT_FAMILY_PATTERN =
@@ -157,7 +156,6 @@ if (isLibrary) {
         isAllowedStylexImport,
         `Library must import only @stylexjs/stylex: ${file} ${specifier}`
       )
-      // 걷어낸 SEED와 SEED 아이콘은 다시 들이지 않는다(Design System). 해석하지 못한 import가
       // external로 남는 경우도 막는다.
       const isSeedPackage =
         specifier.startsWith('@seed-design/') || specifier.startsWith('@karrotmarket/')
@@ -213,7 +211,6 @@ if (isLibrary) {
     const hasExternalImport = imports.includes(external)
     assert.ok(hasExternalImport, `External import: ${external}`)
   }
-  // 공용 Component는 Base UI 부품을 subpath(@base-ui/react/dialog 등)로 가져온다.
   const hasBaseUiImport = imports.some((specifier) => {
     const isBaseUi = specifier === '@base-ui/react' || specifier.startsWith('@base-ui/react/')
 

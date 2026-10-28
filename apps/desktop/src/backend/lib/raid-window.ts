@@ -57,18 +57,10 @@ function getValueGlyphs(): ValueGlyphs {
   return valueGlyphs
 }
 
-/**
- * 한 프레임에서 12행 공대 상세 창을 찾고 참가 행의 닉네임 원본을 복사한다. 개발자 작업 공간의 공대원창
- * 크롭과 일반 공대 캡처가 같은 검출과 크롭을 쓴다.
- */
 export function cropRaidWindowNicknames(frame: DNFParticipantFrame): DNFRaidParticipantCropResult {
   return cropDNFRaidParticipantNicknames(frame, getRaidHeading())
 }
 
-/**
- * 찾은 공대 상세 창의 수치 열 종류와 행마다 수치 칸의 표기를 읽는다. 표기는 화면 순서이며 빈 행과 읽지
- * 못한 행은 null이다.
- */
 export function readRaidWindowValues(
   frame: DNFParticipantFrame,
   detection: Pick<FoundDetection, 'valueHeadingRegion' | 'rows'>
