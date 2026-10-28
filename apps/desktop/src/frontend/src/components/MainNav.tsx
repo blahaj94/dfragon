@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Menu, shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import { windowChromeStyles } from '../constants/window-chrome.style'
+import { useSearchModeStore } from '../hooks/useSearchModeStore'
 import { ChevronDownIcon } from './ChevronDownIcon'
 import type { SearchMode } from '../types/search-mode'
 import { styles } from './MainNav.style'
@@ -15,13 +16,9 @@ function isSearchMode(value: unknown): value is SearchMode {
   return SEARCH_MODES.some((mode) => mode.value === value)
 }
 
-export function MainNav({
-  searchMode,
-  onSearchModeChange
-}: {
-  searchMode: SearchMode
-  onSearchModeChange: (mode: SearchMode) => void
-}): React.JSX.Element {
+export function MainNav(): React.JSX.Element {
+  const searchMode = useSearchModeStore((state) => state.searchMode)
+  const changeSearchMode = useSearchModeStore((state) => state.changeSearchMode)
   const [open, setOpen] = useState(false)
   const current = SEARCH_MODES.find((mode) => mode.value === searchMode)
 
@@ -57,7 +54,7 @@ export function MainNav({
             value={searchMode}
             onValueChange={(value) => {
               if (isSearchMode(value)) {
-                onSearchModeChange(value)
+                changeSearchMode(value)
               }
             }}
           >
