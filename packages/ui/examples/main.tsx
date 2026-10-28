@@ -12,8 +12,11 @@ import {
   DialogAction,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogRoot,
+  DialogTitle,
   DialogTrigger,
   ExampleSection,
   IconButton,
@@ -28,7 +31,10 @@ import {
   Switch,
   Tabs,
   TextField,
+  TextFieldDescription,
+  TextFieldError,
   TextFieldInput,
+  TextFieldLabel,
   Tooltip,
   type CardFrameState
 } from '@dfragon/ui'
@@ -135,24 +141,20 @@ function Examples() {
           </SupportingText>
         </ExampleSection>
         <ExampleSection title="입력">
-          <TextField
-            label="표시 이름"
-            description="도메인과 관계없는 예시 이름입니다."
-            value={name}
-            onValueChange={({ value }) => setName(value)}
-          >
-            <TextFieldInput />
+          <TextField>
+            <TextFieldLabel>표시 이름</TextFieldLabel>
+            <TextFieldInput value={name} onValueChange={setName} />
+            <TextFieldDescription>도메인과 관계없는 예시 이름입니다.</TextFieldDescription>
           </TextField>
-          <TextField
-            label="오류 예시"
-            invalid
-            errorMessage="이름을 입력해 주세요."
-            description="오류와 설명의 연결을 확인합니다."
-          >
+          <TextField invalid>
+            <TextFieldLabel>오류 예시</TextFieldLabel>
             <TextFieldInput />
+            <TextFieldDescription>오류와 설명의 연결을 확인합니다.</TextFieldDescription>
+            <TextFieldError>이름을 입력해 주세요.</TextFieldError>
           </TextField>
-          <TextField label="비활성 예시" disabled value="변경할 수 없습니다.">
-            <TextFieldInput />
+          <TextField disabled>
+            <TextFieldLabel>비활성 예시</TextFieldLabel>
+            <TextFieldInput value="변경할 수 없습니다." />
           </TextField>
         </ExampleSection>
         <ExampleSection title="목록과 메뉴">
@@ -249,7 +251,11 @@ function Examples() {
         <ExampleSection title="대화상자">
           <DialogRoot>
             <DialogTrigger render={<Button />}>입력한 값 보기</DialogTrigger>
-            <DialogContent title="입력한 값" description="열기, 닫기, 키보드 focus를 확인합니다.">
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>입력한 값</DialogTitle>
+                <DialogDescription>열기, 닫기, 키보드 focus를 확인합니다.</DialogDescription>
+              </DialogHeader>
               <DialogBody>
                 <SupportingText>{name}</SupportingText>
               </DialogBody>

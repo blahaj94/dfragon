@@ -1,6 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog'
 import * as stylex from '@stylexjs/stylex'
-import type { ComponentType, ReactNode, Ref } from 'react'
+import type { ComponentType, Ref } from 'react'
 import { Button, type ButtonProps } from './button'
 import { CloseIcon } from './icons'
 import { IconButton } from './icon-button'
@@ -23,18 +23,20 @@ export function DialogRoot({
   onOpenChange,
   ...props
 }: DialogRootProps) {
+  const handleOpenChange: DialogRootProps['onOpenChange'] = (open, details) => {
+    const isListEscape = details.reason === 'escape-key' && isInsideList(details.event.target)
+    if (isListEscape) {
+      details.cancel()
+
+      return
+    }
+    onOpenChange?.(open, details)
+  }
+
   return (
     <Dialog.Root
       disablePointerDismissal={disablePointerDismissal}
-      onOpenChange={(open, details) => {
-        const isListEscape = details.reason === 'escape-key' && isInsideList(details.event.target)
-        if (isListEscape) {
-          details.cancel()
-
-          return
-        }
-        onOpenChange?.(open, details)
-      }}
+      onOpenChange={handleOpenChange}
       {...props}
     />
   )
@@ -48,58 +50,83 @@ export const DialogTrigger: ComponentType<DialogTriggerProps> = Dialog.Trigger
 
 export type DialogContentProps = Omit<PublicProps<typeof Dialog.Popup>, 'title' | 'ref'> & {
   ref?: Ref<HTMLDivElement>
-  title?: ReactNode
-  description?: ReactNode
-  showCloseButton?: boolean
   size?: 'sm' | 'lg'
 }
 
 function DialogContentImpl({
-  title,
-  description,
-  showCloseButton = true,
   size = 'sm',
-  children,
   className,
   style,
   ...popupProps
 }: DialogContentProps & ForwardedStyle) {
-  const showsHeader = title != null || description != null || showCloseButton
-
   return (
     <Dialog.Portal>
       <Dialog.Backdrop {...stylex.props(styles.backdrop)} />
       <Dialog.Popup
         {...popupProps}
         {...withForwardedStyle(stylex.props(styles.popup, styles[size]), { className, style })}
-      >
-        {showsHeader && (
-          <div {...stylex.props(styles.header)}>
-            <div {...stylex.props(styles.heading)}>
-              {title != null && (
-                <Dialog.Title {...stylex.props(styles.title)}>{title}</Dialog.Title>
-              )}
-              {description != null && (
-                <Dialog.Description {...stylex.props(styles.description)}>
-                  {description}
-                </Dialog.Description>
-              )}
-            </div>
-            {showCloseButton && (
-              <Dialog.Close
-                render={<IconButton aria-label="닫기" icon={<CloseIcon />} />}
-                {...stylex.props(styles.close)}
-              />
-            )}
-          </div>
-        )}
-        {children}
-      </Dialog.Popup>
+      />
     </Dialog.Portal>
   )
 }
 
 export const DialogContent: ComponentType<DialogContentProps> = DialogContentImpl
+
+export type DialogHeaderProps = PublicProps<'div'> & {
+  showCloseButton?: boolean
+}
+
+function DialogHeaderImpl({
+  showCloseButton = true,
+  children,
+  className,
+  style,
+  ...props
+}: DialogHeaderProps & ForwardedStyle) {
+  return (
+    <div {...props} {...withForwardedStyle(stylex.props(styles.header), { className, style })}>
+      <div {...stylex.props(styles.heading)}>{children}</div>
+      {showCloseButton && (
+        <Dialog.Close
+          render={<IconButton aria-label="닫기" icon={<CloseIcon />} />}
+          {...stylex.props(styles.close)}
+        />
+      )}
+    </div>
+  )
+}
+
+export const DialogHeader: ComponentType<DialogHeaderProps> = DialogHeaderImpl
+
+export type DialogTitleProps = PublicProps<typeof Dialog.Title>
+
+function DialogTitleImpl({ className, style, ...props }: DialogTitleProps & ForwardedStyle) {
+  return (
+    <Dialog.Title
+      {...props}
+      {...withForwardedStyle(stylex.props(styles.title), { className, style })}
+    />
+  )
+}
+
+export const DialogTitle: ComponentType<DialogTitleProps> = DialogTitleImpl
+
+export type DialogDescriptionProps = PublicProps<typeof Dialog.Description>
+
+function DialogDescriptionImpl({
+  className,
+  style,
+  ...props
+}: DialogDescriptionProps & ForwardedStyle) {
+  return (
+    <Dialog.Description
+      {...props}
+      {...withForwardedStyle(stylex.props(styles.description), { className, style })}
+    />
+  )
+}
+
+export const DialogDescription: ComponentType<DialogDescriptionProps> = DialogDescriptionImpl
 
 export type DialogBodyProps = PublicProps<'div'>
 

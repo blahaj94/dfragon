@@ -9,7 +9,7 @@ last-reviewed: 2026-10-27
 
 ## 적용 상태와 범위
 
-2026-10-18 결정으로 모든 workspace의 browser UI에서 SEED Design을 걷어냈다. `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하고, 외형은 StyleX로 직접 그린다. Desktop은 아래 [DFragon 디자인 규칙](#dfragon-디자인-규칙)으로 다시 그리고, OCR, Accounts는 SEED만 걷어내며 화면 배치는 유지한다.
+2026-10-18 결정으로 모든 workspace의 browser UI에서 SEED Design을 걷어냈다. `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하고, 외형은 StyleX로 직접 그린다. 이 패키지를 쓰는 앱은 Desktop 하나이며, 아래 [DFragon 디자인 규칙](#dfragon-디자인-규칙)으로 다시 그린다.
 
 저장소에는 SEED 코드와 의존성이 남아 있지 않다. Desktop DFragon 디자인 적용은 화면별로 진행한다.
 
@@ -91,13 +91,13 @@ Desktop 화면은 아래 규칙으로 그린다. 상세 값과 예시는 dfragon
 
 ## Typo의 명시적 예외
 
-`@dfragon/ui`는 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`, `txtM`, `txtS`, `caption`을 제공한다. 지정한 크기, 행간, 굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute, event와 `className`, `style`, `color`, `align`, `weight`를 지원한다. 2026-09-19 요청으로 Desktop의 카드, 상세 미리보기, 설정, 캡처 화면과 accounts의 패스키 인증 browser 화면에 이 규격을 적용한다. 기존 공용 Component의 interaction은 유지하며 label에는 Typo를 조합한다. 라이브러리가 생성하는 서버 선택 텍스트는 공개 `typographyVariants`를 적용하고, 검색 input은 TextField의 요소 합성 API(`render`)에 Typo를 연결한다. focus가 필요한 HTML element는 태그에 맞는 `ref`를 전달한다.
+`@dfragon/ui`는 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`, `txtM`, `txtS`, `caption`을 제공한다. 지정한 크기, 행간, 굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute, event와 `className`, `style`, `color`, `align`, `weight`를 지원한다. 2026-09-19 요청으로 Desktop의 카드, 상세 미리보기, 설정, 캡처 화면에 이 규격을 적용한다. 기존 공용 Component의 interaction은 유지하며 label에는 Typo를 조합한다. 입력에 Typo를 쓸 때는 `TextFieldInput`의 요소 합성 API(`render`)로 연결한다. focus가 필요한 HTML element는 태그에 맞는 `ref`를 전달한다.
 
 ## 글꼴과 한국어 타이포그래피
 
 Desktop renderer는 앱에 번들한 마루미냐 한글(MaruMinya Hangul, x12y12pxMaruMinyaHangul) 비트맵 글꼴을 사용하며 CDN에서 받지 않는다. 글꼴 이름과 대체 순서는 각 앱 전역 글꼴 CSS의 `body` 한 곳에서 정하고 화면 스타일에 반복하지 않는다. 화면은 상속을 사용하며, 기본 글꼴이 따로 정해진 `pre` 같은 요소만 `inherit`로 연결한다. 굵기는 400, 500, 600, 700만 쓴다. 마루미냐 한글은 굵기가 하나라 Desktop의 500 이상은 브라우저가 합성한다. Typo의 크기, 행간, 굵기, 자간은 `typographyVariants`가 소유한다.
 
-Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들하고 CDN에서 받지 않는다. 600, 700 굵기를 숫자와 기본 라틴 문자로 줄여 담고, `@font-face`는 Desktop 전역 글꼴 CSS에, 글꼴 이름은 `font` 토큰에 둔다. 숫자 값은 `NumericText`나 같은 토큰으로 이 글꼴을 쓴다. OCR은 Barlow Condensed를 번들하지 않는다.
+Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들하고 CDN에서 받지 않는다. 600, 700 굵기를 숫자와 기본 라틴 문자로 줄여 담고, `@font-face`는 Desktop 전역 글꼴 CSS에, 글꼴 이름은 `font` 토큰에 둔다. 숫자 값은 `NumericText`나 같은 토큰으로 이 글꼴을 쓴다.
 
 - 같은 전역 CSS에 `word-break: keep-all`, `overflow-wrap: anywhere`를 두어 한국어를 어절 단위로 줄바꿈하고 긴 문자열은 영역 안에서 나눈다. `packages/ui/foundation.css`는 공용 Example도 공유하므로 이 기준을 두지 않는다.
 - 기울임, `text-transform: uppercase`, 양수 자간을 새로 쓰지 않는다.

@@ -8,7 +8,10 @@ import {
   Chip,
   DialogAction,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
   DialogRoot,
+  DialogTitle,
   DialogTrigger,
   IconButton,
   Kbd,
@@ -20,13 +23,16 @@ import {
   Switch,
   Tabs,
   TextField,
+  TextFieldDescription,
+  TextFieldError,
   TextFieldInput,
+  TextFieldLabel,
   Typo,
   type ButtonProps,
   type ControlSurface,
   type DialogRootProps,
   type IconButtonProps,
-  type TextFieldProps
+  type TextFieldInputProps
 } from '../src/index'
 
 let container: HTMLDivElement
@@ -210,7 +216,8 @@ describe('Button의 클릭과 disabled, loading 상태', () => {
 describe('TextField의 controlled 입력과 접근성 연결', () => {
   it('표시된 label이 편집 가능한 입력의 이름이 된다', async () => {
     await render(
-      <TextField label="표시 이름">
+      <TextField>
+        <TextFieldLabel>표시 이름</TextFieldLabel>
         <TextFieldInput />
       </TextField>
     )
@@ -218,32 +225,32 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
     expect(getByRole('textbox', '표시 이름')).toBeInstanceOf(HTMLInputElement)
   })
 
-  it('TextField의 ref는 입력을 감싼 상자를 가리킨다', async () => {
+  it('TextField의 ref는 라벨과 입력을 담은 field를 가리킨다', async () => {
     const ref = createRef<HTMLDivElement>()
     await render(
-      <TextField ref={ref} label="표시 이름">
+      <TextField ref={ref}>
+        <TextFieldLabel>표시 이름</TextFieldLabel>
         <TextFieldInput />
       </TextField>
     )
 
-    expect(ref.current).toBe(getByRole('textbox', '표시 이름').parentElement)
+    expect(ref.current?.contains(getByRole('textbox', '표시 이름'))).toBe(true)
+    expect(ref.current?.textContent).toBe('표시 이름')
   })
 
   it('편집 값을 전달하고 소비자가 변환한 controlled 값을 표시한다', async () => {
-    const onValueChange = vi.fn<NonNullable<TextFieldProps['onValueChange']>>()
+    const onValueChange = vi.fn<(value: string) => void>()
     function ControlledField() {
       const [value, setValue] = useState('')
+      const handleValueChange = (nextValue: string) => {
+        onValueChange(nextValue)
+        setValue(nextValue.toUpperCase())
+      }
 
       return (
-        <TextField
-          label="표시 이름"
-          value={value}
-          onValueChange={(details) => {
-            onValueChange(details)
-            setValue(details.value.toUpperCase())
-          }}
-        >
-          <TextFieldInput />
+        <TextField>
+          <TextFieldLabel>표시 이름</TextFieldLabel>
+          <TextFieldInput value={value} onValueChange={handleValueChange} />
         </TextField>
       )
     }
@@ -252,27 +259,28 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
 
     await editInput(input, 'New name')
 
-    expect(onValueChange).toHaveBeenLastCalledWith({ value: 'New name' })
+    expect(onValueChange).toHaveBeenLastCalledWith('New name')
     expect(input.value).toBe('NEW NAME')
 
     await editInput(input, '')
 
-    expect(onValueChange).toHaveBeenLastCalledWith({ value: '' })
+    expect(onValueChange).toHaveBeenLastCalledWith('')
     expect(input.value).toBe('')
   })
 
   it('소비자가 편집 값을 채택하지 않으면 기존 controlled 값을 유지한다', async () => {
-    const onValueChange = vi.fn<NonNullable<TextFieldProps['onValueChange']>>()
+    const onValueChange = vi.fn<NonNullable<TextFieldInputProps['onValueChange']>>()
     await render(
-      <TextField label="표시 이름" value="고정 이름" onValueChange={onValueChange}>
-        <TextFieldInput />
+      <TextField>
+        <TextFieldLabel>표시 이름</TextFieldLabel>
+        <TextFieldInput value="고정 이름" onValueChange={onValueChange} />
       </TextField>
     )
     const input = getByRole('textbox', '표시 이름') as HTMLInputElement
 
     await editInput(input, '바꾸려는 이름')
 
-    expect(onValueChange).toHaveBeenLastCalledWith({ value: '바꾸려는 이름' })
+    expect(onValueChange).toHaveBeenLastCalledWith('바꾸려는 이름', expect.anything())
     expect(input.value).toBe('고정 이름')
   })
 
@@ -281,7 +289,8 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
       const [value, setValue] = useState('처음')
 
       return (
-        <TextField label="정답 닉네임">
+        <TextField>
+          <TextFieldLabel>정답 닉네임</TextFieldLabel>
           <TextFieldInput value={value} onChange={(event) => setValue(event.target.value)} />
         </TextField>
       )
@@ -297,13 +306,11 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
   it('invalid 전환에 따라 오류 연결을 추가, 제거하며 설명 연결을 유지한다', async () => {
     function Field({ invalid }: { invalid: boolean }) {
       return (
-        <TextField
-          label="표시 이름"
-          invalid={invalid}
-          description="다른 사람이 볼 이름입니다."
-          errorMessage="이름을 입력해 주세요."
-        >
+        <TextField invalid={invalid}>
+          <TextFieldLabel>표시 이름</TextFieldLabel>
           <TextFieldInput />
+          <TextFieldDescription>다른 사람이 볼 이름입니다.</TextFieldDescription>
+          <TextFieldError>이름을 입력해 주세요.</TextFieldError>
         </TextField>
       )
     }
@@ -328,23 +335,17 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
   it('여러 입력의 label, 설명, 오류가 다른 필드와 섞이지 않는다', async () => {
     await render(
       <>
-        <TextField
-          label="표시 이름"
-          value="모험가"
-          invalid
-          description="다른 사람이 볼 이름입니다."
-          errorMessage="이름을 확인해 주세요."
-        >
-          <TextFieldInput />
+        <TextField invalid>
+          <TextFieldLabel>표시 이름</TextFieldLabel>
+          <TextFieldInput value="모험가" />
+          <TextFieldDescription>다른 사람이 볼 이름입니다.</TextFieldDescription>
+          <TextFieldError>이름을 확인해 주세요.</TextFieldError>
         </TextField>
-        <TextField
-          label="이메일"
-          value="hello@example.invalid"
-          invalid
-          description="연락받을 이메일입니다."
-          errorMessage="이메일을 확인해 주세요."
-        >
-          <TextFieldInput />
+        <TextField invalid>
+          <TextFieldLabel>이메일</TextFieldLabel>
+          <TextFieldInput value="hello@example.invalid" />
+          <TextFieldDescription>연락받을 이메일입니다.</TextFieldDescription>
+          <TextFieldError>이메일을 확인해 주세요.</TextFieldError>
         </TextField>
       </>
     )
@@ -369,12 +370,9 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
       const input = <Typo.txtS as="input" ref={ref} />
 
       return (
-        <TextField
-          label="구성 요소 검색"
-          value={query}
-          onValueChange={({ value }) => setQuery(value)}
-        >
-          <TextFieldInput render={input} />
+        <TextField>
+          <TextFieldLabel>구성 요소 검색</TextFieldLabel>
+          <TextFieldInput render={input} value={query} onValueChange={setQuery} />
         </TextField>
       )
     }
@@ -397,7 +395,11 @@ function DialogExample(props: DialogExampleProps) {
   return (
     <DialogRoot {...props}>
       <DialogTrigger render={<Button />}>상세 정보 열기</DialogTrigger>
-      <DialogContent title="상세 정보" description="입력한 내용을 확인해 주세요.">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>상세 정보</DialogTitle>
+          <DialogDescription>입력한 내용을 확인해 주세요.</DialogDescription>
+        </DialogHeader>
         <DialogAction>확인하고 닫기</DialogAction>
       </DialogContent>
     </DialogRoot>
@@ -537,7 +539,10 @@ describe('Dialog의 상태 전이와 접근성, 포커스', () => {
       const onOpenChange = vi.fn<NonNullable<DialogRootProps['onOpenChange']>>()
       await render(
         <DialogRoot defaultOpen onOpenChange={onOpenChange}>
-          <DialogContent title="화면 캡처">
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>화면 캡처</DialogTitle>
+            </DialogHeader>
             <div role={role} aria-label="캡처할 창" tabIndex={0} />
           </DialogContent>
         </DialogRoot>
@@ -609,7 +614,10 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
     await render(
       <DialogRoot>
         <DialogTrigger render={icon} />
-        <DialogContent title="설정">
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>설정</DialogTitle>
+          </DialogHeader>
           <DialogAction>닫기</DialogAction>
         </DialogContent>
       </DialogRoot>
@@ -668,10 +676,18 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
     await render(
       <>
         <DialogRoot defaultOpen>
-          <DialogContent title="작은 대화상자" />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>작은 대화상자</DialogTitle>
+            </DialogHeader>
+          </DialogContent>
         </DialogRoot>
         <DialogRoot defaultOpen>
-          <DialogContent size="lg" title="큰 대화상자" />
+          <DialogContent size="lg">
+            <DialogHeader>
+              <DialogTitle>큰 대화상자</DialogTitle>
+            </DialogHeader>
+          </DialogContent>
         </DialogRoot>
       </>
     )

@@ -17,8 +17,11 @@ import {
   DialogAction,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogRoot,
+  DialogTitle,
   DialogTrigger,
   ExampleSection,
   IconButton,
@@ -34,7 +37,10 @@ import {
   Switch,
   Tabs,
   TextField,
+  TextFieldDescription,
+  TextFieldError,
   TextFieldInput,
+  TextFieldLabel,
   Tooltip,
   Typo,
   typographyVariants,
@@ -46,8 +52,11 @@ import {
   type DialogActionProps,
   type DialogBodyProps,
   type DialogContentProps,
+  type DialogDescriptionProps,
   type DialogFooterProps,
+  type DialogHeaderProps,
   type DialogRootProps,
+  type DialogTitleProps,
   type DialogTriggerProps,
   type IconButtonProps,
   type KbdProps,
@@ -65,7 +74,10 @@ import {
   type SwitchProps,
   type TabsListProps,
   type TabsTabProps,
+  type TextFieldDescriptionProps,
+  type TextFieldErrorProps,
   type TextFieldInputProps,
+  type TextFieldLabelProps,
   type TextFieldProps,
   type TooltipPopupProps,
   type TypoProps
@@ -76,9 +88,15 @@ type PublicPropKeys =
   | keyof IconButtonProps
   | keyof ProgressCircleProps
   | keyof TextFieldProps
+  | keyof TextFieldLabelProps
   | keyof TextFieldInputProps
+  | keyof TextFieldDescriptionProps
+  | keyof TextFieldErrorProps
   | keyof DialogTriggerProps
   | keyof DialogContentProps
+  | keyof DialogHeaderProps
+  | keyof DialogTitleProps
+  | keyof DialogDescriptionProps
   | keyof DialogBodyProps
   | keyof DialogFooterProps
   | keyof DialogActionProps
@@ -106,11 +124,14 @@ expectTypeOf<IconButtonProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | un
 expectTypeOf<IconButtonProps['size']>().toEqualTypeOf<'sm' | 'md' | 'bar' | 'lg' | undefined>()
 expectTypeOf<ProgressCircleProps['ref']>().toEqualTypeOf<Ref<SVGSVGElement> | undefined>()
 expectTypeOf<TextFieldProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
-expectTypeOf<TextFieldProps['fieldRef']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
+expectTypeOf<TextFieldProps['size']>().toEqualTypeOf<'sm' | 'md' | 'lg' | undefined>()
+expectTypeOf<TextFieldErrorProps>().not.toHaveProperty('match')
 expectTypeOf<TextFieldInputProps['ref']>().toEqualTypeOf<Ref<HTMLInputElement> | undefined>()
 expectTypeOf<DialogTriggerProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
 expectTypeOf<DialogContentProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
 expectTypeOf<DialogContentProps['size']>().toEqualTypeOf<'sm' | 'lg' | undefined>()
+expectTypeOf<DialogContentProps>().not.toHaveProperty('title')
+expectTypeOf<DialogHeaderProps['showCloseButton']>().toEqualTypeOf<boolean | undefined>()
 expectTypeOf<DialogBodyProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
 expectTypeOf<DialogFooterProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
 expectTypeOf<DialogActionProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
@@ -159,32 +180,28 @@ export const componentExamples = (
       </Button>
       <ProgressCircle ref={svgRef} value={50} size="24" tone="brand" aria-label="진행률" />
       <LoadingIndicator>불러오는 중</LoadingIndicator>
-      <TextField
-        ref={divRef}
-        fieldRef={divRef}
-        label="표시 이름"
-        description="예시 이름입니다."
-        errorMessage="이름을 입력하세요."
-        invalid
-        required
-        readOnly
-        size="lg"
-        value="예시"
-        onValueChange={(details) => {
-          expectTypeOf(details.value).toEqualTypeOf<string>()
-        }}
-      >
+      <TextField ref={divRef} invalid size="lg">
+        <TextFieldLabel>표시 이름</TextFieldLabel>
         <TextFieldInput
           ref={inputRef}
           name="displayName"
           placeholder="이름 입력"
           autoComplete="off"
+          required
+          readOnly
+          value="예시"
+          onValueChange={(value) => {
+            expectTypeOf(value).toEqualTypeOf<string>()
+          }}
           onChange={(event) => {
             expectTypeOf(event).toExtend<ChangeEvent<HTMLInputElement>>()
           }}
         />
+        <TextFieldDescription>예시 이름입니다.</TextFieldDescription>
+        <TextFieldError>이름을 입력하세요.</TextFieldError>
       </TextField>
-      <TextField label="검색">
+      <TextField>
+        <TextFieldLabel>검색</TextFieldLabel>
         <TextFieldInput render={<Typo.txtS as="input" />} />
       </TextField>
       <DialogRoot
@@ -201,14 +218,17 @@ export const componentExamples = (
         </DialogTrigger>
         <DialogContent
           ref={divRef}
-          title={<span>작업 상세</span>}
-          description="진행 상태를 확인하세요."
-          showCloseButton={false}
           size="lg"
           onKeyDown={(event) => {
             expectTypeOf(event).toExtend<KeyboardEvent<HTMLDivElement>>()
           }}
         >
+          <DialogHeader ref={divRef} showCloseButton={false}>
+            <DialogTitle>
+              <span>작업 상세</span>
+            </DialogTitle>
+            <DialogDescription>진행 상태를 확인하세요.</DialogDescription>
+          </DialogHeader>
           <DialogBody ref={divRef}>
             <SupportingText>본문</SupportingText>
           </DialogBody>
@@ -413,8 +433,10 @@ export const invalidComponentExamples = (
     <Button variant="brandSolid">실행</Button>
     {/* @ts-expect-error TextField의 임의 className은 공개 prop이 아니다. */}
     <TextField className="field">{null}</TextField>
-    {/* @ts-expect-error TextField는 입력 하나를 children으로 요구한다. */}
-    <TextField label="이름" />
+    {/* @ts-expect-error TextField는 children을 요구한다. */}
+    <TextField invalid />
+    {/* @ts-expect-error TextField는 라벨을 prop이 아니라 TextFieldLabel로 받는다. */}
+    <TextField label="이름">{null}</TextField>
     {/* @ts-expect-error TextField 크기는 sm, md, lg 중 하나다. */}
     <TextField size="medium">{null}</TextField>
     {/* @ts-expect-error TextFieldInput은 자식 요소 합성에 render를 쓴다. */}
@@ -428,9 +450,11 @@ export const invalidComponentExamples = (
     {/* @ts-expect-error DialogTrigger는 자식 요소 합성에 render를 쓴다. */}
     <DialogTrigger asChild>열기</DialogTrigger>
     {/* @ts-expect-error DialogContent 크기는 디자인 대화상자 sm, lg 중 하나다. */}
-    <DialogContent size="md" title="상세" />
+    <DialogContent size="md" />
     {/* @ts-expect-error DialogContent의 className은 공개 prop이 아니다. */}
-    <DialogContent className="wide" title="상세" />
+    <DialogContent className="wide" />
+    {/* @ts-expect-error DialogContent는 제목을 prop이 아니라 DialogTitle로 받는다. */}
+    <DialogContent title="상세" />
     {/* @ts-expect-error DialogFooter의 className은 공개 prop이 아니다. */}
     <DialogFooter className="footer">확인</DialogFooter>
     {/* @ts-expect-error ExampleSection은 제목을 요구한다. */}

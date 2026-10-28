@@ -2,8 +2,20 @@ export { Button } from './button'
 export type { ButtonProps, ButtonSize, ButtonVariant } from './button'
 export { IconButton } from './icon-button'
 export type { IconButtonProps } from './icon-button'
-export { TextField, TextFieldInput } from './text-field'
-export type { TextFieldInputProps, TextFieldProps, TextFieldValueChangeDetails } from './text-field'
+export {
+  TextField,
+  TextFieldDescription,
+  TextFieldError,
+  TextFieldInput,
+  TextFieldLabel
+} from './text-field'
+export type {
+  TextFieldDescriptionProps,
+  TextFieldErrorProps,
+  TextFieldInputProps,
+  TextFieldLabelProps,
+  TextFieldProps
+} from './text-field'
 export type { ControlSurface } from './surface'
 export { Select } from './select'
 export type {
@@ -36,16 +48,22 @@ export {
   DialogAction,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogFooter,
+  DialogHeader,
   DialogRoot,
+  DialogTitle,
   DialogTrigger
 } from './dialog'
 export type {
   DialogActionProps,
   DialogBodyProps,
   DialogContentProps,
+  DialogDescriptionProps,
   DialogFooterProps,
+  DialogHeaderProps,
   DialogRootProps,
+  DialogTitleProps,
   DialogTriggerProps
 } from './dialog'
 export { StatusChip } from './status-chip'
