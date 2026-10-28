@@ -228,7 +228,7 @@ it.each([
   ['recognizing', '인식 중', 'signal', true],
   ['unavailable', '확인 필요', 'warning', false]
 ] as const)(
-  '대화상자 머리는 제목, %s 단계의 %s 칩, 새로고침, 닫기 순서이고 네 모서리 꺾쇠가 %s 톤을 따른다',
+  '대화상자 헤더는 제목, %s 단계의 %s 칩, 새로고침, 닫기 순서이고 네 모서리 꺾쇠가 %s 톤을 따른다',
   async (phase, label, tone, busy) => {
     props.phase = phase
     await openDialog()
@@ -317,7 +317,7 @@ it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에
   expect(actions()).toEqual(['새로고침', '닫기'])
 })
 
-it('안내는 머리 줄의 상태 칩 오른쪽 한 줄이고 전체 문구를 title로 전한다', async () => {
+it('안내는 헤더 줄의 상태 칩 오른쪽 한 줄이고 전체 문구를 title로 전한다', async () => {
   props.phase = 'failed'
   props.status = '게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.'
   await openDialog()

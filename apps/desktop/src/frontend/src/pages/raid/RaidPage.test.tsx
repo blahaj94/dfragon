@@ -135,8 +135,8 @@ async function pressAlt(target: HTMLElement, key: string, altKey = true): Promis
 
 const SEAT_DRAG_TYPE = 'application/x-dfragon-raid-seat'
 
-// jsdom에는 DragEvent가 없어 React가 읽는 dataTransfer만 붙인 이벤트로 끌기를 흉내 낸다. 기본은 자리 끌기
-// 형식이 담긴 끌기다.
+// jsdom에는 DragEvent가 없어 React가 읽는 dataTransfer만 붙인 이벤트로 드래그를 흉내 낸다. 기본은 자리 드래그
+// 형식이 담긴 드래그다.
 async function drag(
   type: string,
   target: HTMLElement,
@@ -266,7 +266,7 @@ it('카드에 포커스한 채 Alt와 방향키로 이웃 자리와 맞바꾸고
   expect(swap).not.toHaveBeenCalled()
 })
 
-it('카드를 다른 카드에 끌어 놓으면 두 자리를 맞바꾸고 이름 칸 글자를 끄는 동작은 자리를 옮기지 않는다', async () => {
+it('카드를 다른 카드에 드래그해 놓으면 두 자리를 맞바꾸고 이름 칸 글자를 드래그하는 동작은 자리를 옮기지 않는다', async () => {
   const swap = vi.fn(() => true)
   await render({ characters: [member], swapSeats: swap })
 
@@ -285,7 +285,7 @@ it('카드를 다른 카드에 끌어 놓으면 두 자리를 맞바꾸고 이�
   expect(swap).not.toHaveBeenCalled()
 })
 
-it('맞바꿀 수 없는 동안은 끌기와 Alt 방향키를 받지 않고 자리 이름에서 옮기기 안내를 뺀다', async () => {
+it('맞바꿀 수 없는 동안은 드래그와 Alt 방향키를 받지 않고 자리 이름에서 옮기기 안내를 뺀다', async () => {
   const swap = vi.fn(() => true)
   await render({ characters: [member], swapSeats: swap, canMoveSeats: false })
 
@@ -300,7 +300,7 @@ it('맞바꿀 수 없는 동안은 끌기와 Alt 방향키를 받지 않고 자�
   expect(swap).not.toHaveBeenCalled()
 })
 
-it('끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend 없이도 끌기를 끝내고 흐린 표시와 놓기를 거둔다', async () => {
+it('드래그하던 카드가 회차나 배치 변경으로 다시 그려지면 dragend 없이도 드래그를 끝내고 흐린 표시와 놓기를 거둔다', async () => {
   const swap = vi.fn(() => true)
   const idleClass = (): string => seats()[2].className
   await render({ characters: [member], swapSeats: swap })
@@ -325,7 +325,7 @@ it('끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend �
   expect(swap).not.toHaveBeenCalled()
 })
 
-it('끄는 동안 맞바꿀 수 없게 되면 끌기를 끝내 다시 맞바꿀 수 있게 돼도 그 끌기로는 놓지 않는다', async () => {
+it('드래그하는 동안 맞바꿀 수 없게 되면 드래그를 끝내 다시 맞바꿀 수 있게 돼도 그 드래그로는 놓지 않는다', async () => {
   const swap = vi.fn(() => true)
   await render({ characters: [member], swapSeats: swap })
 
@@ -337,7 +337,7 @@ it('끄는 동안 맞바꿀 수 없게 되면 끌기를 끝내 다시 맞바꿀 
   expect(swap).not.toHaveBeenCalled()
 })
 
-it('자리 끌기 형식이 없는 끌기는 자리 끌기 중이어도 놓을 자리로 받지 않는다', async () => {
+it('자리 드래그 형식이 없는 드래그는 자리 드래그 중이어도 드롭 대상으로 받지 않는다', async () => {
   const swap = vi.fn(() => true)
   await render({ characters: [member], swapSeats: swap })
 
@@ -351,7 +351,7 @@ it('자리 끌기 형식이 없는 끌기는 자리 끌기 중이어도 놓을 �
 
 it('맞바꾸기를 거절하면 알리지 않고, 다음 배치 변경에서 그 카드로 포커스를 가져가지 않는다', async () => {
   const swap = vi.fn(() => false)
-  const header = <button type="button">머리 버튼</button>
+  const header = <button type="button">헤더 버튼</button>
   await render({ characters: [member], header, swapSeats: swap })
   await act(async () => seats()[0].focus())
 
@@ -522,15 +522,15 @@ it('검색 응답에 없는 길드, 명성, 장비 점수는 -로 보인다', as
   expect(first.textContent).toContain('공대모험단-')
 })
 
-it('화면이 넘긴 머리를 보드 위에 두고 숨기면 머리와 보드를 함께 숨긴다', async () => {
-  await render({ characters: [member], header: <h1>공대 머리</h1> })
+it('화면이 넘긴 헤더를 보드 위에 두고 숨기면 헤더와 보드를 함께 숨긴다', async () => {
+  await render({ characters: [member], header: <h1>공대 헤더</h1> })
   const header = container.querySelector('section > h1')!
-  expect(header.textContent).toBe('공대 머리')
+  expect(header.textContent).toBe('공대 헤더')
   const board = container.querySelector('#raid-cards')!
   expect(board.querySelectorAll('article')).toHaveLength(12)
   expect(header.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
 
-  await render({ characters: [member], header: <h1>공대 머리</h1>, hidden: true })
+  await render({ characters: [member], header: <h1>공대 헤더</h1>, hidden: true })
   expect(container.querySelector('section')?.hidden).toBe(true)
   expect(container.querySelector('section')?.contains(header)).toBe(true)
 })

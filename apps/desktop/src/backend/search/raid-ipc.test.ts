@@ -53,7 +53,7 @@ function respondFound(fixture: Awaited<ReturnType<typeof createSearchFixture>>):
     .mockResolvedValueOnce(jsonResponse({ body: details }))
 }
 
-it('공대 수명은 12자리를 갖고 12번째 자리까지 조회하며 범위 밖 자리는 HTTP 전에 거절한다', async () => {
+it('공대 수명은 12자리를 갖고 12번째 슬롯까지 조회하며 범위 밖 슬롯은 HTTP 전에 거절한다', async () => {
   const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
   expect((await fixture.read()).slots.map((slot) => slot.slot)).toEqual(
     Array.from({ length: 12 }, (_, slot) => slot)
@@ -85,7 +85,7 @@ it('공대 수명은 12자리를 갖고 12번째 자리까지 조회하며 범�
   expect(fixture.published).toHaveBeenCalledWith('raidSearchChanged', snapshot)
 })
 
-it('공대와 파티 카드 조회는 같은 자리 번호에서도 서로의 결과와 요청을 바꾸지 않는다', async () => {
+it('공대와 파티 카드 조회는 같은 슬롯 번호에서도 서로의 결과와 요청을 바꾸지 않는다', async () => {
   const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
   const raidResponse = deferred<Response>()
   fixture.fetchSearch.mockReturnValueOnce(raidResponse.promise)
@@ -122,7 +122,7 @@ it('공대와 파티 카드 조회는 같은 자리 번호에서도 서로의 �
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
 })
 
-it('한 자리를 다시 조회하면 이전 요청을 취소하고 늦은 응답을 버리며 다른 자리 요청은 유지한다', async () => {
+it('한 슬롯을 다시 조회하면 이전 요청을 취소하고 늦은 응답을 버리며 다른 슬롯 요청은 유지한다', async () => {
   const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
   const first = deferred<Response>()
   const other = deferred<Response>()
@@ -143,7 +143,7 @@ it('한 자리를 다시 조회하면 이전 요청을 취소하고 늦은 응�
   first.resolve(jsonResponse({ body: { rows: [{ ...candidate, imageUrl }] } }))
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect((await fixture.read()).slots[5]).toMatchObject({ state: 'empty', nickname: '최신' })
-  // 같은 자리의 늦은 이전 관측은 최신 결과를 덮어쓰지 않는다.
+  // 같은 슬롯의 늦은 이전 관측은 최신 결과를 덮어쓰지 않는다.
   expect(
     await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 5, 1, '이전'))
   ).toMatchObject({ ok: true })
@@ -219,7 +219,7 @@ async function createRaidRoundFixture() {
   return { ...fixture, captureId: begun.snapshot.captureId }
 }
 
-it('공대 OCR 관측은 12번째 자리까지 받아 이름 후보 중 최고 명성 캐릭터를 고르고 범위 밖은 HTTP 전에 거절한다', async () => {
+it('공대 OCR 관측은 12번째 슬롯까지 받아 이름 후보 중 최고 명성 캐릭터를 고르고 범위 밖은 HTTP 전에 거절한다', async () => {
   const fixture = await createRaidRoundFixture()
   for (const slot of [-1, 12, 1.5]) {
     expect(
@@ -317,7 +317,7 @@ it.each([
   ['게임 창 다시 선택', CAPTURE_SOURCE],
   ['캡처 중지', '']
 ])(
-  '%s 뒤에는 공대 회차의 늦은 OCR 결과와 이전 회차의 OCR 통지를 버리고 직접 조회한 자리는 유지한다',
+  '%s 뒤에는 공대 회차의 늦은 OCR 결과와 이전 회차의 OCR 통지를 버리고 직접 조회한 슬롯은 유지한다',
   async (_change, nextSource) => {
     const fixture = await createRaidRoundFixture()
     respondFound(fixture)
@@ -398,7 +398,7 @@ it('창을 바꾼 뒤에는 이전 회차의 OCR 실패를 다시 시도하지 �
       requestId: failed[1].requestId
     })
   ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
-  // 거절한 뒤에도 그 자리는 OCR 기원을 잃지 않아 다시 시도해도 같은 이유로 거절된다.
+  // 거절한 뒤에도 그 슬롯은 OCR에서 시작한 조회라는 사실을 잃지 않아 다시 시도해도 같은 이유로 거절된다.
   expect(
     await fixture.invoke('controlRaidSearch', {
       action: 'retry',

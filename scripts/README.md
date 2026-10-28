@@ -86,7 +86,7 @@ Git이 추적하는 파일과 ignore 대상이 아닌 새 파일 중 `*.md`의 �
 
 `#`로 시작하는 ATX heading만 anchor로 읽습니다. Front matter, code block, code span 안의 링크와 외부 URL, 코드 파일의 `#L10` 같은 줄 anchor는 검사하지 않습니다. 위반은 `경로:줄: 규칙: 링크나 경로`로 출력하고 non-zero로 종료합니다. `pnpm verify`가 `pnpm check:docs`를 실행합니다.
 
-Code span 전체가 `apps/`, `packages/`, `.github/`로 시작하는 저장소 경로이면 그 파일, 디렉터리가 있는지도 확인합니다. 아직 add하지 않은 새 파일도 있는 것으로 봅니다. `*`, `<이름>`, `...`이 든 glob, 자리표시와 `:10`처럼 줄 번호를 붙인 표기, ignore 규칙에 걸리는 build 산출물과 `.env`, submodule 안의 파일은 건너뜁니다. Front matter가 `status: historical`인 문서는 과거 revision의 경로를 기록하므로 경로를 확인하지 않습니다. `scripts/...`, `docs/...`처럼 짧은 경로는 앱 디렉터리나 upstream 저장소 기준인 경우가 많아 확인하지 않습니다.
+Code span 전체가 `apps/`, `packages/`, `.github/`로 시작하는 저장소 경로이면 그 파일, 디렉터리가 있는지도 확인합니다. 아직 add하지 않은 새 파일도 있는 것으로 봅니다. `*`, `<이름>`, `...`이 든 glob, 플레이스홀더와 `:10`처럼 줄 번호를 붙인 표기, ignore 규칙에 걸리는 build 산출물과 `.env`, submodule 안의 파일은 건너뜁니다. Front matter가 `status: historical`인 문서는 과거 revision의 경로를 기록하므로 경로를 확인하지 않습니다. `scripts/...`, `docs/...`처럼 짧은 경로는 앱 디렉터리나 upstream 저장소 기준인 경우가 많아 확인하지 않습니다.
 
 ```bash
 pnpm check:docs

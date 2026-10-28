@@ -631,19 +631,19 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
   })
 
   // jsdom은 계산된 크기를 모르므로 크기마다 다른 StyleX class가 붙는지만 확인한다.
-  it('상단 바 크기 bar와 머리 도구 크기 lg는 기본 md와 다른 외형을 쓴다', async () => {
+  it('상단 바 크기 bar와 헤더 도구 크기 lg는 기본 md와 다른 외형을 쓴다', async () => {
     await render(
       <>
         <IconButton aria-label="기본" icon={<SettingsIcon />} />
         <IconButton aria-label="상단 바" size="bar" icon={<SettingsIcon />} />
-        <IconButton aria-label="머리 도구" size="lg" icon={<SettingsIcon />} />
+        <IconButton aria-label="헤더 도구" size="lg" icon={<SettingsIcon />} />
       </>
     )
     const plain = getByRole('button', '기본').className
 
     expect(getByRole('button', '상단 바').className).not.toBe(plain)
-    expect(getByRole('button', '머리 도구').className).not.toBe(plain)
-    expect(getByRole('button', '머리 도구').className).not.toBe(
+    expect(getByRole('button', '헤더 도구').className).not.toBe(plain)
+    expect(getByRole('button', '헤더 도구').className).not.toBe(
       getByRole('button', '상단 바').className
     )
   })
@@ -1130,7 +1130,7 @@ describe('CardFrame의 상태별 장식', () => {
     return { card, extras }
   }
 
-  it('상위와 랭커는 꺾쇠 네 개 밖에 빛줄기 층을 하나 더 두고 모두 보조 기술에서 숨긴다', async () => {
+  it('상위와 랭커는 꺾쇠 네 개 밖에 빛줄기 레이어를 하나 더 두고 모두 보조 기술에서 숨긴다', async () => {
     const top = await decorations('top')
     expect(top.card?.getAttribute('data-state')).toBe('top')
     expect(top.extras).toHaveLength(5)

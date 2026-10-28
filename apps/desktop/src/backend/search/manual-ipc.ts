@@ -41,7 +41,7 @@ export function registerManualSearchIpc({
 }): {
   readonly current: CaptureBinding | null
   invalidate: () => void
-  /** 게임 창이 바뀌거나 캡처를 멈추면 진행 중인 OCR 기원 요청을 끝낸다. */
+  /** 게임 창이 바뀌거나 캡처를 멈추면 진행 중인 OCR에서 시작한 요청을 끝낸다. */
   cancelOcrRequests: () => void
   dispose: () => void
 } {

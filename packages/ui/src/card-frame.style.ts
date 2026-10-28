@@ -35,7 +35,7 @@ export const styles = stylex.create({
     outlineColor: colors.tierRankerOutline,
     outlineOffset: -1
   },
-  // 빛줄기와 스캔선을 담는 층. 꺾쇠가 카드 밖으로 1px 나오므로 카드 대신 이 층이 빛줄기를 자른다.
+  // 빛줄기와 스캔선을 담는 장식 레이어. 꺾쇠가 카드 밖으로 1px 나오므로 카드 대신 이 레이어가 빛줄기를 자른다.
   effects: {
     position: 'absolute',
     inset: 0,

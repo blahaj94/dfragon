@@ -101,7 +101,7 @@ it('인원수 바로 뒤에 스냅샷 회차 번호를 보이고 스냅샷이 �
   expect(round.previousElementSibling?.textContent).toContain('2/4')
 })
 
-it('공대 머리는 제목, 전체 12자리, 회차 번호와 스냅샷, 캡처 버튼 이름을 공대로 둔다', async () => {
+it('공대 헤더는 제목, 전체 12자리, 회차 번호와 스냅샷, 캡처 버튼 이름을 공대로 둔다', async () => {
   await render({ target: '공대', snapshot: { active: true, round: 3 } })
   expect(container.querySelector('h1')?.textContent).toBe('공대')
   const round = container.querySelector('[aria-label="3번째 공대"]')!
