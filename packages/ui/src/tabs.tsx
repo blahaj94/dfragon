@@ -1,12 +1,10 @@
 import { Tabs as BaseTabs } from '@base-ui/react/tabs'
 import * as stylex from '@stylexjs/stylex'
-import { type ComponentType, createContext, useContext } from 'react'
+import type { ComponentType } from 'react'
 import { controlStyles } from './control.style'
 import { type ForwardedStyle, type PublicProps, withForwardedStyle } from './public-props'
 import type { ControlSurface } from './surface'
 import { styles } from './tabs.style'
-
-const TabsSurfaceContext = createContext<ControlSurface>('default')
 
 export type TabsListProps = PublicProps<typeof BaseTabs.List> & {
   surface?: ControlSurface
@@ -25,12 +23,12 @@ function TabsListImpl({
     <BaseTabs.List
       {...props}
       data-surface={surface}
-      {...withForwardedStyle(stylex.props(styles.list, onCard && styles.cardList), {
-        className,
-        style
-      })}
+      {...withForwardedStyle(
+        stylex.props(styles.list, onCard && styles.cardList, stylex.defaultMarker()),
+        { className, style }
+      )}
     >
-      <TabsSurfaceContext value={surface}>{children}</TabsSurfaceContext>
+      {children}
       <BaseTabs.Indicator {...stylex.props(styles.indicator, onCard && styles.cardIndicator)} />
     </BaseTabs.List>
   )
@@ -41,18 +39,15 @@ const TabsList: ComponentType<TabsListProps> = TabsListImpl
 export type TabsTabProps = PublicProps<typeof BaseTabs.Tab>
 
 function TabsTabImpl({ className, style, ...props }: TabsTabProps & ForwardedStyle) {
-  const onCard = useContext(TabsSurfaceContext) === 'card'
-
   return (
     <BaseTabs.Tab
       {...props}
-      data-surface={onCard ? 'card' : 'default'}
       {...withForwardedStyle(
         stylex.props(
           styles.tab,
           controlStyles.focusRing,
           controlStyles.hoverTransition,
-          onCard && styles.cardTab
+          styles.focusRing
         ),
         { className, style }
       )}

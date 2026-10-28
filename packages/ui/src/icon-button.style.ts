@@ -14,9 +14,11 @@ export const styles = stylex.create({
     backgroundColor: 'transparent',
     color: {
       default: colors.fgMuted,
-      ':hover:not(:disabled)': colors.fgDefault,
-      ':disabled': colors.fgDisabled
+      ':hover:not(:disabled, [aria-pressed="true"])': colors.fgDefault,
+      ':disabled:not([aria-pressed="true"])': colors.fgDisabled,
+      ':is([aria-pressed="true"])': colors.signal
     },
+    boxShadow: { default: null, ':is([aria-pressed="true"])': `inset 0 0 0 2px ${colors.signal}` },
     cursor: { default: 'pointer', ':disabled': 'not-allowed' }
   },
   sm: { width: size.controlSm, height: size.controlSm, fontSize: 16 },
@@ -30,10 +32,6 @@ export const styles = stylex.create({
     borderRadius: radius.panel,
     backgroundColor: colors.bgInset,
     outlineOffset: -4
-  },
-  pressed: {
-    color: colors.signal,
-    boxShadow: `inset 0 0 0 2px ${colors.signal}`
   },
   icon: { display: 'inline-flex', width: '1em', height: '1em' }
 })

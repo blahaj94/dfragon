@@ -30,8 +30,7 @@ function IconButtonImpl({
           controlStyles.focusRing,
           controlStyles.hoverTransition,
           styles[size],
-          size === 'lg' && shapes.cutTopRight,
-          pressed === true && styles.pressed
+          size === 'lg' && shapes.cutTopRight
         ),
         { className, style }
       )}
