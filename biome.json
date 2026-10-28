@@ -104,7 +104,6 @@
         "useYield": "error"
       },
       "nursery": {
-        "noReactStringRefs": "error",
         "useStringStartsEndsWith": "error"
       },
       "security": {
@@ -140,6 +139,7 @@
         "noMisleadingCharacterClass": "error",
         "noParametersOnlyUsedInRecursion": "error",
         "noPrototypeBuiltins": "error",
+        "noReactStringRefs": "error",
         "noRedeclare": "error",
         "noShadowRestrictedNames": "error",
         "noSparseArray": "error",
