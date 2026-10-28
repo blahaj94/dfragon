@@ -13,6 +13,8 @@ type CaptureControlInput = {
   hasDetectedSource: boolean
 }
 
+type CaptureStatus = { phase: CapturePhase; status: string }
+
 export type CaptureControlTone = 'neutral' | 'success' | 'danger' | 'warning' | 'signal'
 
 export function getCaptureControlState({
@@ -56,13 +58,13 @@ export function getCaptureControlState({
   return { label: '창 감지됨', tone: 'success', busy: false }
 }
 
-export function getRaidScreenCapture({
+function getRaidScreenCapture({
   party,
   raid
 }: {
-  party: { phase: CapturePhase; status: string; sourceReady: boolean }
-  raid: { phase: CapturePhase; status: string }
-}): { phase: CapturePhase; status: string } {
+  party: CaptureStatus & { sourceReady: boolean }
+  raid: CaptureStatus
+}): CaptureStatus {
   if (!party.sourceReady) {
     return { phase: party.phase, status: party.status }
   }
@@ -75,24 +77,21 @@ export function getRaidScreenCapture({
 }
 
 export function getTopBarCaptureControls({
-  searchMode,
+  isRaidMode,
   party,
   raid
 }: {
-  searchMode: 'party' | 'raid'
-  party: {
-    phase: CapturePhase
-    status: string
+  isRaidMode: boolean
+  party: CaptureStatus & {
     sourceReady: boolean
     selectedSourceId: string
     connectionFailed: boolean
   }
-  raid: { phase: CapturePhase; status: string }
-}): { phase: CapturePhase; status: string } {
-  const screenCapture =
-    searchMode === 'raid'
-      ? getRaidScreenCapture({ party, raid })
-      : { phase: party.phase, status: party.status }
+  raid: CaptureStatus
+}): CaptureStatus {
+  const screenCapture = isRaidMode
+    ? getRaidScreenCapture({ party, raid })
+    : { phase: party.phase, status: party.status }
 
   if (party.connectionFailed) {
     return {

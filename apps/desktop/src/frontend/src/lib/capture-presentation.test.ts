@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  getCaptureControlState,
-  getRaidScreenCapture,
-  getTopBarCaptureControls
-} from './capture-presentation'
+import { getCaptureControlState, getTopBarCaptureControls } from './capture-presentation'
 
 describe('getCaptureControlState', () => {
   const idle = { phase: 'idle', loading: false, failed: false, hasDetectedSource: true } as const
@@ -26,25 +22,6 @@ describe('getCaptureControlState', () => {
   )
 })
 
-describe('getRaidScreenCapture', () => {
-  it('공대 회차가 실패로 끝나면 파티 캡처와 같은 실패 단계와 문구를 상태 칩에 넘긴다', () => {
-    const capture = getRaidScreenCapture({
-      party: { phase: 'selected', status: '', sourceReady: true },
-      raid: { phase: 'failed', status: '공대원창을 읽지 못했습니다.' }
-    })
-
-    expect(capture).toEqual({ phase: 'failed', status: '공대원창을 읽지 못했습니다.' })
-    expect(
-      getCaptureControlState({
-        phase: capture.phase,
-        loading: false,
-        failed: false,
-        hasDetectedSource: true
-      }).tone
-    ).toBe('danger')
-  })
-})
-
 describe('getTopBarCaptureControls', () => {
   const input = {
     party: {
@@ -58,11 +35,11 @@ describe('getTopBarCaptureControls', () => {
   } as const
 
   it('같은 입력에서 보이는 화면에 따라 파티 또는 공대 회차의 단계와 문구를 고른다', () => {
-    expect(getTopBarCaptureControls({ ...input, searchMode: 'party' })).toEqual({
+    expect(getTopBarCaptureControls({ ...input, isRaidMode: false })).toEqual({
       phase: 'selected',
       status: '파티 문구'
     })
-    expect(getTopBarCaptureControls({ ...input, searchMode: 'raid' })).toEqual({
+    expect(getTopBarCaptureControls({ ...input, isRaidMode: true })).toEqual({
       phase: 'recognizing',
       status: '공대 문구'
     })
@@ -74,14 +51,14 @@ describe('getTopBarCaptureControls', () => {
       party: { ...input.party, connectionFailed: true }
     }
 
-    expect(getTopBarCaptureControls({ ...failed, searchMode: 'raid' })).toEqual({
+    expect(getTopBarCaptureControls({ ...failed, isRaidMode: true })).toEqual({
       phase: 'recognizing',
       status: '캡처 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
     })
     expect(
       getTopBarCaptureControls({
         ...failed,
-        searchMode: 'party',
+        isRaidMode: false,
         party: { ...failed.party, selectedSourceId: '' }
       })
     ).toEqual({
@@ -96,7 +73,7 @@ describe('getTopBarCaptureControls', () => {
       party: { ...input.party, selectedSourceId: '' }
     }
 
-    expect(getTopBarCaptureControls({ ...unselected, searchMode: 'party' })).toEqual({
+    expect(getTopBarCaptureControls({ ...unselected, isRaidMode: false })).toEqual({
       phase: 'selected',
       status: ''
     })
@@ -106,10 +83,28 @@ describe('getTopBarCaptureControls', () => {
     expect(
       getTopBarCaptureControls({
         ...input,
-        searchMode: 'raid',
+        isRaidMode: true,
         party: { ...input.party, phase: 'idle' },
         raid: { phase: 'idle', status: '' }
       })
     ).toEqual({ phase: 'selected', status: '' })
+  })
+
+  it('공대 회차가 실패로 끝나면 파티 캡처와 같은 실패 단계와 문구를 상태 칩에 넘긴다', () => {
+    const controls = getTopBarCaptureControls({
+      ...input,
+      isRaidMode: true,
+      raid: { phase: 'failed', status: '공대원창을 읽지 못했습니다.' }
+    })
+
+    expect(controls).toEqual({ phase: 'failed', status: '공대원창을 읽지 못했습니다.' })
+    expect(
+      getCaptureControlState({
+        phase: controls.phase,
+        loading: false,
+        failed: false,
+        hasDetectedSource: true
+      }).tone
+    ).toBe('danger')
   })
 })
