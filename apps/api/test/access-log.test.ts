@@ -230,7 +230,7 @@ test('Stack을 만든 뒤 message가 바뀌면 frame을 생략하고, 원래 오
   timeout: 5000
 }, async (t) => {
   const changedMessage = new Error('stack을 만들 때의 message')
-  void changedMessage.stack
+  assert.ok(changedMessage.stack)
   changedMessage.message = secrets.errorDetail
   const unreadableName = Object.defineProperty(new Error('getter'), 'name', {
     get(): never {

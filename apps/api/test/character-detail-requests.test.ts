@@ -91,7 +91,7 @@ test('겹친 요청은 작업을 공유하고 한 대기자의 연결 종료는 
   const rejection = assert.rejects(first)
   await entered.promise
   const second = service.get('192.0.2.2', identity, signal)
-  void second.catch(() => undefined)
+  second.catch(() => undefined)
   await nextTurn()
   disconnected.abort()
   await rejection

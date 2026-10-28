@@ -360,7 +360,7 @@ test('native 본문이 headers 뒤에 끊기면 HTTP 503 fallback 대신 통신 
     response.writeHead(503, { 'content-type': 'application/json' })
     response.flushHeaders()
     response.write('{"error":')
-    void headers.then(() => response.destroy())
+    headers.then(() => response.destroy())
   })
   t.after(() => closeLoopback(loopback.server))
 

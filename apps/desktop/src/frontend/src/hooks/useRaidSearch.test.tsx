@@ -153,7 +153,7 @@ it('회차는 수명을 새로 시작하고 그 뒤의 서버 지정 조회는 �
 
 it('회차 중 직접 조회한 슬롯은 늦게 끝난 OCR 이름으로 덮지 않고 다음 회차에서 다시 받는다', async () => {
   await act(async () => {
-    void value.beginRound(new AbortController().signal)
+    value.beginRound(new AbortController().signal)
   })
   await act(async () => begin.resolve(CAPTURE_ID))
   await act(async () => value.lookupSlot(5, '직접조회', 'cain'))
@@ -166,7 +166,7 @@ it('회차 중 직접 조회한 슬롯은 늦게 끝난 OCR 이름으로 덮지 
   expect(bridge.observe).toHaveBeenCalledExactlyOnceWith(ocr(6))
 
   await act(async () => {
-    void value.beginRound(new AbortController().signal)
+    value.beginRound(new AbortController().signal)
   })
   expect(value.manualSlots.every((manual) => !manual)).toBe(true)
   await act(async () => value.observeOcr(ocr(5)))
@@ -176,7 +176,7 @@ it('회차 중 직접 조회한 슬롯은 늦게 끝난 OCR 이름으로 덮지 
 it('수명 시작 중 회차가 취소되면 기다리던 조회의 진행 표시를 거두고 다음 조회가 수명을 다시 시작한다', async () => {
   const controller = new AbortController()
   await act(async () => {
-    void value.beginRound(controller.signal)
+    value.beginRound(controller.signal)
   })
   await act(async () => value.lookupSlot(3, '직접조회', 'cain'))
   expect(value.slots[3].state).toBe('pending')

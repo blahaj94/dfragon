@@ -61,12 +61,15 @@ export function searchInput(nickname: string) {
   return { nickname, allowed, minimum, maximum }
 }
 
+// 값을 쓰지 않고 타입 검사에서 속성 접근만 확인하려고 인자로 받는다.
+function readOnlyForTypeCheck(_value: unknown): void {}
+
 export function partyRows(frame: DNFParticipantFrame, heading: DNFParticipantFrame) {
   const detection: DNFParticipantDetection = detectDNFPartyParticipantWindow(frame, heading)
   const result: DNFParticipantCropResult = cropDNFPartyParticipantNicknames(frame, heading)
   if (result.status !== 'found') {
     // @ts-expect-error 실패 결과에서 검출된 행을 읽을 수 없어야 한다.
-    void result.rows
+    readOnlyForTypeCheck(result.rows)
 
     return []
   }
@@ -87,7 +90,7 @@ export function raidRows(frame: DNFParticipantFrame, heading: DNFParticipantFram
   const result: DNFRaidParticipantCropResult = cropDNFRaidParticipantNicknames(frame, heading)
   if (result.status !== 'found') {
     // @ts-expect-error 실패 결과에서 닉네임 크롭 행을 읽을 수 없어야 한다.
-    void result.rows
+    readOnlyForTypeCheck(result.rows)
 
     return []
   }
