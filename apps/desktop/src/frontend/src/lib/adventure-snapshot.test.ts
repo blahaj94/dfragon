@@ -92,7 +92,7 @@ describe('slotAdventureName', () => {
   }
 
   function slot(state: SearchSlot['state'], adventureName: string | null | undefined): SearchSlot {
-    const selected = adventureName === undefined ? undefined : { ...character, adventureName }
+    const selected = adventureName !== undefined ? { ...character, adventureName } : undefined
 
     return { ...searchSlot({ state }), selected }
   }
