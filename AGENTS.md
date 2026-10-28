@@ -29,6 +29,7 @@
 - `v*` tag 생성과 삭제, Release 게시, Windows Portable workflow 실행, main에서 이미지를 발행하는 Product Images run의 재실행은 저장소 소유자가 한다. 절차는 [포터블 exe와 GitHub Releases](apps/desktop/README.md#포터블-exe와-github-releases)에 있다.
 - Ruleset, Secret, Environment와 저장소 설정도 저장소 소유자가 바꾼다.
 - 개발과 테스트에는 실제 credential을 쓰지 않는다.
+- 포맷은 `pnpm format`(Biome 포맷과 문장 간격 도구)으로만 맞춘다. Prettier 같은 다른 formatter를 실행하면 손대지 않은 코드의 줄바꿈까지 바뀐다.
 - `pnpm-lock.yaml`과 `packages/lib/src/cp949-characters.ts`처럼 도구가 만든 파일은 손으로 고치지 않고 `pnpm install`, `pnpm --filter @dfragon/lib generate:cp949` 같은 생성 명령으로 다시 만든다. 생성물, vendor, license/notice의 소유 규칙은 [Convention 도구 적용](docs/rules/convention-tooling.md#설정과-소유권)을 따른다.
 
 ## PR
