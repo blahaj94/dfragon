@@ -21,16 +21,14 @@ export function createCharacterSearchService(
     input: NeopleCharacterSearchInput,
     requestSignal?: AbortSignal
   ): Promise<NeopleCharacterSearchResult> => {
-    const cannotStart = closed || !peerAddress || requestSignal?.aborted === true
-    if (cannotStart) {
+    if (closed || !peerAddress || requestSignal?.aborted === true) {
       throw neopleSearchFailure('internal')
     }
 
     try {
       return await adapter(input)
     } catch (error) {
-      const isSearchFailure = error instanceof NeopleSearchFailure
-      if (isSearchFailure) {
+      if (error instanceof NeopleSearchFailure) {
         throw error
       }
       throw neopleSearchFailure('internal', { cause: error })

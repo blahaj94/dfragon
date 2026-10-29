@@ -1,3 +1,4 @@
+import { isRecord } from '@dfragon/lib/utils/shape-check'
 import type { SearchErrorBody } from '../types/neople-character-search.js'
 import { type FailureOptions, SanitizedFailure } from '../error-chain.js'
 
@@ -61,22 +62,6 @@ export class NeopleSearchFailure extends SanitizedFailure {
   }
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  const hasObjectType = typeof value === 'object'
-  if (!hasObjectType) {
-    return false
-  }
-
-  const isNotNull = value !== null
-  if (!isNotNull) {
-    return false
-  }
-
-  const isNonArrayObject = !Array.isArray(value)
-
-  return isNonArrayObject
-}
-
 export function neopleSearchFailure(
   kind: keyof typeof errors,
   options?: FailureOptions
@@ -87,9 +72,7 @@ export function neopleSearchFailure(
 }
 
 export function neopleStatusFailure(status: number, options?: FailureOptions): NeopleSearchFailure {
-  const isRateLimited = status === 429
-  const isUnavailable = status === 503
-  const isTemporarilyUnavailable = isRateLimited || isUnavailable
+  const isTemporarilyUnavailable = status === 429 || status === 503
   const failureKind = isTemporarilyUnavailable ? 'unavailable' : 'api'
 
   return neopleSearchFailure(failureKind, options)
@@ -100,38 +83,18 @@ export function classifyNeopleUpstreamFailure(
   status: number,
   ok: boolean
 ): NeopleSearchFailure | undefined {
-  const isBodyObject = isObject(body)
-  if (!isBodyObject) {
-    const hasHttpFailure = !ok
-    if (hasHttpFailure) {
-      return neopleStatusFailure(status)
+  if (!isRecord(body) || !Object.hasOwn(body, 'error')) {
+    if (ok) {
+      return undefined
     }
 
-    return undefined
-  }
-
-  const hasError = Object.hasOwn(body, 'error')
-  if (!hasError) {
-    const hasHttpFailure = !ok
-    if (hasHttpFailure) {
-      return neopleStatusFailure(status)
-    }
-
-    return undefined
-  }
-
-  const upstreamError = body.error
-  const isUpstreamErrorObject = isObject(upstreamError)
-  if (!isUpstreamErrorObject) {
     return neopleStatusFailure(status)
   }
 
-  const hasStringCode = typeof upstreamError.code === 'string'
-  const code = hasStringCode ? (upstreamError.code as string) : undefined
-  const hasCode = code !== undefined
-  const knownError = hasCode ? upstreamCodeErrors.get(code) : undefined
-  const isKnownError = knownError !== undefined
-  if (isKnownError) {
+  const code = isRecord(body.error) ? body.error.code : undefined
+  const knownError = typeof code === 'string' ? upstreamCodeErrors.get(code) : undefined
+
+  if (knownError !== undefined) {
     return neopleSearchFailure(knownError)
   }
 

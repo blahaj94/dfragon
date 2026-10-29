@@ -28,8 +28,7 @@ export class CharacterSearchController {
   }
 
   private async respond(request: Request, response: Response, candidates: boolean): Promise<void> {
-    const isGet = request.method === 'GET'
-    if (!isGet) {
+    if (request.method !== 'GET') {
       throw neopleSearchFailure('query')
     }
     await respondWithCancellation(response, (signal) => {

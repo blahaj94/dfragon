@@ -38,16 +38,14 @@ function decodeQueryPart(raw: string): string {
 
 function decodeRawQuery(originalUrl: string): DecodedQueryPair[] {
   const questionMarkIndex = originalUrl.indexOf('?')
-  const hasQuery = questionMarkIndex >= 0
-  if (!hasQuery) {
+  if (questionMarkIndex < 0) {
     throw neopleSearchFailure('query')
   }
 
   // Map으로 바꾸기 전에 모든 pair를 보존해야 decoded key의 중복을 검증할 수 있다.
   const pairs: DecodedQueryPair[] = []
   for (const component of originalUrl.slice(questionMarkIndex + 1).split('&')) {
-    const isEmptyComponent = component.length === 0
-    if (isEmptyComponent) {
+    if (component.length === 0) {
       throw neopleSearchFailure('query')
     }
     const equalsIndex = component.indexOf('=')
@@ -65,39 +63,25 @@ const CHARACTER_RESULT_LIMIT_PATTERN = /^[0-9]+$/
 function validateSearchQuery(pairs: readonly DecodedQueryPair[]): NeopleCharacterSearchInput {
   const values = new Map<string, string>()
   for (const { key, value } of pairs) {
-    const isAllowedKey = ['characterName', 'serverId', 'limit'].includes(key)
-    const isDuplicate = values.has(key)
-    const isInvalidKey = !isAllowedKey || isDuplicate
-    if (isInvalidKey) {
+    if (!['characterName', 'serverId', 'limit'].includes(key) || values.has(key)) {
       throw neopleSearchFailure('query')
     }
     values.set(key, value)
   }
 
   const characterName = values.get('characterName')
-  const hasCharacterName = characterName != null
-  if (!hasCharacterName) {
-    throw neopleSearchFailure('query')
-  }
-
-  if (!matchesDNFSearchNicknamePolicy(characterName)) {
+  if (characterName === undefined || !matchesDNFSearchNicknamePolicy(characterName)) {
     throw neopleSearchFailure('query')
   }
 
   const serverId = values.get('serverId') ?? 'all'
-  const isAllServers = serverId === 'all'
-  const isKnownServer = NEOPLE_SERVER_NAMES.has(serverId)
-  const isServerValid = isAllServers || isKnownServer
-  if (!isServerValid) {
+  if (serverId !== 'all' && !NEOPLE_SERVER_NAMES.has(serverId)) {
     throw neopleSearchFailure('query')
   }
 
   const rawLimit = values.get('limit') ?? '10'
-  const isDecimal = CHARACTER_RESULT_LIMIT_PATTERN.test(rawLimit)
   const limit = Number(rawLimit)
-  const isInRange = limit >= 1 && limit <= 200
-  const isLimitValid = isDecimal && isInRange
-  if (!isLimitValid) {
+  if (!CHARACTER_RESULT_LIMIT_PATTERN.test(rawLimit) || limit < 1 || limit > 200) {
     throw neopleSearchFailure('query')
   }
 
