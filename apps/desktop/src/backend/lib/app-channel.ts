@@ -34,16 +34,18 @@ export function readAppIdentity(): string | null {
   return channel.identity.appIdentity
 }
 
+/** 채널의 origin은 빌드할 때 검사했으므로 채널 없는 실행의 process 설정만 검사한다. */
 export function readAppApiOrigin(): string | null {
   const channel = readBundledChannel()
-  const origin = channel != null ? channel.origins.api : process.env['DFRAGON_API_ORIGIN']
+  if (channel != null) {
+    return channel.origins.api
+  }
+  const origin = process.env['DFRAGON_API_ORIGIN']
   if (origin == null) {
     return null
   }
   try {
-    validateApiOrigin(origin)
-
-    return origin
+    return validateApiOrigin(origin)
   } catch {
     return null
   }
