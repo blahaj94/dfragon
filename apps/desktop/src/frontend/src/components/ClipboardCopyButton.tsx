@@ -40,7 +40,7 @@ export function ClipboardCopyButton({
           <Icon width={16} height={16} />
         </button>
       </span>
-      {/* 상단 바의 캡처 안내와 따로 복사 결과만 알린다. 화면 밖에 두어 헤더 컨트롤 사이 간격을 바꾸지 않는다. */}
+      {/* 화면 밖에 두어 헤더 컨트롤 사이 간격을 바꾸지 않는다. */}
       <span role="status" data-clipboard-announcer="" {...stylex.props(shapes.srOnly)}>
         {announcement}
       </span>
