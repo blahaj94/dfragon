@@ -1,14 +1,17 @@
-import { CardFrame, ProgressCircle, shapes } from '@dfragon/ui'
-import type { ChangeEvent, HTMLAttributes, KeyboardEvent, ReactNode, Ref } from 'react'
+import { CardFrame, shapes } from '@dfragon/ui'
+import type { HTMLAttributes, ReactNode, Ref } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { CardImage } from '../components/CardImage'
-import { NameField } from '../components/NameField'
-import { ServerSelect } from '../components/ServerSelect'
+import { CardAnnouncer } from '../components/CardAnnouncer'
+import { EditingDots } from '../components/EditingDots'
+import { FailureMark } from '../components/FailureMark'
+import { LookupField } from '../components/LookupField'
+import { LookupProgress } from '../components/LookupProgress'
+import { Portrait } from '../components/Portrait'
+import { PortraitWell } from '../components/PortraitWell'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { StatLine } from '../components/StatLine'
-import { type LookupDraft, useLookupDraft } from '../hooks/useLookupDraft'
-import { useServerMenu } from '../hooks/useServerMenu'
+import { useLookupDraft } from '../hooks/useLookupDraft'
 import type { SlotCardKey } from '../hooks/useSlotCardStore'
 import {
   getCharacterCardFrameState,
@@ -16,11 +19,10 @@ import {
   isVacantSlot
 } from '../lib/card-presentation'
 import { toScoreView } from '../lib/card-score'
-import { toNameFieldTone, type NameFieldTone } from '../lib/name-field-tone'
+import { toNameFieldTone } from '../lib/name-field-tone'
 import type { SlotCard } from '../lib/slot-cards'
 import type { CharacterTier } from '../types/cards'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
-import { serverOptions } from '../constants/server-options'
 import { styles } from './RaidCard.style'
 
 export type RaidCardMove = Pick<
@@ -66,18 +68,23 @@ export function RaidCard({
     <Seat slot={slot} move={move}>
       <CardFrame as="article" state={frameState} aria-busy={busy}>
         <div {...stylex.props(styles.body)}>
-          <PortraitWell tier={tier}>
+          <PortraitWell tier={tier} size="raid">
             {characterFound && <Portrait src={character.image} />}
             {busy && <LookupProgress slot={slot} />}
           </PortraitWell>
           <div {...stylex.props(styles.column)}>
             <div {...stylex.props(styles.header)}>
-              <LookupField slot={slot} tone={toNameFieldTone(frameState)} draft={draft} />
+              <LookupField
+                slot={slot}
+                tone={toNameFieldTone(frameState)}
+                draft={draft}
+                size="raid"
+              />
               {tier !== undefined && (
                 <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
               )}
-              {frameState === 'selected' && <EditingDots label="이름 수정 중" />}
-              {frameState === 'failure' && <FailureMark label={cardStatus} />}
+              {frameState === 'selected' && <EditingDots label="이름 수정 중" size="raid" />}
+              {frameState === 'failure' && <FailureMark label={cardStatus} size="raid" />}
               {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
               <SlotNumber selected={frameState === 'selected'} tier={tier}>
                 {String(slot).padStart(2, '0')}
@@ -142,113 +149,6 @@ function Seat({
   )
 }
 
-function PortraitWell({
-  tier,
-  children
-}: {
-  tier: CharacterTier | undefined
-  children: ReactNode
-}): React.JSX.Element {
-  return (
-    <div
-      {...stylex.props(
-        shapes.gridWell,
-        styles.well,
-        tier === 'top' && styles.wellTop,
-        tier === 'ranker' && styles.wellRanker
-      )}
-    >
-      {children}
-    </div>
-  )
-}
-
-function Portrait({ src }: { src: string | undefined }): React.JSX.Element {
-  return (
-    <div {...stylex.props(styles.portrait)}>
-      <CardImage src={src} />
-    </div>
-  )
-}
-
-function LookupProgress({ slot }: { slot: number }): React.JSX.Element {
-  return (
-    <div role="status" aria-label={`${slot}번 캐릭터 확인 중`} {...stylex.props(styles.progress)}>
-      <ProgressCircle size="24" tone="staticWhite" />
-    </div>
-  )
-}
-
-function LookupField({
-  slot,
-  tone,
-  draft
-}: {
-  slot: number
-  tone: NameFieldTone
-  draft: LookupDraft
-}): React.JSX.Element {
-  const serverMenu = useServerMenu()
-  const handleNameChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    draft.changeName(event.target.value)
-  }
-  const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
-    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-      draft.submit()
-
-      return
-    }
-
-    serverMenu.openOnTab(event)
-  }
-
-  return (
-    <div {...stylex.props(styles.nameField)}>
-      <NameField
-        aria-label={`${slot}번 캐릭터 이름`}
-        tone={tone}
-        value={draft.name}
-        onFocus={draft.focusName}
-        onBlur={draft.blurName}
-        onChange={handleNameChange}
-        onKeyDown={handleNameKeyDown}
-        end={
-          <ServerSelect
-            label={`${slot}번 서버`}
-            value={draft.serverId}
-            options={serverOptions}
-            open={serverMenu.open}
-            onOpenChange={serverMenu.setOpen}
-            onValueChange={draft.changeServer}
-          />
-        }
-      />
-    </div>
-  )
-}
-
-function EditingDots({ label }: { label: string }): React.JSX.Element {
-  return (
-    <span role="img" aria-label={label} {...stylex.props(styles.dots)}>
-      <span {...stylex.props(styles.dot)} />
-      <span {...stylex.props(styles.dot, styles.dotSecond)} />
-      <span {...stylex.props(styles.dot, styles.dotThird)} />
-    </span>
-  )
-}
-
-function FailureMark({ label }: { label: string }): React.JSX.Element {
-  return (
-    <span
-      role="img"
-      aria-label={label}
-      {...stylex.props(styles.mark, shapes.cutTopRight, styles.alert)}
-    >
-      !
-    </span>
-  )
-}
-
 function SlotNumber({
   selected,
   tier,
@@ -308,13 +208,5 @@ function NoticeLine({ children }: { children: string }): React.JSX.Element {
     <div title={children} {...stylex.props(styles.affiliation)}>
       <p {...stylex.props(styles.notice)}>{children}</p>
     </div>
-  )
-}
-
-function CardAnnouncer({ children }: { children: string }): React.JSX.Element {
-  return (
-    <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
-      {children}
-    </span>
   )
 }

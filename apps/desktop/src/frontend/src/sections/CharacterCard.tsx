@@ -1,29 +1,30 @@
-import { CardFrame, ProgressCircle, Typo, shapes } from '@dfragon/ui'
+import { CardFrame, Typo, shapes } from '@dfragon/ui'
 import {
   getCharacterCardFrameState,
   getCharacterCardStatus,
   isVacantSlot
 } from '../lib/card-presentation'
 import * as stylex from '@stylexjs/stylex'
-import { type ChangeEvent, type KeyboardEvent, type ReactNode, useId } from 'react'
-import { NameField } from '../components/NameField'
-import { ServerSelect } from '../components/ServerSelect'
+import { useId } from 'react'
+import { CardAnnouncer } from '../components/CardAnnouncer'
+import { EditingDots } from '../components/EditingDots'
+import { FailureMark } from '../components/FailureMark'
+import { LookupField } from '../components/LookupField'
+import { LookupProgress } from '../components/LookupProgress'
+import { Portrait } from '../components/Portrait'
+import { PortraitWell } from '../components/PortraitWell'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
-import { type LookupDraft, useLookupDraft } from '../hooks/useLookupDraft'
-import { useServerMenu } from '../hooks/useServerMenu'
+import { useLookupDraft } from '../hooks/useLookupDraft'
 import { useCandidateWindow } from '../hooks/useCandidateWindow'
 import type { SlotCardKey } from '../hooks/useSlotCardStore'
-import { CardImage } from '../components/CardImage'
 import { CandidateWindow } from '../components/CandidateWindow'
 import { StatLine } from '../components/StatLine'
 import { styles } from './CharacterCard.style'
-import { serverOptions } from '../constants/server-options'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
-import { toNameFieldTone, type NameFieldTone } from '../lib/name-field-tone'
+import { toNameFieldTone } from '../lib/name-field-tone'
 import type { SlotCard } from '../lib/slot-cards'
 import { toScoreView } from '../lib/card-score'
-import type { CharacterTier } from '../types/cards'
 
 export function CharacterCard({
   cardKey,
@@ -67,20 +68,28 @@ export function CharacterCard({
     <div {...stylex.props(styles.slot)}>
       <CardFrame as="article" state={frameState} aria-label={`${slot}번 슬롯`} aria-busy={busy}>
         <div {...stylex.props(styles.body)}>
-          <PortraitWell tier={tier}>
+          <PortraitWell tier={tier} size="party">
             {characterFound && <Portrait src={character.image} />}
             {busy && <LookupProgress slot={slot} />}
           </PortraitWell>
           <div {...stylex.props(styles.column)}>
             <div {...stylex.props(styles.header)}>
-              <LookupField slot={slot} tone={toNameFieldTone(frameState)} draft={draft} />
+              <LookupField
+                slot={slot}
+                tone={toNameFieldTone(frameState)}
+                draft={draft}
+                size="party"
+              />
               {tier !== undefined && (
                 <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
               )}
               {frameState === 'selected' && (
-                <EditingDots label={previewing ? '후보 미리보기 중' : '이름 수정 중'} />
+                <EditingDots
+                  label={previewing ? '후보 미리보기 중' : '이름 수정 중'}
+                  size="party"
+                />
               )}
-              {frameState === 'failure' && <FailureMark label={cardStatus} />}
+              {frameState === 'failure' && <FailureMark label={cardStatus} size="party" />}
               {picker !== undefined && (
                 <CandidateChip
                   expanded={candidates.open}
@@ -121,118 +130,6 @@ export function CharacterCard({
         />
       )}
     </div>
-  )
-}
-
-function PortraitWell({
-  tier,
-  children
-}: {
-  tier: CharacterTier | undefined
-  children: ReactNode
-}): React.JSX.Element {
-  return (
-    <div
-      {...stylex.props(
-        shapes.gridWell,
-        styles.well,
-        tier === 'top' && styles.wellTop,
-        tier === 'ranker' && styles.wellRanker
-      )}
-    >
-      {children}
-    </div>
-  )
-}
-
-function Portrait({ src }: { src: string | undefined }): React.JSX.Element {
-  return (
-    <div {...stylex.props(styles.portrait)}>
-      <CardImage src={src} />
-    </div>
-  )
-}
-
-function LookupProgress({ slot }: { slot: number }): React.JSX.Element {
-  return (
-    <div role="status" aria-label={`${slot}번 캐릭터 확인 중`} {...stylex.props(styles.progress)}>
-      <ProgressCircle size="24" tone="staticWhite" />
-    </div>
-  )
-}
-
-function LookupField({
-  slot,
-  tone,
-  draft
-}: {
-  slot: number
-  tone: NameFieldTone
-  draft: Pick<
-    LookupDraft,
-    'name' | 'serverId' | 'changeName' | 'changeServer' | 'focusName' | 'blurName' | 'submit'
-  >
-}): React.JSX.Element {
-  const serverMenu = useServerMenu()
-
-  const handleNameChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    draft.changeName(event.target.value)
-  }
-
-  const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
-    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-      draft.submit()
-
-      return
-    }
-
-    serverMenu.openOnTab(event)
-  }
-
-  return (
-    <div {...stylex.props(styles.nameField)}>
-      <NameField
-        tone={tone}
-        aria-label={`${slot}번 캐릭터 이름`}
-        value={draft.name}
-        onFocus={draft.focusName}
-        onBlur={draft.blurName}
-        onChange={handleNameChange}
-        onKeyDown={handleNameKeyDown}
-        end={
-          <ServerSelect
-            label={`${slot}번 서버`}
-            value={draft.serverId}
-            options={serverOptions}
-            open={serverMenu.open}
-            onOpenChange={serverMenu.setOpen}
-            onValueChange={draft.changeServer}
-          />
-        }
-      />
-    </div>
-  )
-}
-
-function EditingDots({ label }: { label: string }): React.JSX.Element {
-  return (
-    <span role="img" aria-label={label} {...stylex.props(styles.dots)}>
-      <span {...stylex.props(styles.dot)} />
-      <span {...stylex.props(styles.dot, styles.dotSecond)} />
-      <span {...stylex.props(styles.dot, styles.dotThird)} />
-    </span>
-  )
-}
-
-function FailureMark({ label }: { label: string }): React.JSX.Element {
-  return (
-    <span
-      role="img"
-      aria-label={label}
-      {...stylex.props(styles.mark, shapes.cutTopRight, styles.alert)}
-    >
-      !
-    </span>
   )
 }
 
@@ -313,14 +210,6 @@ function LineMessage({ children }: { children: string }): React.JSX.Element {
     <Typo.caption as="p" title={children} {...stylex.props(styles.message)}>
       {children}
     </Typo.caption>
-  )
-}
-
-function CardAnnouncer({ children }: { children: string }): React.JSX.Element {
-  return (
-    <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
-      {children}
-    </span>
   )
 }
 
