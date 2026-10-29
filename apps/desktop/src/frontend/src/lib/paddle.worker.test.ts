@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   dispose: vi.fn(),
   env: { logLevel: '', wasm: { numThreads: 0, proxy: true, wasmPaths: '' } }
 }))
-vi.mock('onnxruntime-web/wasm', () => ({
+vi.mock('onnxruntime-web/webgpu', () => ({
   env: mocks.env,
   InferenceSession: { create: mocks.create },
   Tensor: class {
@@ -34,6 +34,18 @@ async function send(data: { root?: string; pixels?: ImageData }): Promise<void> 
   await receive?.(new MessageEvent('message', { data }))
 }
 
+async function initialize(): Promise<void> {
+  await send({ root: 'https://fixture.invalid/ocr/' })
+  // 준비 단계의 warm-up 추론 기록이 회차 인식의 검증과 섞이지 않게 비운다.
+  for (const mock of [mocks.tensor, mocks.run, mocks.dispose, outputDispose]) {
+    mock.mockClear()
+  }
+}
+
+function modelSession(run: ReturnType<typeof vi.fn>) {
+  return { inputNames: ['input'], outputNames: ['output'], run, release: vi.fn() }
+}
+
 beforeEach(async () => {
   vi.resetModules()
   vi.clearAllMocks()
@@ -53,7 +65,7 @@ beforeEach(async () => {
     }
   )
   canvasContext.getImageData.mockReturnValue({ data: new Uint8ClampedArray(96 * 48 * 4) })
-  mocks.create.mockResolvedValue({ inputNames: ['input'], outputNames: ['output'], run: mocks.run })
+  mocks.create.mockResolvedValue(modelSession(mocks.run))
   mocks.run.mockResolvedValue({
     output: { dims: [1, 1, 4], data: new Float32Array([0, 1, 0, 0]), dispose: outputDispose }
   })
@@ -63,14 +75,14 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals())
 
 it('preserves WASM setup, dictionary normalization and recognition tensor layout', async () => {
-  await send({ root: 'https://fixture.invalid/ocr/' })
+  await initialize()
   expect(mocks.env).toEqual({
     logLevel: 'error',
     wasm: { numThreads: 8, proxy: false, wasmPaths: 'https://fixture.invalid/ocr/ort/' }
   })
   expect(mocks.create).toHaveBeenCalledExactlyOnceWith(
     'https://fixture.invalid/ocr/korean-rec.onnx',
-    { executionProviders: ['wasm'], logSeverityLevel: 3 }
+    { executionProviders: ['webgpu', 'wasm'], logSeverityLevel: 3 }
   )
   expect(postMessage).toHaveBeenLastCalledWith({ ready: true })
 
@@ -84,6 +96,70 @@ it('preserves WASM setup, dictionary normalization and recognition tensor layout
   })
   expect(mocks.dispose).toHaveBeenCalledOnce()
   expect(outputDispose).toHaveBeenCalledOnce()
+})
+
+it('준비 단계에서 0으로 채운 입력으로 한 번 추론하고 텐서를 정리한 뒤 준비 완료를 알린다', async () => {
+  await send({ root: 'https://fixture.invalid/ocr/' })
+
+  expect(mocks.run).toHaveBeenCalledOnce()
+  expect(mocks.tensor).toHaveBeenCalledExactlyOnceWith(
+    'float32',
+    new Float32Array(3 * 48 * 320),
+    [1, 3, 48, 320]
+  )
+  expect(mocks.dispose).toHaveBeenCalledOnce()
+  expect(outputDispose).toHaveBeenCalledOnce()
+  expect(postMessage).toHaveBeenCalledExactlyOnceWith({ ready: true })
+})
+
+it('WebGPU 세션의 준비 추론이 실패하면 그 세션을 해제하고 CPU WASM 세션으로 회차를 인식한다', async () => {
+  const gpu = modelSession(vi.fn().mockRejectedValue(new Error('private shader failure')))
+  const cpu = modelSession(mocks.run)
+  mocks.create.mockResolvedValueOnce(gpu).mockResolvedValueOnce(cpu)
+
+  await send({ root: 'https://fixture.invalid/ocr/' })
+
+  expect(mocks.create.mock.calls.map(([, options]) => options.executionProviders)).toEqual([
+    ['webgpu', 'wasm'],
+    ['wasm']
+  ])
+  expect(gpu.release).toHaveBeenCalledOnce()
+  expect(cpu.release).not.toHaveBeenCalled()
+  expect(mocks.dispose).toHaveBeenCalledTimes(2)
+  expect(postMessage).toHaveBeenCalledExactlyOnceWith({ ready: true })
+
+  await send({ pixels })
+
+  expect(gpu.run).toHaveBeenCalledOnce()
+  expect(cpu.run).toHaveBeenCalledTimes(2)
+  expect(postMessage).toHaveBeenLastCalledWith({
+    candidates: [{ rank: 1, nickname: '가', modelScore: 100 }]
+  })
+})
+
+it('WebGPU 세션을 만들지 못하면 CPU WASM 세션으로 준비한다', async () => {
+  mocks.create.mockRejectedValueOnce(new Error('private provider failure'))
+
+  await send({ root: 'https://fixture.invalid/ocr/' })
+
+  expect(mocks.create.mock.calls.map(([, options]) => options.executionProviders)).toEqual([
+    ['webgpu', 'wasm'],
+    ['wasm']
+  ])
+  expect(postMessage).toHaveBeenCalledExactlyOnceWith({ ready: true })
+})
+
+it('CPU WASM 세션의 준비 추론까지 실패하면 두 세션을 모두 해제하고 초기화 실패로 응답한다', async () => {
+  const gpu = modelSession(vi.fn().mockRejectedValue(new Error('private shader failure')))
+  const cpu = modelSession(vi.fn().mockRejectedValue(new Error('private model failure')))
+  mocks.create.mockResolvedValueOnce(gpu).mockResolvedValueOnce(cpu)
+
+  await send({ root: 'https://fixture.invalid/ocr/' })
+
+  expect(gpu.release).toHaveBeenCalledOnce()
+  expect(cpu.release).toHaveBeenCalledOnce()
+  expect(mocks.dispose).toHaveBeenCalledTimes(2)
+  expect(postMessage).toHaveBeenCalledExactlyOnceWith({ failed: true })
 })
 
 it.each([
@@ -107,7 +183,7 @@ it.each([
 ])(
   '$sourceWidth×$sourceHeight 이미지를 자르지 않고 48×320 텐서 가운데에 맞춘다',
   async ({ sourceWidth, sourceHeight, resizedWidth, left }) => {
-    await send({ root: 'https://fixture.invalid/ocr/' })
+    await initialize()
     const data = new Uint8ClampedArray(resizedWidth * 48 * 4)
     canvasContext.getImageData.mockReturnValueOnce({ data })
     await send({ pixels: { width: sourceWidth, height: sourceHeight } as ImageData })
@@ -139,7 +215,7 @@ it.each([
 )
 
 it('상위 두 후보를 순위, 모델 점수와 함께 전달한다', async () => {
-  await send({ root: 'https://fixture.invalid/ocr/' })
+  await initialize()
   mocks.run.mockResolvedValueOnce({
     output: {
       dims: [1, 2, 4],
@@ -157,7 +233,7 @@ it('상위 두 후보를 순위, 모델 점수와 함께 전달한다', async ()
 })
 
 it('빈 닉네임 후보도 모델 점수와 함께 보존한다', async () => {
-  await send({ root: 'https://fixture.invalid/ocr/' })
+  await initialize()
   mocks.run.mockResolvedValueOnce({
     output: {
       dims: [1, 1, 4],
@@ -174,7 +250,7 @@ it('빈 닉네임 후보도 모델 점수와 함께 보존한다', async () => {
 })
 
 it('disposes the input tensor when inference rejects and returns only the public failure', async () => {
-  await send({ root: 'https://fixture.invalid/ocr/' })
+  await initialize()
   mocks.run.mockRejectedValueOnce(new Error('private model failure'))
 
   await send({ pixels })
@@ -195,7 +271,7 @@ it.each([
   { name: '음수 step 수', dims: [1, -1, 4], data: new Float32Array() },
   { name: '다른 텐서 자료형', dims: [1, 1, 4], data: new Float64Array([0, 1, 0, 0]) }
 ])('$name: 모든 출력 텐서를 정리하고 실패를 반환한다', async ({ dims, data }) => {
-  await send({ root: 'https://fixture.invalid/ocr/' })
+  await initialize()
   const auxiliaryDispose = vi.fn()
   mocks.run.mockResolvedValueOnce({
     output: { dims, data, dispose: outputDispose },
@@ -218,7 +294,7 @@ it('does not attempt inference before model initialization', async () => {
 })
 
 it('닉네임 글자를 가운데로 옮기고 좌우 여백을 흰색으로 채워 모델에 전달한다', async () => {
-  await send({ root: 'https://fixture.invalid/ocr/' })
+  await initialize()
   const data = new Uint8ClampedArray(6 * 48 * 4)
   data.fill(255)
   data.set([0, 0, 0, 255, 0, 0, 0, 255], 20 * 6 * 4)

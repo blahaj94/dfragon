@@ -1,4 +1,4 @@
-import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
+import { env, InferenceSession, Tensor } from 'onnxruntime-web/webgpu'
 import { assertCtcLabels, decodeCtcCandidates } from './ctc-candidates'
 import { MODEL_INPUT_HEIGHT, MODEL_INPUT_WIDTH, recognitionInputValues } from './paddle-recognition'
 import type { PartyOcrResult } from '../types/capture'
@@ -28,10 +28,51 @@ async function initializeModel(root: string): Promise<void> {
     .split('\n')
   characters.push(' ')
   assertCtcLabels(characters)
-  session = await InferenceSession.create(new URL('korean-rec.onnx', root).toString(), {
-    executionProviders: ['wasm'],
+  const modelUrl = new URL('korean-rec.onnx', root).toString()
+  try {
+    // GPU adapter를 얻지 못하는 PC에서는 onnxruntime-web이 다음 provider인 CPU WASM으로 넘어간다.
+    session = await createWarmSession(modelUrl, ['webgpu', 'wasm'])
+  } catch {
+    // Adapter를 얻었어도 드라이버 문제로 GPU 추론이 실패할 수 있으므로 CPU WASM만으로 다시 만든다.
+    session = await createWarmSession(modelUrl, ['wasm'])
+  }
+}
+
+async function createWarmSession(
+  modelUrl: string,
+  executionProviders: string[]
+): Promise<InferenceSession> {
+  const created = await InferenceSession.create(modelUrl, {
+    executionProviders,
     logSeverityLevel: 3
   })
+  try {
+    // WebGPU는 첫 추론에서 shader를 컴파일해 Windows 실기에서 처음 약 1.7초가 걸렸으므로, 준비 단계에서 한 번 돌려
+    // 첫 회차가 기다리지 않게 한다.
+    await warmUp(created)
+  } catch (error) {
+    await created.release()
+    throw error
+  }
+
+  return created
+}
+
+async function warmUp(model: InferenceSession): Promise<void> {
+  const shape = [1, 3, MODEL_INPUT_HEIGHT, MODEL_INPUT_WIDTH]
+  const tensor = new Tensor(
+    'float32',
+    new Float32Array(3 * MODEL_INPUT_HEIGHT * MODEL_INPUT_WIDTH),
+    shape
+  )
+  try {
+    const outputs = await model.run({ [model.inputNames[0]]: tensor })
+    for (const value of Object.values(outputs)) {
+      value.dispose()
+    }
+  } finally {
+    tensor.dispose()
+  }
 }
 
 /** 이미지 전처리, 추론, 디코딩을 수행하고 성공과 실패 모두 텐서를 정리한다. */

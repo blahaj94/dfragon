@@ -17,8 +17,8 @@ export const OCR_ASSETS = [
   'ONNX-Runtime-LICENSE.txt',
   'ONNX-Runtime-ThirdPartyNotices.txt',
   'provenance.json',
-  'ort/ort-wasm-simd-threaded.mjs',
-  'ort/ort-wasm-simd-threaded.wasm'
+  'ort/ort-wasm-simd-threaded.asyncify.mjs',
+  'ort/ort-wasm-simd-threaded.asyncify.wasm'
 ]
 const defaultDestination = fileURLToPath(new URL('../src/frontend/public/ocr', import.meta.url))
 
