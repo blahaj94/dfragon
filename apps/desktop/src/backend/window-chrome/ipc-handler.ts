@@ -13,8 +13,6 @@ export function registerWindowChromeWindow({
   documentUrl: string
 }): () => void {
   let disposed = false
-  // 등록에 성공한 채널만 지운다. 등록에 실패한 채널의 기존 handler는 이 창의 것이 아니다.
-  const registeredChannels: string[] = []
   const contents = window.webContents
 
   function requireSender(event: IpcMainInvokeEvent): void {
@@ -51,22 +49,14 @@ export function registerWindowChromeWindow({
       return
     }
     disposed = true
-    for (const channel of registeredChannels) {
-      ipcMain.removeHandler(channel)
-    }
+    ipcMain.removeHandler(WINDOW_CHROME_CHANNELS.setContentHeight)
     contents.removeListener('destroyed', dispose)
     window.removeListener('closed', dispose)
   }
 
-  try {
-    ipcMain.handle(WINDOW_CHROME_CHANNELS.setContentHeight, setContentHeight)
-    registeredChannels.push(WINDOW_CHROME_CHANNELS.setContentHeight)
-    contents.on('destroyed', dispose)
-    window.on('closed', dispose)
-  } catch (error) {
-    dispose()
-    throw error
-  }
+  ipcMain.handle(WINDOW_CHROME_CHANNELS.setContentHeight, setContentHeight)
+  contents.on('destroyed', dispose)
+  window.on('closed', dispose)
 
   return dispose
 }
