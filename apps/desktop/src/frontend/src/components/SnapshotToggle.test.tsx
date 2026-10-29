@@ -71,7 +71,7 @@ it('꺼진 버튼을 누르면 확인 없이 스냅샷을 켠다', async () => {
   expect(confirm()).toBeNull()
 })
 
-it('켜진 버튼을 누르면 이름이 붙은 alertdialog로 지울지 묻고 취소에 먼저 포커스한다', async () => {
+it('켜진 버튼을 누르면 이름이 붙은 alertdialog로 고정을 취소할지 묻고 유지에 먼저 포커스한다', async () => {
   const onClear = vi.fn()
   const onTake = vi.fn()
   await render({ active: true, onTake, onClear })
@@ -82,31 +82,31 @@ it('켜진 버튼을 누르면 이름이 붙은 alertdialog로 지울지 묻고 
   const dialog = confirm()!
   expect(dialog.getAttribute('aria-labelledby')).not.toBeNull()
   expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe(
-    '스냅샷을 지우시겠습니까?'
+    '고정을 취소하시겠습니까?'
   )
-  await vi.waitFor(() => expect(document.activeElement).toBe(choice('취소')))
+  await vi.waitFor(() => expect(document.activeElement).toBe(choice('유지')))
   expect(onTake).not.toHaveBeenCalled()
   expect(onClear).not.toHaveBeenCalled()
 })
 
-it('취소는 스냅샷을 그대로 두고 팝오버만 닫는다', async () => {
+it('유지는 스냅샷을 그대로 두고 팝오버만 닫는다', async () => {
   const onClear = vi.fn()
   await render({ active: true, onClear })
   await act(async () => toggle().click())
 
-  await act(async () => choice('취소').click())
+  await act(async () => choice('유지').click())
 
   await vi.waitFor(() => expect(confirm()).toBeNull())
   expect(onClear).not.toHaveBeenCalled()
   expect(toggle().getAttribute('aria-pressed')).toBe('true')
 })
 
-it('지우기는 스냅샷을 지우고 팝오버를 닫는다', async () => {
+it('고정 취소는 스냅샷을 지우고 팝오버를 닫는다', async () => {
   const onClear = vi.fn()
   await render({ active: true, onClear })
   await act(async () => toggle().click())
 
-  await act(async () => choice('지우기').click())
+  await act(async () => choice('고정 취소').click())
 
   expect(onClear).toHaveBeenCalledOnce()
   await vi.waitFor(() => expect(confirm()).toBeNull())
