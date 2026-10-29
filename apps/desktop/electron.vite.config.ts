@@ -1,7 +1,7 @@
 import { resolve } from 'node:path'
 import { readFileSync } from 'node:fs'
 import { defineConfig } from 'electron-vite'
-import type { Plugin } from 'vite'
+import { defaultClientConditions, type Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
 import { uiNotices, desktopNotices } from '@dfragon/licenses/vite'
 import { readChannelNameFromMode, readDesktopChannel } from './build/channels'
@@ -114,7 +114,10 @@ export default defineConfig(({ mode, command }) => {
         outDir: 'out/frontend'
       },
       resolve: {
-        alias: rendererAliases
+        alias: rendererAliases,
+        // onnxruntime-web의 기본 번들은 WASM을 import.meta.url 기준으로도 참조해 Vite가 같은 WASM을 assets에 한 벌 더
+        // 내보낸다. Worker는 wasmPaths로 OCR 자산의 사본만 읽으므로, 그 참조가 없는 extern WASM 빌드를 고른다.
+        conditions: ['onnxruntime-web-use-extern-wasm', ...defaultClientConditions]
       },
       plugins: rendererPlugins
     }
