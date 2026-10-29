@@ -320,13 +320,13 @@ it('공대 스냅샷을 켠 뒤 자리를 옮기면 바뀐 카드에 순번 칩�
     [...document.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')].find(
       (button) => button.textContent === name
     )!
-  await act(async () => choice('취소').click())
+  await act(async () => choice('유지').click())
   await vi.waitFor(() => expect(document.querySelector('[role="alertdialog"]')).toBeNull())
   expect(snapshotButton().getAttribute('aria-pressed')).toBe('true')
   expect(chipsOf(seats()[2])).toEqual(['스냅샷에 없는 모험단'])
 
   await act(async () => snapshotButton().click())
-  await act(async () => choice('지우기').click())
+  await act(async () => choice('고정 취소').click())
   expect(snapshotButton().getAttribute('aria-pressed')).toBe('false')
   expect(seats().flatMap(chipsOf)).toEqual([])
 })
