@@ -3,12 +3,8 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagnosticCode } from '../../preload/common/types/diagnostics'
 import { readEngineInput } from './details-test-fixture'
-import {
-  createScoreEngine,
-  resolveScoreLibraryPath,
-  type ScoreWorkerMessage,
-  type ScoreWorkerRequest
-} from './engine'
+import { createScoreEngine, resolveScoreLibraryPath } from './engine'
+import type { ScoreWorkerMessage, ScoreWorkerRequest } from './worker-protocol'
 
 const LIBRARY_PATH = '/synthetic/libdnfscore.dylib'
 const engineResult = {
