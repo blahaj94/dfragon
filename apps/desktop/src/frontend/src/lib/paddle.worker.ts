@@ -5,8 +5,8 @@ import type { PartyOcrResult } from '../types/capture'
 
 const DICTIONARY_CARRIAGE_RETURN_PATTERN = /\r/g
 const DICTIONARY_FINAL_NEWLINE_PATTERN = /\n$/
-// Apple M3 Max에서 1장 추론이 8 thread와 12 thread 모두 약 23ms로 8개를 넘으면 빨라지지 않았고, 코어 수를 넘기면
-// 조각을 번갈아 돌리느라 오히려 느려졌다.
+// 같은 WASM 빌드를 Node에서 Apple M3 Max(논리 코어 16개)로 재 보니 1장 추론이 8 thread와 12 thread 모두 약 23ms로
+// 8개를 넘으면 빨라지지 않았고, 코어 수를 넘긴 32, 64 thread는 약 34ms, 48ms로 오히려 느려졌다.
 const MAX_THREADS = 8
 
 let session: InferenceSession | null = null
