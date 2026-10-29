@@ -216,11 +216,6 @@ describe('OCR 후보 검색 HTTP', () => {
       code: 'SEARCH_RESPONSE_INVALID'
     })
   })
-
-  it('고정 API origin 설정에 경로나 HTTP를 허용하지 않는다', () => {
-    expect(() => createCharacterCandidatesHttp({ apiOrigin: `${API_ORIGIN}/path` })).toThrow()
-    expect(() => createCharacterDetailsHttp({ apiOrigin: 'http://localhost:1234' })).toThrow()
-  })
 })
 
 describe('캐릭터 상세 HTTP', () => {

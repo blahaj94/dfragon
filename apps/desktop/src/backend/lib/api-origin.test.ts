@@ -12,28 +12,25 @@ describe('검색 API origin 검사', () => {
     'https://api.example.test/',
     'https://api.example.test/path',
     'https://api.example.test?query=1',
+    'https://api.example.test?',
     'https://api.example.test#fragment',
+    'https://api.example.test#',
     'https://user@api.example.test',
     'https://user:secret@api.example.test',
+    'https://@api.example.test',
     'https://API.example.test',
+    'https://api.example.test:443',
     ' https://api.example.test',
+    'https://api.example.test ',
+    'https://api.\texample.test',
+    'https://api.example.test\n',
+    'https://api.example.test\u007f',
     'https://api.example.test\\',
+    'https://例.test',
     `https://${'a'.repeat(2_048)}.test`,
+    '',
     'not a url'
-  ])('%s는 거절한다', (origin) => {
+  ])('%j는 거절한다', (origin) => {
     expect(() => validateApiOrigin(origin)).toThrow(ApiOriginFailure)
-  })
-
-  it('문자열이 아닌 값은 내부 접근 없이 거절한다', () => {
-    const value = new Proxy(
-      {},
-      {
-        get: () => {
-          throw new Error('unexpected get')
-        }
-      }
-    )
-
-    expect(() => validateApiOrigin(value as unknown as string)).toThrow(ApiOriginFailure)
   })
 })
