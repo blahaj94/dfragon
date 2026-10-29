@@ -51,16 +51,23 @@ function details(characterId: string): CharacterDetails {
 
 const NAMES = ['가나', '다라', '마바']
 
+type DetailsLoad = {
+  characterId: string
+  signal: AbortSignal
+  resolve: () => void
+  reject: (error: Error) => void
+}
+
 function fixture() {
   const searches = new Map(NAMES.map((name) => [name, deferred<CharacterCandidate[]>()]))
   const candidates: MockedFunction<CharacterCandidatesHttp> = vi.fn(
     ({ nickname }) => searches.get(nickname)!.promise
   )
-  const loads: Array<{ characterId: string; signal: AbortSignal; resolve: () => void }> = []
+  const loads: DetailsLoad[] = []
   const getDetails: MockedFunction<CharacterDetailsHttp> = vi.fn(
     ({ characterId, signal }) =>
-      new Promise<CharacterDetails>((resolve) => {
-        loads.push({ characterId, signal, resolve: () => resolve(details(characterId)) })
+      new Promise<CharacterDetails>((resolve, reject) => {
+        loads.push({ characterId, signal, resolve: () => resolve(details(characterId)), reject })
       })
   )
   const lifetime = createCaptureSearchLifetime({
@@ -95,11 +102,52 @@ function fixture() {
     searches.get(nickname)!.resolve([candidate(nickname)])
     await vi.waitFor(() => expect(lifetime.snapshot().slots[slot].state).toBe('success'))
   }
+  const identifyAll = async () => {
+    for (const slot of NAMES.keys()) {
+      await identify(slot)
+    }
+  }
 
   const rejectSearch = (slot: number, error: Error) => searches.get(NAMES[slot])!.reject(error)
+  const load = (name: string) => loads.find(({ characterId }) => characterId === `id-${name}`)!
+  const loadedIds = () => loads.map(({ characterId }) => characterId).sort()
+  const reobserve = (slot: number, nickname: string) => {
+    const search = deferred<CharacterCandidate[]>()
+    candidates.mockReturnValueOnce(search.promise)
+    lifetime.observeOcr({
+      captureId,
+      slot,
+      observationRevision: 2,
+      nickname,
+      candidateNicknames: [nickname],
+      portrait: null
+    })
 
-  return { lifetime, captureId, candidates, getDetails, loads, identify, rejectSearch }
+    return search
+  }
+  const ocrDetails = () =>
+    lifetime
+      .snapshot()
+      .slots.slice(0, NAMES.length)
+      .map((slot) => slot.details)
+
+  return {
+    lifetime,
+    captureId,
+    candidates,
+    getDetails,
+    loads,
+    identify,
+    identifyAll,
+    rejectSearch,
+    load,
+    loadedIds,
+    reobserve,
+    ocrDetails
+  }
 }
+
+const settle = () => new Promise<void>((resolve) => setImmediate(resolve))
 
 describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
   it('모든 슬롯이 이름과 서버를 정할 때까지 상세를 받지 않는다', async () => {
@@ -116,39 +164,36 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
 
     await f.identify(2)
 
-    await vi.waitFor(() => expect(f.getDetails).toHaveBeenCalledOnce())
-    expect(f.loads[0].characterId).toBe('id-가나')
+    await vi.waitFor(() => expect(f.loadedIds()).toEqual(['id-가나', 'id-다라', 'id-마바']))
   })
 
-  it('상세는 슬롯 순서로 한 번에 하나씩 받고 받은 슬롯의 요약을 채운다', async () => {
+  it('이름과 서버를 모두 정하면 상세를 한꺼번에 받고 먼저 받은 슬롯부터 요약을 채운다', async () => {
     const f = fixture()
     await f.identify(2)
     await f.identify(0)
     await f.identify(1)
-    await vi.waitFor(() => expect(f.loads).toHaveLength(1))
-
-    f.loads[0].resolve()
-
-    await vi.waitFor(() => expect(f.loads).toHaveLength(2))
-    const first = f.lifetime.snapshot().slots[0]
-    expect(first).not.toHaveProperty('details')
-    expect(first.selected).toMatchObject({ level: 115, guildName: '합성길드' })
-    expect(f.lifetime.snapshot().slots[1].details).toBe('pending')
-    f.loads[1].resolve()
     await vi.waitFor(() => expect(f.loads).toHaveLength(3))
-    f.loads[2].resolve()
-    await vi.waitFor(() =>
-      expect(f.lifetime.snapshot().slots.some((slot) => slot.details !== undefined)).toBe(false)
-    )
-    expect(f.loads.map(({ characterId }) => characterId)).toEqual(['id-가나', 'id-다라', 'id-마바'])
+
+    f.load('마바').resolve()
+
+    await vi.waitFor(() => expect(f.lifetime.snapshot().slots[2]).not.toHaveProperty('details'))
+    expect(f.lifetime.snapshot().slots[2].selected).toMatchObject({
+      level: 115,
+      guildName: '합성길드'
+    })
+    expect(f.ocrDetails()).toEqual(['pending', 'pending', undefined])
+    f.load('가나').resolve()
+    f.load('다라').resolve()
+    await vi.waitFor(() => expect(f.ocrDetails()).toEqual([undefined, undefined, undefined]))
+    expect(f.getDetails).toHaveBeenCalledTimes(3)
   })
 
-  it('상세를 받지 못하면 고른 이름과 서버는 두고 그 슬롯만 실패로 표시한 뒤 다음 슬롯을 받는다', async () => {
+  it('상세를 받지 못하면 고른 이름과 서버는 두고 그 슬롯만 실패로 표시하며 다른 슬롯의 상세는 그대로 반영한다', async () => {
     const f = fixture()
-    f.getDetails.mockRejectedValueOnce(new SearchHttpFailure('NEOPLE_API_ERROR'))
-    await f.identify(0)
-    await f.identify(1)
-    await f.identify(2)
+    await f.identifyAll()
+    await vi.waitFor(() => expect(f.loads).toHaveLength(3))
+
+    f.load('가나').reject(new SearchHttpFailure('NEOPLE_API_ERROR'))
 
     await vi.waitFor(() => expect(f.lifetime.snapshot().slots[0].details).toBe('failed'))
     expect(f.lifetime.snapshot().slots[0]).toMatchObject({
@@ -156,29 +201,43 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
       error: null,
       selected: { characterName: '가나', card: null }
     })
-    await vi.waitFor(() =>
-      expect(f.loads.map(({ characterId }) => characterId)).toEqual(['id-다라'])
-    )
+    f.load('다라').resolve()
+    f.load('마바').resolve()
+    await vi.waitFor(() => expect(f.ocrDetails()).toEqual(['failed', undefined, undefined]))
   })
 
-  it('상세가 호출 제한을 받으면 남은 상세도 실패로 두고 더 요청하지 않는다', async () => {
+  it('상세가 호출 제한을 받아도 이미 받는 중인 다른 슬롯의 상세는 취소하지 않고 끝까지 반영한다', async () => {
     const f = fixture()
-    f.getDetails.mockRejectedValueOnce(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
-    await f.identify(0)
-    await f.identify(1)
-    await f.identify(2)
+    await f.identifyAll()
+    await vi.waitFor(() => expect(f.loads).toHaveLength(3))
 
-    await vi.waitFor(() =>
-      expect(
-        f.lifetime
-          .snapshot()
-          .slots.slice(0, 3)
-          .map((slot) => slot.details)
-      ).toEqual(['failed', 'failed', 'failed'])
-    )
-    await new Promise<void>((resolve) => setImmediate(resolve))
-    expect(f.getDetails).toHaveBeenCalledOnce()
-    expect(f.lifetime.snapshot().slots[1].selected).toMatchObject({ characterName: '다라' })
+    f.load('가나').reject(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
+
+    await vi.waitFor(() => expect(f.lifetime.snapshot().slots[0].details).toBe('failed'))
+    expect(f.load('다라').signal.aborted).toBe(false)
+    expect(f.load('마바').signal.aborted).toBe(false)
+    expect(f.ocrDetails()).toEqual(['failed', 'pending', 'pending'])
+    f.load('다라').resolve()
+    f.load('마바').resolve()
+    await vi.waitFor(() => expect(f.ocrDetails()).toEqual(['failed', undefined, undefined]))
+    expect(f.lifetime.snapshot().slots[1].selected).toMatchObject({ level: 115 })
+  })
+
+  it('상세가 호출 제한을 받으면 아직 시작하지 않은 상세는 실패로 두고 요청하지 않는다', async () => {
+    const f = fixture()
+    await f.identifyAll()
+    await vi.waitFor(() => expect(f.loads).toHaveLength(3))
+    const secondSearch = f.reobserve(1, '사아')
+    f.reobserve(2, '자차')
+    secondSearch.resolve([candidate('사아')])
+    await vi.waitFor(() => expect(f.lifetime.snapshot().slots[1].details).toBe('pending'))
+
+    f.load('가나').reject(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
+
+    await vi.waitFor(() => expect(f.lifetime.snapshot().slots[1].details).toBe('failed'))
+    expect(f.lifetime.snapshot().slots[1].selected).toMatchObject({ characterName: '사아' })
+    await settle()
+    expect(f.loadedIds()).toEqual(['id-가나', 'id-다라', 'id-마바'])
   })
 
   it('후보 검색이 호출 제한을 받으면 이름과 서버를 정한 슬롯의 상세도 받지 않는다', async () => {
@@ -189,59 +248,59 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
     f.rejectSearch(2, new SearchHttpFailure('SEARCH_RATE_LIMITED'))
 
     await vi.waitFor(() => expect(f.lifetime.snapshot().slots[2].state).toBe('failure'))
-    expect(
-      f.lifetime
-        .snapshot()
-        .slots.slice(0, 2)
-        .map((slot) => slot.details)
-    ).toEqual(['failed', 'failed'])
-    await new Promise<void>((resolve) => setImmediate(resolve))
+    expect(f.ocrDetails().slice(0, 2)).toEqual(['failed', 'failed'])
+    await settle()
     expect(f.getDetails).not.toHaveBeenCalled()
   })
 
-  it('게임 창을 바꾸면 이전 창에서 정한 슬롯의 상세를 취소하고 남은 상세도 받지 않는다', async () => {
+  it('후보 검색이 호출 제한을 받아도 이미 받는 중인 상세는 끝까지 반영한다', async () => {
     const f = fixture()
-    await f.identify(0)
-    await f.identify(1)
-    await f.identify(2)
-    await vi.waitFor(() => expect(f.loads).toHaveLength(1))
+    await f.identifyAll()
+    await vi.waitFor(() => expect(f.loads).toHaveLength(3))
+    const search = f.reobserve(2, '사아')
+
+    search.reject(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
+
+    await vi.waitFor(() => expect(f.lifetime.snapshot().slots[2].state).toBe('failure'))
+    expect(f.load('가나').signal.aborted).toBe(false)
+    expect(f.load('다라').signal.aborted).toBe(false)
+    f.load('가나').resolve()
+    f.load('다라').resolve()
+    await vi.waitFor(() => expect(f.ocrDetails().slice(0, 2)).toEqual([undefined, undefined]))
+  })
+
+  it('게임 창을 바꾸면 이전 창에서 정한 슬롯의 받는 중인 상세를 모두 취소하고 실패로 둔다', async () => {
+    const f = fixture()
+    await f.identifyAll()
+    await vi.waitFor(() => expect(f.loads).toHaveLength(3))
 
     f.lifetime.cancelOcrRequests()
 
-    expect(f.loads[0].signal.aborted).toBe(true)
-    expect(
-      f.lifetime
-        .snapshot()
-        .slots.slice(0, 3)
-        .map((slot) => slot.details)
-    ).toEqual(['failed', 'failed', 'failed'])
+    expect(f.loads.every(({ signal }) => signal.aborted)).toBe(true)
+    expect(f.ocrDetails()).toEqual(['failed', 'failed', 'failed'])
     expect(f.lifetime.snapshot().slots[0].selected).toMatchObject({ characterName: '가나' })
-    await new Promise<void>((resolve) => setImmediate(resolve))
-    expect(f.getDetails).toHaveBeenCalledOnce()
+    await settle()
+    expect(f.getDetails).toHaveBeenCalledTimes(3)
   })
 
-  it('회차가 끝나면 받는 중인 상세를 취소하고 남은 상세를 받지 않는다', async () => {
+  it('회차가 끝나면 받는 중인 상세를 모두 취소한다', async () => {
     const f = fixture()
-    await f.identify(0)
-    await f.identify(1)
-    await f.identify(2)
-    await vi.waitFor(() => expect(f.loads).toHaveLength(1))
+    await f.identifyAll()
+    await vi.waitFor(() => expect(f.loads).toHaveLength(3))
 
     f.lifetime.end(f.captureId)
-    f.loads[0].resolve()
-    await new Promise<void>((resolve) => setImmediate(resolve))
+    f.load('가나').resolve()
+    await settle()
 
-    expect(f.loads[0].signal.aborted).toBe(true)
-    expect(f.getDetails).toHaveBeenCalledOnce()
+    expect(f.loads.every(({ signal }) => signal.aborted)).toBe(true)
+    expect(f.getDetails).toHaveBeenCalledTimes(3)
     expect(f.lifetime.snapshot().slots.every((slot) => slot.state === 'idle')).toBe(true)
   })
 
-  it('받는 중인 슬롯에 검색할 수 없는 새 관측이 오면 그 상세를 취소하고 다음 슬롯으로 넘어간다', async () => {
+  it('받는 중인 슬롯에 검색할 수 없는 새 관측이 오면 그 슬롯의 상세만 취소한다', async () => {
     const f = fixture()
-    await f.identify(0)
-    await f.identify(1)
-    await f.identify(2)
-    await vi.waitFor(() => expect(f.loads).toHaveLength(1))
+    await f.identifyAll()
+    await vi.waitFor(() => expect(f.loads).toHaveLength(3))
 
     f.lifetime.observeOcr({
       captureId: f.captureId,
@@ -252,36 +311,28 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
       portrait: null
     })
 
-    expect(f.loads[0].signal.aborted).toBe(true)
-    await vi.waitFor(() =>
-      expect(f.loads.map(({ characterId }) => characterId)).toEqual(['id-가나', 'id-다라'])
-    )
+    expect(f.load('가나').signal.aborted).toBe(true)
+    expect(f.load('다라').signal.aborted).toBe(false)
+    expect(f.load('마바').signal.aborted).toBe(false)
+    f.load('다라').resolve()
+    await vi.waitFor(() => expect(f.lifetime.snapshot().slots[1]).not.toHaveProperty('details'))
+    expect(f.getDetails).toHaveBeenCalledTimes(3)
   })
 
-  it('받는 중인 슬롯을 새 이름으로 다시 조회하면 그 상세를 취소하고 새 식별이 끝날 때까지 기다린다', async () => {
+  it('받는 중인 슬롯을 새 이름으로 다시 조회하면 그 상세만 취소하고 새 식별이 끝나면 새 상세를 받는다', async () => {
     const f = fixture()
-    await f.identify(0)
-    await f.identify(1)
-    await f.identify(2)
-    await vi.waitFor(() => expect(f.loads).toHaveLength(1))
-    const search = deferred<CharacterCandidate[]>()
-    f.candidates.mockReturnValueOnce(search.promise)
+    await f.identifyAll()
+    await vi.waitFor(() => expect(f.loads).toHaveLength(3))
 
-    f.lifetime.observeOcr({
-      captureId: f.captureId,
-      slot: 0,
-      observationRevision: 2,
-      nickname: '사아',
-      candidateNicknames: ['사아'],
-      portrait: null
-    })
+    const search = f.reobserve(0, '사아')
 
-    expect(f.loads[0].signal.aborted).toBe(true)
-    await new Promise<void>((resolve) => setImmediate(resolve))
-    expect(f.loads).toHaveLength(1)
+    expect(f.load('가나').signal.aborted).toBe(true)
+    expect(f.load('다라').signal.aborted).toBe(false)
+    await settle()
+    expect(f.loads).toHaveLength(3)
     search.resolve([candidate('사아')])
     await vi.waitFor(() =>
-      expect(f.loads.map(({ characterId }) => characterId)).toEqual(['id-가나', 'id-사아'])
+      expect(f.loadedIds()).toEqual(['id-가나', 'id-다라', 'id-마바', 'id-사아'])
     )
   })
 
@@ -314,10 +365,8 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
       nickname: '사아',
       serverId: 'cain'
     })
-    await f.identify(0)
-    await f.identify(1)
-    await f.identify(2)
-    await new Promise<void>((resolve) => setImmediate(resolve))
+    await f.identifyAll()
+    await settle()
     expect(f.getDetails).not.toHaveBeenCalled()
 
     search.resolve([candidate('사아')])
@@ -326,7 +375,7 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
     f.loads[0].resolve()
 
     await vi.waitFor(() =>
-      expect(f.loads.map(({ characterId }) => characterId)).toEqual(['id-사아', 'id-가나'])
+      expect(f.loadedIds()).toEqual(['id-가나', 'id-다라', 'id-마바', 'id-사아'])
     )
   })
 
@@ -341,22 +390,15 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
       nickname: '사아',
       serverId: 'cain'
     })
-    await f.identify(0)
-    await f.identify(1)
-    await f.identify(2)
+    await f.identifyAll()
 
     search.reject(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
 
     await vi.waitFor(() =>
       expect(f.lifetime.snapshot().slots[3].error).toEqual({ code: 'SEARCH_RATE_LIMITED' })
     )
-    expect(
-      f.lifetime
-        .snapshot()
-        .slots.slice(0, 3)
-        .map((slot) => slot.details)
-    ).toEqual(['failed', 'failed', 'failed'])
-    await new Promise<void>((resolve) => setImmediate(resolve))
+    expect(f.ocrDetails()).toEqual(['failed', 'failed', 'failed'])
+    await settle()
     expect(f.getDetails).not.toHaveBeenCalled()
   })
 })
