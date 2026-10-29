@@ -36,7 +36,7 @@ value.rows // 이 줄부터 value는 Record<string, unknown>
 - `() => Error` 함수를 주면 실패할 때만 호출해 돌려받은 오류를 던집니다. API 오류 응답처럼 계약된 실패를 던질 때는 이 형태를 써서, 통과할 때마다 오류 객체를 만들지 않게 합니다.
 
 ```ts
-const invalidResponse = () => neopleSearchFailure('api')
+const invalidResponse = () => new NeopleSearchFailure('api')
 assert(Array.isArray(body.rows), invalidResponse)
 ```
 

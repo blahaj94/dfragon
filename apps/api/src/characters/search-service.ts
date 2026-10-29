@@ -1,5 +1,5 @@
 import { pick, sortBy } from 'remeda'
-import { NeopleSearchFailure, neopleSearchFailure } from '../errors/neople-search.js'
+import { NeopleSearchFailure } from '../errors/neople-search.js'
 import type {
   CharacterCandidate,
   CharacterImageCandidate,
@@ -22,7 +22,7 @@ export function createCharacterSearchService(
     requestSignal?: AbortSignal
   ): Promise<NeopleCharacterSearchResult> => {
     if (closed || !peerAddress || requestSignal?.aborted === true) {
-      throw neopleSearchFailure('internal')
+      throw new NeopleSearchFailure('internal')
     }
 
     try {
@@ -31,7 +31,7 @@ export function createCharacterSearchService(
       if (error instanceof NeopleSearchFailure) {
         throw error
       }
-      throw neopleSearchFailure('internal', { cause: error })
+      throw new NeopleSearchFailure('internal', { cause: error })
     }
   }
 

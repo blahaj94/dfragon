@@ -11,7 +11,7 @@ import { CHARACTER_DETAIL_SERVICE, CharacterDetailController } from './character
 import { createCharacterDetailService } from './characters/details/service.js'
 import type { CharacterDetailDependencies } from './characters/details/service.js'
 import { characterDetailFailure } from './characters/details/errors.js'
-import { NeopleSearchFailure, neopleSearchFailure } from './errors/neople-search.js'
+import { NeopleSearchFailure } from './errors/neople-search.js'
 import { setupSwagger } from './swagger/setup.js'
 import { API_BUILD_INFO, ApiVersionController, readApiBuildInfo } from './build-info.js'
 import {
@@ -33,7 +33,7 @@ function requestFailure(
       return error
     }
 
-    return neopleSearchFailure('internal')
+    return new NeopleSearchFailure('internal')
   }
 
   return characterDetailFailure(error)
