@@ -46,7 +46,8 @@ const unusedProvider = async (): Promise<never> => {
 test('createApiHttpApp은 listen 전에는 port를 열지 않고 close 뒤 port를 닫는다', async () => {
   const app = await createApiHttpApp({
     search: { searchCharacters: unusedSearchCharacters },
-    details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) }
+    details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) },
+    todayGrade: { fetchShopGrade: unusedProvider }
   })
   const server = app.getHttpServer() as Server
 
@@ -68,6 +69,7 @@ test('createApiHttpApp은 앱 설정의 trustedProxyHops를 Express trust proxy�
     const app = await createApiHttpApp({
       search: { searchCharacters: unusedSearchCharacters },
       details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) },
+      todayGrade: { fetchShopGrade: unusedProvider },
       trustedProxyHops
     })
 
@@ -97,7 +99,8 @@ test('controller 전에 연결이 끊긴 검색, 상세 요청은 공급자를 �
     details: {
       fetchDetails: recordCall('details'),
       catalog: createCatalogService(recordCall('catalog'))
-    }
+    },
+    todayGrade: { fetchShopGrade: unusedProvider }
   })
   t.after(() => app.close())
   // 클라이언트가 요청을 보낸 직후 연결을 끊어 controller보다 socket 종료가 먼저인 상황을 만든다.

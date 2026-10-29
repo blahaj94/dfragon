@@ -88,6 +88,11 @@ async function startApp(
       }
     },
     details: { fetchDetails, catalog: createCatalogService(fetchCatalog) },
+    todayGrade: {
+      fetchShopGrade: async () => {
+        throw new Error('response cache test must not look up the shop grade')
+      }
+    },
     writeAccessLog: () => undefined
   })
   t.after(() => app.close())

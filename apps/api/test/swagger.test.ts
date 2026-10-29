@@ -10,7 +10,8 @@ test('Swagger는 공개 API 경로만 문서화하고 provider를 호출하지 �
   })
   const app = await createApiHttpApp({
     search: { searchCharacters: unused },
-    details: { fetchDetails: unused, catalog: createCatalogService(unused) }
+    details: { fetchDetails: unused, catalog: createCatalogService(unused) },
+    todayGrade: { fetchShopGrade: unused }
   })
   try {
     await app.listen(0, '127.0.0.1')
@@ -31,7 +32,8 @@ test('Swagger는 공개 API 경로만 문서화하고 provider를 호출하지 �
         'get /characters',
         'get /characters/candidates',
         'get /characters/{serverId}/{characterId}',
-        'post /characters/{serverId}/{characterId}/refresh'
+        'post /characters/{serverId}/{characterId}/refresh',
+        'get /items/today-grade'
       ].sort()
     )
     const refresh = document.paths['/characters/{serverId}/{characterId}/refresh']!.post!

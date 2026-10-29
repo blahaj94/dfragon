@@ -36,7 +36,8 @@ async function startApp(
   }
   const app = await createApiHttpApp({
     search: { searchCharacters },
-    details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) }
+    details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) },
+    todayGrade: { fetchShopGrade: unusedProvider }
   })
   t.after(() => app.close())
   await app.listen(0, '127.0.0.1')
