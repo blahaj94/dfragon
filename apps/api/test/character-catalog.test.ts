@@ -70,21 +70,21 @@ test('공급자 응답을 요청 itemId로 대응하고 옵션을 보존하며 �
       ]
     })
   }
-  const values = await createNeopleCatalog('fixture-key', fetchImpl)([item, 'missing'])
+  const values = await createNeopleCatalog('fixture-key', fetchImpl)([item, 'missing'], signal)
   assert.deepEqual([...values.keys()], [item])
   assert.deepEqual(values.get(item)!.option, { value: '3%' })
   assert(!requestPaths[0]!.includes('fixture-key'))
   const failure = createNeopleCatalog('fixture-key', async () => {
     throw new Error('secret upstream message')
   })
-  await assert.rejects(failure([item]), { message: 'Catalog lookup failed' })
+  await assert.rejects(failure([item], signal), { message: 'Catalog lookup failed' })
   let unavailableCalls = 0
   const unavailable = createNeopleCatalog('fixture-key', async () => {
     unavailableCalls++
 
     return Response.json({ error: { message: 'secret upstream message' } }, { status: 503 })
   })
-  await assert.rejects(unavailable([item]), { message: 'Catalog lookup failed' })
+  await assert.rejects(unavailable([item], signal), { message: 'Catalog lookup failed' })
   // 503은 HTTP client 기본 재시도 대상이지만 공용 상세 조회는 재시도하지 않는다.
   assert.equal(unavailableCalls, 1)
   const service = createCatalogService(async () => {
@@ -175,5 +175,5 @@ test('아이템 다중 응답의 누락, 중복, 잘못된 이름은 저장 대�
     })
   )
 
-  assert.deepEqual(await adapter(wanted), new Map([['valid', valid]]))
+  assert.deepEqual(await adapter(wanted, signal), new Map([['valid', valid]]))
 })

@@ -30,9 +30,19 @@ test('Swagger는 공개 API 경로만 문서화하고 provider를 호출하지 �
         'get /version',
         'get /characters',
         'get /characters/candidates',
-        'get /characters/{serverId}/{characterId}'
+        'get /characters/{serverId}/{characterId}',
+        'post /characters/{serverId}/{characterId}/refresh'
       ].sort()
     )
+    const refresh = document.paths['/characters/{serverId}/{characterId}/refresh']!.post!
+    assert.deepEqual(Object.keys(refresh.responses).sort(), [
+      '200',
+      '400',
+      '500',
+      '502',
+      '503',
+      '504'
+    ])
     assert.equal(document.paths['/me'], undefined)
     assert.equal(document.security, undefined)
     assert.equal(document.paths['/characters'].get?.security, undefined)

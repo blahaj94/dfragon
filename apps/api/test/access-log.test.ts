@@ -33,6 +33,21 @@ const sensitiveHeaders = {
   'X-Request-Id': secrets.clientCorrelationId
 }
 
+// Neople 상세 경로 suffix별 합성 섹션 본문이다.
+const sectionFields: Record<string, Record<string, unknown>> = {
+  '': { jobId: 'job' },
+  '/status': { status: [], buff: [] },
+  '/equip/equipment': { equipment: [{ itemId: 'fixture-item' }], setItemInfo: [] },
+  '/equip/avatar': { avatar: [] },
+  '/equip/creature': { creature: null },
+  '/equip/oath': { oath: null },
+  '/equip/mist-assimilation': { mistAssimilation: null },
+  '/skill/style': { skill: { style: { active: [] } } },
+  '/skill/buff/equip/equipment': { skill: { buff: null } },
+  '/skill/buff/equip/avatar': { skill: { buff: null } },
+  '/skill/buff/equip/creature': { skill: { buff: null } }
+}
+
 function collectAccessLogs() {
   const lines: string[] = []
   let notify: (() => void) | undefined
@@ -274,19 +289,6 @@ test('상세의 Neople 실패는 상세 오류와 원래 원인만 chain에 남�
 test('상세 요청 로그에는 Neople 단계별 대기 시간만 붙이고, 실패한 요청은 끝난 단계까지만 남긴다', {
   timeout: 5000
 }, async (t) => {
-  const sectionFields: Record<string, Record<string, unknown>> = {
-    '': { jobId: 'job' },
-    '/status': { status: [], buff: [] },
-    '/equip/equipment': { equipment: [{ itemId: 'fixture-item' }], setItemInfo: [] },
-    '/equip/avatar': { avatar: [] },
-    '/equip/creature': { creature: null },
-    '/equip/oath': { oath: null },
-    '/equip/mist-assimilation': { mistAssimilation: null },
-    '/skill/style': { skill: { style: { active: [] } } },
-    '/skill/buff/equip/equipment': { skill: { buff: null } },
-    '/skill/buff/equip/avatar': { skill: { buff: null } },
-    '/skill/buff/equip/creature': { skill: { buff: null } }
-  }
   const failingCharacterId = `${secrets.pathValue}-failing`
   const detailPath = /^\/df\/servers\/siroco\/characters\/([^/]+)(.*)$/
   const catalogRequests: string[][] = []
@@ -347,6 +349,78 @@ test('상세 요청 로그에는 Neople 단계별 대기 시간만 붙이고, �
   }
   assert.equal(succeeded!.neopleShared, undefined)
   assert.equal(failed!.neopleShared, undefined)
+})
+
+test('캐시가 맞은 상세 요청 로그에는 basic, sections가 없고 강제 갱신은 refresh route로 다시 받은 단계를 남기며 query가 붙은 강제 갱신은 거절한다', {
+  timeout: 5000
+}, async (t) => {
+  const basicRequests: string[] = []
+  const logs = collectAccessLogs()
+  const app = await createApiHttpApp({
+    search: { searchCharacters: unusedProvider },
+    details: {
+      fetchDetails: createNeopleCharacterDetailsForTest('fake-key', {
+        fetch: async (request) => {
+          const suffix = new URL(request.url).pathname.replace(
+            '/df/servers/siroco/characters/fixture-character',
+            ''
+          )
+          if (suffix === '') {
+            basicRequests.push(request.method)
+          }
+
+          return Response.json({
+            serverId: 'siroco',
+            characterId: 'fixture-character',
+            characterName: `조회 ${basicRequests.length}`,
+            ...sectionFields[suffix]
+          })
+        }
+      }),
+      catalog: createCatalogService(async () => new Map())
+    },
+    writeAccessLog: logs.sink
+  })
+  t.after(() => app.close())
+  await app.listen(0, '127.0.0.1')
+  const detailUrl = `${await app.getUrl()}/characters/siroco/fixture-character`
+  const requests = [
+    { method: 'GET', url: detailUrl, status: 200, characterName: '조회 1' },
+    { method: 'GET', url: detailUrl, status: 200, characterName: '조회 1' },
+    { method: 'POST', url: `${detailUrl}/refresh`, status: 200, characterName: '조회 2' },
+    { method: 'GET', url: detailUrl, status: 200, characterName: '조회 2' },
+    { method: 'POST', url: `${detailUrl}/refresh?force=1`, status: 400 }
+  ]
+  for (const [index, expected] of requests.entries()) {
+    const response = await fetch(expected.url, { method: expected.method })
+    assert.equal(response.status, expected.status, `${index}`)
+    const body = (await response.json()) as {
+      character?: { characterName: string }
+      error?: { code: string }
+    }
+    if (expected.characterName === undefined) {
+      assert.equal(body.error?.code, 'INVALID_CHARACTER_QUERY')
+    } else {
+      assert.equal(body.character?.characterName, expected.characterName, `${index}`)
+    }
+    await logs.waitFor(index + 1)
+  }
+
+  assert.equal(basicRequests.length, 2)
+  const entries = logs.lines.map((line) => {
+    const { route, neopleMs } = readEntry(line).fields
+
+    return { route, stages: Object.keys(neopleMs ?? {}).sort() }
+  })
+  const detailRoute = '/characters/:serverId/:characterId'
+  const refreshRoute = `${detailRoute}/refresh`
+  assert.deepEqual(entries, [
+    { route: detailRoute, stages: ['basic', 'catalog', 'sections'] },
+    { route: detailRoute, stages: ['catalog'] },
+    { route: refreshRoute, stages: ['basic', 'catalog', 'sections'] },
+    { route: detailRoute, stages: ['catalog'] },
+    { route: refreshRoute, stages: [] }
+  ])
 })
 
 test('Stack을 만든 뒤 message가 바뀌면 frame을 생략하고, 원래 오류를 정제하다 예외가 나면 원인을 생략한다', {

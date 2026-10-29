@@ -3,6 +3,8 @@ import test from 'node:test'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
 
+const signal = new AbortController().signal
+
 function catalogPayload(itemId: string) {
   return { itemId, itemName: '합성 아이템 ' + itemId }
 }
@@ -47,7 +49,7 @@ test('공급자는 아이템 15개 요청을 받고 16개 요청은 전송 전�
     return Response.json({ rows: [] })
   })
   const itemIds = Array.from({ length: 16 }, (_, index) => 'fixture-' + index)
-  assert.deepEqual(await adapter(itemIds.slice(0, 15)), new Map())
-  await assert.rejects(adapter(itemIds), /Invalid catalog request/)
+  assert.deepEqual(await adapter(itemIds.slice(0, 15), signal), new Map())
+  await assert.rejects(adapter(itemIds, signal), /Invalid catalog request/)
   assert.equal(calls, 1)
 })
