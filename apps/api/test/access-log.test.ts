@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { Writable } from 'node:stream'
 import test from 'node:test'
 import { type AccessLogSink, createStreamAccessLogSink } from '../src/access-log.js'
+import { createNeopleCharacterDetailsForTest } from '../src/characters/details/neople.js'
 import { createApiHttpApp } from '../src/http.js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
@@ -224,6 +225,49 @@ test('5xx 응답에는 오류 class 이름, code와 message를 뺀 stack frame�
     ['CharacterDetailFailure', '<non-error>']
   )
   assert.equal(detail![1]!.frames, undefined)
+})
+
+test('상세의 Neople 실패는 상세 오류와 원래 원인만 chain에 남기고 공급자 원문은 남기지 않는다', {
+  timeout: 5000
+}, async (t) => {
+  const responses = [
+    () =>
+      Response.json({ error: { code: 'API901', message: secrets.errorDetail } }, { status: 503 }),
+    () => new Response(`not json ${secrets.errorDetail}`, { status: 503 })
+  ]
+  const logs = collectAccessLogs()
+  const app = await createApiHttpApp(
+    { searchCharacters: async () => ({ rows: [] }) },
+    {
+      fetchDetails: createNeopleCharacterDetailsForTest('fake-key', {
+        fetch: async () => responses.shift()!()
+      })
+    },
+    undefined,
+    undefined,
+    logs.sink
+  )
+  t.after(() => app.close())
+  await app.listen(0, '127.0.0.1')
+  const origin = await app.getUrl()
+  for (const [count, status] of [
+    [1, 502],
+    [2, 503]
+  ] as const) {
+    const response = await fetch(`${origin}/characters/cain/fixture-character`)
+    assert.equal(response.status, status)
+    await response.arrayBuffer()
+    await logs.waitFor(count)
+  }
+
+  assert.equal(logs.lines.join('\n').includes(secrets.errorDetail), false)
+  const [knownCode, malformed] = logs.lines.map((line) => {
+    const chain = readEntry(line).fields.errorChain as Array<{ name: string }>
+
+    return chain.map(({ name }) => name)
+  })
+  assert.deepEqual(knownCode, ['CharacterDetailFailure'])
+  assert.deepEqual(malformed, ['CharacterDetailFailure', 'SyntaxError'])
 })
 
 test('Stack을 만든 뒤 message가 바뀌면 frame을 생략하고, 원래 오류를 정제하다 예외가 나면 원인을 생략한다', {

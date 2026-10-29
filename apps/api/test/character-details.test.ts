@@ -5,12 +5,13 @@ import type {
   CharacterDetailSection,
   CharacterPayloads
 } from '../src/characters/details/sections.js'
-import { CharacterDetailFailure } from '../src/characters/details/errors.js'
+import { CharacterDetailFailure, characterDetailFailure } from '../src/characters/details/errors.js'
 import {
   createNeopleCharacterDetailsForTest,
   validateCharacterPayload
 } from '../src/characters/details/neople.js'
 import { parseCharacterIdentity } from '../src/characters/details/service.js'
+import { NeopleSearchFailure } from '../src/errors/neople-search.js'
 
 const identity = { serverId: 'siroco', characterId: 'fixture-character' }
 const basic = { ...identity, characterName: '테스트 캐릭터' }
@@ -58,12 +59,38 @@ test('공급자 원문의 시즌 옵션과 미장착 null을 보존하고 누락
   }
 })
 
+test('상세 오류로 바꾼 검색 오류는 같은 종류의 상세 문구를 쓰고 검색 query 오류는 내부 오류로 반환한다', () => {
+  for (const [kind, status, code] of [
+    ['query', 500, 'INTERNAL_SERVER_ERROR'],
+    ['internal', 500, 'INTERNAL_SERVER_ERROR'],
+    ['api', 502, 'NEOPLE_API_ERROR'],
+    ['unavailable', 503, 'NEOPLE_UNAVAILABLE'],
+    ['timeout', 504, 'NEOPLE_TIMEOUT']
+  ] as const) {
+    const failure = characterDetailFailure(new NeopleSearchFailure(kind))
+    assert(failure instanceof CharacterDetailFailure, kind)
+    assert.equal(failure.status, status, kind)
+    assert.equal(failure.body.error.code, code, kind)
+    assert.match(failure.body.error.message, /캐릭터 정보/, kind)
+  }
+})
+
 test('공급자 알려진 code를 우선 분류하고 기본 조회 실패는 정제 오류로 반환하며 재시도하지 않는다', async () => {
-  for (const [status, body, expected] of [
-    [503, { error: { code: 'API901', message: 'sensitive upstream detail' } }, 502],
-    [401, { error: { code: 'API003' } }, 500],
-    [503, 'invalid JSON', 503],
-    [200, { ...basic, characterId: 'wrong' }, 502]
+  for (const [status, body, expected, code] of [
+    [
+      503,
+      { error: { code: 'API901', message: 'sensitive upstream detail' } },
+      502,
+      'NEOPLE_API_ERROR'
+    ],
+    [401, { error: { code: 'API003' } }, 500, 'INTERNAL_SERVER_ERROR'],
+    [400, { error: { code: 'API002' } }, 503, 'NEOPLE_UNAVAILABLE'],
+    [429, { error: { code: 'FUTURE' } }, 503, 'NEOPLE_UNAVAILABLE'],
+    [503, 'invalid JSON', 503, 'NEOPLE_UNAVAILABLE'],
+    [504, 'invalid JSON', 502, 'NEOPLE_API_ERROR'],
+    [502, {}, 502, 'NEOPLE_API_ERROR'],
+    [200, 'invalid JSON', 502, 'NEOPLE_API_ERROR'],
+    [200, { ...basic, characterId: 'wrong' }, 502, 'NEOPLE_API_ERROR']
   ] as const) {
     let calls = 0
     const adapter = createNeopleCharacterDetailsForTest('fake-key', {
@@ -76,7 +103,8 @@ test('공급자 알려진 code를 우선 분류하고 기본 조회 실패는 �
     })
     await assert.rejects(adapter(identity, new AbortController().signal), (error: unknown) => {
       assert(error instanceof CharacterDetailFailure)
-      assert.equal(error.status, expected)
+      assert.equal(error.status, expected, `${status} ${JSON.stringify(body)}`)
+      assert.equal(error.body.error.code, code)
       assert.equal(JSON.stringify(error.body).includes('sensitive'), false)
 
       return true
