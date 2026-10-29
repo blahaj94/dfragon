@@ -34,8 +34,6 @@ import {
   type ServerBuildInfo,
   type ServerService
 } from '@dfragon/lib'
-import { getIpQuotaKey } from '@dfragon/lib/utils/ip-quota-key'
-import { paginate } from '@dfragon/lib/utils/pagination'
 import { OCR_DATA_LIMITS } from '@dfragon/lib/ocr-contract'
 import manifest from '@dfragon/lib/package.json' with { type: 'json' }
 
@@ -161,14 +159,6 @@ export function readRaidValueColumn(
 
 export function versionResponse(value: unknown, service: ServerService): ServerBuildInfo | null {
   return parseServerBuildInfo(value, service)
-}
-
-export function quotaKey(peer: string): string {
-  return getIpQuotaKey(peer)
-}
-
-export function candidatePage(items: readonly DNFParticipantRow[], page: number) {
-  return paginate(items, { page, pageSize: 2 })
 }
 
 export function collectableSlots(kind: keyof typeof OCR_DATA_LIMITS.maximumCropsByKind): number[] {
