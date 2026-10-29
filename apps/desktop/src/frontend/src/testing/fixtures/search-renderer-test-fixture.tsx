@@ -140,13 +140,12 @@ export function createRendererFixture(): RendererFixture {
           if (slot.slot !== observation.slot) {
             return slot
           }
-          const state = observation.portrait === null ? 'waiting-portrait' : 'waiting-policy'
 
           return searchSlot({
             slot: observation.slot,
             nickname: observation.nickname,
             observationRevision: observation.observationRevision,
-            state,
+            state: 'pending',
             rows: []
           })
         })

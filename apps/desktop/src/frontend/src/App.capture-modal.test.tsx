@@ -120,7 +120,7 @@ it('창 선택 뒤 Alt+R로 한 번 인식하고 모달을 닫아도 이름과 �
   expect(f.capture.notifyOcrCandidatesDetected).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ nickname: 'ALICE', candidateNicknames: ['ALICE'], portrait: null })
   )
-  expect(f.container.textContent).toContain('얼굴 인식 대기')
+  expect(f.container.textContent).toContain('검색 중…')
   expect(f.container.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
     'ALICE'
   )

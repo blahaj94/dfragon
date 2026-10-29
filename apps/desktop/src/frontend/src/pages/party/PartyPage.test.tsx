@@ -121,14 +121,14 @@ it('비동기 식별 성공은 OCR 첫 이름 대신 선택된 이름과 서버�
 
 it('네 슬롯의 서로 다른 선택과 대기 상태를 독립적으로 표시한다', async () => {
   await render({
-    slots: ['success', 'success', 'waiting-portrait', 'waiting-policy'],
+    slots: ['success', 'success', 'pending', 'idle'],
     characters: [
       character,
       { ...character, characterId: 'another-id', name: '다른이름', fame: null },
       null,
       null
     ],
-    nicknames: [null, null, '얼굴대기', '기준대기']
+    nicknames: [null, null, '검색중', null]
   })
   const slots = container.querySelectorAll('article')
   expect(slots[0].querySelector<HTMLInputElement>(CHARACTER_NAME_INPUT_SELECTOR)?.value).toBe(
@@ -138,14 +138,12 @@ it('네 슬롯의 서로 다른 선택과 대기 상태를 독립적으로 표�
     '다른이름'
   )
   expect(statText(slots[1], '명성')).toBe('-')
-  expect(slots[2].querySelector('[role="img"][aria-label="얼굴 인식 대기"]')).toBeNull()
-  expect(slots[3].querySelector('[role="img"][aria-label="자동 식별 준비 중"]')).toBeNull()
-  expect(slots[2].textContent).toContain('얼굴 인식 대기')
-  expect(slots[3].textContent).toContain('자동 식별 준비 중')
+  expect(slots[2].getAttribute('aria-busy')).toBe('true')
+  expect(slots[3].getAttribute('aria-busy')).not.toBe('true')
   expect([...slots].map((slot) => slot.getAttribute('data-state'))).toEqual([
     'default',
     'default',
-    'waiting',
+    'default',
     'waiting'
   ])
   expect(slots[2].querySelector('img')).toBeNull()

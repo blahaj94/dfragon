@@ -107,7 +107,6 @@ it('테두리는 tone을 따른다', async () => {
     { tone: 'default', has: [] },
     { tone: 'selected', has: ['signal'] },
     { tone: 'failure', has: ['failure'] },
-    { tone: 'waiting', has: ['quiet'] },
     { tone: 'vacant', has: ['quiet', 'dashed'] }
   ]
   for (const { tone, has } of cases) {

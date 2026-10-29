@@ -70,9 +70,7 @@ it('서버 제한과 중복 요청을 지키고 정제된 오류만 표시한다
   }
   expect(canRetryCharacterSlot(ready, false)).toBe(true)
   expect(canRetryCharacterSlot(ready, true)).toBe(false)
-  expect(canRetryCharacterSlot({ ...slot, state: 'waiting-portrait', error: null }, false)).toBe(
-    false
-  )
+  expect(canRetryCharacterSlot({ ...slot, state: 'pending', error: null }, false)).toBe(false)
   expect(searchSlotNotice({ ...slot, error: null }, nextStep)).toBe(
     '검색 결과가 없습니다. 다음 안내'
   )

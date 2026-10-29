@@ -127,11 +127,11 @@ it('OCR 후보 순서와 얼굴을 현재 capture ID, 관측 revision과 함께 
   ])
 })
 
-it('얼굴 크롭이 없는 OCR 관측의 waiting-portrait 상태를 표시한다', async () => {
+it('얼굴 크롭이 없는 OCR 관측도 main이 돌려준 검색 중 슬롯을 표시한다', async () => {
   const f = await fixture()
   f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
   await f.search.begin({ signal: new AbortController().signal })
-  const waiting = searchSlot({ state: 'waiting-portrait' })
+  const waiting = searchSlot({ state: 'pending' })
   f.notifyOcr.mockResolvedValueOnce({
     ok: true,
     snapshot: searchSnapshot({ revision: 3, slots: [waiting, ...searchSnapshot().slots.slice(1)] })
@@ -162,7 +162,7 @@ it.each(['이름 변경', 'end'] as const)(
       candidateNicknames: ['가나', '가너'],
       portrait: null
     })
-    const waiting = searchSlot({ state: 'waiting-portrait' })
+    const waiting = searchSlot({ state: 'pending' })
     f.emit(searchSnapshot({ revision: 3, slots: [waiting, ...searchSnapshot().slots.slice(1)] }))
     expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(waiting)
 
