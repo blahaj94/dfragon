@@ -379,8 +379,10 @@ function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
       return lifetime.retry(control)
     }
 
+    // 서버 지정 조회는 controlManualSearch와 controlRaidSearch로만 받는다. 공유 schema가 LOOKUP을
+    // 통과시키므로 여기서 거부하지 않으면 BEGIN으로 처리된다.
     if (control.action === SEARCH_ACTIONS.LOOKUP) {
-      return lifetime.lookup(control)
+      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
     const hasCapture = lifetime.current != null
     const isBusy = selectingSource || hasCapture
