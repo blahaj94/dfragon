@@ -1,45 +1,29 @@
 const UNSAFE_RENDERER_URL_CHARACTER_PATTERN = /[\s\\]/u
+const LOOPBACK_HOSTNAMES = ['localhost', '127.0.0.1', '[::1]']
 
-function hasUrlCredentials(url: URL): boolean {
-  return url.username.length > 0 || url.password.length > 0
+function hasUnsafeCharacter(value: string): boolean {
+  return (
+    UNSAFE_RENDERER_URL_CHARACTER_PATTERN.test(value) ||
+    Array.from(value).some((character) => {
+      const code = character.charCodeAt(0)
+
+      return code <= 31 || code === 127
+    })
+  )
 }
 
 export function validateDevRendererUrl(value: string): string {
-  const hasWhitespaceOrBackslash = UNSAFE_RENDERER_URL_CHARACTER_PATTERN.test(value)
-  const hasControlCharacter = Array.from(value).some((character) => {
-    const code = character.charCodeAt(0)
-    const isC0Control = code <= 31
-    const isDelete = code === 127
-    const isControl = isC0Control || isDelete
-
-    return isControl
-  })
-  const hasForbiddenCharacters = hasWhitespaceOrBackslash || hasControlCharacter
-  if (hasForbiddenCharacters) {
-    throw new Error('Invalid local renderer URL')
-  }
-  let url: URL
-  try {
-    url = new URL(value)
-  } catch {
-    throw new Error('Invalid local renderer URL')
-  }
-  const isHttp = url.protocol === 'http:'
-  const isHttps = url.protocol === 'https:'
-  const isWebProtocol = isHttp || isHttps
-  const isLocalhost = url.hostname === 'localhost'
-  const isIpv4Loopback = url.hostname === '127.0.0.1'
-  const isIpv6Loopback = url.hostname === '[::1]'
-  const isLoopback = isLocalhost || isIpv4Loopback || isIpv6Loopback
-  const hasCredentials = hasUrlCredentials(url)
-  const isCanonicalUrl = value === url.href
+  const url = hasUnsafeCharacter(value) ? null : URL.parse(value)
   // Electron Vite는 dev origin을 마지막 slash 없이 제공한다.
-  const isBareOrigin = value === url.origin
-  const isRootDocument = url.href === `${url.origin}/`
-  const isViteOrigin = isBareOrigin && isRootDocument
-  const hasCanonicalInput = isCanonicalUrl || isViteOrigin
-  const isAllowed = isWebProtocol && isLoopback && !hasCredentials && hasCanonicalInput
-  if (!isAllowed) {
+  const isViteOrigin = value === url?.origin && url.href === `${url.origin}/`
+  if (
+    url === null ||
+    (url.protocol !== 'http:' && url.protocol !== 'https:') ||
+    !LOOPBACK_HOSTNAMES.includes(url.hostname) ||
+    url.username.length > 0 ||
+    url.password.length > 0 ||
+    (value !== url.href && !isViteOrigin)
+  ) {
     throw new Error('Invalid local renderer URL')
   }
 
