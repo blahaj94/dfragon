@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { createRendererFixture } from './testing/fixtures/search-renderer-test-fixture'
+import { createRendererFixture, media } from './testing/fixtures/search-renderer-test-fixture'
 import App from './App'
 import { stubIdleDesktopBridges } from './testing/fixtures/idle-desktop-bridges'
 import { emptySearchSlots } from './lib/slots'
@@ -252,7 +252,7 @@ it('파티 화면의 Alt+R은 파티 회차만 시작하고 공대 프레임을 
   expect(raid.readCaptureFrame).not.toHaveBeenCalled()
 })
 
-it('공대 회차 중 파티로 옮겨도 늦은 결과는 공대 자리에만 들어가고 파티 Alt+R은 파티 회차를 시작한다', async () => {
+it('공대 회차 중 파티로 옮겨도 늦은 결과는 공대 자리에만 들어가고 파티 Alt+R은 같은 OCR worker로 파티 회차를 시작한다', async () => {
   const f = createRendererFixture()
   const raid = stubRaidSearch()
   const late = Promise.withResolvers<RaidSlotRecognition[]>()
@@ -278,6 +278,7 @@ it('공대 회차 중 파티로 옮겨도 늦은 결과는 공대 자리에만 �
   expect(partyBegins(f)).toBe(1)
   expect(raid.begins()).toBe(1)
   expect(raid.readCaptureFrame).toHaveBeenCalledOnce()
+  expect(media.worker).toHaveBeenCalledOnce()
 })
 
 it.each(triggers)('창을 등록하기 전 공대 화면의 %s은 회차를 시작하지 않는다', async (trigger) => {

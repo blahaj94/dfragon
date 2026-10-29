@@ -1,6 +1,7 @@
 import { createActor, waitFor } from 'xstate'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { getRaidCapturePhase, raidCaptureMachine } from './raid-capture-machine'
+import { createSharedOcrWorker } from './ocr-worker-recognition'
 import type { RaidFrameResult } from '../../../preload/common/types/capture'
 import type { RaidSlotRecognition } from './raid-recognition'
 
@@ -33,13 +34,13 @@ const recognized: RaidSlotRecognition[] = [
   { kind: 'recognized', nickname: '셋째', slot: 2, jobText: '眞 크루세이더' },
   ...Array.from({ length: 9 }, (_, index) => ({ kind: 'missing' as const, slot: index + 3 }))
 ]
-const terminate = vi.fn()
 
 function start() {
   const effects = {
     beginSearch: vi.fn(async (_signal: AbortSignal): Promise<string | null> => ROUND),
     readFrame: vi.fn(async (_captureId: string): Promise<RaidFrameResult> => rows),
-    observeOcr: vi.fn()
+    observeOcr: vi.fn(),
+    recognizeWithOcr: createSharedOcrWorker().recognize
   }
   const actor = createActor(raidCaptureMachine, { input: effects }).start()
 
@@ -47,7 +48,7 @@ function start() {
 }
 
 beforeEach(() => {
-  modules.worker.mockResolvedValue({ recognize: vi.fn(), terminate })
+  modules.worker.mockResolvedValue({ recognize: vi.fn(), terminate: vi.fn() })
   modules.recognize.mockResolvedValue(recognized)
   vi.useFakeTimers({ now: new Date('2026-10-19T00:00:00Z'), toFake: ['Date'] })
 })
@@ -79,7 +80,6 @@ it('회차는 공대 수명을 시작해 프레임 한 장의 12행을 인식하
 
   expect(effects.readFrame).toHaveBeenCalledExactlyOnceWith(ROUND)
   expect(modules.recognize).toHaveBeenCalledExactlyOnceWith(rows.rows, expect.any(Function))
-  expect(terminate).toHaveBeenCalledOnce()
   const raidRow = { jobText: '眞 크루세이더', valueColumn: 'fame', valueText: '12,345' }
   expect(effects.observeOcr.mock.calls.map(([input]) => input)).toEqual([
     { slot: 0, nickname: '첫째', candidateNicknames: ['첫째'], portrait: null, raidRow },
@@ -211,7 +211,6 @@ it.each([null, 'next'])(
 
     actor.send({ type: 'SOURCE', sourceId })
     pending.resolve(recognized)
-    await vi.waitFor(() => expect(terminate).toHaveBeenCalledOnce())
     await new Promise((resolve) => setTimeout(resolve, 0))
 
     expect(actor.getSnapshot().matches('idle')).toBe(true)
@@ -250,7 +249,7 @@ it('시작한 회차 수는 받아들인 START마다 오르고 무시한 START�
 
   actor.send({ type: 'SOURCE', sourceId: null })
   pending.resolve(recognized)
-  await vi.waitFor(() => expect(terminate).toHaveBeenCalledOnce())
+  await new Promise((resolve) => setTimeout(resolve, 0))
   expect(actor.getSnapshot().context.startedRounds).toBe(1)
 
   actor.send({ type: 'SOURCE', sourceId: 'game' })

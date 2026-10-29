@@ -66,13 +66,14 @@ function topBarText(): string | null {
   return header.textContent
 }
 
-it('앱 시작 때 던파가 하나면 등록만 하고 Alt+R 전까지 기다린다', async () => {
+it('앱 시작 때 던파가 하나면 등록하고 OCR worker만 미리 띄운 채 Alt+R 전까지 기다린다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
   await f.mount(<App />)
   expect(f.capture.selectCaptureSource).toHaveBeenCalledWith('game')
   expect(f.readCaptureFrame).not.toHaveBeenCalled()
-  expect(media.worker).not.toHaveBeenCalled()
+  expect(media.worker).toHaveBeenCalledOnce()
+  expect(f.resources.worker.recognize).not.toHaveBeenCalled()
   expect(f.search.controlCharacterSearch).not.toHaveBeenCalledWith({ action: 'begin' })
   await openCaptureDialog()
   expect(selectedSourceName()).toBe('던전앤파이터')
@@ -160,7 +161,7 @@ it('다른 창 선택은 진행 중 OCR을 취소하고 새 창만 등록한다'
   await f.restart()
   expect(f.readCaptureFrame).toHaveBeenCalledTimes(2)
   expect(topBarText()).toContain('인식 완료')
-  expect(next.worker.terminate).toHaveBeenCalledOnce()
+  expect(next.worker.terminate).not.toHaveBeenCalled()
 })
 
 it('연속 창 선택에서 이전 등록의 늦은 응답은 현재 선택을 바꾸거나 캡처하지 않는다', async () => {
@@ -173,7 +174,7 @@ it('연속 창 선택에서 이전 등록의 늦은 응답은 현재 선택을 �
   await select('next')
   await act(async () => firstSelection.resolve({ id: 'game', name: 'Synthetic game' }))
   expect(f.readCaptureFrame).not.toHaveBeenCalled()
-  expect(media.worker).not.toHaveBeenCalled()
+  expect(f.resources.worker.recognize).not.toHaveBeenCalled()
   expect(selectedSourceName()).toBe('Next game')
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
     'Alt+R을 눌러 파티를 인식해 주세요.'

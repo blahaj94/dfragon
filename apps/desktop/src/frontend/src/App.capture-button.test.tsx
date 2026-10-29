@@ -232,9 +232,7 @@ it.each(triggers)(
     await f.restart()
     expect(captureState()).toBe('화면 캡처, 인식 중')
     expect(captureButton().disabled).toBe(false)
-    const firstRound = media.worker.mock.calls[0][0] as AbortSignal
     await press(f, trigger)
-    expect(firstRound.aborted).toBe(true)
     expect(beginCount(f)).toBe(2)
     expect(f.readCaptureFrame).toHaveBeenCalledTimes(2)
     await act(async () =>
@@ -249,6 +247,8 @@ it.each(triggers)(
     expect(document.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
       'NEW'
     )
+    expect(media.worker).toHaveBeenCalledOnce()
+    expect(f.resources.worker.terminate).not.toHaveBeenCalled()
   }
 )
 

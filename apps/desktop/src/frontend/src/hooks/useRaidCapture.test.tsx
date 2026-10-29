@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { act, useLayoutEffect } from 'react'
+import { act, useLayoutEffect, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useRaidCapture } from './useRaidCapture'
+import { createSharedOcrWorker } from '../lib/ocr-worker-recognition'
 import { emptySearchSlots } from '../lib/slots'
 import type { RaidSlotRecognition } from '../lib/raid-recognition'
 import { searchSnapshot } from '../../../preload/api/search-test-fixture'
@@ -32,7 +33,13 @@ let value: ReturnType<typeof useRaidCapture>
 let root: Root
 
 function Harness(): null {
-  const current = useRaidCapture({ sourceId: 'game', sourceReady: true, receivesShortcut: false })
+  const [ocrWorker] = useState(createSharedOcrWorker)
+  const current = useRaidCapture({
+    sourceId: 'game',
+    sourceReady: true,
+    receivesShortcut: false,
+    recognizeWithOcr: ocrWorker.recognize
+  })
   useLayoutEffect(() => {
     value = current
   })
