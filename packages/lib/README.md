@@ -97,51 +97,6 @@ pnpm --filter @dfragon/lib format:check
 
 문자 표를 갱신할 때는 `pnpm --filter @dfragon/lib generate:cp949` 후 root에서 `pnpm exec biome format --write packages/lib/src/cp949-characters.ts`를 실행합니다. 테스트는 BMP 전체에 대해 원본 codec과 표의 일치를 검증합니다.
 
-## 파티참가인원 닉네임 검출, 크롭
-
-이동 가능한 **파티참가인원 팝업**의 `캐릭터 이름` 열을 처리합니다. 가로 파티 HUD의 `detectPartyFrameGeometry`와 다른 대상입니다. Desktop 개발자 작업 공간의 파티원창 크롭 탭에서 미리보기와 수집에 사용합니다.
-
-```ts
-import {
-  cropDNFPartyParticipantNicknames,
-  detectDNFPartyParticipantWindow,
-  type DNFParticipantFrame
-} from '@dfragon/lib'
-
-// 호출자가 캡처, 디코딩한 게임 client와 UI 0%의 기준 헤더입니다.
-declare const frame: DNFParticipantFrame
-declare const headingTemplate: DNFParticipantFrame
-
-// 위치와 행 상태만 필요할 때 사용합니다.
-const detection = detectDNFPartyParticipantWindow(frame, headingTemplate)
-
-// 검출과 원본 복사를 한 프레임에서 수행하므로 별도로 detect를 호출할 필요가 없습니다.
-const result = cropDNFPartyParticipantNicknames(frame, headingTemplate)
-if (result.status === 'found') {
-  for (const row of result.rows) {
-    if (row.crop === null) continue
-    // slot은 1~4 원래 행 번호입니다. 3번만 남아도 slot:3을 유지합니다.
-    // row.crop의 RGBA를 표시하거나 저장하는 일은 호출자가 담당합니다.
-    console.log(row.slot, row.nickname, row.crop.width, row.crop.height)
-  }
-}
-```
-
-두 함수의 입력은 `{ width, height, rgba }`입니다. `rgba`는 행 우선, 채널 순서 RGBA, premultiply하지 않은 `Uint8Array | Uint8ClampedArray`이고, padding 없이 정확히 `width × height × 4`바이트여야 합니다. alpha는 검출에 사용하지 않고 크롭에 그대로 보존합니다. 게임 client 크기는 양의 안전한 정수이며 한 변 8192px, 총 33,000,000픽셀 이하를 받습니다. 바탕화면, 창 테두리는 호출자가 제외합니다. 메모리 보호 한도 안의 모든 해상도, 화면 비율, 팝업 배율에서 검증됐다는 의미는 아닙니다.
-
-`headingTemplate`은 UI 0%에서 **레벨, 장비 점수, 캐릭터 이름, 직업명 네 열의 헤더 전체**를 배경과 테두리까지 포함해 자른 `368 × 17` RGBA입니다. 측정한 팝업 좌상단에서 `(14, 67)`부터 시작합니다. 자르기 외에 확대, 이진화, 글자만 추출하는 전처리를 하지 않습니다. 기준 이미지 제공, 디코딩, 갱신은 호출자가 소유하며 패키지에 게임 이미지나 플레이어 데이터는 포함하지 않습니다. 잘못된 크기, 바이트 배열과 대비가 없는 기준 헤더는 `RangeError`로 거절합니다.
-
-| `status` | 의미 |
-| --- | --- |
-| `found` | 헤더와 네 행 구조를 만족하는 팝업 하나를 검출했습니다. `window`, `scale`, `matchScore`, `rows`를 반환합니다. |
-| `not-found` | 검증 가능한 팝업이 없습니다. 화면 경계에 잘린 후보도 제외합니다. |
-| `ambiguous` | 서로 다른 팝업 후보가 둘 이상입니다. 하나를 임의로 선택하지 않습니다. |
-| `search-limit` | 조건을 만족하는 빨간 연결 영역이 128개를 초과하거나, 프레임 전체 헤더 비교가 64,000,000개 픽셀 표본 한도를 초과하려 합니다. 일부 후보만 검사해 성공을 반환하지 않습니다. |
-
-`window`와 각 행의 `nickname`은 입력 게임 client 기준의 정수 `{ x, y, width, height }`입니다. `rows`는 항상 위에서부터 네 개이며 각 행은 `{ slot, occupied, nickname }`입니다. 빈 행, 자물쇠 행도 남고, 네 행 모두 비어 있어도 창이 검출되면 `found`입니다. 크롭 함수는 각 행에 `crop`을 추가합니다. 참가자가 있으면 독립 RGBA 복사본, 없으면 `null`이며 입력 버퍼를 변경하거나 공유하지 않습니다. 크기 변경, 선명화, OCR는 하지 않습니다.
-
-`scale`은 헤더로 추정한 래스터 배율이며 게임 UI 설정 퍼센트가 아닙니다. `matchScore`는 평균을 뺀 정규화 상관 점수로, 식별 성공 확률이나 닉네임 판독 신뢰도가 아닙니다. 동기 CPU 계산이므로 반복 캡처에 연결할 때 실행 위치와 주기는 호출자가 정합니다.
-
 ## 12인 공대창 검출, 크롭
 
 `detectDNFRaidParticipantWindow(frame, headingTemplate)`은 공대창의 위치, 배율과 12행의 참가 여부, 닉네임, 파티 표식, 장비 점수 영역을 반환합니다. `cropDNFRaidParticipantNicknames(frame, headingTemplate)`은 같은 프레임에서 참가 행의 닉네임 원본 RGBA도 복사합니다. 닉네임 OCR이나 Desktop 수집, 웹 업로드를 실행하지 않습니다.
