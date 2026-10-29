@@ -21,7 +21,7 @@ function fixture(overrides = {}) {
 test('검색은 잘못된 query를 공급자 호출 전에 거절한다', async () => {
   const f = fixture()
   try {
-    await assert.rejects(f.service.search('127.0.0.1', '/characters?characterName='), {
+    await assert.rejects(f.service.search('/characters?characterName='), {
       status: 400,
       body: { error: { code: 'INVALID_SEARCH_QUERY', message: '검색 조건을 확인해 주세요.' } }
     })
@@ -31,11 +31,11 @@ test('검색은 잘못된 query를 공급자 호출 전에 거절한다', async 
   }
 })
 
-test('같은 IP의 동시 검색 열두 건을 IP별 한도 없이 모두 공급자에 보낸다', async () => {
+test('동시 검색 열두 건을 IP별 한도 없이 모두 공급자에 보낸다', async () => {
   const f = fixture()
   try {
     const results = await Promise.all(
-      Array.from({ length: 12 }, () => f.service.search('127.0.0.1', originalUrl))
+      Array.from({ length: 12 }, () => f.service.search(originalUrl))
     )
     for (const result of results) {
       assert.deepEqual(result, { rows: [] })
@@ -46,16 +46,10 @@ test('같은 IP의 동시 검색 열두 건을 IP별 한도 없이 모두 공급
   }
 })
 
-test('IP 누락, 이미 취소된 요청, 종료 후 검색은 공급자를 호출하지 않는다', async () => {
+test('종료 후 검색은 공급자를 호출하지 않는다', async () => {
   const f = fixture()
-  const controller = new AbortController()
-  controller.abort()
-  await assert.rejects(f.service.search(undefined, originalUrl), { status: 500 })
-  await assert.rejects(f.service.search('127.0.0.1', originalUrl, controller.signal), {
-    status: 500
-  })
   await f.service.onModuleDestroy()
-  await assert.rejects(f.service.search('127.0.0.1', originalUrl), { status: 500 })
+  await assert.rejects(f.service.search(originalUrl), { status: 500 })
   assert.equal(f.calls.length, 0)
 })
 
@@ -69,7 +63,7 @@ test('공급자의 미분류 실패는 내부 오류로 정제하고 이후 검�
   })
   try {
     for (let index = 0; index < 11; index++) {
-      await assert.rejects(f.service.search('127.0.0.1', originalUrl), (error) => {
+      await assert.rejects(f.service.search(originalUrl), (error) => {
         assert.equal(error.status, 500)
         assert.deepEqual(error.body, {
           error: {
