@@ -29,6 +29,29 @@ const candidate: CharacterCandidate = {
   jobGrowName: null
 }
 
+async function listenLocally(
+  handler: Parameters<typeof createServer>[1]
+): Promise<{ transport: typeof globalThis.fetch; close: () => Promise<void> }> {
+  const server = createServer(handler)
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const port = (server.address() as AddressInfo).port
+  const transport: typeof globalThis.fetch = (input, init) => {
+    const original = new Request(input, init)
+    const url = new URL(original.url)
+    const local = `http://127.0.0.1:${port}${url.pathname}${url.search}`
+
+    return globalThis.fetch(new Request(local, original))
+  }
+  const close = async (): Promise<void> => {
+    server.closeAllConnections()
+    await new Promise<void>((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve()))
+    )
+  }
+
+  return { transport, close }
+}
+
 function json(body: unknown, status = 200, headers?: HeadersInit): Response {
   return new Response(JSON.stringify(body), { status, headers })
 }
@@ -192,23 +215,6 @@ describe('OCR 후보 검색 HTTP', () => {
     await expect(read({ nickname: '가나', signal: signal() })).rejects.toMatchObject({
       code: 'SEARCH_RESPONSE_INVALID'
     })
-  })
-
-  it('후보 응답 본문을 크기 제한 안에서 읽고 초과 스트림은 취소한다', async () => {
-    const cancel = vi.fn()
-    const body = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(new Uint8Array(CHARACTER_HTTP_LIMITS.candidateJsonBytes + 1))
-      },
-      cancel
-    })
-    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response(body))
-    const read = createCharacterCandidatesHttp({ apiOrigin: API_ORIGIN, fetch })
-
-    await expect(read({ nickname: '가나', signal: signal() })).rejects.toMatchObject({
-      code: 'SEARCH_RESPONSE_INVALID'
-    })
-    expect(cancel).toHaveBeenCalledOnce()
   })
 
   it('고정 API origin 설정에 경로나 HTTP를 허용하지 않는다', () => {
@@ -468,16 +474,63 @@ describe('캐릭터 통신 실패와 호출자 취소', () => {
     }
   )
 
-  it.each(['candidates', 'image', 'details'] as const)(
-    '%s의 멈춘 body를 호출자 신호로 취소한다',
-    async (kind) => {
-      const controller = new AbortController()
+  it.each([
+    ['candidates', CHARACTER_HTTP_LIMITS.candidateJsonBytes],
+    ['details', CHARACTER_HTTP_LIMITS.detailJsonBytes]
+  ] as const)(
+    '%s 응답 본문이 크기 상한을 넘으면 잘못된 응답으로 끝내고 stream을 취소한다',
+    async (kind, limit) => {
       const cancel = vi.fn()
-      const pull = vi.fn()
-      const body = new ReadableStream<Uint8Array>({ pull, cancel }, { highWaterMark: 0 })
-      const fetch = vi
-        .fn<typeof globalThis.fetch>()
-        .mockResolvedValue(new Response(body, { headers: { 'Content-Type': 'image/png' } }))
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(limit + 1))
+        },
+        cancel
+      })
+      const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(new Response(body))
+      const request =
+        kind === 'details'
+          ? createCharacterDetailsHttp({ apiOrigin: API_ORIGIN, fetch })({
+              ...identity,
+              signal: signal()
+            })
+          : createCharacterCandidatesHttp({ apiOrigin: API_ORIGIN, fetch })({
+              nickname: '가나',
+              signal: signal()
+            })
+
+      await expect(request).rejects.toMatchObject({ code: 'SEARCH_RESPONSE_INVALID' })
+      expect(cancel).toHaveBeenCalledOnce()
+    }
+  )
+
+  it.each(['candidates', 'image', 'details'] as const)(
+    '%s의 멈춘 body를 호출자 신호로 취소하고 실제 HTTP 연결을 닫는다',
+    async (kind) => {
+      let requests = 0
+      let markClosed!: () => void
+      const closed = new Promise<void>((resolve) => {
+        markClosed = resolve
+      })
+      const server = await listenLocally((_request, response) => {
+        requests++
+        response.on('close', markClosed)
+        response.writeHead(200, {
+          'Content-Type': kind === 'image' ? 'image/png' : 'application/json'
+        })
+        response.write('{')
+      })
+      let markHeaders!: () => void
+      const headers = new Promise<void>((resolve) => {
+        markHeaders = resolve
+      })
+      const fetch: typeof globalThis.fetch = async (input, init) => {
+        const response = await server.transport(input, init)
+        markHeaders()
+
+        return response
+      }
+      const controller = new AbortController()
       let request: Promise<unknown>
       if (kind === 'candidates') {
         request = createCharacterCandidatesHttp({ apiOrigin: API_ORIGIN, fetch })({
@@ -492,13 +545,17 @@ describe('캐릭터 통신 실패와 호출자 취소', () => {
           signal: controller.signal
         })
       }
-      const failure = expect(request).rejects.toMatchObject({ name: 'AbortError' })
-      await vi.waitFor(() => expect(pull).toHaveBeenCalledOnce())
-      controller.abort()
+      try {
+        const failure = expect(request).rejects.toMatchObject({ name: 'AbortError' })
+        await headers
+        controller.abort()
 
-      await failure
-      expect(cancel).toHaveBeenCalledOnce()
-      expect(fetch).toHaveBeenCalledOnce()
+        await failure
+        await closed
+        expect(requests).toBe(1)
+      } finally {
+        await server.close()
+      }
     }
   )
 
@@ -516,7 +573,7 @@ describe('캐릭터 통신 실패와 호출자 취소', () => {
 
   it('실제 HTTP redirect를 따라가지 않고 503도 자동 재시도하지 않는다', async () => {
     const paths: string[] = []
-    const server = createServer((request, response) => {
+    const server = await listenLocally((request, response) => {
       paths.push(request.url ?? '')
       if (paths.length === 1) {
         response.writeHead(302, { Location: '/should-not-follow' }).end()
@@ -525,16 +582,7 @@ describe('캐릭터 통신 실패와 호출자 취소', () => {
         response.end(JSON.stringify({ error: { code: 'NEOPLE_UNAVAILABLE' } }))
       }
     })
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
-    const port = (server.address() as AddressInfo).port
-    const transport: typeof globalThis.fetch = (input, init) => {
-      const original = new Request(input, init)
-      const url = new URL(original.url)
-      const local = `http://127.0.0.1:${port}${url.pathname}${url.search}`
-
-      return globalThis.fetch(new Request(local, original))
-    }
-    const read = createCharacterCandidatesHttp({ apiOrigin: API_ORIGIN, fetch: transport })
+    const read = createCharacterCandidatesHttp({ apiOrigin: API_ORIGIN, fetch: server.transport })
     try {
       await expect(read({ nickname: '가+나', signal: signal() })).rejects.toBeInstanceOf(
         SearchHttpFailure
@@ -547,10 +595,7 @@ describe('캐릭터 통신 실패와 호출자 취소', () => {
         '/characters/candidates?characterName=%EA%B0%80%2B%EB%82%98'
       ])
     } finally {
-      server.closeAllConnections()
-      await new Promise<void>((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve()))
-      )
+      await server.close()
     }
   })
 })

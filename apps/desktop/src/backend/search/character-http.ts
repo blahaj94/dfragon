@@ -15,7 +15,6 @@ import {
   createCharacterHttpClient,
   parseCharacterJson,
   parseCharacterRetryAfter,
-  readCharacterResponseBody,
   throwCharacterTransportFailure
 } from './character-response'
 import {
@@ -167,7 +166,7 @@ export function createCharacterCandidatesHttp({
   clock
 }: ApiOptions): CharacterCandidatesHttp {
   const origin = validateApiOrigin(apiOrigin)
-  const client = createCharacterHttpClient(transport)
+  const client = createCharacterHttpClient(transport, CHARACTER_HTTP_LIMITS.candidateJsonBytes)
 
   return async ({ nickname, signal }) => {
     validateNickname(nickname)
@@ -179,9 +178,7 @@ export function createCharacterCandidatesHttp({
         signal
       })
       const receivedAt = clock?.read().monotonicMs ?? performance.now()
-      const body = parseCharacterJson(
-        await readCharacterResponseBody(response, signal, CHARACTER_HTTP_LIMITS.candidateJsonBytes)
-      )
+      const body = parseCharacterJson(await response.arrayBuffer())
       assertApiSuccess(response, body, receivedAt, false)
       const parsed = candidatesSchema.safeParse(body)
       if (!parsed.success || parsed.data.rows.some((row) => row.characterName !== nickname)) {
@@ -200,7 +197,7 @@ export function createCharacterImageHttp({
   fetch: transport = fetchApi,
   clock
 }: TransportOptions & { clock?: Pick<MonotonicClock, 'read'> } = {}): CharacterImageHttp {
-  const client = createCharacterHttpClient(transport)
+  const client = createCharacterHttpClient(transport, CHARACTER_HTTP_LIMITS.imageBytes)
 
   return async ({ serverId, characterId, signal }) => {
     const identity = { serverId, characterId }
@@ -222,11 +219,7 @@ export function createCharacterImageHttp({
         }
         throw new SearchHttpFailure('NEOPLE_API_ERROR')
       }
-      const bytes = await readCharacterResponseBody(
-        response,
-        signal,
-        CHARACTER_HTTP_LIMITS.imageBytes
-      )
+      const bytes = Buffer.from(await response.arrayBuffer())
       const contentType = response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase()
       if (contentType !== 'image/png') {
         throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
@@ -247,7 +240,7 @@ export function createCharacterDetailsHttp({
   clock
 }: ApiOptions): CharacterDetailsHttp {
   const origin = validateApiOrigin(apiOrigin)
-  const client = createCharacterHttpClient(transport)
+  const client = createCharacterHttpClient(transport, CHARACTER_HTTP_LIMITS.detailJsonBytes)
 
   return async ({ serverId, characterId, signal }) => {
     validateIdentity({ serverId, characterId })
@@ -258,9 +251,7 @@ export function createCharacterDetailsHttp({
         signal
       })
       const receivedAt = clock?.read().monotonicMs ?? performance.now()
-      const body = parseCharacterJson(
-        await readCharacterResponseBody(response, signal, CHARACTER_HTTP_LIMITS.detailJsonBytes)
-      )
+      const body = parseCharacterJson(await response.arrayBuffer())
       assertApiSuccess(response, body, receivedAt, true)
       const parsed = detailsSchema.safeParse(body)
       if (
