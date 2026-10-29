@@ -40,7 +40,7 @@ interface CharacterDetailJson {
 async function readDetail(pending: Promise<CharacterDetailResponse>): Promise<CharacterDetailJson> {
   const { body } = await pending
 
-  return JSON.parse(body.json.toString())
+  return JSON.parse(body.toString())
 }
 
 function payloadsNamed(characterName: string): CharacterPayloads {
@@ -233,7 +233,7 @@ test('캐시가 맞은 요청은 저장한 응답 본문을 다시 쓰며 Neople
   assert.equal(built.reused, false)
   assert.deepEqual(hit.stages, {})
   assert.equal(reused.reused, true)
-  assert.deepEqual(reused.body.json, built.body.json)
+  assert.deepEqual(reused.body, built.body)
   assert.equal(hit.isShared(), false)
 })
 
