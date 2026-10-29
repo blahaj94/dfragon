@@ -2,7 +2,10 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setImmediate as nextTurn } from 'node:timers/promises'
 import { createCatalogService } from '../src/characters/catalog/service.js'
-import { createCharacterDetailService } from '../src/characters/details/service.js'
+import {
+  type CharacterDetailResponse,
+  createCharacterDetailService
+} from '../src/characters/details/service.js'
 import { CharacterDetailFailure } from '../src/characters/details/errors.js'
 import type { NeopleStageTimings } from '../src/characters/details/neople-stages.js'
 import type { CharacterPayloads } from '../src/characters/details/sections.js'
@@ -25,6 +28,19 @@ const payloads: CharacterPayloads = {
   buff_equipment: { ...common, skill: { buff: null } },
   buff_avatar: { ...common, skill: { buff: null } },
   buff_creature: { ...common, skill: { buff: null } }
+}
+
+interface CharacterDetailJson {
+  character: { characterName: string }
+  freshness: unknown
+  sections: unknown
+  card: unknown
+}
+
+async function readDetail(pending: Promise<CharacterDetailResponse>): Promise<CharacterDetailJson> {
+  const { body } = await pending
+
+  return JSON.parse(body.json.toString())
 }
 
 function payloadsNamed(characterName: string): CharacterPayloads {
@@ -78,11 +94,11 @@ test('1시간 안에 다시 조회하면 Neople을 부르지 않고 1시간이 �
   const service = createCharacterDetailService({ catalog, fetchDetails })
   t.after(() => service.onModuleDestroy())
 
-  const first = await service.get(identity, signal, ignoredTimings)
+  const first = await readDetail(service.get(identity, signal, ignoredTimings))
   t.mock.timers.tick(59 * MINUTE_MS)
-  const withinHour = await service.get(identity, signal, ignoredTimings)
+  const withinHour = await readDetail(service.get(identity, signal, ignoredTimings))
   t.mock.timers.tick(2 * MINUTE_MS)
-  const nextHour = await service.get(identity, signal, ignoredTimings)
+  const nextHour = await readDetail(service.get(identity, signal, ignoredTimings))
 
   assert.equal(neople.calls, 2)
   assert.deepEqual(withinHour, first)
@@ -98,9 +114,9 @@ test('강제 갱신은 캐시를 건너뛰고 다시 받아 캐시를 덮어쓰�
   const service = createCharacterDetailService({ catalog, fetchDetails })
   t.after(() => service.onModuleDestroy())
 
-  const cached = await service.get(identity, signal, ignoredTimings)
-  const refreshed = await service.refresh(identity, signal, ignoredTimings)
-  const afterRefresh = await service.get(identity, signal, ignoredTimings)
+  const cached = await readDetail(service.get(identity, signal, ignoredTimings))
+  const refreshed = await readDetail(service.refresh(identity, signal, ignoredTimings))
+  const afterRefresh = await readDetail(service.get(identity, signal, ignoredTimings))
 
   assert.equal(cached.character.characterName, '조회 1')
   assert.equal(refreshed.character.characterName, '조회 2')
@@ -123,12 +139,12 @@ test('강제 갱신이 실패하면 상세 조회와 같은 오류를 돌려주�
   })
   t.after(() => service.onModuleDestroy())
 
-  const cached = await service.get(identity, signal, ignoredTimings)
+  const cached = await readDetail(service.get(identity, signal, ignoredTimings))
   await assert.rejects(service.refresh(identity, signal, ignoredTimings), {
     status: 503,
     body: new CharacterDetailFailure('unavailable').body
   })
-  const afterFailure = await service.get(identity, signal, ignoredTimings)
+  const afterFailure = await readDetail(service.get(identity, signal, ignoredTimings))
 
   assert.deepEqual(afterFailure, cached)
   assert.equal(calls, 2)
@@ -151,7 +167,7 @@ test('연결을 끊고 떠난 강제 갱신의 조회가 나중에 끝나도 기
   })
   t.after(() => service.onModuleDestroy())
 
-  const cached = await service.get(identity, signal, ignoredTimings)
+  const cached = await readDetail(service.get(identity, signal, ignoredTimings))
   const leaving = new AbortController()
   const abandoned = service.refresh(identity, leaving.signal, ignoredTimings)
   await nextTurn()
@@ -159,7 +175,7 @@ test('연결을 끊고 떠난 강제 갱신의 조회가 나중에 끝나도 기
   await assert.rejects(abandoned)
   late.release()
   await nextTurn()
-  const afterAbandon = await service.get(identity, signal, ignoredTimings)
+  const afterAbandon = await readDetail(service.get(identity, signal, ignoredTimings))
 
   assert.deepEqual(afterAbandon, cached)
   assert.equal(calls, 2)
@@ -196,7 +212,7 @@ test('같은 캐릭터를 받는 중이면 강제 갱신은 새로 부르지 않
   assert.equal(joiner.isShared(), true)
 })
 
-test('캐시가 맞은 요청은 Neople 단계 시간 없이 공용 아이템 시간만 남기고 공유로 표시하지 않는다', async (t) => {
+test('캐시가 맞은 요청은 저장한 응답 본문을 다시 쓰며 Neople, 공용 아이템 시간 없이 공유로 표시하지 않는다', async (t) => {
   const service = createCharacterDetailService({
     catalog,
     fetchDetails: async (_identity, _signal, recordStage) => {
@@ -210,11 +226,14 @@ test('캐시가 맞은 요청은 Neople 단계 시간 없이 공용 아이템 �
   const miss = collectTimings(),
     hit = collectTimings()
 
-  await service.get(identity, signal, miss.timings)
-  await service.get(identity, signal, hit.timings)
+  const built = await service.get(identity, signal, miss.timings)
+  const reused = await service.get(identity, signal, hit.timings)
 
   assert.deepEqual(Object.keys(miss.stages).sort(), ['basic', 'catalog', 'sections'])
-  assert.deepEqual(Object.keys(hit.stages), ['catalog'])
+  assert.equal(built.reused, false)
+  assert.deepEqual(hit.stages, {})
+  assert.equal(reused.reused, true)
+  assert.deepEqual(reused.body.json, built.body.json)
   assert.equal(hit.isShared(), false)
 })
 
@@ -224,10 +243,10 @@ test('상세 응답 JSON은 섹션마다 revision 1과 조회 시각을, freshne
   const service = createCharacterDetailService({ catalog, fetchDetails: async () => payloads })
   t.after(() => service.onModuleDestroy())
 
-  const result = await service.get(identity, signal, ignoredTimings)
+  const result = await readDetail(service.get(identity, signal, ignoredTimings))
 
   const metadata = { revision: 1, contentUpdatedAt: fetchedAt, lastSuccessfulFetchAt: fetchedAt }
-  assert.deepEqual(JSON.parse(JSON.stringify(result)), {
+  assert.deepEqual(result, {
     character: {
       ...identity,
       serverName: '시로코',
@@ -307,7 +326,7 @@ test('겹친 요청은 작업을 공유하고 한 대기자의 연결 종료는 
   await rejection
   assert.equal(sharedSignal!.aborted, false)
   finish.release()
-  assert.equal((await second).character.characterName, '합성 캐릭터')
+  assert.equal((await readDetail(second)).character.characterName, '합성 캐릭터')
   assert.equal(calls, 1)
 })
 
@@ -349,7 +368,7 @@ test('겹친 요청의 대기자들은 같은 조회 시각의 freshness와 sect
     const second = service.get(identity, signal, ignoredTimings)
     await nextTurn()
     finish.release()
-    const [a, b] = await Promise.all([first, second])
+    const [a, b] = await Promise.all([readDetail(first), readDetail(second)])
 
     assert.equal(calls, 1)
     assert.deepEqual(a.freshness, b.freshness)
@@ -520,7 +539,7 @@ test('상세 응답은 기존 필드에 역할만 정한 card를 더하고 지�
   const service = createCharacterDetailService({ catalog, fetchDetails: async () => payloads })
   t.after(() => service.onModuleDestroy())
 
-  const result = await service.get(identity, signal, ignoredTimings)
+  const result = await readDetail(service.get(identity, signal, ignoredTimings))
 
   assert.deepEqual(result.card, {
     role: null,

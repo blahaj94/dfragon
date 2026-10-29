@@ -1,3 +1,4 @@
+import { isRecord } from '@dfragon/lib/utils/shape-check'
 import type { projectCharacterDetails } from '../details/project.js'
 import { mapCharacterItems } from './items.js'
 import type { CatalogService } from './service.js'
@@ -29,4 +30,17 @@ export async function enrichCharacterDetails(
 
     return item
   })
+}
+
+export function hasUnavailableItemDetail(details: CharacterDetails): boolean {
+  let unavailable = false
+  mapCharacterItems(details, (item) => {
+    if (isRecord(item.itemDetail) && item.itemDetail.status === unavailableDetail.status) {
+      unavailable = true
+    }
+
+    return item
+  })
+
+  return unavailable
 }
