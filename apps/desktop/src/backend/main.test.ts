@@ -18,6 +18,9 @@ const mocks = vi.hoisted(() => {
   const registerWindowChromeWindow = vi.fn<
     typeof import('./window-chrome/ipc-handler').registerWindowChromeWindow
   >(() => vi.fn())
+  const registerTodayGradeWindow = vi.fn<
+    typeof import('./today-grade/ipc-handler').registerTodayGradeWindow
+  >(() => vi.fn())
   const registerClipboardWindow = vi.fn<
     typeof import('./clipboard/ipc-handler').registerClipboardWindow
   >(() => vi.fn())
@@ -63,6 +66,7 @@ const mocks = vi.hoisted(() => {
     disposeCapture,
     registerDiagnosticsWindow,
     registerWindowChromeWindow,
+    registerTodayGradeWindow,
     registerClipboardWindow,
     registerMainDiagnosticErrors,
     disposeMainDiagnostics,
@@ -166,6 +170,9 @@ vi.mock('./diagnostics/ipc-handler', () => ({
 }))
 vi.mock('./window-chrome/ipc-handler', () => ({
   registerWindowChromeWindow: mocks.registerWindowChromeWindow
+}))
+vi.mock('./today-grade/ipc-handler', () => ({
+  registerTodayGradeWindow: mocks.registerTodayGradeWindow
 }))
 vi.mock('./clipboard/ipc-handler', () => ({
   registerClipboardWindow: mocks.registerClipboardWindow
@@ -450,6 +457,26 @@ it.each([undefined, 'http://localhost:5173'])(
   }
 )
 
+it('API 주소가 있는 채널만 메인 창 문서 URL로 오늘의 등급 IPC를 등록한다', async () => {
+  vi.stubEnv('DFRAGON_API_ORIGIN', undefined)
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.registerTodayGradeWindow).not.toHaveBeenCalled()
+
+  vi.resetModules()
+  vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel('test', {}))
+  mocks.windows = []
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.registerTodayGradeWindow).toHaveBeenCalledExactlyOnceWith({
+    window: mocks.windows[0],
+    documentUrl: pathToFileURL(mocks.loadFile.mock.lastCall![0]).href,
+    readGrade: expect.any(Function)
+  })
+})
+
 it.each([undefined, 'http://localhost:5173'])(
   '메인 창과 정확한 문서 URL로 클립보드 IPC를 등록한다: %s',
   async (devUrl) => {
@@ -527,7 +554,9 @@ it('창 구성 후반이 실패하면 등록한 IPC와 만든 창을 폐기하�
   const disposeShortcuts = vi.fn()
   const disposeDiagnostics = vi.fn()
   const disposeUpdateNotice = vi.fn()
+  const disposeTodayGrade = vi.fn()
   mocks.registerWindowChromeWindow.mockReturnValueOnce(disposeWindowChrome)
+  mocks.registerTodayGradeWindow.mockReturnValueOnce(disposeTodayGrade)
   mocks.registerClipboardWindow.mockReturnValueOnce(disposeClipboard)
   mocks.registerDesktopShortcuts.mockReturnValueOnce(disposeShortcuts)
   mocks.registerDiagnosticsWindow.mockReturnValueOnce(disposeDiagnostics)
@@ -546,7 +575,8 @@ it('창 구성 후반이 실패하면 등록한 IPC와 만든 창을 폐기하�
     disposeClipboard,
     disposeShortcuts,
     disposeDiagnostics,
-    disposeUpdateNotice
+    disposeUpdateNotice,
+    disposeTodayGrade
   ]) {
     expect(dispose).toHaveBeenCalledOnce()
   }

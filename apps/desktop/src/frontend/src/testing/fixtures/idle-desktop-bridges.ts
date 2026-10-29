@@ -38,6 +38,9 @@ export function stubIdleDesktopBridges(): void {
     openUpdateRelease: vi.fn(async () => {}),
     onUpdateNoticeChanged: vi.fn(() => () => {})
   } satisfies Window['updateNotice'])
+  vi.stubGlobal('todayGrade', {
+    getTodayGrade: vi.fn(async () => ({ percent: 85, expiresAt: '2026-10-30T15:00:00.000Z' }))
+  } satisfies Window['todayGrade'])
   vi.stubGlobal('windowChrome', {
     setContentHeight: vi.fn(async () => {})
   } satisfies Window['windowChrome'])

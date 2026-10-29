@@ -72,6 +72,14 @@ export function unusedDetailProviders() {
   return { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) }
 }
 
+export function unusedTodayGradeProvider() {
+  return {
+    fetchShopGrade: async () => {
+      throw new Error('검색 테스트가 오늘의 등급 공급자를 호출함')
+    }
+  }
+}
+
 export async function withSearchApp(operation, overrides = {}) {
   const neople = await isolatedNeople()
   const { calls, upstream } = neople
@@ -88,7 +96,11 @@ export async function withSearchApp(operation, overrides = {}) {
     searchCharacters,
     ...overrides
   }
-  const app = await createApiHttpApp({ search: deps, details: unusedDetailProviders() })
+  const app = await createApiHttpApp({
+    search: deps,
+    details: unusedDetailProviders(),
+    todayGrade: unusedTodayGradeProvider()
+  })
   try {
     await app.listen(0, '127.0.0.1')
     const result = await operation({ base: await app.getUrl(), calls, upstream, deps, app })

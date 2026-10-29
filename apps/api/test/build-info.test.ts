@@ -16,7 +16,8 @@ const unusedProvider = async (): Promise<never> => {
 }
 const unusedProviders = {
   search: { searchCharacters: unusedSearchCharacters },
-  details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) }
+  details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) },
+  todayGrade: { fetchShopGrade: unusedProvider }
 }
 const commit = '1234567890abcdef1234567890abcdef12345678'
 

@@ -17,7 +17,7 @@ last-reviewed: 2026-10-10
 | 제품 이미지 실행, 인프라 운영 원본 | [서버 이미지 안내](reference/api-start-development.md#서버-이미지) |
 | 명령과 현재 파일 구조 | [scripts 안내](../scripts/README.md), [Repository Map](reference/repository-map.md) |
 | app, package 경계 | [Architecture Overview](architecture/overview.md) |
-| API runtime, 검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md) |
+| API runtime, 검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md), [오늘의 등급](rules/today-grade.md) |
 | Desktop MVP 카드, 입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md), [디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | Desktop 새 버전 알림, 자동 업데이트 제안 | [Desktop 새 버전 알림과 업데이트 제안](rules/desktop-update-proposal.md) |
 | 앱 공용 UI, 디자인 토큰, Base UI, StyleX, 시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [앱 공통 StyleX](reference/app-styling.md) |

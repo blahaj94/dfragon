@@ -73,6 +73,7 @@ it('electron.vite.config.ts의 실제 preload 산출물은 외부 package requir
     'desktopShortcut',
     'diagnostics',
     'updateNotice',
+    'todayGrade',
     'windowChrome',
     'desktopClipboard'
   ]

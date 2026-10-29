@@ -5,6 +5,7 @@ import * as raidSearch from './api/raid-search'
 import * as desktopShortcut from './api/desktop-shortcut'
 import * as diagnostics from './api/diagnostics'
 import * as updateNotice from './api/update-notice'
+import * as todayGrade from './api/today-grade'
 import * as windowChrome from './api/window-chrome'
 import * as clipboard from './api/clipboard'
 
@@ -17,5 +18,6 @@ contextBridge.exposeInMainWorld('raidSearch', raidSearch)
 contextBridge.exposeInMainWorld('desktopShortcut', desktopShortcut)
 contextBridge.exposeInMainWorld('diagnostics', diagnostics)
 contextBridge.exposeInMainWorld('updateNotice', updateNotice)
+contextBridge.exposeInMainWorld('todayGrade', todayGrade)
 contextBridge.exposeInMainWorld('windowChrome', windowChrome)
 contextBridge.exposeInMainWorld('desktopClipboard', clipboard)

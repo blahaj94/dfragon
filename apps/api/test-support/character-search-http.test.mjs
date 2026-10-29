@@ -3,7 +3,11 @@ import { request } from 'node:http'
 import { Buffer } from 'node:buffer'
 import { test } from 'node:test'
 import { createApiHttpApp } from '../dist/http.js'
-import { unusedDetailProviders, withSearchApp } from './character-search-fixtures.mjs'
+import {
+  unusedDetailProviders,
+  unusedTodayGradeProvider,
+  withSearchApp
+} from './character-search-fixtures.mjs'
 
 async function withSearchBoundary(operation) {
   let upstreamCalls = 0
@@ -14,7 +18,8 @@ async function withSearchBoundary(operation) {
         throw new Error('예상하지 않은 공급자 호출')
       }
     },
-    details: unusedDetailProviders()
+    details: unusedDetailProviders(),
+    todayGrade: unusedTodayGradeProvider()
   })
   try {
     await app.listen(0, '127.0.0.1')

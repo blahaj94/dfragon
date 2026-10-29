@@ -68,8 +68,8 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 
 ### `apps/api`
 
-- Package: `@dfragon/api`, Node 26, NestJS ESM. `src/http.ts`는 캐릭터 HTTP와 `/health`를 합성한다.
-- DB를 쓰지 않는다. Neople에서 조회한 캐릭터는 API 메모리에 1시간, 공용 아이템 상세는 24시간 캐시한다. `POST /characters/:serverId/:characterId/refresh`가 캐릭터 캐시를 건너뛰고 다시 받는다.
+- Package: `@dfragon/api`, Node 26, NestJS ESM. `src/http.ts`는 캐릭터 HTTP, 오늘의 등급(`/items/today-grade`)과 `/health`를 합성한다.
+- DB를 쓰지 않는다. Neople에서 조회한 캐릭터는 API 메모리에 1시간, 공용 아이템 상세는 24시간, 오늘의 등급은 다음 0시(KST)까지 캐시한다. `POST /characters/:serverId/:characterId/refresh`가 캐릭터 캐시를 건너뛰고 다시 받는다.
 - 필수 입력: `PORT`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정, JWT를 사용하지 않는다.
 - `test`는 build, 타입, 단위, HTTP 검증이다.
 - 개발: [API 개발](api-start-development.md). 이미지 실행, 운영 책임: [제품 안내](api-start-development.md#서버-이미지).

@@ -6,6 +6,7 @@ declare global {
     desktopShortcut: typeof import('./api/desktop-shortcut')
     diagnostics: typeof import('./api/diagnostics')
     updateNotice: typeof import('./api/update-notice')
+    todayGrade: typeof import('./api/today-grade')
     windowChrome: typeof import('./api/window-chrome')
     desktopClipboard: typeof import('./api/clipboard')
   }

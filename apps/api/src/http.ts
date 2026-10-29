@@ -12,6 +12,10 @@ import { createCharacterDetailService } from './characters/details/service.js'
 import type { CharacterDetailDependencies } from './characters/details/service.js'
 import { characterDetailFailure } from './characters/details/errors.js'
 import { NeopleSearchFailure } from './errors/neople-search.js'
+import { TODAY_GRADE_SERVICE, TodayGradeController } from './today-grade/http.js'
+import { createTodayGradeService } from './today-grade/service.js'
+import type { FetchShopGrade } from './today-grade/neople.js'
+import { type TodayGradeFailure, todayGradeFailure } from './today-grade/errors.js'
 import { setupSwagger } from './swagger/setup.js'
 import { API_BUILD_INFO, ApiVersionController, readApiBuildInfo } from './build-info.js'
 import {
@@ -27,13 +31,17 @@ const TRAILING_SLASHES_PATTERN = /\/+$/
 function requestFailure(
   path: string,
   error: unknown
-): NeopleSearchFailure | ReturnType<typeof characterDetailFailure> {
+): NeopleSearchFailure | TodayGradeFailure | ReturnType<typeof characterDetailFailure> {
   if (path === '/characters' || path === '/characters/candidates') {
     if (error instanceof NeopleSearchFailure) {
       return error
     }
 
     return new NeopleSearchFailure('internal')
+  }
+
+  if (path === '/items/today-grade') {
+    return todayGradeFailure(error)
   }
 
   return characterDetailFailure(error)
@@ -76,6 +84,7 @@ class HealthController {
 export interface ApiHttpAppOptions {
   readonly search: CharacterSearchDependencies
   readonly details: CharacterDetailDependencies
+  readonly todayGrade: { fetchShopGrade: FetchShopGrade }
   readonly trustedProxyHops?: 1
   readonly httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>
   readonly buildInfoPath?: string
@@ -86,6 +95,7 @@ export interface ApiHttpAppOptions {
 export async function createApiHttpApp({
   search,
   details,
+  todayGrade,
   trustedProxyHops,
   httpsOptions,
   buildInfoPath = '/app/build-info.json',
@@ -97,12 +107,17 @@ export async function createApiHttpApp({
       HealthController,
       ApiVersionController,
       CharacterSearchController,
-      CharacterDetailController
+      CharacterDetailController,
+      TodayGradeController
     ],
     providers: [
       { provide: API_BUILD_INFO, useValue: buildInfo },
       { provide: CHARACTER_SEARCH_SERVICE, useValue: createCharacterSearchService(search) },
-      { provide: CHARACTER_DETAIL_SERVICE, useValue: createCharacterDetailService(details) }
+      { provide: CHARACTER_DETAIL_SERVICE, useValue: createCharacterDetailService(details) },
+      {
+        provide: TODAY_GRADE_SERVICE,
+        useValue: createTodayGradeService(todayGrade.fetchShopGrade)
+      }
     ]
   })
   class ApiHttpModule {}

@@ -7,9 +7,10 @@ import { apiSchemas } from './schemas.js'
 export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle(`${PRODUCT_NAME} API`)
-    .setDescription('캐릭터 검색과 상세 조회를 제공하는 공개 API입니다.')
+    .setDescription('캐릭터 검색, 상세 조회와 오늘의 등급을 제공하는 공개 API입니다.')
     .setVersion('1.0.0')
     .addTag('캐릭터', '로그인 없이 검색과 상세 정보 조회')
+    .addTag('아이템', '로그인 없이 오늘의 등급 조회')
     .build()
 
   // 문서 경로만 자체 asset을 허용합니다.
