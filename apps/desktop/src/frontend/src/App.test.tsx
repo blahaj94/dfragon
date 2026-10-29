@@ -7,7 +7,6 @@ import { stubIdleDesktopBridges } from './testing/fixtures/idle-desktop-bridges'
 import { CAPTURE_ID, searchSnapshot } from '../../preload/api/search-test-fixture'
 import type { SearchApi } from '../../preload/common/types/search'
 import { emptySearchSlots } from './lib/slots'
-import { ColorThemeProvider } from './components/ColorThemeProvider'
 import type { UpdateNoticeApi } from '../../preload/common/types/update-notice'
 import type { WindowChromeApi } from '../../preload/common/types/window-chrome'
 
@@ -24,10 +23,6 @@ async function typeName(input: HTMLInputElement, value: string): Promise<void> {
 beforeEach(() => {
   stubIdleDesktopBridges()
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn(() => ({ matches: false }))
-  )
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -48,18 +43,11 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount())
   container.remove()
-  delete document.documentElement.dataset.theme
   vi.unstubAllGlobals()
 })
 
 it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 수 있다', async () => {
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider>
-        <App />
-      </ColorThemeProvider>
-    )
-  )
+  await act(async () => root.render(<App />))
 
   const slots = container.querySelectorAll('[aria-label="파티 캐릭터"] article')
   expect(slots).toHaveLength(4)
@@ -86,10 +74,7 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(partyHeading.closest('main > header')).not.toBeNull()
   expect(partyHeading.nextElementSibling?.textContent).toBe('0/4')
   expect(container.querySelector('[aria-label="카드 접기"]')).toBeNull()
-  const partyNotice = partyHeading.parentElement!.querySelector('[role="status"]')!
-  expect(partyNotice.textContent).toBe('')
   expect([...container.querySelectorAll('header [role="status"]')]).toEqual([
-    partyNotice,
     container.querySelector('header [data-capture-announcer]')
   ])
   const chip = container.querySelector<HTMLButtonElement>('header button[aria-label^="화면 캡처"]')!
@@ -98,19 +83,6 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(container.querySelector('header')?.textContent).not.toContain('로그인')
   expect(container.querySelector('header [aria-label="설정"]')).toBeNull()
-})
-
-it('시스템 설정이 라이트여도 새 기본 화면은 다크 테마로 시작한다', async () => {
-  vi.mocked(window.matchMedia).mockReturnValue({ matches: true } as MediaQueryList)
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider>
-        <App />
-      </ColorThemeProvider>
-    )
-  )
-  expect(document.documentElement.dataset.theme).toBe('dark')
-  expect(container.querySelector('header [aria-label$="테마"]')).toBeNull()
 })
 
 it('새 버전 알림은 카드 위가 아닌 상단 바 칩으로 보이고 메뉴의 닫기로 사라지며 창 높이는 그대로다', async () => {
@@ -140,13 +112,7 @@ it('새 버전 알림은 카드 위가 아닌 상단 바 칩으로 보이고 메
   } satisfies UpdateNoticeApi)
   const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {})
   vi.stubGlobal('windowChrome', { setContentHeight })
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider>
-        <App />
-      </ColorThemeProvider>
-    )
-  )
+  await act(async () => root.render(<App />))
   const header = container.querySelector('header')!
   const chip = [...header.querySelectorAll('button')].find(
     (button) => button.textContent === '새 버전 v1.2.0'
@@ -169,13 +135,7 @@ it('새 버전 알림은 카드 위가 아닌 상단 바 칩으로 보이고 메
 it('창 내용 높이를 파티 화면에서 163, 공대 화면에서 300으로 바꾼다', async () => {
   const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {})
   vi.stubGlobal('windowChrome', { setContentHeight })
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider>
-        <App />
-      </ColorThemeProvider>
-    )
-  )
+  await act(async () => root.render(<App />))
   expect(setContentHeight.mock.calls).toEqual([[163]])
   const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
   const chooseScreen = async (name: string): Promise<void> => {
@@ -198,13 +158,7 @@ it('창 높이를 바꾸지 못해도 화면을 바꿀 수 있다', async () => 
     throw new Error('Synthetic window height failure')
   })
   vi.stubGlobal('windowChrome', { setContentHeight })
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider>
-        <App />
-      </ColorThemeProvider>
-    )
-  )
+  await act(async () => root.render(<App />))
   const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
   await act(async () => trigger.click())
   const raid = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
@@ -229,13 +183,7 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고,
     controlCharacterSearch: raidControl,
     onCharacterSearchChanged: vi.fn<SearchApi['onCharacterSearchChanged']>(() => () => {})
   } satisfies SearchApi)
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider>
-        <App />
-      </ColorThemeProvider>
-    )
-  )
+  await act(async () => root.render(<App />))
   expect(container.querySelector('section[aria-label="공대"]')).toBeNull()
   const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
   expect(trigger.getAttribute('aria-current')).toBe('page')

@@ -2,7 +2,6 @@
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { ColorThemeProvider } from '../../components/ColorThemeProvider'
 import { PartyPage } from './PartyPage'
 import type { SnapshotMark } from '../../lib/adventure-snapshot'
 import type { CardCharacter, SlotState } from '../../types/cards'
@@ -37,10 +36,6 @@ const character: CardCharacter = {
 
 beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn(() => ({ matches: false }))
-  )
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -51,7 +46,7 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-type RenderProps = Omit<ComponentProps<typeof PartyPage>, 'slots'> & {
+type RenderProps = Partial<Omit<ComponentProps<typeof PartyPage>, 'slots'>> & {
   slots: SlotState[]
   characters?: (CardCharacter | null)[]
   nicknames?: (string | null)[]
@@ -78,9 +73,12 @@ async function render({
   })
   await act(async () =>
     root.render(
-      <ColorThemeProvider>
-        <PartyPage {...props} slots={cards} />
-      </ColorThemeProvider>
+      <PartyPage
+        resetKey="party"
+        actions={{ lookupSlot: vi.fn(), pickCandidate: vi.fn() }}
+        {...props}
+        slots={cards}
+      />
     )
   )
 }

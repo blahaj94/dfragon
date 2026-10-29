@@ -70,6 +70,8 @@ type CapturePreview = {
 
 function refreshPreviewSources(): void {}
 
+function lookupPreviewSlot(): void {}
+
 function useCapturePreview(): CapturePreview {
   const [capture, setCapture] = useState<CapturePreviewState>(() => ({
     state: 'idle',
@@ -272,7 +274,6 @@ export function Preview(): React.JSX.Element {
                         total={partySlots.length}
                         round={partySnapshot.round}
                       />
-                      <BoardNotice />
                     </>
                   }
                   end={
@@ -296,8 +297,7 @@ export function Preview(): React.JSX.Element {
               <PartyPage
                 slots={partyCards}
                 resetKey={scenario}
-                inputEnabled
-                actions={{ pickCandidate: candidates ? pickCandidate : undefined }}
+                actions={{ lookupSlot: lookupPreviewSlot, pickCandidate }}
               />
             </div>
           )}
@@ -313,7 +313,7 @@ export function Preview(): React.JSX.Element {
                         total={raidCards.length}
                         round={raidSnapshot.round}
                       />
-                      <BoardNotice />
+                      <BoardNotice>{''}</BoardNotice>
                     </>
                   }
                   end={
@@ -336,7 +336,9 @@ export function Preview(): React.JSX.Element {
               )}
               <RaidPage
                 slots={raidCards}
+                resetKey="raid"
                 seats={{ seatOrder, canMoveSeats, swapSeats: handleSwapSeats }}
+                actions={{ lookupSlot: lookupPreviewSlot }}
               />
             </div>
           )}

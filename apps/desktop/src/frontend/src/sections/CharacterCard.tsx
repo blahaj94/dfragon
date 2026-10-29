@@ -29,16 +29,14 @@ export function CharacterCard({
   cardKey,
   card,
   slot,
-  inputEnabled = false,
   onLookup,
   onPickCandidate
 }: {
   cardKey: SlotCardKey
   card: SlotCard
   slot: number
-  inputEnabled?: boolean
-  onLookup?: (nickname: string, serverId: string) => void
-  onPickCandidate?: (serverId: string) => void
+  onLookup: (nickname: string, serverId: string) => void
+  onPickCandidate: (serverId: string) => void
 }): React.JSX.Element {
   const { state, character, notice, picker, snapshotMark, loading = false } = card
   const characterFound = state === 'success' && character != null
@@ -75,13 +73,7 @@ export function CharacterCard({
           </PortraitWell>
           <div {...stylex.props(styles.column)}>
             <div {...stylex.props(styles.header)}>
-              <LookupField
-                slot={slot}
-                tone={toNameFieldTone(frameState)}
-                draft={draft}
-                inputEnabled={inputEnabled}
-                showServer={inputEnabled || characterFound}
-              />
+              <LookupField slot={slot} tone={toNameFieldTone(frameState)} draft={draft} />
               {tier !== undefined && (
                 <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
               )}
@@ -156,7 +148,7 @@ function PortraitWell({
 function Portrait({ src }: { src: string | undefined }): React.JSX.Element {
   return (
     <div {...stylex.props(styles.portrait)}>
-      <CardImage src={src} label="캐릭터" />
+      <CardImage src={src} />
     </div>
   )
 }
@@ -172,9 +164,7 @@ function LookupProgress({ slot }: { slot: number }): React.JSX.Element {
 function LookupField({
   slot,
   tone,
-  draft,
-  inputEnabled,
-  showServer
+  draft
 }: {
   slot: number
   tone: NameFieldTone
@@ -182,8 +172,6 @@ function LookupField({
     LookupDraft,
     'name' | 'serverId' | 'changeName' | 'changeServer' | 'focusName' | 'blurName' | 'submit'
   >
-  inputEnabled: boolean
-  showServer: boolean
 }): React.JSX.Element {
   const serverMenu = useServerMenu()
 
@@ -194,9 +182,11 @@ function LookupField({
   const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
       draft.submit()
-    } else if (inputEnabled) {
-      serverMenu.openOnTab(event)
+
+      return
     }
+
+    serverMenu.openOnTab(event)
   }
 
   return (
@@ -205,24 +195,19 @@ function LookupField({
         tone={tone}
         aria-label={`${slot}번 캐릭터 이름`}
         value={draft.name}
-        disabled={!inputEnabled}
         onFocus={draft.focusName}
         onBlur={draft.blurName}
         onChange={handleNameChange}
         onKeyDown={handleNameKeyDown}
         end={
-          showServer && (
-            <ServerSelect
-              variant="field"
-              label={`${slot}번 서버`}
-              value={draft.serverId}
-              disabled={!inputEnabled}
-              options={serverOptions}
-              open={serverMenu.open}
-              onOpenChange={serverMenu.setOpen}
-              onValueChange={draft.changeServer}
-            />
-          )
+          <ServerSelect
+            label={`${slot}번 서버`}
+            value={draft.serverId}
+            options={serverOptions}
+            open={serverMenu.open}
+            onOpenChange={serverMenu.setOpen}
+            onValueChange={draft.changeServer}
+          />
         }
       />
     </div>

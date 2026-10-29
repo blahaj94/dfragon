@@ -66,7 +66,7 @@ const idle: SlotState[] = Array.from({ length: 12 }, () => 'idle')
 
 type RenderProps = Partial<Omit<ComponentProps<typeof RaidPage>, 'slots' | 'seats' | 'actions'>> &
   Partial<ComponentProps<typeof RaidPage>['seats']> &
-  NonNullable<ComponentProps<typeof RaidPage>['actions']> & {
+  Partial<ComponentProps<typeof RaidPage>['actions']> & {
     slots?: SlotState[]
     characters?: (CardCharacter | null)[]
     slotNotices?: (string | undefined)[]
@@ -81,7 +81,7 @@ async function render({
   seatOrder = createSeatOrder(),
   canMoveSeats = true,
   swapSeats: swap = vi.fn(() => true),
-  lookupSlot,
+  lookupSlot = vi.fn(),
   ...props
 }: RenderProps = {}): Promise<void> {
   const slots = (states ?? idle).map((state, index) => {
@@ -98,6 +98,7 @@ async function render({
   await act(async () =>
     root.render(
       <RaidPage
+        resetKey="raid"
         {...props}
         seats={{ seatOrder, canMoveSeats, swapSeats: swap }}
         actions={{ lookupSlot }}

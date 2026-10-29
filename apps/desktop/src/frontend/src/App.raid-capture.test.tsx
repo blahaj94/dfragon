@@ -4,7 +4,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createRendererFixture } from './testing/fixtures/search-renderer-test-fixture'
 import App from './App'
 import { stubIdleDesktopBridges } from './testing/fixtures/idle-desktop-bridges'
-import { ColorThemeProvider } from './components/ColorThemeProvider'
 import { emptySearchSlots } from './lib/slots'
 import { searchSlot, searchSnapshot } from '../../preload/api/search-test-fixture'
 import type { RaidFrameResult } from '../../preload/common/types/capture'
@@ -34,10 +33,6 @@ const recognized: RaidSlotRecognition[] = [
 
 beforeEach(() => {
   stubIdleDesktopBridges()
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn(() => ({ matches: false }))
-  )
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -189,11 +184,7 @@ async function press(f: Fixture, trigger: Trigger): Promise<void> {
 
 async function mount(f: Fixture): Promise<void> {
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
 }
 
 it('공대 헤더에 파티와 같은 모양의 캡처 버튼과 마지막 캡처를 두고 대화상자를 열지 않는다', async () => {
@@ -293,11 +284,7 @@ it.each(triggers)('창을 등록하기 전 공대 화면의 %s은 회차를 시�
   const f = createRendererFixture()
   const raid = stubRaidSearch()
   f.capture.listCaptureSources.mockResolvedValue([])
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
   await showScreen('공대')
   expect(raidCaptureButton().disabled).toBe(true)
   expect(announcement()).toBe('')

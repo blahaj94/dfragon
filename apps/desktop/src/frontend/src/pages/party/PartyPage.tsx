@@ -5,24 +5,19 @@ import { styles } from './PartyPage.style'
 
 export function PartyPage({
   slots,
-  resetKey = 'party',
-  inputEnabled = false,
-  actions = {}
+  resetKey,
+  actions
 }: {
   slots: readonly SlotCard[]
-  resetKey?: string
-  inputEnabled?: boolean
-  actions?: SlotCardActions
+  resetKey: string
+  actions: SlotCardActions
 }): React.JSX.Element {
   const { lookupSlot, pickCandidate } = actions
 
   function renderSlot(card: SlotCard, index: number): React.JSX.Element {
-    const handleLookup =
-      lookupSlot != null
-        ? (nickname: string, serverId: string) => lookupSlot(index, nickname, serverId)
-        : undefined
-    const handlePickCandidate =
-      pickCandidate != null ? (serverId: string) => pickCandidate(index, serverId) : undefined
+    const handleLookup = (nickname: string, serverId: string): void =>
+      lookupSlot(index, nickname, serverId)
+    const handlePickCandidate = (serverId: string): void => pickCandidate(index, serverId)
 
     return (
       <CharacterCard
@@ -30,7 +25,6 @@ export function PartyPage({
         cardKey={{ id: `party-${index}`, resetKey }}
         card={card}
         slot={index + 1}
-        inputEnabled={inputEnabled}
         onLookup={handleLookup}
         onPickCandidate={handlePickCandidate}
       />

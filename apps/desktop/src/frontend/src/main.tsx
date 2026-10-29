@@ -4,15 +4,12 @@ import './assets/fonts.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
-import { ColorThemeProvider } from './components/ColorThemeProvider'
 import { startRendererDiagnostics } from './lib/runtime-diagnostics'
 
 startRendererDiagnostics(window.diagnostics)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
+    <App />
   </StrictMode>
 )

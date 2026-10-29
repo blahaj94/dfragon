@@ -30,7 +30,7 @@ export const styles = stylex.create({
     padding: 0,
     borderWidth: 0,
     backgroundColor: 'transparent',
-    color: { default: colors.cardFg, ':disabled': colors.cardFgMuted },
+    color: colors.cardFg,
     fontFamily: 'inherit',
     fontWeight: 700,
     outlineStyle: 'none',

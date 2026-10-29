@@ -2,7 +2,6 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { ColorThemeProvider } from './ColorThemeProvider'
 import { CaptureControls, type CaptureControlsProps } from './CaptureControls'
 
 let root: ReturnType<typeof createRoot>
@@ -10,10 +9,6 @@ let props: CaptureControlsProps
 
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn(() => ({ matches: false }))
-  )
   const container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -45,13 +40,7 @@ afterEach(async () => {
 })
 
 async function render(): Promise<void> {
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider>
-        <CaptureControls {...props} />
-      </ColorThemeProvider>
-    )
-  )
+  await act(async () => root.render(<CaptureControls {...props} />))
 }
 
 async function click(element: HTMLElement): Promise<void> {

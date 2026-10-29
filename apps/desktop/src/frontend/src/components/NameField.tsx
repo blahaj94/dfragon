@@ -4,7 +4,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import type { NameFieldTone } from '../lib/name-field-tone'
 import { styles } from './NameField.style'
 
-export type NameFieldProps = Omit<ComponentPropsWithoutRef<'input'>, 'size'> & {
+export type NameFieldProps = Omit<ComponentPropsWithoutRef<'input'>, 'size' | 'disabled'> & {
   tone?: NameFieldTone
   end?: ReactNode
 }
