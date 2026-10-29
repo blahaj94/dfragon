@@ -10,7 +10,9 @@ const KEY_DOWN = 0x100
 const KEY_UP = 0x101
 const SYSTEM_KEY_DOWN = 0x104
 const SYSTEM_KEY_UP = 0x105
+const VK_A = 0x41
 const VK_R = 0x52
+const VK_W = 0x57
 const VK_SNAPSHOT = 0x2c
 const NO_MODIFIERS = { shift: false, control: false, alt: false, windows: false }
 const SHIFT = { ...NO_MODIFIERS, shift: true }
@@ -42,7 +44,7 @@ function setup(): {
   }
   const hook = createWin32KeyboardHook({ platform: 'win32', loadNativeApi: () => api })
   const isForeground = vi.fn(() => true)
-  const shortcut = createAltKeyShortcut({ key: VK_R, isForeground, hook })
+  const shortcut = createAltKeyShortcut({ keys: [VK_R, VK_W], isForeground, hook })
   const listener = vi.fn()
   shortcut.register(listener)
   function key(
@@ -72,7 +74,7 @@ it.each([
   expect(key(up)).toBe(1)
   expect(key(up)).toBe(77n)
   vi.runAllTimers()
-  expect(listener).toHaveBeenCalledTimes(1)
+  expect(listener.mock.calls).toEqual([[VK_R]])
   expect(key(down, VK_SNAPSHOT)).toBe(77n)
   expect(key(up, VK_SNAPSHOT)).toBe(77n)
   for (const modifiers of [
@@ -87,6 +89,21 @@ it.each([
   }
   vi.runAllTimers()
   expect(listener).toHaveBeenCalledTimes(1)
+  shortcut.unregister()
+})
+
+it('등록한 여러 키는 각자 한 번씩 실행하고 어느 키인지 알리며 등록하지 않은 Alt 키는 넘긴다', () => {
+  vi.useFakeTimers()
+  const { shortcut, listener, key } = setup()
+  expect(key(SYSTEM_KEY_DOWN, VK_R)).toBe(1)
+  expect(key(SYSTEM_KEY_DOWN, VK_W)).toBe(1)
+  expect(key(SYSTEM_KEY_DOWN, VK_W)).toBe(1)
+  expect(key(SYSTEM_KEY_UP, VK_R)).toBe(1)
+  expect(key(SYSTEM_KEY_UP, VK_W)).toBe(1)
+  expect(key(SYSTEM_KEY_DOWN, VK_A)).toBe(77n)
+  expect(key(SYSTEM_KEY_UP, VK_A)).toBe(77n)
+  vi.runAllTimers()
+  expect(listener.mock.calls).toEqual([[VK_R], [VK_W]])
   shortcut.unregister()
 })
 
@@ -135,7 +152,7 @@ it('hook을 이미 쓰는 단축키가 있으면 다른 등록은 실패하고 �
   vi.useFakeTimers()
   const { api, hook, shortcut, listener, key } = setup()
   const otherListener = vi.fn()
-  const other = createAltKeyShortcut({ key: VK_SNAPSHOT, isForeground: () => true, hook })
+  const other = createAltKeyShortcut({ keys: [VK_SNAPSHOT], isForeground: () => true, hook })
 
   expect(other.register(otherListener)).toBe(false)
   expect(api.installHook).toHaveBeenCalledOnce()

@@ -1,12 +1,20 @@
 import type { BrowserWindow } from 'electron'
 import {
   DESKTOP_SHORTCUT_CHANNEL,
-  DESKTOP_SHORTCUTS
+  DESKTOP_SHORTCUTS,
+  type DesktopShortcut
 } from '../../preload/common/types/desktop-shortcut'
 import { createAltKeyShortcut } from '../lib/keyboard-shortcut'
 import { isCurrentProcessForeground, isDnfForeground } from '../lib/win32-window-capture'
 
+const VK_A = 0x41
 const VK_R = 0x52
+const VK_W = 0x57
+const SHORTCUT_KEYS = new Map<number, DesktopShortcut>([
+  [VK_R, DESKTOP_SHORTCUTS.restartSearch],
+  [VK_W, DESKTOP_SHORTCUTS.takeSnapshot],
+  [VK_A, DESKTOP_SHORTCUTS.copyClipboard]
+])
 
 export function registerDesktopShortcuts({
   window,
@@ -31,7 +39,7 @@ export function registerDesktopShortcuts({
   }
 
   const shortcut = createAltKeyShortcut({
-    key: VK_R,
+    keys: [...SHORTCUT_KEYS.keys()],
     isForeground: () => isTrusted() && (isCurrentProcessForeground() || isDnfForeground())
   })
 
@@ -74,9 +82,10 @@ export function registerDesktopShortcuts({
   contents.on('did-navigate', onNavigated)
   contents.on('render-process-gone', onRendererGone)
   window.once('closed', dispose)
-  const registered = shortcut.register(() => {
-    if (isTrusted()) {
-      contents.mainFrame.send(DESKTOP_SHORTCUT_CHANNEL, DESKTOP_SHORTCUTS.restartSearch)
+  const registered = shortcut.register((key) => {
+    const desktopShortcut = SHORTCUT_KEYS.get(key)
+    if (desktopShortcut !== undefined && isTrusted()) {
+      contents.mainFrame.send(DESKTOP_SHORTCUT_CHANNEL, desktopShortcut)
     }
   })
   if (!registered && process.platform === 'win32') {

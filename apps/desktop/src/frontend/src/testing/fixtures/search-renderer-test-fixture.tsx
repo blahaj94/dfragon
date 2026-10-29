@@ -2,7 +2,10 @@ import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, vi, type Mocked } from 'vitest'
 import type { WindowFrameResult } from '../../../../preload/common/types/capture'
-import type { DesktopShortcutApi } from '../../../../preload/common/types/desktop-shortcut'
+import type {
+  DesktopShortcut,
+  DesktopShortcutApi
+} from '../../../../preload/common/types/desktop-shortcut'
 import type { SearchSnapshot } from '../../../../preload/common/types/search'
 import {
   CAPTURE_ID,
@@ -67,6 +70,7 @@ type RendererFixture = {
   mount: (content: ReactNode) => Promise<void>
   unmount: () => Promise<void>
   restart: () => Promise<void>
+  shortcut: (shortcut: DesktopShortcut) => Promise<void>
   current: () => SearchSnapshot
 }
 
@@ -93,6 +97,7 @@ export function createRendererFixture(): RendererFixture {
   let currentSearch = searchSnapshot({ captureId: null, revision: 0 })
   let sequence = 0
   const resources = captureResources()
+  const shortcutListeners = new Set<(shortcut: DesktopShortcut) => void>()
   const readCaptureFrame = vi.fn().mockResolvedValue(resources.frame)
   const search = {
     controlCharacterSearch: vi
@@ -115,7 +120,13 @@ export function createRendererFixture(): RendererFixture {
       .mockReturnValue(() => {})
   }
   const capture = {
-    onDesktopShortcut: vi.fn<DesktopShortcutApi['onDesktopShortcut']>().mockReturnValue(() => {}),
+    onDesktopShortcut: vi
+      .fn<DesktopShortcutApi['onDesktopShortcut']>()
+      .mockImplementation((listener) => {
+        shortcutListeners.add(listener)
+
+        return () => shortcutListeners.delete(listener)
+      }),
     readCaptureFrame,
     listCaptureSources: vi.fn().mockResolvedValue([
       { id: 'game', name: 'Synthetic game' },
@@ -159,6 +170,14 @@ export function createRendererFixture(): RendererFixture {
   media.worker.mockResolvedValue(resources.worker)
   media.crops.mockReturnValue([null, null, null, null])
 
+  async function sendShortcut(shortcut: DesktopShortcut): Promise<void> {
+    await act(async () => {
+      for (const listener of [...shortcutListeners]) {
+        listener(shortcut)
+      }
+    })
+  }
+
   async function unmount(): Promise<void> {
     if (mounted) {
       mounted = false
@@ -179,8 +198,9 @@ export function createRendererFixture(): RendererFixture {
     },
     unmount,
     restart: async () => {
-      await act(async () => capture.onDesktopShortcut.mock.lastCall![0]('restart-search'))
+      await sendShortcut('restart-search')
     },
+    shortcut: sendShortcut,
     current: () => currentSearch
   }
 }

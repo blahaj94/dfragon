@@ -1,17 +1,21 @@
 import { win32KeyboardHook, type KeyboardEvent } from './win32-keyboard-hook'
 
-export function createAltKeyShortcut({
-  key,
+export function createAltKeyShortcut<Key extends number>({
+  keys,
   isForeground,
   hook = win32KeyboardHook
 }: {
-  key: number
+  keys: readonly Key[]
   isForeground: () => boolean
   hook?: typeof win32KeyboardHook
-}): { register: (listener: () => void) => boolean; unregister: () => void } {
-  let listener: (() => void) | null = null
+}): { register: (listener: (key: Key) => void) => boolean; unregister: () => void } {
+  let listener: ((key: Key) => void) | null = null
   let generation = 0
-  let press: { handled: boolean } | null = null
+  const presses = new Map<Key, boolean>()
+
+  function isShortcutKey(key: number): key is Key {
+    return (keys as readonly number[]).includes(key)
+  }
 
   function foreground(): boolean {
     try {
@@ -21,7 +25,7 @@ export function createAltKeyShortcut({
     }
   }
 
-  function notifyLater(): void {
+  function notifyLater(key: Key): void {
     const queuedListener = listener
     const queuedGeneration = generation
     setImmediate(() => {
@@ -31,45 +35,46 @@ export function createAltKeyShortcut({
         generation === queuedGeneration &&
         foreground()
       ) {
-        queuedListener()
+        queuedListener(key)
       }
     })
   }
 
   function handleKey(event: KeyboardEvent): boolean {
-    if (!listener || event.key !== key) {
+    const { key } = event
+    if (!listener || !isShortcutKey(key)) {
       return false
     }
     const allowed = foreground()
     const { alt, control, shift, windows } = event.modifiers
     const matches = alt && !control && !shift && !windows
+    const pressed = presses.get(key)
     if (event.down) {
-      if (press == null) {
+      if (pressed === undefined) {
         const handled = allowed && matches
-        press = { handled }
+        presses.set(key, handled)
         if (handled) {
-          notifyLater()
+          notifyLater(key)
         }
 
         return handled
       }
 
-      return press.handled && allowed
+      return pressed && allowed
     }
-    const released = press
-    press = null
+    presses.delete(key)
 
-    return released != null && released.handled && allowed
+    return pressed === true && allowed
   }
 
   function unregister(): void {
     listener = null
     generation += 1
-    press = null
+    presses.clear()
     hook.unregister(handleKey)
   }
 
-  function register(nextListener: () => void): boolean {
+  function register(nextListener: (key: Key) => void): boolean {
     try {
       unregister()
     } catch {

@@ -7,7 +7,7 @@ import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
 import { useCharacterSearch } from './useCharacterSearch'
 import { findSingleDnfCaptureSource } from '../lib/capture-presentation'
 import { getRecognizedNicknames } from '../lib/recognized-nicknames'
-import { useRestartShortcut } from './useRestartShortcut'
+import { useDesktopShortcut } from './useDesktopShortcut'
 
 export type CaptureSourceSelection = ReturnType<typeof useCaptureSources> & {
   selectedSourceId: string
@@ -63,7 +63,7 @@ export function usePartyCapture({ receivesShortcut }: { receivesShortcut: boolea
   }, [search.ready, canAutoSelect, send, sources.sources])
 
   const startRound = useCallback(() => send({ type: 'START' }), [send])
-  useRestartShortcut(receivesShortcut, startRound)
+  useDesktopShortcut('restart-search', receivesShortcut, startRound)
 
   function stopCapture(): void {
     send({ type: 'STOP' })
