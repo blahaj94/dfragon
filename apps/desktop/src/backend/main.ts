@@ -24,6 +24,10 @@ import { MAIN_WINDOW_SIZE, WINDOW_CHROME_COLORS } from '../preload/common/window
 import { getTitleBarOverlay } from './window-chrome/title-bar-overlay'
 import { registerMainDiagnosticErrors, reportDiagnostic } from './diagnostics/log'
 
+// OCR worker가 WASM을 여러 thread로 돌리려면 SharedArrayBuffer가 필요하다. Renderer는 file://로 열려 cross-origin
+// 격리 헤더를 붙일 수 없어 Chromium 기능 플래그로 켠다. Renderer는 로컬 파일과 Neople 이미지만 불러온다.
+app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer')
+
 // 채널 빌드는 채널마다 profile 폴더와 Windows 작업 표시줄 묶음을 나누고, 같은 채널은 한 인스턴스만 띄운다.
 // 두 인스턴스가 함께 뜨면 Alt+R 전역 단축키를 서로 가져간다.
 const appIdentity = readAppIdentity()

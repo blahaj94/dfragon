@@ -5,13 +5,17 @@ import type { PartyOcrResult } from '../types/capture'
 
 const DICTIONARY_CARRIAGE_RETURN_PATTERN = /\r/g
 const DICTIONARY_FINAL_NEWLINE_PATTERN = /\n$/
+// 같은 WASM 빌드를 Node에서 Apple M3 Max(논리 코어 16개)로 재 보니 1장 추론이 8 thread와 12 thread 모두 약 23ms로
+// 8개를 넘으면 빨라지지 않았고, 코어 수를 넘긴 32, 64 thread는 약 34ms, 48ms로 오히려 느려졌다.
+const MAX_THREADS = 8
 
 let session: InferenceSession | null = null
 let characters: string[] = []
 
 async function initializeModel(root: string): Promise<void> {
   env.logLevel = 'error'
-  env.wasm.numThreads = 1
+  // onnxruntime-web은 cross-origin 격리가 아닌 페이지에서 기본값을 1 thread로 잡으므로 직접 정한다.
+  env.wasm.numThreads = Math.min(MAX_THREADS, navigator.hardwareConcurrency)
   env.wasm.proxy = false
   env.wasm.wasmPaths = new URL('ort/', root).toString()
   const response = await fetch(new URL('korean-dict.txt', root))

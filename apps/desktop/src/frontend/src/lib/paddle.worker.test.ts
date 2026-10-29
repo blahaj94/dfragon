@@ -39,6 +39,7 @@ beforeEach(async () => {
   vi.clearAllMocks()
   vi.stubGlobal('onmessage', null)
   vi.stubGlobal('postMessage', postMessage)
+  vi.stubGlobal('navigator', { hardwareConcurrency: 16 })
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => new Response('가\r\n나\r\n'))
@@ -65,7 +66,7 @@ it('preserves WASM setup, dictionary normalization and recognition tensor layout
   await send({ root: 'https://fixture.invalid/ocr/' })
   expect(mocks.env).toEqual({
     logLevel: 'error',
-    wasm: { numThreads: 1, proxy: false, wasmPaths: 'https://fixture.invalid/ocr/ort/' }
+    wasm: { numThreads: 8, proxy: false, wasmPaths: 'https://fixture.invalid/ocr/ort/' }
   })
   expect(mocks.create).toHaveBeenCalledExactlyOnceWith(
     'https://fixture.invalid/ocr/korean-rec.onnx',
@@ -83,6 +84,19 @@ it('preserves WASM setup, dictionary normalization and recognition tensor layout
   })
   expect(mocks.dispose).toHaveBeenCalledOnce()
   expect(outputDispose).toHaveBeenCalledOnce()
+})
+
+it.each([
+  { cores: 2, threads: 2 },
+  { cores: 4, threads: 4 },
+  { cores: 8, threads: 8 },
+  { cores: 32, threads: 8 }
+])('논리 코어 $cores개에서 OCR을 $threads thread로 돌린다', async ({ cores, threads }) => {
+  vi.stubGlobal('navigator', { hardwareConcurrency: cores })
+
+  await send({ root: 'https://fixture.invalid/ocr/' })
+
+  expect(mocks.env.wasm.numThreads).toBe(threads)
 })
 
 it.each([

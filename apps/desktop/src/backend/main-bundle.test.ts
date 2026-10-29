@@ -65,6 +65,7 @@ function mainEnvironment(): {
       setName: vi.fn(),
       setAppUserModelId: vi.fn(),
       requestSingleInstanceLock: vi.fn(() => true),
+      commandLine: { appendSwitch: vi.fn() },
       on: vi.fn(),
       quit: vi.fn(),
       exit: vi.fn(),
