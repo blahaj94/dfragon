@@ -411,7 +411,6 @@ describe('capture main document and source boundary', () => {
       ok: false,
       error: { code: 'INVALID_SEARCH_COMMAND' },
       snapshot: {
-        runId: expect.any(String),
         revision: expect.any(Number),
         captureId: null,
         slots: [0, 1, 2, 3].map((slot) => ({

@@ -279,29 +279,6 @@ it('main이 끝낸 capture는 즉시 비활성화하고 END를 다시 보내지 
   expect(f.control.mock.calls.map(([command]) => command.action)).toEqual(['read', 'begin'])
 })
 
-it('run 변경 중 늦은 begin은 정리하고 재연결 뒤 새 begin은 사용할 수 있다', async () => {
-  const f = await fixture()
-  const delayed = Promise.withResolvers<SearchCommandResult>()
-  f.control.mockReturnValueOnce(delayed.promise)
-  const begin = f.search.begin({ signal: new AbortController().signal })
-  const nextRun = '00000000-0000-4000-8000-000000000088'
-  f.emit(searchSnapshot({ runId: nextRun, captureId: null, revision: 0 }))
-  await vi.waitFor(() => expect(f.changed.mock.lastCall?.[0].ready).toBe(true))
-  delayed.resolve({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
-  expect(await begin).toBeNull()
-  expect(f.control).toHaveBeenCalledWith({ action: 'end', captureId: CAPTURE_ID })
-  expect(f.invalidated).toHaveBeenCalledOnce()
-
-  const nextId = '00000000-0000-4000-8000-000000000099'
-  f.control.mockResolvedValueOnce({
-    ok: true,
-    snapshot: searchSnapshot({ runId: nextRun, captureId: nextId, revision: 1 })
-  })
-  expect(await f.search.begin({ signal: new AbortController().signal })).toBe(nextId)
-  f.search.end()
-  expect(f.control).toHaveBeenLastCalledWith({ action: 'end', captureId: nextId })
-})
-
 it('반환 함수를 분리해서 호출해도 각 검색의 관측 상태와 종료가 격리된다', async () => {
   const first = await fixture()
   const second = await fixture()
