@@ -173,7 +173,7 @@ Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778]
 
 위 표의 `429 SEARCH_RATE_LIMITED`는 앞단 proxy가 호출 제한을 둘 때 쓸 응답 형식으로 남긴다. Desktop은 429 body의 `error.code`가 이 값일 때만 `Retry-After`를 읽으므로, proxy의 429는 위 표의 body와 양의 정수 초 `Retry-After`를 함께 반환한다. 
 
-단일 호스트 Caddy 배포는 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의 1-hop `trust proxy`와 `request.ip`를 사용한다. Caddy가 `X-Forwarded-For`를 직접 연결한 클라이언트 주소로 덮어쓰고, API의 공개 port는 loopback으로 제한한다. 외부의 유일한 경로가 Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 직접 접근 주체까지 인증하는 설정은 아니다. 다중 proxy, 외부 직접 접근으로 확대하지 않는다. 지금은 API에 IP를 key로 쓰는 한도가 없어 이 설정이 응답에 영향을 주지 않지만, 운영 설정을 바꾸지 않도록 설정 읽기는 남겨 둔다.
+단일 호스트 Caddy 배포는 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의 1-hop `trust proxy`를 켠다. Caddy가 `X-Forwarded-For`를 직접 연결한 클라이언트 주소로 덮어쓰고, API의 공개 port는 loopback으로 제한한다. 외부의 유일한 경로가 Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 직접 접근 주체까지 인증하는 설정은 아니다. 다중 proxy, 외부 직접 접근으로 확대하지 않는다. 지금은 API에 IP를 key로 쓰는 한도가 없어 이 설정이 응답에 영향을 주지 않지만, 운영 설정을 바꾸지 않도록 설정 읽기는 남겨 둔다.
 
 - API 키 설정은 listen 전에 검증한다. 서비스는 준비된 검색 어댑터를 주입받으며 요청 단계에서 키를 다시 읽거나 검사하지 않는다. 누락, 빈 값, 공백뿐인 키는 HTTP 응답이 아닌 시작 실패다. [Runtime의 설정 책임](api-runtime.md#실행과-검증-경계)을 따른다.
 - 요청에서는 raw query를 먼저 검증한다. 입력 실패는 upstream이 없다. 공급자가 반환하는 키 오류 등 기존 정제 500 정책은 유지한다.
