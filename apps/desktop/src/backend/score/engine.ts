@@ -11,9 +11,6 @@ export const SCORE_LIBRARY_FILE_NAMES: Readonly<Partial<Record<NodeJS.Platform, 
   linux: 'libdnfscore.so'
 }
 const SLOW_SCORE_MS = 50
-// worker가 응답하지 않을 때 점수만 비우고 상세를 끝내는 상한이다. 측정한 계산은 첫 준비가 약 1.3초, 이후 한 번에
-// 120ms 이하라 공대 12자리가 한꺼번에 쌓여도 이 안에 끝난다.
-const SCORE_RESPONSE_TIMEOUT_MS = 10_000
 
 const nonblank = z.string().refine((value) => value.trim().length > 0)
 const nullableNumber = z.number().nullable()
@@ -217,12 +214,7 @@ export function createScoreEngine(
     const { promise, resolve, reject } = Promise.withResolvers<ScoreReply | null>()
     const id = nextRequestId
     nextRequestId += 1
-    const timer = setTimeout(
-      () => finish(running.worker, { kind: 'stopped' }, 'SCORE_ENGINE_FAILED'),
-      SCORE_RESPONSE_TIMEOUT_MS
-    )
     const cleanup = (): void => {
-      clearTimeout(timer)
       signal.removeEventListener('abort', abort)
       running.pending.delete(id)
     }
