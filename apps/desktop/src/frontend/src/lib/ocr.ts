@@ -2,73 +2,7 @@ import type { PartyOcrResult, PartyOcrWorker } from '../types/capture'
 import { REQUEST_TIMEOUT_MS } from '../constants/capture'
 
 type Reply = { ready: true } | PartyOcrResult
-
-const MAX_OCR_CANDIDATES = 2
-const MAX_MODEL_SCORE = 100
-
-function isReadyReply(value: unknown): value is { ready: true } {
-  return (
-    value != null &&
-    typeof value === 'object' &&
-    !Array.isArray(value) &&
-    'ready' in value &&
-    value.ready === true &&
-    !('failed' in value) &&
-    !('text' in value) &&
-    !('confidence' in value) &&
-    !('candidates' in value)
-  )
-}
-
-function isRecognitionReply(value: unknown): value is PartyOcrResult {
-  if (
-    value == null ||
-    typeof value !== 'object' ||
-    Array.isArray(value) ||
-    'ready' in value ||
-    'failed' in value ||
-    !('text' in value) ||
-    typeof value.text !== 'string' ||
-    !('confidence' in value) ||
-    typeof value.confidence !== 'number' ||
-    !Number.isFinite(value.confidence) ||
-    !('candidates' in value) ||
-    !Array.isArray(value.candidates) ||
-    value.candidates.length > MAX_OCR_CANDIDATES
-  ) {
-    return false
-  }
-  let previousScore = MAX_MODEL_SCORE
-  let firstNickname = ''
-  let firstScore = 0
-  for (let index = 0; index < value.candidates.length; index += 1) {
-    const candidate: unknown = value.candidates[index]
-    if (
-      candidate == null ||
-      typeof candidate !== 'object' ||
-      Array.isArray(candidate) ||
-      !('rank' in candidate) ||
-      candidate.rank !== index + 1 ||
-      !('nickname' in candidate) ||
-      typeof candidate.nickname !== 'string' ||
-      !('modelScore' in candidate) ||
-      typeof candidate.modelScore !== 'number' ||
-      !Number.isFinite(candidate.modelScore) ||
-      candidate.modelScore < 0 ||
-      candidate.modelScore > previousScore
-    ) {
-      return false
-    }
-
-    if (index === 0) {
-      firstNickname = candidate.nickname
-      firstScore = candidate.modelScore
-    }
-    previousScore = candidate.modelScore
-  }
-
-  return value.text === firstNickname && value.confidence === firstScore
-}
+type WorkerMessage = Reply | { failed: true }
 
 class OcrWorkerUnavailableError extends Error {
   constructor(message: string) {
@@ -116,12 +50,12 @@ export async function createPartyOcrWorker(
   }
   worker.onmessageerror = (): void =>
     terminate(new OcrWorkerUnavailableError('PaddleOCR response could not be read.'))
-  worker.onmessage = (event: MessageEvent<unknown>): void => {
+  worker.onmessage = (event: MessageEvent<WorkerMessage>): void => {
     if (stopped || pending == null) {
       return
     }
     const value = event.data
-    if (!isReadyReply(value) && !isRecognitionReply(value)) {
+    if ('failed' in value) {
       terminate(new OcrWorkerUnavailableError('PaddleOCR could not complete recognition.'))
 
       return

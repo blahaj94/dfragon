@@ -5,6 +5,7 @@ import { SEARCH_ACTIONS, SEARCH_SLOT_COUNTS } from '../../../preload/common/type
 import {
   SEARCH_ERRORS,
   type SearchApi,
+  type SearchError,
   type OcrSearchInput,
   type OcrSearchObservation,
   type SearchCommandResult,
@@ -130,30 +131,14 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     const captureId = lifetime.getSnapshot().context.captureId
     const slot = getVisibleSearchSlots({ captureId, snapshot, revisions, slotCount })[slotIndex]
     const error = slot.error
-    const isFailureState = slot.state === 'failure'
-    const hasError = error != null
-    const hasFailure = isFailureState && hasError
-    const hasCaptureId = captureId != null
-    const hasRequestId = slot.requestId != null
-    const hasId = hasCaptureId && hasRequestId
-    const isPending = pending.has(slotIndex)
-    const canConsiderRetry = hasFailure && hasId && !isPending
-    if (!canConsiderRetry) {
-      return
-    }
-    const isRetryable = SEARCH_ERRORS[error.code].retryable
-    const isRateLimit = error.code === 'SEARCH_RATE_LIMITED'
-    let canRetry = isRetryable
-    if (isRateLimit) {
-      const hasRetryAfter = error.retryAfterSeconds != null
-      if (hasRetryAfter) {
-        const hasPositiveRetryAfter = error.retryAfterSeconds > 0
-        const isWaiting = hasPositiveRetryAfter
-        canRetry = isRetryable && !isWaiting
-      }
-    }
-
-    if (!canRetry) {
+    if (
+      captureId == null ||
+      slot.requestId == null ||
+      slot.state !== 'failure' ||
+      error == null ||
+      pending.has(slotIndex) ||
+      !canRetryError(error)
+    ) {
       return
     }
     const requestId = slot.requestId
@@ -165,8 +150,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       slot: slotIndex,
       requestId
     })
-    const isSameRequest = pending.get(slotIndex) === requestId
-    if (isSameRequest) {
+    if (pending.get(slotIndex) === requestId) {
       pending.delete(slotIndex)
       publish()
     }
@@ -208,11 +192,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
         revisions,
         slotCount
       }),
-      retryPending: Array.from({ length: slotCount }, (_, slot) => {
-        const isPending = pending.has(slot)
-
-        return isPending
-      }),
+      retryPending: Array.from({ length: slotCount }, (_, slot) => pending.has(slot)),
       connectionFailed: failed
     })
   }
@@ -243,6 +223,18 @@ function getVisibleSearchSlots({
 
     return empty[slot.slot]
   })
+}
+
+function canRetryError(error: SearchError): boolean {
+  if (!SEARCH_ERRORS[error.code].retryable) {
+    return false
+  }
+  const isWaitingForRateLimit =
+    error.code === 'SEARCH_RATE_LIMITED' &&
+    error.retryAfterSeconds != null &&
+    error.retryAfterSeconds > 0
+
+  return !isWaitingForRateLimit
 }
 
 function canShowSlot(slot: SearchSlot, observedRevision: number): boolean {
