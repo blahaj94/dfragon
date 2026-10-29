@@ -55,8 +55,6 @@ type RenderProps = Omit<ComponentProps<typeof PartyPage>, 'slots'> & {
   slots: SlotState[]
   characters?: (CardCharacter | null)[]
   nicknames?: (string | null)[]
-  slotNotices?: (string | undefined)[]
-  retryEnabled?: boolean[]
   snapshotMarks?: (SnapshotMark | undefined)[]
 }
 
@@ -64,8 +62,6 @@ async function render({
   slots,
   characters,
   nicknames,
-  slotNotices,
-  retryEnabled,
   snapshotMarks,
   ...props
 }: RenderProps): Promise<void> {
@@ -77,8 +73,6 @@ async function render({
       state,
       character,
       nickname,
-      notice: slotNotices?.[index],
-      retryEnabled: retryEnabled?.[index],
       snapshotMark: snapshotMarks?.[index]
     }
   })
@@ -150,31 +144,6 @@ it('네 슬롯의 서로 다른 선택과 대기 상태를 독립적으로 표�
   expect(slots[3].querySelector('img')).toBeNull()
   expect(slots[2].querySelector('[aria-label="3번 캐릭터 상세 열기"]')).toBeNull()
   expect(slots[2].querySelector('[role="tablist"]')).toBeNull()
-})
-
-it('재시도 버튼은 제한 대기와 진행 중에는 잠기고 해당 슬롯만 요청한다', async () => {
-  const retry = vi.fn()
-  const props: RenderProps = {
-    slots: ['failure', 'idle', 'idle', 'idle'],
-    actions: { retrySlot: retry },
-    slotNotices: ['12초 후 다시 시도할 수 있습니다.'],
-    retryEnabled: [false]
-  }
-  await render(props)
-  const findRetry = (): HTMLButtonElement =>
-    [...container.querySelectorAll('button')].find((button) =>
-      button.textContent?.includes('다시 시도')
-    )!
-  expect(findRetry().disabled).toBe(true)
-  await act(async () => findRetry().click())
-  expect(retry).not.toHaveBeenCalled()
-  await render({
-    ...props,
-    retryEnabled: [true],
-    slotNotices: ['검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.']
-  })
-  await act(async () => findRetry().click())
-  expect(retry).toHaveBeenCalledExactlyOnceWith(0)
 })
 
 it('슬롯 번호대로 스냅샷 표시를 그 슬롯의 카드에 전한다', async () => {

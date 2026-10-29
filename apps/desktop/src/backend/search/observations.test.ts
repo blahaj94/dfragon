@@ -115,7 +115,7 @@ describe('main 검색 관측과 slot 수명', () => {
     expect(fixture.published).toHaveBeenLastCalledWith('characterSearchChanged', completed)
   })
 
-  it('빈 OCR 이름은 보정하거나 HTTP로 보내지 않고 재시도 없는 입력 실패로 끝낸다', async () => {
+  it('빈 OCR 이름은 보정하거나 HTTP로 보내지 않고 입력 실패로 끝낸다', async () => {
     const fixture = await createSearchFixture()
 
     const admitted = await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '' })
@@ -130,13 +130,6 @@ describe('main 검색 관측과 slot 수명', () => {
       error: { code: 'INVALID_SEARCH_QUERY' }
     })
     expect(fixture.fetchSearch).not.toHaveBeenCalled()
-    const retry = await fixture.invoke('controlCharacterSearch', {
-      action: 'retry',
-      captureId: fixture.captureId,
-      slot: 0,
-      requestId: snapshot.slots[0].requestId
-    })
-    expect(retry).toMatchObject({ ok: false, error: { code: 'SEARCH_RETRY_NOT_READY' } })
   })
 
   it.each(['가나다라마바사아자차카타파', ' 가나', '가나 ', '\ud800가', '가\udfff'])(
@@ -157,7 +150,7 @@ describe('main 검색 관측과 slot 수명', () => {
   )
 
   it.each(['', '가나다라마바사아자차카타파', ' 가나', '가나 ', '\ud800가', '가\udfff'])(
-    '서버 지정 조회의 입력 %j는 보정하거나 HTTP로 보내지 않고 재시도 없는 입력 실패로 끝낸다',
+    '서버 지정 조회의 입력 %j는 보정하거나 HTTP로 보내지 않고 입력 실패로 끝낸다',
     async (nickname) => {
       const fixture = await createSearchFixture('manual')
 
@@ -173,13 +166,6 @@ describe('main 검색 관측과 slot 수명', () => {
         error: { code: 'INVALID_SEARCH_QUERY' }
       })
       expect(fixture.fetchSearch).not.toHaveBeenCalled()
-      const retry = await fixture.invoke('controlCharacterSearch', {
-        action: 'retry',
-        captureId: fixture.captureId,
-        slot: 0,
-        requestId: snapshot.slots[0].requestId
-      })
-      expect(retry).toMatchObject({ ok: false, error: { code: 'SEARCH_RETRY_NOT_READY' } })
     }
   )
 
