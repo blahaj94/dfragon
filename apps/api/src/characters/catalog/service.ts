@@ -16,31 +16,21 @@ export function createCatalogService(fetchCatalog: FetchCatalog, timeoutMs = 10_
       }
       // A malformed upstream character cannot turn a public request into unbounded fan-out.
       const signal = AbortSignal.any([requestSignal, AbortSignal.timeout(timeoutMs)])
-      async function loadReferences(references: string[]) {
-        const bounded = references.slice(0, CATALOG_LIMITS.maximumReferencesPerLoad)
-        if (bounded.length === 0 || signal.aborted) {
-          return
-        }
-        const groups = chunk(bounded, CATALOG_LIMITS.maximumBatchKeys)
-        await Promise.all(
-          groups.map(async (group) => {
-            if (signal.aborted) {
-              return
+      const bounded = unique.slice(0, CATALOG_LIMITS.maximumReferencesPerLoad)
+      await Promise.all(
+        chunk(bounded, CATALOG_LIMITS.maximumBatchKeys).map(async (group) => {
+          try {
+            const payloads = await fetchCatalog(group, signal)
+            signal.throwIfAborted()
+            const fetchedAt = new Date().toISOString()
+            for (const [itemId, data] of payloads) {
+              details.set(itemId, { data, fetchedAt, status: 'fresh' })
             }
-            try {
-              const payloads = await fetchCatalog(group, signal)
-              signal.throwIfAborted()
-              const fetchedAt = new Date().toISOString()
-              for (const [itemId, data] of payloads) {
-                details.set(itemId, { data, fetchedAt, status: 'fresh' })
-              }
-            } catch {
-              // A failed lookup leaves the reference unavailable; the character response still succeeds.
-            }
-          })
-        )
-      }
-      await loadReferences(unique)
+          } catch {
+            // A failed lookup leaves the reference unavailable; the character response still succeeds.
+          }
+        })
+      )
       requestSignal.throwIfAborted()
 
       return details
