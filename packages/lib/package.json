@@ -12,6 +12,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./utils/assert": {
+      "types": "./dist/utils/assert.d.ts",
+      "import": "./dist/utils/assert.js"
+    },
     "./utils/ip-quota-key": {
       "types": "./dist/utils/ip-quota-key.d.ts",
       "import": "./dist/utils/ip-quota-key.js"
