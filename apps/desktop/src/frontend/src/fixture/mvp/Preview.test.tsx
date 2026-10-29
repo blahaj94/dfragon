@@ -52,7 +52,11 @@ it.each([
   const header = container.querySelector('header')!
   expect(header.querySelector(`[data-tone="${tone}"]`)?.textContent).toBe(label)
   expect(header.querySelector('[data-tone][role="status"]')).toBeNull()
-  expect(header.querySelectorAll('[role="status"]:not([data-capture-announcer])')).toHaveLength(0)
+  expect(
+    header.querySelectorAll(
+      '[role="status"]:not([data-capture-announcer], [data-clipboard-announcer])'
+    )
+  ).toHaveLength(0)
   await act(async () =>
     header.querySelector<HTMLButtonElement>('[aria-label^="화면 캡처"]')!.click()
   )

@@ -330,3 +330,37 @@ it('공대 스냅샷을 켠 뒤 자리를 옮기면 바뀐 카드에 순번 칩�
   expect(snapshotButton().getAttribute('aria-pressed')).toBe('false')
   expect(seats().flatMap(chipsOf)).toEqual([])
 })
+
+it('클립보드로 복사는 맞바꾼 화면 자리 순서대로 파티마다 한 줄씩 쓴다', async () => {
+  const writeText = vi.fn<Window['desktopClipboard']['writeText']>(async () => {})
+  vi.stubGlobal('desktopClipboard', { writeText })
+  const f = createRendererFixture()
+  const raid = stubRaidSearch()
+  await mount(f)
+  await showRaid()
+  await lookup(seats()[0], '첫째')
+  await lookup(seats()[1], '둘째')
+  await lookup(seats()[4], '못찾음')
+  await vi.waitFor(() => expect(raid.lookups()).toHaveLength(3))
+  await act(async () =>
+    raid.publish([
+      foundSlot(0, '첫째', '가모험단'),
+      foundSlot(1, '둘째', '나모험단'),
+      ...raid.current().slots.slice(2)
+    ])
+  )
+  await moveRight(seats()[0])
+
+  const copy = raidHeader().querySelector<HTMLButtonElement>(
+    'button[aria-label="클립보드로 복사"]'
+  )!
+  await act(async () => copy.click())
+
+  expect(writeText).toHaveBeenCalledExactlyOnceWith(
+    [
+      '[둘째, 시로코, 나모험단], [첫째, 시로코, 가모험단], [], []',
+      '[못찾음, , ], [], [], []',
+      '[], [], [], []'
+    ].join('\n')
+  )
+})

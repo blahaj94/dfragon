@@ -74,9 +74,9 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(partyHeading.closest('main > header')).not.toBeNull()
   expect(partyHeading.nextElementSibling?.textContent).toBe('0/4')
   expect(container.querySelector('[aria-label="카드 접기"]')).toBeNull()
-  expect([...container.querySelectorAll('header [role="status"]')]).toEqual([
-    container.querySelector('header [data-capture-announcer]')
-  ])
+  expect([
+    ...container.querySelectorAll('header [role="status"]:not([data-clipboard-announcer])')
+  ]).toEqual([container.querySelector('header [data-capture-announcer]')])
   const chip = container.querySelector<HTMLButtonElement>('header button[aria-label^="화면 캡처"]')!
   expect(chip.getAttribute('aria-label')).toBe('화면 캡처, 창 미감지')
   expect(chip.disabled).toBe(false)
