@@ -2,12 +2,11 @@ import { isRecord } from '@dfragon/lib/utils/shape-check'
 import ky, { isTimeoutError } from 'ky'
 import { NEOPLE_ORIGIN } from '../../constants/neople-character-search.js'
 import {
-  NeopleSearchFailure,
   classifyNeopleUpstreamFailure,
-  neopleStatusFailure
+  neopleStatusFailureKind
 } from '../../errors/neople-search.js'
 import type { FetchTransport } from '../../types/neople-character-search.js'
-import { CharacterDetailFailure, characterDetailFailure } from './errors.js'
+import { CharacterDetailFailure } from './errors.js'
 import { CHARACTER_DETAIL_SECTIONS, characterDetailSections } from './sections.js'
 import type {
   CharacterDetailSection,
@@ -67,7 +66,7 @@ function parseBody(rawBody: string, status: number): unknown {
   try {
     return JSON.parse(rawBody) as unknown
   } catch (error) {
-    throw neopleStatusFailure(status, { cause: error })
+    throw new CharacterDetailFailure(neopleStatusFailureKind(status), { cause: error })
   }
 }
 
@@ -94,7 +93,7 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
             const body = parseBody(rawBody, response.status)
             const failure = classifyNeopleUpstreamFailure(body, response.status, response.ok)
             if (failure) {
-              throw failure
+              throw new CharacterDetailFailure(failure)
             }
 
             return validateCharacterPayload(body, identity, section)
@@ -124,10 +123,7 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       if (error instanceof CharacterDetailFailure) {
         throw error
       }
-      const failure = characterDetailFailure(error)
-      throw error instanceof NeopleSearchFailure
-        ? failure
-        : new CharacterDetailFailure('api', { cause: error })
+      throw new CharacterDetailFailure('api', { cause: error })
     }
   }
 }

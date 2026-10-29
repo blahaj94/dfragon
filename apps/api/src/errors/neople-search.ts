@@ -32,7 +32,9 @@ const errors = {
 
 type NeopleSearchFailureKind = keyof typeof errors
 
-const upstreamCodeErrors = new Map<string, NeopleSearchFailureKind>([
+export type NeopleUpstreamFailureKind = 'internal' | 'api' | 'unavailable'
+
+const upstreamCodeErrors = new Map<string, NeopleUpstreamFailureKind>([
   ['API000', 'internal'],
   ['API003', 'internal'],
   ['API004', 'internal'],
@@ -65,32 +67,33 @@ export class NeopleSearchFailure extends SanitizedFailure {
   }
 }
 
-export function neopleStatusFailure(status: number, options?: FailureOptions): NeopleSearchFailure {
-  const isTemporarilyUnavailable = status === 429 || status === 503
-  const failureKind = isTemporarilyUnavailable ? 'unavailable' : 'api'
+export function neopleStatusFailureKind(status: number): NeopleUpstreamFailureKind {
+  if (status === 429 || status === 503) {
+    return 'unavailable'
+  }
 
-  return new NeopleSearchFailure(failureKind, options)
+  return 'api'
 }
 
 export function classifyNeopleUpstreamFailure(
   body: unknown,
   status: number,
   ok: boolean
-): NeopleSearchFailure | undefined {
+): NeopleUpstreamFailureKind | undefined {
   if (!isRecord(body) || !Object.hasOwn(body, 'error')) {
     if (ok) {
       return undefined
     }
 
-    return neopleStatusFailure(status)
+    return neopleStatusFailureKind(status)
   }
 
   const code = isRecord(body.error) ? body.error.code : undefined
   const knownError = typeof code === 'string' ? upstreamCodeErrors.get(code) : undefined
 
   if (knownError !== undefined) {
-    return new NeopleSearchFailure(knownError)
+    return knownError
   }
 
-  return neopleStatusFailure(status)
+  return neopleStatusFailureKind(status)
 }

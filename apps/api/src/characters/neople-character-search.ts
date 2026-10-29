@@ -9,7 +9,7 @@ import ky, { isTimeoutError } from 'ky'
 import { NEOPLE_ORIGIN, NEOPLE_SERVER_NAMES } from '../constants/neople-character-search.js'
 import {
   classifyNeopleUpstreamFailure,
-  neopleStatusFailure,
+  neopleStatusFailureKind,
   NeopleSearchFailure
 } from '../errors/neople-search.js'
 import { CHARACTER_ID_PATTERN } from './identity.js'
@@ -68,7 +68,7 @@ function projectResponse(
 ): NeopleCharacterSearchResult {
   const upstreamFailure = classifyNeopleUpstreamFailure(body, status, ok)
   if (upstreamFailure !== undefined) {
-    throw upstreamFailure
+    throw new NeopleSearchFailure(upstreamFailure)
   }
 
   assert(isRecord(body), invalidResponse)
@@ -88,7 +88,7 @@ function parseBody(rawBody: string, status: number): unknown {
   try {
     return JSON.parse(rawBody) as unknown
   } catch (error) {
-    throw neopleStatusFailure(status, { cause: error })
+    throw new NeopleSearchFailure(neopleStatusFailureKind(status), { cause: error })
   }
 }
 

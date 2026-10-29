@@ -42,29 +42,16 @@ export class CharacterDetailFailure extends SanitizedFailure {
   }
 }
 
-function neopleFailureKind(status: number): keyof typeof failures {
-  if (status === 503) {
-    return 'unavailable'
-  }
-
-  if (status === 504) {
-    return 'timeout'
-  }
-
-  if (status === 502) {
-    return 'api'
-  }
-
-  return 'internal'
-}
-
 export function characterDetailFailure(error: unknown): CharacterDetailFailure {
   if (error instanceof CharacterDetailFailure) {
     return error
   }
 
   if (error instanceof NeopleSearchFailure) {
-    return new CharacterDetailFailure(neopleFailureKind(error.status), { cause: error })
+    // 상세 경로에는 검색 입력이 없으므로 검색 query 오류는 상세 입력 오류가 아닌 내부 오류다.
+    const kind = error.kind === 'query' ? 'internal' : error.kind
+
+    return new CharacterDetailFailure(kind, { cause: error })
   }
 
   return new CharacterDetailFailure('internal', { cause: error })
