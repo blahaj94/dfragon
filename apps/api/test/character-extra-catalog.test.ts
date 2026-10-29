@@ -177,7 +177,7 @@ test('잘못된 참조는 조회하지 않고 반복 아이템은 한 번씩 연
   assert.deepEqual(details, original)
 })
 
-test('예약된 itemDetail은 공용 조회값으로 교체하고 캐릭터 옵션은 보존한다', async () => {
+test('예약된 itemDetail은 공용 조회값으로 교체하고 캐릭터 옵션과 원본 skillStyle의 skillDetails, 추가 필드는 보존한다', async () => {
   const details = fixture()
   details.equipment = {
     equipment: [{ itemId: 'equipment', option: '장착 옵션', itemDetail: { injected: true } }],
@@ -189,7 +189,8 @@ test('예약된 itemDetail은 공용 조회값으로 교체하고 캐릭터 옵�
   details.buff = { equipment: null, avatar: null, creature: null }
   details.skillStyle = {
     style: { active: [{ skillId: 'first' }] },
-    skillDetails: { obsolete: { injected: true } }
+    skillDetails: { upstream: { retained: true } },
+    future: { retained: true }
   }
   const original = structuredClone(details)
   const catalog = createCatalogService(async (itemIds) => {
@@ -207,8 +208,6 @@ test('예약된 itemDetail은 공용 조회값으로 교체하고 캐릭터 옵�
     itemName: '합성 아이템 equipment',
     tune: { level: 0 }
   })
-  const skillStyle = result.skillStyle as Record<string, unknown>
-  assert.equal(Object.hasOwn(skillStyle, 'skillDetails'), false)
-  assert.deepEqual(skillStyle.style, (details.skillStyle as Record<string, unknown>).style)
+  assert.deepEqual(result.skillStyle, details.skillStyle)
   assert.deepEqual(details, original)
 })
