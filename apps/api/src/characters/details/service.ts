@@ -9,7 +9,7 @@ import { projectCharacterCard } from '../card/project.js'
 
 export interface CharacterDetailDependencies {
   fetchDetails: FetchCharacterDetails
-  catalog?: CatalogService
+  catalog: CatalogService
 }
 
 export { parseCharacterIdentity } from '../identity.js'
@@ -42,9 +42,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
       const projected = projectCharacterDetails(identity, payloads, fetchedAt)
       const freshness = projectCharacterFreshness(fetchedAt)
       const card = projectCharacterCard(projected)
-      const details = deps.catalog
-        ? await enrichCharacterDetails(projected, deps.catalog, signal)
-        : projected
+      const details = await enrichCharacterDetails(projected, deps.catalog, signal)
       signal.throwIfAborted()
 
       return { ...details, freshness, card }

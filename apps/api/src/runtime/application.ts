@@ -8,15 +8,13 @@ import type { readRuntimeConfiguration } from './configuration.js'
 type RuntimeConfiguration = Awaited<ReturnType<typeof readRuntimeConfiguration>>
 
 export function createApiRuntime(configuration: RuntimeConfiguration) {
-  return createApiHttpApp(
-    {
-      searchCharacters: createNeopleCharacterSearch(configuration.apiKey),
-      trustedProxyHops: configuration.trustedProxyHops
-    },
-    {
+  return createApiHttpApp({
+    search: { searchCharacters: createNeopleCharacterSearch(configuration.apiKey) },
+    details: {
       fetchDetails: createNeopleCharacterDetails(configuration.apiKey),
       catalog: createCatalogService(createNeopleCatalog(configuration.apiKey))
     },
-    configuration.localHttps
-  )
+    trustedProxyHops: configuration.trustedProxyHops,
+    httpsOptions: configuration.localHttps
+  })
 }

@@ -73,28 +73,36 @@ class HealthController {
   }
 }
 
+export interface ApiHttpAppOptions {
+  readonly search: CharacterSearchDependencies
+  readonly details: CharacterDetailDependencies
+  readonly trustedProxyHops?: 1
+  readonly httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>
+  readonly buildInfoPath?: string
+  readonly writeAccessLog?: AccessLogSink
+}
+
 /** Public game data runs without authentication credentials or a database connection. */
-export async function createApiHttpApp(
-  search: CharacterSearchDependencies,
-  details?: CharacterDetailDependencies,
-  httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
+export async function createApiHttpApp({
+  search,
+  details,
+  trustedProxyHops,
+  httpsOptions,
   buildInfoPath = '/app/build-info.json',
-  writeAccessLog: AccessLogSink = writeAccessLogToStdout
-): Promise<INestApplication> {
+  writeAccessLog = writeAccessLogToStdout
+}: ApiHttpAppOptions): Promise<INestApplication> {
   const buildInfo = await readApiBuildInfo(buildInfoPath)
   @Module({
     controllers: [
       HealthController,
       ApiVersionController,
       CharacterSearchController,
-      ...(details ? [CharacterDetailController] : [])
+      CharacterDetailController
     ],
     providers: [
       { provide: API_BUILD_INFO, useValue: buildInfo },
       { provide: CHARACTER_SEARCH_SERVICE, useValue: createCharacterSearchService(search) },
-      ...(details
-        ? [{ provide: CHARACTER_DETAIL_SERVICE, useValue: createCharacterDetailService(details) }]
-        : [])
+      { provide: CHARACTER_DETAIL_SERVICE, useValue: createCharacterDetailService(details) }
     ]
   })
   class ApiHttpModule {}
@@ -105,7 +113,7 @@ export async function createApiHttpApp(
     httpsOptions
   })
   try {
-    app.set('trust proxy', search.trustedProxyHops ?? false)
+    app.set('trust proxy', trustedProxyHops ?? false)
     // Nest 기본 logger는 끈 채로 두고, 다른 middleware의 거절까지 재도록 가장 먼저 등록한다.
     app.use(createAccessLog(writeAccessLog))
     app.use((_request: Request, response: Response, next: () => void) => {

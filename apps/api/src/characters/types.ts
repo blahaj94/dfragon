@@ -5,7 +5,6 @@ import type {
 } from '../types/neople-character-search.js'
 
 export interface CharacterSearchDependencies {
-  readonly trustedProxyHops?: 1
   readonly searchCharacters: SearchCharacters
 }
 
