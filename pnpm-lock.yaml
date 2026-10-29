@@ -239,9 +239,6 @@ catalogs:
     iconv-lite:
       specifier: 0.7.3
       version: 0.7.3
-    ipaddr.js:
-      specifier: 2.5.0
-      version: 2.5.0
     jsdom:
       specifier: 30.1.3
       version: 30.1.3
@@ -490,10 +487,6 @@ importers:
         version: 5.0.5(@types/node@24.19.2)(jsdom@30.1.3(@noble/hashes@1.8.0))(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0))
 
   packages/lib:
-    dependencies:
-      ipaddr.js:
-        specifier: 'catalog:'
-        version: 2.5.0
     devDependencies:
       '@dfragon/licenses':
         specifier: workspace:*
@@ -2696,10 +2689,6 @@ packages:
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
     engines: {node: '>= 0.10'}
-
-  ipaddr.js@2.5.0:
-    resolution: {integrity: sha512-aq+t5NAc+cS6rZQQVWC2x98CPqGtKKTMDd4Gaodv0wShnItdKg/51djkGJ1hqH+Oy0ivDftCbSLCQob8zso01w==}
-    engines: {node: '>= 10'}
 
   is-fullwidth-code-point@3.0.0:
     resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
@@ -5922,8 +5911,6 @@ snapshots:
       loose-envify: 1.4.0
 
   ipaddr.js@1.9.1: {}
-
-  ipaddr.js@2.5.0: {}
 
   is-fullwidth-code-point@3.0.0: {}
 

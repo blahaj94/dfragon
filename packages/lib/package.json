@@ -16,14 +16,6 @@
       "types": "./dist/utils/assert.d.ts",
       "import": "./dist/utils/assert.js"
     },
-    "./utils/ip-quota-key": {
-      "types": "./dist/utils/ip-quota-key.d.ts",
-      "import": "./dist/utils/ip-quota-key.js"
-    },
-    "./utils/pagination": {
-      "types": "./dist/utils/pagination.d.ts",
-      "import": "./dist/utils/pagination.js"
-    },
     "./utils/shape-check": {
       "types": "./dist/utils/shape-check.d.ts",
       "import": "./dist/utils/shape-check.js"
@@ -41,9 +33,6 @@
     "generate:cp949": "node scripts/generate-cp949.mjs",
     "lint": "biome lint",
     "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check"
-  },
-  "dependencies": {
-    "ipaddr.js": "catalog:"
   },
   "devDependencies": {
     "iconv-lite": "catalog:",
