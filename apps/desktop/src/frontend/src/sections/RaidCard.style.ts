@@ -1,11 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, motion, space } from '@dfragon/ui/tokens.stylex'
 
-const dotBlink = stylex.keyframes({
-  '0%': { opacity: 1 },
-  '33.333%, 100%': { opacity: 0.25 }
-})
-
 export const styles = stylex.create({
   seat: {
     position: 'relative',
@@ -44,33 +39,8 @@ export const styles = stylex.create({
     paddingBlockEnd: 6,
     paddingInline: space.s8
   },
-  well: { position: 'relative', height: 40, overflow: 'hidden' },
-  wellTop: {
-    '::after': {
-      content: '""',
-      position: 'absolute',
-      insetInline: 0,
-      bottom: 0,
-      height: 2,
-      backgroundColor: colors.tierTop
-    }
-  },
-  wellRanker: {
-    backgroundColor: colors.tierRankerWell,
-    '::after': {
-      content: '""',
-      position: 'absolute',
-      insetInline: 0,
-      bottom: 0,
-      height: 2,
-      backgroundColor: colors.tierRanker
-    }
-  },
-  portrait: { position: 'absolute', inset: 0 },
-  progress: { position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' },
   column: { display: 'flex', flexDirection: 'column', gap: space.s4, minWidth: 0 },
   header: { display: 'flex', alignItems: 'center', gap: space.s4, minWidth: 0, height: 20 },
-  nameField: { flex: '1 1 0', minWidth: 0 },
   number: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -90,26 +60,6 @@ export const styles = stylex.create({
   numberSelected: { backgroundColor: colors.cardSignal, color: colors.cardOnSignal },
   numberTop: { backgroundColor: colors.tierTop, color: colors.cardOnSignal },
   numberRanker: { backgroundColor: colors.tierRanker, color: colors.cardOnSignal },
-  dots: { display: 'flex', flexShrink: 0, gap: space.s4, paddingInlineEnd: 2 },
-  dot: {
-    width: 5,
-    height: 5,
-    backgroundColor: colors.cardSignal,
-    opacity: { default: 0.25, '@media (prefers-reduced-motion: reduce)': 1 },
-    animationName: { default: dotBlink, '@media (prefers-reduced-motion: reduce)': 'none' },
-    animationDuration: motion.beat,
-    animationTimingFunction: 'steps(1, end)',
-    animationIterationCount: 'infinite'
-  },
-  dotSecond: { animationDelay: `calc(${motion.beat} * -2 / 3)` },
-  dotThird: { animationDelay: `calc(${motion.beat} / -3)` },
-  mark: { display: 'inline-grid', placeItems: 'center', flexShrink: 0, width: 20, height: 20 },
-  alert: {
-    fontSize: 12,
-    lineHeight: '14px',
-    backgroundColor: colors.cardFailureWeak,
-    color: colors.cardFailure
-  },
   affiliation: {
     display: 'flex',
     alignItems: 'center',
