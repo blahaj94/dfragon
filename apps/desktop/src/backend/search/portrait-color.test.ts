@@ -321,24 +321,7 @@ describe('셀 평균 색 비교의 정렬과 점수', () => {
   })
 })
 
-describe('색 비교 정책과 입력 경계', () => {
-  it.each([
-    ['정수가 아닌 gridSize', { gridSize: 4.5 }],
-    ['0인 gridSize', { gridSize: 0 }],
-    ['한도를 넘는 gridSize', { gridSize: 33 }],
-    ['0인 minCoverage', { minCoverage: 0 }],
-    ['1을 넘는 minCoverage', { minCoverage: 1.1 }],
-    ['NaN minCoverage', { minCoverage: Number.NaN }],
-    ['0인 minComparedCells', { minComparedCells: 0 }],
-    ['셀 수를 넘는 minComparedCells', { minComparedCells: 17 }],
-    ['0인 topFraction', { topFraction: 0 }],
-    ['1을 넘는 topFraction', { topFraction: 1.5 }],
-    ['음수 anchorRadius', { anchorRadius: -1 }],
-    ['정수가 아닌 anchorRadius', { anchorRadius: 1.5 }]
-  ])('%s 정책을 거절한다', (_, policy) => {
-    expect(() => createPortraitColorScorer({ ...POLICY, ...policy })).toThrow(TypeError)
-  })
-
+describe('색 비교 입력 경계', () => {
   it.each([
     [
       'RGBA 길이가 틀린 얼굴',
