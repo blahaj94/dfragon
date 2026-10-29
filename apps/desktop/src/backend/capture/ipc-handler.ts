@@ -341,12 +341,16 @@ function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
   }
 }
 
-function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: string): void {
-  captureWindow = window
-  documentUrl = rendererDocumentUrl
+function invalidateCaptureDocument(): void {
   windowGeneration += 1
   clearSource()
   invalidateCardSearches()
+}
+
+function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: string): void {
+  captureWindow = window
+  documentUrl = rendererDocumentUrl
+  invalidateCaptureDocument()
   window.webContents.session.setDisplayMediaRequestHandler((_request, callback) => {
     try {
       callback(null)
@@ -354,45 +358,26 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
       // Native once callback은 throw 전에 소비될 수 있으므로 재호출하지 않는다.
     }
   })
+  const invalidateIfCurrent = (): void => {
+    if (captureWindow === window) {
+      invalidateCaptureDocument()
+    }
+  }
 
   window.webContents.on('did-start-navigation', (_event, _url, _isInPlace, isMainFrame) => {
-    const isCurrentWindow = captureWindow === window
-    const shouldInvalidate = isCurrentWindow && isMainFrame
-    if (!shouldInvalidate) {
-      return
+    if (isMainFrame) {
+      invalidateIfCurrent()
     }
-    windowGeneration += 1
-    clearSource()
-    invalidateCardSearches()
   })
-  window.webContents.on('destroyed', () => {
-    const isCurrentWindow = captureWindow === window
-    if (!isCurrentWindow) {
-      return
-    }
-    windowGeneration += 1
-    clearSource()
-    invalidateCardSearches()
-  })
-  window.webContents.on('render-process-gone', () => {
-    const isCurrentWindow = captureWindow === window
-    if (!isCurrentWindow) {
-      return
-    }
-    windowGeneration += 1
-    clearSource()
-    invalidateCardSearches()
-  })
+  window.webContents.on('destroyed', invalidateIfCurrent)
+  window.webContents.on('render-process-gone', invalidateIfCurrent)
   window.on('closed', () => {
-    const isCurrentWindow = captureWindow === window
-    if (!isCurrentWindow) {
+    if (captureWindow !== window) {
       return
     }
     captureWindow = null
     documentUrl = null
-    windowGeneration += 1
-    clearSource()
-    invalidateCardSearches()
+    invalidateCaptureDocument()
   })
 }
 

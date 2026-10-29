@@ -20,7 +20,6 @@ export function registerUpdateNoticeWindow({
 }): () => void {
   let disposed = false
   const contents = window.webContents
-  const registeredChannels: string[] = []
 
   function hasTrustedDocument(): boolean {
     if (disposed || window.isDestroyed() || contents.isDestroyed()) {
@@ -102,28 +101,18 @@ export function registerUpdateNoticeWindow({
     }
     disposed = true
     unsubscribe()
-    for (const channel of registeredChannels) {
-      ipcMain.removeHandler(channel)
-    }
+    ipcMain.removeHandler(UPDATE_NOTICE_CHANNELS.read)
+    ipcMain.removeHandler(UPDATE_NOTICE_CHANNELS.dismiss)
+    ipcMain.removeHandler(UPDATE_NOTICE_CHANNELS.open)
     contents.removeListener('destroyed', dispose)
     window.removeListener('closed', dispose)
   }
 
-  try {
-    for (const [channel, handler] of [
-      [UPDATE_NOTICE_CHANNELS.read, read],
-      [UPDATE_NOTICE_CHANNELS.dismiss, dismiss],
-      [UPDATE_NOTICE_CHANNELS.open, open]
-    ] as const) {
-      ipcMain.handle(channel, handler)
-      registeredChannels.push(channel)
-    }
-    contents.on('destroyed', dispose)
-    window.on('closed', dispose)
-  } catch (error) {
-    dispose()
-    throw error
-  }
+  ipcMain.handle(UPDATE_NOTICE_CHANNELS.read, read)
+  ipcMain.handle(UPDATE_NOTICE_CHANNELS.dismiss, dismiss)
+  ipcMain.handle(UPDATE_NOTICE_CHANNELS.open, open)
+  contents.on('destroyed', dispose)
+  window.on('closed', dispose)
 
   return dispose
 }
