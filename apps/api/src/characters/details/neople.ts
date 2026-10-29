@@ -1,12 +1,11 @@
-import {
-  NEOPLE_ORIGIN,
-  NEOPLE_SEARCH_DEADLINE_MS
-} from '../../constants/neople-character-search.js'
+import ky, { isTimeoutError } from 'ky'
+import { NEOPLE_ORIGIN } from '../../constants/neople-character-search.js'
 import {
   NeopleSearchFailure,
   classifyNeopleUpstreamFailure,
   neopleStatusFailure
 } from '../../errors/neople-search.js'
+import type { FetchTransport } from '../../types/neople-character-search.js'
 import { CharacterDetailFailure, characterDetailFailure } from './errors.js'
 import { CHARACTER_DETAIL_SECTIONS, characterDetailSections } from './sections.js'
 import type {
@@ -63,52 +62,61 @@ export type FetchCharacterDetails = (
 ) => Promise<CharacterPayloads>
 
 interface TransportDependencies {
-  fetch: typeof globalThis.fetch
+  fetch?: FetchTransport
   origin: string
-  timeoutMs: number
+}
+
+function parseBody(rawBody: string, status: number): unknown {
+  try {
+    return JSON.parse(rawBody) as unknown
+  } catch (error) {
+    throw neopleStatusFailure(status, { cause: error })
+  }
 }
 
 function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacterDetails {
+  const neople = ky.create({
+    baseUrl: deps.origin,
+    fetch: deps.fetch,
+    headers: { apikey: apiKey },
+    redirect: 'error',
+    retry: 0,
+    throwHttpErrors: false
+  })
+
   return async (identity, requestSignal) => {
-    const timeout = AbortSignal.timeout(deps.timeoutMs)
     const failureController = new AbortController()
-    const signal = AbortSignal.any([requestSignal, timeout, failureController.signal])
-    const startedAt = performance.now()
+    const signal = AbortSignal.any([requestSignal, failureController.signal])
     const results = {} as CharacterPayloads
     const load = async (section: CharacterDetailSection): Promise<void> => {
-      signal.throwIfAborted()
       const path = `/df/servers/${encodeURIComponent(identity.serverId)}/characters/${encodeURIComponent(identity.characterId)}${CHARACTER_DETAIL_SECTIONS[section]}`
-      const response = await deps.fetch(new URL(path, deps.origin), {
-        headers: { apikey: apiKey },
-        redirect: 'error',
-        signal
-      })
-      let body: unknown
-      try {
-        body = await response.json()
-      } catch (error) {
-        throw neopleStatusFailure(response.status, { cause: error })
-      }
-      const failure = classifyNeopleUpstreamFailure(body, response.status, response.ok)
-      if (failure) {
-        throw failure
-      }
-      results[section] = validateCharacterPayload(body, identity, section)
+      results[section] = await neople
+        .get(path, {
+          signal,
+          parseJson: (rawBody, { response }) => {
+            const body = parseBody(rawBody, response.status)
+            const failure = classifyNeopleUpstreamFailure(body, response.status, response.ok)
+            if (failure) {
+              throw failure
+            }
+
+            return validateCharacterPayload(body, identity, section)
+          }
+        })
+        .json<CharacterPayload>()
     }
     try {
+      // ky hands an already aborted request to fetch, so a cancelled request stops before any transport.
+      requestSignal.throwIfAborted()
       // Confirm identity before spending the other ten provider requests.
       await load('basic')
       const sections = characterDetailSections.filter((section) => section !== 'basic')
       await Promise.all(sections.map(load))
-      signal.throwIfAborted()
-      if (performance.now() - startedAt >= deps.timeoutMs) {
-        throw new CharacterDetailFailure('timeout')
-      }
 
       return results
     } catch (error) {
       failureController.abort()
-      if (timeout.aborted || performance.now() - startedAt >= deps.timeoutMs) {
+      if (isTimeoutError(error)) {
         throw new CharacterDetailFailure('timeout')
       }
 
@@ -128,21 +136,12 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
 }
 
 export function createNeopleCharacterDetails(apiKey: string): FetchCharacterDetails {
-  return makeAdapter(apiKey, {
-    fetch: globalThis.fetch,
-    origin: NEOPLE_ORIGIN,
-    timeoutMs: NEOPLE_SEARCH_DEADLINE_MS
-  })
+  return makeAdapter(apiKey, { origin: NEOPLE_ORIGIN })
 }
 
 export function createNeopleCharacterDetailsForTest(
   apiKey: string,
   deps: Partial<TransportDependencies>
 ): FetchCharacterDetails {
-  return makeAdapter(apiKey, {
-    fetch: globalThis.fetch,
-    origin: NEOPLE_ORIGIN,
-    timeoutMs: NEOPLE_SEARCH_DEADLINE_MS,
-    ...deps
-  })
+  return makeAdapter(apiKey, { origin: NEOPLE_ORIGIN, ...deps })
 }
