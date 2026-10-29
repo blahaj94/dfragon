@@ -158,7 +158,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNicknames, portrait }`다. Main은 기존 sender, main frame, exact document 검사를 적용하고 후보 개수, 이름, 별칭의 일치, 이미지와 마스크 크기, 배율을 검증한다. 얼굴은 최대 512px/축, 262,144픽셀이며 원본 버퍼를 복사해 보관한다. 이 데이터는 로컬 프로세스 사이에서만 전달하고 API에 업로드하지 않는다.
 
-크롭 null도 후보를 조회해 최고 명성 선택을 시도한다. 비교기를 구성하지 않은 fixture나 API 미설정 상태의 `waiting-policy`는 유지한다. 제품 main은 `portraitColorPolicy`(`INITIAL_PORTRAIT_COLOR_POLICY`) 하나를 구성하며 정책은 renderer가 보낼 수 없다. 캡처 종료, source와 document 변경은 이전 요청과 얼굴을 모두 비운다. 수동 카드 조회는 별도 수명에서 같은 취소와 최신성 검사를 적용한다.
+크롭 null도 후보를 조회해 최고 명성 선택을 시도한다. API를 구성하지 않은 main은 요청을 시작하지 않고 슬롯을 실패로 둔다. 오류는 검색할 수 있는 닉네임이면 `NEOPLE_UNAVAILABLE`, 아니면 `INVALID_SEARCH_QUERY`다. 제품 main은 `portraitColorPolicy`(`INITIAL_PORTRAIT_COLOR_POLICY`) 하나를 구성하며 정책은 renderer가 보낼 수 없다. 캡처 종료, source와 document 변경은 이전 요청과 얼굴을 모두 비운다. 수동 카드 조회는 별도 수명에서 같은 취소와 최신성 검사를 적용한다.
 
 성공한 슬롯의 `selected`에는 검증된 기본 요약과 [카드](#카드-전달과-점수-엔진)만 넣는다. 명성, 레벨, 직업과 모험단의 잘못된 표시 타입이나 누락은 null이며 다른 값으로 추정하지 않는다. 전체 상세는 main에 남기며 renderer에 보내지 않는다. 일치 기준은 [얼굴 비교와 일치 기준](#얼굴-비교와-일치-기준)의 로컬 실표본 평가로 정했으며 더 많은 실시간 표본의 검증이 필요하다.
 
