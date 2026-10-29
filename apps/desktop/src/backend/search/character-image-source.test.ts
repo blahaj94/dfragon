@@ -151,10 +151,8 @@ describe('캐릭터 이미지 공급', () => {
     const { image, started } = createPendingImage()
     const source = createCharacterImageSource({ image, cache: createCache() })
     const controller = new AbortController()
-    const first = source({
-      ...identity('a'),
-      signal: new AbortController().signal
-    })
+    const running = new AbortController()
+    const first = source({ ...identity('a'), signal: running.signal })
     const cancelled = source({ ...identity('b'), signal: controller.signal })
     const third = source({
       ...identity('c'),
@@ -165,6 +163,8 @@ describe('캐릭터 이미지 공급', () => {
     const reason = new Error('취소')
     controller.abort(reason)
     await expect(cancelled).rejects.toBe(reason)
+    expect(started[0].signal).toBe(running.signal)
+    expect(started[0].signal.aborted).toBe(false)
     started[0].resolve(createImage(1))
     await first
     await flush()
@@ -184,27 +184,5 @@ describe('캐릭터 이미지 공급', () => {
 
     await expect(source({ ...identity('a'), signal: controller.signal })).rejects.toThrow('취소')
     expect(image).not.toHaveBeenCalled()
-  })
-
-  it('진행 중인 요청은 자기 signal만 받아 다른 슬롯의 취소에 영향받지 않는다', async () => {
-    const { image, started } = createPendingImage()
-    const source = createCharacterImageSource({
-      image,
-      concurrency: 2,
-      cache: createCache()
-    })
-    const first = new AbortController()
-    const second = new AbortController()
-    const firstResult = source({ ...identity('a'), signal: first.signal })
-    const secondResult = source({ ...identity('b'), signal: second.signal })
-    await flush()
-
-    second.abort(new Error('다른 슬롯 취소'))
-    await expect(secondResult).rejects.toThrow('다른 슬롯 취소')
-
-    expect(started[0].signal).toBe(first.signal)
-    expect(started[0].signal.aborted).toBe(false)
-    started[0].resolve(createImage(1))
-    await expect(firstResult).resolves.toEqual(createImage(1))
   })
 })
