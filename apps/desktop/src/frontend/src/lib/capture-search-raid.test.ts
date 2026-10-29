@@ -38,7 +38,6 @@ it('공대 연결은 12자리 snapshot의 12번째 슬롯 결과를 보인다', 
   search.connect()
   await vi.waitFor(() => expect(view?.ready).toBe(true))
   expect(view!.slots).toHaveLength(12)
-  expect(view!.retryPending).toHaveLength(12)
   snapshot = searchSnapshot({ revision: 2, slots: raidSlots() })
   await search.begin({ signal: new AbortController().signal })
   search.lookup({ slot: 11, nickname: '가나', serverId: 'cain' })

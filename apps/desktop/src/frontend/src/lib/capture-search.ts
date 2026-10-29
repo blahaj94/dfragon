@@ -1,16 +1,15 @@
 import { createActor } from 'xstate'
 import type { SearchView } from '../types/search'
 import { emptySearchSlots } from './slots'
-import { SEARCH_ACTIONS, SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
-import {
-  SEARCH_ERRORS,
-  type SearchApi,
-  type OcrSearchInput,
-  type OcrSearchObservation,
-  type SearchCommandResult,
-  type SearchSlot,
-  type SearchSlotCount,
-  type SearchSnapshot
+import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
+import type {
+  SearchApi,
+  OcrSearchInput,
+  OcrSearchObservation,
+  SearchCommandResult,
+  SearchSlot,
+  SearchSlotCount,
+  SearchSnapshot
 } from '../../../preload/common/types/search'
 import { createSearchConnection } from './search-connection'
 import { captureSearchMachine } from './capture-search-machine'
@@ -20,7 +19,7 @@ type SearchOptions = {
   notifyOcr: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
   onChange: (view: SearchView) => void
   onInvalidated: () => void
-  slotCount?: SearchSlotCount
+  slotCount: SearchSlotCount
 }
 
 export type OcrCaptureObservation = OcrSearchInput & Readonly<{ slot: number; nickname: string }>
@@ -31,15 +30,13 @@ export type CaptureSearch = {
   end: () => void
   observe: (input: OcrCaptureObservation) => void
   lookup: (input: { slot: number; nickname: string; serverId: string }) => void
-  retry: (slotIndex: number) => Promise<void>
   dispose: () => void
 }
 
 export function createCaptureSearch(options: SearchOptions): CaptureSearch {
-  const slotCount = options.slotCount ?? SEARCH_SLOT_COUNTS.party
+  const { slotCount } = options
   let revisions = Array.from({ length: slotCount }, () => 0)
   let snapshot: SearchSnapshot | null = null
-  const pending = new Map<number, string>()
   let failed = false
 
   const connection = createSearchConnection({
@@ -56,7 +53,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       readSnapshot: () => snapshot,
       resetObservations: () => {
         revisions = Array.from({ length: slotCount }, () => 0)
-        pending.clear()
       }
     }
   }).start()
@@ -95,7 +91,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       return
     }
     revisions[slot] += 1
-    pending.delete(slot)
     const observationRevision = revisions[slot]
     publish()
     connection.invoke(() => options.notifyOcr({ ...input, captureId, observationRevision }))
@@ -107,7 +102,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       return
     }
     revisions[input.slot] += 1
-    pending.delete(input.slot)
     const observationRevision = revisions[input.slot]
     publish()
     connection.command({
@@ -116,35 +110,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       observationRevision,
       ...input
     })
-  }
-
-  async function retry(slotIndex: number): Promise<void> {
-    const captureId = lifetime.getSnapshot().context.captureId
-    const slot = getVisibleSearchSlots({ captureId, snapshot, revisions, slotCount })[slotIndex]
-    const error = slot.error
-    if (
-      captureId == null ||
-      slot.requestId == null ||
-      slot.state !== 'failure' ||
-      error == null ||
-      pending.has(slotIndex) ||
-      !SEARCH_ERRORS[error.code].retryable
-    ) {
-      return
-    }
-    const requestId = slot.requestId
-    pending.set(slotIndex, requestId)
-    publish()
-    await connection.command({
-      action: SEARCH_ACTIONS.RETRY,
-      captureId,
-      slot: slotIndex,
-      requestId
-    })
-    if (pending.get(slotIndex) === requestId) {
-      pending.delete(slotIndex)
-      publish()
-    }
   }
 
   // 캡처 수명을 종료한 다음 연결 구독을 해제한다.
@@ -183,12 +148,11 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
         revisions,
         slotCount
       }),
-      retryPending: Array.from({ length: slotCount }, (_, slot) => pending.has(slot)),
       connectionFailed: failed
     })
   }
 
-  return { connect, begin, end, observe, lookup, retry, dispose }
+  return { connect, begin, end, observe, lookup, dispose }
 }
 
 function getVisibleSearchSlots({
@@ -202,10 +166,10 @@ function getVisibleSearchSlots({
   revisions: readonly number[]
   slotCount: SearchSlotCount
 }): readonly SearchSlot[] {
-  if (captureId == null || snapshot?.captureId !== captureId) {
-    return emptySearchSlots(slotCount)
-  }
   const empty = emptySearchSlots(slotCount)
+  if (captureId == null || snapshot?.captureId !== captureId) {
+    return empty
+  }
 
   return snapshot.slots.map((slot) => {
     if (canShowSlot(slot, revisions[slot.slot])) {

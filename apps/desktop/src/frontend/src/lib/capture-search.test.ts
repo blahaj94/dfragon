@@ -8,7 +8,6 @@ import type {
 import type { CharacterPortrait } from '../../../preload/common/types/character'
 import {
   CAPTURE_ID,
-  REQUEST_ID,
   searchRow,
   searchSlot,
   searchSnapshot
@@ -57,7 +56,8 @@ async function fixture(): Promise<{
     },
     notifyOcr,
     onChange: changed,
-    onInvalidated: invalidated
+    onInvalidated: invalidated,
+    slotCount: 4
   })
   searches.push(search)
   search.connect()
@@ -340,78 +340,4 @@ it('시작 응답이 유실되면 조회의 ID를 임의로 채택하거나 시�
   ])
   expect(f.notifyOcr).not.toHaveBeenCalled()
   expect(f.changed.mock.lastCall?.[0].ready).toBe(true)
-})
-
-it('이전 이름의 retry 완료는 새 이름의 retry 대기를 해제하지 않는다', async () => {
-  const f = await fixture()
-  f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
-  await f.search.begin({ signal: new AbortController().signal })
-  f.search.observe(ocr(0, '가나'))
-  const firstFailure = searchSlot({
-    state: 'failure',
-    error: { code: 'SEARCH_TIMEOUT' }
-  })
-  f.emit(searchSnapshot({ revision: 3, slots: [firstFailure, ...searchSnapshot().slots.slice(1)] }))
-  const firstResponse = Promise.withResolvers<SearchCommandResult>()
-  f.control.mockReturnValueOnce(firstResponse.promise)
-  const firstRetry = f.search.retry(0)
-  expect(f.changed.mock.lastCall?.[0].retryPending).toEqual([true, false, false, false])
-
-  f.search.observe(ocr(0, '다라'))
-  const nextRequestId = '00000000-0000-4000-8000-000000000099'
-  const nextFailure = searchSlot({
-    state: 'failure',
-    nickname: '다라',
-    observationRevision: 2,
-    requestId: nextRequestId,
-    error: { code: 'SEARCH_NETWORK_ERROR' }
-  })
-  f.emit(searchSnapshot({ revision: 5, slots: [nextFailure, ...searchSnapshot().slots.slice(1)] }))
-  const nextResponse = Promise.withResolvers<SearchCommandResult>()
-  f.control.mockReturnValueOnce(nextResponse.promise)
-  const nextRetry = f.search.retry(0)
-
-  firstResponse.resolve({
-    ok: true,
-    snapshot: searchSnapshot({
-      revision: 4,
-      slots: [firstFailure, ...searchSnapshot().slots.slice(1)]
-    })
-  })
-  await firstRetry
-  expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(nextFailure)
-  expect(f.changed.mock.lastCall?.[0].retryPending).toEqual([true, false, false, false])
-  await f.search.retry(0)
-  expect(f.control.mock.calls.filter(([command]) => command.action === 'retry')).toEqual([
-    [{ action: 'retry', captureId: CAPTURE_ID, slot: 0, requestId: REQUEST_ID }],
-    [{ action: 'retry', captureId: CAPTURE_ID, slot: 0, requestId: nextRequestId }]
-  ])
-
-  nextResponse.resolve({
-    ok: true,
-    snapshot: searchSnapshot({
-      revision: 6,
-      slots: [nextFailure, ...searchSnapshot().slots.slice(1)]
-    })
-  })
-  await nextRetry
-  expect(f.changed.mock.lastCall?.[0].retryPending).toEqual([false, false, false, false])
-  expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(nextFailure)
-})
-
-it.each([
-  { name: '재시도할 수 없는 오류', code: 'INVALID_SEARCH_QUERY', sent: false },
-  { name: '요청 제한', code: 'SEARCH_RATE_LIMITED', sent: true }
-] as const)('retry는 $name일 때 요청을 보낸 여부가 $sent다', async ({ code, sent }) => {
-  const f = await fixture()
-  f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
-  await f.search.begin({ signal: new AbortController().signal })
-  f.search.observe(ocr(0, '가나'))
-  const failure = searchSlot({ state: 'failure', error: { code } })
-  f.emit(searchSnapshot({ revision: 3, slots: [failure, ...searchSnapshot().slots.slice(1)] }))
-
-  await f.search.retry(0)
-
-  const retries = f.control.mock.calls.filter(([command]) => command.action === 'retry')
-  expect(retries).toHaveLength(sent ? 1 : 0)
 })

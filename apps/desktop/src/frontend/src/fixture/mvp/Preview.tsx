@@ -173,7 +173,6 @@ export function Preview(): React.JSX.Element {
     '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
   ]
   const identificationNicknames = [null, '검색예시', '결과없음', '오류예시']
-  const identificationRetryEnabled = [false, false, false, true]
   const candidates = scenario === 'candidates'
   const candidatePickers = candidates
     ? candidatePreviewSlots.map((slot, index) => toCandidatePicker(slot, candidatePicks[index]))
@@ -182,13 +181,11 @@ export function Preview(): React.JSX.Element {
     const next = nextCandidatePick(candidatePreviewSlots[slot], candidatePicks[slot], serverId)
     setCandidatePicks(candidatePicks.map((current, index) => (index === slot ? next : current)))
   }
-  const retrySlot = (): void => setScenario('pending')
   const partyCards: SlotCard[] = partySlots.map((state, slot) => {
     const shown = partyCharacters[slot]
     const selected = shown ?? undefined
     const nickname = identification ? (identificationNicknames[slot] ?? undefined) : undefined
     const notice = identification ? identificationNotices[slot] : undefined
-    const retryEnabled = identification ? identificationRetryEnabled[slot] : undefined
     const picker = candidatePickers[slot] ?? undefined
 
     return {
@@ -197,7 +194,6 @@ export function Preview(): React.JSX.Element {
       nickname,
       notice,
       snapshotMark: partySnapshot.marks[slot],
-      retryEnabled,
       picker
     }
   })
@@ -301,10 +297,7 @@ export function Preview(): React.JSX.Element {
                 slots={partyCards}
                 resetKey={scenario}
                 inputEnabled
-                actions={{
-                  retrySlot: identification ? retrySlot : undefined,
-                  pickCandidate: candidates ? pickCandidate : undefined
-                }}
+                actions={{ pickCandidate: candidates ? pickCandidate : undefined }}
               />
             </div>
           )}

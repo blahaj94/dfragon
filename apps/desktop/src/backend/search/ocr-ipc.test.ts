@@ -313,7 +313,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     }
   )
 
-  it('재시도는 입력 픽셀 복사본과 첫 OCR 이름을 유지하며 429 뒤 자동 호출하지 않는다', async () => {
+  it('429 실패 뒤 자동으로 다시 조회하지 않고, renderer가 원본 픽셀을 바꿔도 같은 관측의 다음 revision은 새 요청 없이 받는다', async () => {
     const fixture = await createSearchFixture('capture', policy)
     fixture.fetchSearch.mockResolvedValueOnce(
       jsonResponse({
@@ -327,21 +327,11 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     input.portrait.image.rgba.fill(0)
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('failure'))
     const failed = await fixture.read()
-    const retry = {
-      action: 'retry',
-      captureId: fixture.captureId,
-      slot: 0,
-      requestId: failed.slots[0].requestId
-    }
+
+    await fixture.invoke('notifyOcrCandidatesDetected', observation(fixture, 2))
+
+    expect((await fixture.read()).slots[0]).toEqual({ ...failed.slots[0], observationRevision: 2 })
     expect(fixture.fetchSearch).toHaveBeenCalledOnce()
-    fixture.fetchSearch.mockReset()
-    resolveMatch(fixture)
-    expect(await fixture.invoke('controlCharacterSearch', retry)).toMatchObject({ ok: true })
-    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
-    const urls = fixture.fetchSearch.mock.calls.map((args) => new URL(new Request(...args).url))
-    expect(urls[0].searchParams.get('characterName')).toBe('가나')
-    expect(urls.filter((url) => url.pathname === '/characters/candidates')).toHaveLength(1)
-    expect((await fixture.read()).slots[0].selected?.characterName).toBe('가나')
   })
 
   it('두 번째 후보만 바뀌면 현재 요청을 유지한다', async () => {
@@ -529,32 +519,6 @@ describe('수동 서버 지정 검색', () => {
     await new Promise<void>((resolve) => setImmediate(resolve))
     expect(request.signal.aborted).toBe(true)
     expect(await fixture.read()).toEqual(current)
-    expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
-  })
-
-  it('재시도는 지정한 서버를 유지하고 후보가 없으면 다른 서버로 바꾸지 않는다', async () => {
-    const fixture = await createSearchFixture('manual', policy)
-    fixture.fetchSearch.mockResolvedValueOnce(
-      jsonResponse({ status: 500, body: { error: { code: 'INTERNAL_SERVER_ERROR' } } })
-    )
-    await fixture.invoke('controlCharacterSearch', {
-      action: 'lookup',
-      captureId: fixture.captureId,
-      slot: 0,
-      observationRevision: 1,
-      nickname: '가나',
-      serverId: 'siroco'
-    })
-    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('failure'))
-    const requestId = (await fixture.read()).slots[0].requestId
-    fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: { rows: [matchedCandidate] } }))
-    await fixture.invoke('controlCharacterSearch', {
-      action: 'retry',
-      captureId: fixture.captureId,
-      slot: 0,
-      requestId
-    })
-    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
     expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
   })
 

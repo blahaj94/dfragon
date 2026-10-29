@@ -9,7 +9,6 @@ import {
 } from './search-test-fixture'
 
 const captureId = '00000000-0000-4000-8000-000000000011'
-const requestId = '00000000-0000-4000-8000-000000000012'
 const lookup = {
   action: 'lookup',
   captureId,
@@ -36,8 +35,7 @@ describe('검색 IPC 명령 입력 경계', () => {
     [
       '마지막 슬롯의 안전 정수 상한 관측',
       { ...lookup, slot: 3, observationRevision: Number.MAX_SAFE_INTEGER }
-    ],
-    ['수동 재시도', { action: 'retry', captureId, slot: 3, requestId }]
+    ]
   ])('%s 명령의 승인된 입력을 그대로 보존한다', (_name, command) => {
     expect(parseSearchControl([structuredClone(command)])).toEqual(command)
   })
@@ -67,12 +65,7 @@ describe('검색 IPC 명령 입력 경계', () => {
     ],
     ['무한대 revision', [{ ...lookup, observationRevision: Infinity }]],
     ['NaN revision', [{ ...lookup, observationRevision: NaN }]],
-    ['문자열 revision', [{ ...lookup, observationRevision: '1' }]],
-    ['재시도 request ID 누락', [{ action: 'retry', captureId, slot: 0 }]],
-    [
-      '재시도에 추가된 nickname',
-      [{ action: 'retry', captureId, slot: 0, requestId, nickname: '가나' }]
-    ]
+    ['문자열 revision', [{ ...lookup, observationRevision: '1' }]]
   ])('%s는 변환하거나 일부만 받아들이지 않는다', (_name, args) => {
     expect(parseSearchControl(structuredClone(args))).toBeNull()
   })
@@ -154,18 +147,7 @@ describe('검색 IPC 명령 입력 경계', () => {
       const invalidCommands: Array<[string, unknown[]]> = [
         [controlChannel, [{ action: 'end', captureId: fixture.captureId, unexpected: true }]],
         [controlChannel, [{ ...lookup, observationRevision: 0 }]],
-        [
-          controlChannel,
-          [
-            {
-              action: 'retry',
-              captureId: fixture.captureId,
-              slot: 0,
-              requestId: pending.slots[0].requestId
-            },
-            null
-          ]
-        ],
+        [controlChannel, [{ action: 'end', captureId: fixture.captureId }, null]],
         ...searchCommands
       ]
       for (const [channel, args] of invalidCommands) {

@@ -57,9 +57,9 @@ function selected(serverId: string) {
 }
 
 function viewWithSlot(slot: SearchSlot): SearchView {
-  const slots = emptySearchSlots().map((current) => (current.slot === slot.slot ? slot : current))
+  const slots = emptySearchSlots(4).map((current) => (current.slot === slot.slot ? slot : current))
 
-  return { ready: true, slots, retryPending: [false, false, false, false], connectionFailed: false }
+  return { ready: true, slots, connectionFailed: false }
 }
 
 function ocrSlotWithChoices(requestId = REQUEST_ID): SearchSlot {
@@ -110,7 +110,6 @@ beforeEach(async () => {
     end: vi.fn(),
     observe: vi.fn(),
     lookup: vi.fn(),
-    retry: vi.fn(async () => {}),
     dispose: vi.fn()
   }
   mocks.create.mockReset().mockReturnValue(bridge)
@@ -298,14 +297,4 @@ it('캡처 machine이 처음 받은 OCR 관측 함수도 수동 조회한 슬롯
   expect(value.manualSlots[SLOT]).toBe(false)
   await act(async () => initial.observeOcr(ocr(SLOT)))
   expect(bridge.observe).toHaveBeenLastCalledWith(ocr(SLOT))
-})
-
-it('다시 시도는 직접 조회한 슬롯과 OCR 슬롯 모두 같은 수명으로 보낸다', async () => {
-  await act(async () => value.lookupSlot(0, '직접이름', 'anton'))
-  await act(async () => {
-    value.retry(0)
-    value.retry(SLOT)
-  })
-
-  expect(vi.mocked(bridge.retry).mock.calls).toEqual([[0], [SLOT]])
 })

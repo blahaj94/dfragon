@@ -5,7 +5,6 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
   CAPTURE_ID,
-  REQUEST_ID,
   searchRow,
   searchSnapshot,
   searchSlot
@@ -419,7 +418,7 @@ it('던파 창이 여러 개면 자동으로 선택하지 않는다', async () =
   await hook.unmount()
 })
 
-it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 재시도해도 추가 캡처하지 않는다', async () => {
+it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 추가 캡처하지 않는다', async () => {
   vi.useFakeTimers()
   const { frame, worker } = captureResources()
   readCaptureFrame.mockResolvedValue(frame)
@@ -467,13 +466,6 @@ it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 재�
   })
   await act(async () => search.onCharacterSearchChanged.mock.lastCall![0](currentSearch))
   expect(hook.getCurrent().search.slots[0].state).toBe('failure')
-  await act(async () => hook.getCurrent().search.retry(0))
-  expect(search.controlCharacterSearch).toHaveBeenCalledWith({
-    action: 'retry',
-    captureId: CAPTURE_ID,
-    slot: 0,
-    requestId: REQUEST_ID
-  })
   await act(async () => vi.advanceTimersByTimeAsync(60_000))
   expect(readCaptureFrame).toHaveBeenCalledOnce()
   expect(worker.recognize).toHaveBeenCalledTimes(4)

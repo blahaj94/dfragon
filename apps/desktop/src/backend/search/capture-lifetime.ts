@@ -1,5 +1,5 @@
 import { isCharacterSearchNickname } from './identify'
-import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
+import { SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import { randomUUID } from 'node:crypto'
 import { createActor } from 'xstate'
 import {
@@ -14,11 +14,10 @@ import {
   type RequestIdentity
 } from './slot-lifetime-machine'
 import { sameOcrSearchInput } from '../../preload/common/search/ocr-input'
-import { SEARCH_ERRORS, SEARCH_SLOT_COUNTS } from '../../preload/common/types/search'
+import { SEARCH_SLOT_COUNTS } from '../../preload/common/types/search'
 import type {
   SearchCommandError,
   SearchCommandResult,
-  SearchControl,
   ManualCharacterLookup,
   OcrSearchObservation,
   OcrSearchInput,
@@ -77,9 +76,6 @@ export type CaptureSearchLifetime = {
   cancelOcrRequests: () => void
   observeOcr: (input: OcrSearchObservation) => SearchCommandResult
   lookup: (input: ManualCharacterLookup) => SearchCommandResult
-  retry: (
-    input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.RETRY }>
-  ) => SearchCommandResult
 }
 
 export function createCaptureSearchLifetime(options: Options): CaptureSearchLifetime {
@@ -91,7 +87,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   )
   let slots = slotIndexes.map((slot) => idleSlot({ slot }))
   const ocrInputs: Array<OcrSearchInput | null> = slotIndexes.map(() => null)
-  const manualServers: Array<string | null> = slotIndexes.map(() => null)
   const actors = slotIndexes.map(() =>
     createActor(slotLifetimeMachine, {
       input: { canComplete, complete }
@@ -247,8 +242,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     cancelSlot(input.slot)
     if ('candidateNicknames' in input) {
       ocrInputs[input.slot] = cloneOcrInput(input)
-    } else {
-      manualServers[input.slot] = input.serverId
     }
     const code = isCharacterSearchNickname(input.nickname)
       ? 'NEOPLE_UNAVAILABLE'
@@ -267,47 +260,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     return result()
   }
 
-  function retry(
-    input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.RETRY }>
-  ): SearchCommandResult {
-    const slot = slots[input.slot]
-    if (!isCurrentSlot(input)) {
-      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
-    }
-    const error = slot.error
-    if (slot.state !== 'failure' || error == null || !SEARCH_ERRORS[error.code].retryable) {
-      return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
-    }
-    const nickname = slot.nickname
-    if (options.runtime == null || nickname == null) {
-      return result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
-    }
-
-    const ocrInput = ocrInputs[input.slot]
-    if (ocrInput !== null) {
-      return startCharacterRequest({
-        captureId: input.captureId,
-        slot: input.slot,
-        observationRevision: slot.observationRevision,
-        nickname,
-        ...ocrInput
-      })
-    }
-
-    const serverId = manualServers[input.slot]
-    if (serverId === null) {
-      return result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
-    }
-
-    return startCharacterRequest({
-      captureId: input.captureId,
-      slot: input.slot,
-      observationRevision: slot.observationRevision,
-      nickname,
-      serverId
-    })
-  }
-
   function startRequest({
     input,
     runtime
@@ -317,10 +269,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   }): SearchCommandResult {
     const ocrInput = 'candidateNicknames' in input ? cloneOcrInput(input) : null
     const manualServerId = 'serverId' in input ? input.serverId : undefined
-    // 이전 창으로 시작한 OCR 입력은 슬롯을 지우기 전에 거절해 OCR에서 시작했다는 사실을 잃은 채 다시 시도되지 않게 한다.
-    if (ocrInput !== null && binding !== null && !options.isCurrentOcr(binding)) {
-      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
-    }
     cancelSlot(input.slot)
     if (binding?.captureId !== input.captureId || !options.isCurrent(binding)) {
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
@@ -329,7 +277,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const requestId = randomUUID()
     const isValidInput = isCharacterSearchNickname(input.nickname)
     ocrInputs[input.slot] = ocrInput
-    manualServers[input.slot] = manualServerId ?? null
     slots[input.slot] = {
       slot: input.slot,
       observationRevision: input.observationRevision,
@@ -367,7 +314,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       detailsJob = null
     }
     ocrInputs[slot] = null
-    manualServers[slot] = null
   }
 
   function isCurrentSlot(request: RequestIdentity): boolean {
@@ -521,12 +467,11 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     invalidate,
     cancelOcrRequests,
     observeOcr,
-    lookup,
-    retry
+    lookup
   }
 }
 
-/** IPC 픽셀 참조를 복사해 수동 재시도까지 동일한 관측을 보관한다. 공대 행의 값은 그대로 함께 둔다. */
+/** IPC 픽셀 참조를 복사해 요청과 다음 관측 비교에 같은 관측을 쓴다. 공대 행의 값은 그대로 함께 둔다. */
 function cloneOcrInput(input: OcrSearchInput): OcrSearchInput {
   const candidateNicknames = input.candidateNicknames.slice(0, 1)
   const raidRow = input.raidRow !== undefined ? { raidRow: { ...input.raidRow } } : {}

@@ -41,7 +41,7 @@ function Harness(): null {
 }
 
 function view(slots: SearchSlot[]): SearchView {
-  return { ready: true, slots, retryPending: slots.map(() => false), connectionFailed: false }
+  return { ready: true, slots, connectionFailed: false }
 }
 
 function found(slot: number, requestId = REQUEST_ID): SearchSlot {
@@ -62,7 +62,6 @@ beforeEach(async () => {
     end: vi.fn(),
     observe: vi.fn(),
     lookup: vi.fn(),
-    retry: vi.fn(),
     dispose: vi.fn()
   }
   moduleMocks.create.mockReset().mockReturnValue(bridge)

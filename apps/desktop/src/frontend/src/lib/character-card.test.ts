@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SelectedCharacterSummary } from '../../../preload/common/types/character'
 import type { SearchSlot } from '../../../preload/common/types/search'
 import { dealerCard } from '../testing/fixtures/character-cards'
-import { canRetryCharacterSlot, searchSlotNotice, toCharacterCard } from './character-card'
+import { searchSlotNotice, toCharacterCard } from './character-card'
 
 const nextStep = '다음 안내'
 
@@ -52,7 +52,7 @@ it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은
   expect(toCharacterCard({ ...summary, serverId: 'unknown' })).toBeUndefined()
 })
 
-it('요청 제한은 기다리지 않고 재시도할 수 있게 두고 중복 요청과 정제된 오류만 표시한다', () => {
+it('호출 제한 실패는 정제된 오류를, 오류가 없는 실패는 결과 없음을 다음 안내와 함께 표시한다', () => {
   const slot: SearchSlot = {
     slot: 0,
     observationRevision: 1,
@@ -62,17 +62,11 @@ it('요청 제한은 기다리지 않고 재시도할 수 있게 두고 중복 �
     rows: [],
     error: { code: 'SEARCH_RATE_LIMITED' }
   }
-  expect(canRetryCharacterSlot(slot, false)).toBe(true)
-  expect(canRetryCharacterSlot(slot, true)).toBe(false)
   expect(searchSlotNotice(slot, nextStep)).toBe(
     '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요. 다음 안내'
   )
-  expect(canRetryCharacterSlot({ ...slot, state: 'pending', error: null }, false)).toBe(false)
   expect(searchSlotNotice({ ...slot, error: null }, nextStep)).toBe(
     '검색 결과가 없습니다. 다음 안내'
-  )
-  expect(canRetryCharacterSlot({ ...slot, error: { code: 'INVALID_SEARCH_QUERY' } }, false)).toBe(
-    false
   )
 })
 

@@ -378,7 +378,7 @@ it('창 선택을 시작하면 그 사이에 도착한 늦은 OCR 응답도 반�
   expect((await fixture.read()).slots[2].state).toBe('idle')
 })
 
-it('창을 바꾼 뒤에는 이전 회차의 OCR 실패를 다시 시도하지 않고 직접 조회한 실패는 다시 시도한다', async () => {
+it('창을 바꾼 뒤에는 실패한 OCR 슬롯의 이전 회차 통지를 거절하고 같은 수명에서 실패한 슬롯의 새 직접 조회는 받는다', async () => {
   const fixture = await createRaidRoundFixture()
   const failure = () =>
     jsonResponse({ status: 503, body: { error: { code: 'NEOPLE_UNAVAILABLE', message: '' } } })
@@ -389,38 +389,19 @@ it('창을 바꾼 뒤에는 이전 회차의 OCR 실패를 다시 시도하지 �
     const slots = (await fixture.read()).slots
     expect([slots[1].state, slots[2].state]).toEqual(['failure', 'failure'])
   })
-  const failed = (await fixture.read()).slots
 
   await fixture.invoke('selectCaptureSource', CAPTURE_SOURCE)
   const calls = fixture.fetchSearch.mock.calls.length
 
   expect(
-    await fixture.invoke('controlRaidSearch', {
-      action: 'retry',
-      captureId: fixture.captureId,
-      slot: 1,
-      requestId: failed[1].requestId
-    })
-  ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
-  // 거절한 뒤에도 그 슬롯은 OCR에서 시작한 조회라는 사실을 잃지 않아 다시 시도해도 같은 이유로 거절된다.
-  expect(
-    await fixture.invoke('controlRaidSearch', {
-      action: 'retry',
-      captureId: fixture.captureId,
-      slot: 1,
-      requestId: failed[1].requestId
-    })
+    await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 1, 2, '다라'))
   ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
   expect(fixture.fetchSearch).toHaveBeenCalledTimes(calls)
   expect((await fixture.read()).slots[1].state).toBe('failure')
   respondFound(fixture)
-  expect(
-    await fixture.invoke('controlRaidSearch', {
-      action: 'retry',
-      captureId: fixture.captureId,
-      slot: 2,
-      requestId: failed[2].requestId
-    })
-  ).toMatchObject({ ok: true })
+  expect(await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 2, 2))).toMatchObject({
+    ok: true
+  })
   await vi.waitFor(async () => expect((await fixture.read()).slots[2].state).toBe('success'))
+  expect((await fixture.read()).captureId).toBe(fixture.captureId)
 })

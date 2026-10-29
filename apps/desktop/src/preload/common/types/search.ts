@@ -7,7 +7,6 @@ export const SEARCH_ACTIONS = {
   READ: 'read',
   BEGIN: 'begin',
   END: 'end',
-  RETRY: 'retry',
   LOOKUP: 'lookup'
 } as const
 
@@ -30,12 +29,6 @@ export type SearchControl =
   | Readonly<{ action: typeof SEARCH_ACTIONS.BEGIN }>
   | (Readonly<{ action: typeof SEARCH_ACTIONS.LOOKUP }> & ManualCharacterLookup)
   | Readonly<{ action: typeof SEARCH_ACTIONS.END; captureId: string }>
-  | Readonly<{
-      action: typeof SEARCH_ACTIONS.RETRY
-      captureId: string
-      slot: number
-      requestId: string
-    }>
 
 export type SearchObservation = Readonly<{
   captureId: string
@@ -77,33 +70,20 @@ export type CharacterFaceWindow = Readonly<{ x: number; y: number; width: number
 export type CharacterChoice = CharacterSearchRow &
   Readonly<{ adventureName: string | null; face: CharacterFaceWindow | null }>
 
-type SearchErrorDefinition = Readonly<{ message: string; retryable: boolean }>
+type SearchErrorDefinition = Readonly<{ message: string }>
 
 export const SEARCH_ERRORS = {
-  INVALID_SEARCH_QUERY: { message: '검색 조건을 확인해 주세요.', retryable: false },
-  SEARCH_RATE_LIMITED: {
-    message: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
-    retryable: true
-  },
-  INTERNAL_SERVER_ERROR: { message: '서버 오류로 검색을 처리하지 못했습니다.', retryable: true },
-  NEOPLE_API_ERROR: { message: '캐릭터 검색 중 오류가 발생했습니다.', retryable: true },
+  INVALID_SEARCH_QUERY: { message: '검색 조건을 확인해 주세요.' },
+  SEARCH_RATE_LIMITED: { message: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
+  INTERNAL_SERVER_ERROR: { message: '서버 오류로 검색을 처리하지 못했습니다.' },
+  NEOPLE_API_ERROR: { message: '캐릭터 검색 중 오류가 발생했습니다.' },
   NEOPLE_UNAVAILABLE: {
-    message: '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
-    retryable: true
+    message: '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
   },
-  NEOPLE_TIMEOUT: {
-    message: '캐릭터 검색 응답 시간이 초과됐습니다. 다시 시도해 주세요.',
-    retryable: true
-  },
-  SEARCH_TIMEOUT: { message: '검색 시간이 초과됐습니다. 다시 시도해 주세요.', retryable: true },
-  SEARCH_NETWORK_ERROR: {
-    message: '검색 서버에 연결하지 못했습니다. 다시 시도해 주세요.',
-    retryable: true
-  },
-  SEARCH_RESPONSE_INVALID: {
-    message: '검색 응답을 확인하지 못했습니다. 다시 시도해 주세요.',
-    retryable: true
-  }
+  NEOPLE_TIMEOUT: { message: '캐릭터 검색 응답 시간이 초과됐습니다. 다시 시도해 주세요.' },
+  SEARCH_TIMEOUT: { message: '검색 시간이 초과됐습니다. 다시 시도해 주세요.' },
+  SEARCH_NETWORK_ERROR: { message: '검색 서버에 연결하지 못했습니다. 다시 시도해 주세요.' },
+  SEARCH_RESPONSE_INVALID: { message: '검색 응답을 확인하지 못했습니다. 다시 시도해 주세요.' }
 } as const satisfies Record<string, SearchErrorDefinition>
 
 export type SearchErrorCode = keyof typeof SEARCH_ERRORS
@@ -135,8 +115,7 @@ export type SearchSnapshot = Readonly<{
 export const SEARCH_COMMAND_ERRORS = {
   INVALID_SEARCH_COMMAND: 'INVALID_SEARCH_COMMAND',
   SEARCH_NOT_ALLOWED: 'SEARCH_NOT_ALLOWED',
-  STALE_SEARCH: 'STALE_SEARCH',
-  SEARCH_RETRY_NOT_READY: 'SEARCH_RETRY_NOT_READY'
+  STALE_SEARCH: 'STALE_SEARCH'
 } as const
 
 export type SearchCommandError = (typeof SEARCH_COMMAND_ERRORS)[keyof typeof SEARCH_COMMAND_ERRORS]

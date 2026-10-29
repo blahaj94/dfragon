@@ -92,7 +92,7 @@ it.each([
   }
 )
 
-it('창을 바꾼 뒤에는 이전 회차의 OCR 실패를 다시 시도하지 않고 직접 조회한 실패는 다시 시도한다', async () => {
+it('창을 바꾼 뒤에는 실패한 OCR 슬롯의 이전 회차 통지를 거절하고 같은 수명에서 실패한 슬롯의 새 직접 조회는 받는다', async () => {
   const fixture = await createSearchFixture('capture')
   const failure = () =>
     jsonResponse({ status: 503, body: { error: { code: 'NEOPLE_UNAVAILABLE', message: '' } } })
@@ -103,38 +103,21 @@ it('창을 바꾼 뒤에는 이전 회차의 OCR 실패를 다시 시도하지 �
     const slots = (await fixture.read()).slots
     expect([slots[1].state, slots[2].state]).toEqual(['failure', 'failure'])
   })
-  const failed = (await fixture.read()).slots
 
   await fixture.invoke('selectCaptureSource', CAPTURE_SOURCE)
   const calls = fixture.fetchSearch.mock.calls.length
 
-  const ocrRetry = {
-    action: 'retry',
-    captureId: fixture.captureId,
-    slot: 1,
-    requestId: failed[1].requestId
-  }
-  expect(await fixture.invoke('controlCharacterSearch', ocrRetry)).toMatchObject({
-    ok: false,
-    error: { code: 'STALE_SEARCH' }
-  })
-  // 거절한 뒤에도 그 슬롯은 OCR에서 시작한 조회라는 사실을 잃지 않아 다시 시도해도 같은 이유로 거절된다.
-  expect(await fixture.invoke('controlCharacterSearch', ocrRetry)).toMatchObject({
-    ok: false,
-    error: { code: 'STALE_SEARCH' }
-  })
+  expect(
+    await fixture.invoke('notifyOcrCandidatesDetected', ocr(fixture.captureId, 1, 2, '다라'))
+  ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
   expect(fixture.fetchSearch).toHaveBeenCalledTimes(calls)
   expect((await fixture.read()).slots[1].state).toBe('failure')
   fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: { rows: [candidateResponse] } }))
   expect(
-    await fixture.invoke('controlCharacterSearch', {
-      action: 'retry',
-      captureId: fixture.captureId,
-      slot: 2,
-      requestId: failed[2].requestId
-    })
+    await fixture.invoke('controlCharacterSearch', lookup(fixture.captureId, 2, 2))
   ).toMatchObject({ ok: true })
   await vi.waitFor(async () => expect((await fixture.read()).slots[2].state).toBe('success'))
+  expect((await fixture.read()).captureId).toBe(fixture.captureId)
 })
 
 it.each(['navigation', 'destruction', 'render-process-gone'])(
@@ -191,7 +174,7 @@ it.each(['sender', 'frame', 'document'])(
   }
 )
 
-it('직접 조회도 명령 검증, 재시도와 관측 revision 순서를 지킨다', async () => {
+it('직접 조회도 명령 검증과 관측 revision 순서를 지키고 실패 뒤 새 직접 조회로 다시 조회한다', async () => {
   const fixture = await createSearchFixture('manual')
   expect(
     await fixture.invoke('controlCharacterSearch', lookup(fixture.captureId, 4))
@@ -210,12 +193,7 @@ it('직접 조회도 명령 검증, 재시도와 관측 revision 순서를 지�
   const failed = (await fixture.read()).slots[0]
   await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '다라' })
   expect((await fixture.read()).slots[0]).toEqual(failed)
-  await fixture.invoke('controlCharacterSearch', {
-    action: 'retry',
-    captureId: fixture.captureId,
-    slot: 0,
-    requestId: failed.requestId
-  })
+  await fixture.startSearch({ slot: 0, observationRevision: 3, nickname: '가나' })
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
   expect(requestPaths(fixture.fetchSearch)).toEqual([
     '/characters/candidates',

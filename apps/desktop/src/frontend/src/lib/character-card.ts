@@ -33,14 +33,6 @@ export function toCharacterCard(
   }
 }
 
-export function canRetryCharacterSlot(slot: SearchSlot, retryPending: boolean): boolean {
-  if (slot.state !== 'failure' || slot.error == null || retryPending) {
-    return false
-  }
-
-  return SEARCH_ERRORS[slot.error.code].retryable
-}
-
 function raidSelectionNotice(slot: SearchSlot): string | undefined {
   if (slot.selectionMethod === 'highest-fame') {
     return '직업과 수치 미확인, 최고 명성 후보입니다.'

@@ -57,8 +57,6 @@ async function render({
   notice,
   loading,
   snapshotMark,
-  retryEnabled,
-  retryPending,
   picker,
   ...props
 }: RenderProps = {}): Promise<void> {
@@ -69,8 +67,6 @@ async function render({
     notice,
     loading,
     snapshotMark,
-    retryEnabled,
-    retryPending,
     picker
   }
   await act(async () =>
@@ -375,23 +371,16 @@ it('찾은 카드의 안내는 직업 뒤에 두고, 고치는 동안에는 Ente
   expect(columnLines()[3].textContent).toBe('찾은직업Enter로 조회')
 })
 
-it('찾지 못한 자리는 소속 줄에 안내를, 안내가 없으면 흐린 모험단을 두고 실패면 넷째 줄에 다시 시도를 둔다', async () => {
-  const retry = vi.fn()
+it('찾지 못한 자리는 소속 줄에 안내를, 안내가 없으면 흐린 모험단을 둔다', async () => {
   await render({
     state: 'failure',
     nickname: '없는이름',
-    notice: '캐릭터를 찾지 못했습니다.',
-    retryEnabled: true,
-    onRetry: retry
+    notice: '캐릭터를 찾지 못했습니다.'
   })
   const lines = columnLines()
-  expect(lines).toHaveLength(4)
+  expect(lines).toHaveLength(3)
   expect(lines[1].textContent).toBe('캐릭터를 찾지 못했습니다.')
   expect(lines[1].querySelector('p')?.title).toBe('캐릭터를 찾지 못했습니다.')
-  const button = lines[3].querySelector('button')!
-  expect(button.textContent).toBe('다시 시도')
-  await act(async () => button.click())
-  expect(retry).toHaveBeenCalledOnce()
 
   await render({ state: 'idle', nickname: '인식이름' })
   expect(columnLines()).toHaveLength(3)

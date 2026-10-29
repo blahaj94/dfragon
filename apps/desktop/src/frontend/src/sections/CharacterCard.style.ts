@@ -121,8 +121,6 @@ export const styles = stylex.create({
   job: { ...ellipsis, flex: '0 1 auto', color: colors.cardFgMuted },
   message: { ...ellipsis, flex: '1 1 0', margin: 0, color: colors.cardFgMuted },
   placeholder: { color: colors.cardBorderStrong },
-  // 공용 버튼의 height와 겹치지 않게 최대 높이로 줄인다.
-  retry: { maxHeight: 20, paddingLeft: space.s8, paddingRight: 10 },
   candidateChip: {
     display: 'inline-flex',
     alignItems: 'center',

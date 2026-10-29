@@ -3,7 +3,6 @@ import type { SearchControl, SearchApi } from '../common/types/search'
 import type { AsyncIPCFunctions } from '../common/types/ipc'
 import {
   CAPTURE_ID,
-  REQUEST_ID,
   invalidSearchSnapshots,
   searchRow,
   searchSlot,
@@ -64,7 +63,6 @@ it('검색 feature는 제어 invoke와 단일 event만 노출하고 기존 notif
     { action: 'read' },
     { action: 'begin' },
     { action: 'end', captureId: CAPTURE_ID },
-    { action: 'retry', captureId: CAPTURE_ID, slot: 2, requestId: REQUEST_ID },
     {
       action: 'lookup',
       captureId: CAPTURE_ID,
@@ -193,7 +191,7 @@ it('승인된 상태, nullable 값과 후보 순서를 보존한다', async () =
   }
 })
 
-it.each(['INVALID_SEARCH_COMMAND', 'SEARCH_NOT_ALLOWED', 'STALE_SEARCH', 'SEARCH_RETRY_NOT_READY'])(
+it.each(['INVALID_SEARCH_COMMAND', 'SEARCH_NOT_ALLOWED', 'STALE_SEARCH'])(
   '정제된 명령 거절 %s는 예외나 검색 0건으로 바꾸지 않는다',
   async (code) => {
     const { search } = await exposedSearch()
