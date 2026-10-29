@@ -350,7 +350,7 @@ it('이름에 들어가거나 고치는 동안 선택 상태로 보이되 진행
   expect(lookupProgress()).not.toBeNull()
 })
 
-it('찾은 카드는 다시 조회하는 동안에만 진행 표시를 보인다', async () => {
+it('찾은 카드는 캡처 인식 중에만 진행 표시를 보인다', async () => {
   await render({ state: 'success', character: found })
   await act(async () => container.querySelector('input')!.focus())
   expect(lookupProgress()).toBeNull()
