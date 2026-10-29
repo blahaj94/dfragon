@@ -72,60 +72,29 @@ function invalidateCardSearches(): void {
 }
 
 function isTrustedFrame(window: BrowserWindow | null, frame: WebFrameMain | null): boolean {
-  const hasWindow = window != null
-  if (!hasWindow) {
-    return false
-  }
-
-  const isRegisteredWindow = window === captureWindow
-  if (!isRegisteredWindow) {
-    return false
-  }
-
-  const isWindowAlive = !window.isDestroyed()
-  if (!isWindowAlive) {
-    return false
-  }
-
-  const isContentsAlive = !window.webContents.isDestroyed()
-  if (!isContentsAlive) {
-    return false
-  }
-
-  const hasFrame = frame != null
-  if (!hasFrame) {
-    return false
-  }
-
-  const isMainFrame = frame === window.webContents.mainFrame
-  if (!isMainFrame) {
-    return false
-  }
-
-  const isFrameAlive = !frame.isDestroyed()
-  if (!isFrameAlive) {
-    return false
-  }
-
-  const hasExactDocument = frame.url === documentUrl
-
-  return hasExactDocument
+  return (
+    window != null &&
+    window === captureWindow &&
+    !window.isDestroyed() &&
+    !window.webContents.isDestroyed() &&
+    frame != null &&
+    frame === window.webContents.mainFrame &&
+    !frame.isDestroyed() &&
+    frame.url === documentUrl
+  )
 }
 
 function requireSender(event: IpcMainInvokeEvent, expected = captureWindow): void {
-  const isTrusted = isTrustedFrame(expected, event.senderFrame)
-  const isSender = event.sender === expected?.webContents
-  const isAllowed = isTrusted && isSender
-  if (!isAllowed) {
+  if (!isTrustedFrame(expected, event.senderFrame) || event.sender !== expected?.webContents) {
     throw new Error('Capture source access denied')
   }
 }
 
 function requireSearchSender(event: IpcMainInvokeEvent): void {
-  const isTrusted = isTrustedFrame(captureWindow, event.senderFrame)
-  const isSender = event.sender === captureWindow?.webContents
-  const isAllowed = isTrusted && isSender
-  if (!isAllowed) {
+  if (
+    !isTrustedFrame(captureWindow, event.senderFrame) ||
+    event.sender !== captureWindow?.webContents
+  ) {
     throw new Error(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
   }
 }
@@ -136,18 +105,7 @@ function isCurrentCapture(startedWindowGeneration: number): boolean {
 
 function currentMainFrame(): WebFrameMain | null {
   const window = captureWindow
-  const hasWindow = window != null
-  if (!hasWindow) {
-    return null
-  }
-
-  const isWindowAlive = !window.isDestroyed()
-  if (!isWindowAlive) {
-    return null
-  }
-
-  const isContentsAlive = !window.webContents.isDestroyed()
-  if (!isContentsAlive) {
+  if (window == null || window.isDestroyed() || window.webContents.isDestroyed()) {
     return null
   }
 
@@ -155,28 +113,17 @@ function currentMainFrame(): WebFrameMain | null {
 }
 
 function isCurrentSearch(binding: CaptureBinding): boolean {
-  const hasSameWindow = binding.windowGeneration === windowGeneration
-  const hasSameSource = binding.sourceGeneration === sourceSelectionGeneration
-  const hasSelectedSource = selectedSourceId != null
-  const isSourceSelectionComplete = !selectingSource
-  const hasSource = hasSelectedSource && isSourceSelectionComplete
-  const isTrusted = isTrustedFrame(captureWindow, currentMainFrame())
-  const isCurrent = hasSameWindow && hasSameSource && hasSource && isTrusted
-
-  return isCurrent
+  return (
+    binding.windowGeneration === windowGeneration &&
+    binding.sourceGeneration === sourceSelectionGeneration &&
+    selectedSourceId != null &&
+    !selectingSource &&
+    isTrustedFrame(captureWindow, currentMainFrame())
+  )
 }
 
 function isReadableCapture(binding: CaptureBinding, args: readonly unknown[]): boolean {
-  const [captureId] = args
-  if (args.length !== 1 || typeof captureId !== 'string') {
-    return false
-  }
-
-  if (binding.captureId !== captureId) {
-    return false
-  }
-
-  return isCurrentSearch(binding)
+  return args.length === 1 && binding.captureId === args[0] && isCurrentSearch(binding)
 }
 
 type CaptureOwner = { readonly current: CaptureBinding | null }
@@ -186,15 +133,7 @@ function isSameFrameRead(
   binding: CaptureBinding,
   readFrame: ReadWindowFrame
 ): boolean {
-  if (owner.current !== binding) {
-    return false
-  }
-
-  if (!isCurrentSearch(binding)) {
-    return false
-  }
-
-  return readSelectedFrame === readFrame
+  return owner.current === binding && isCurrentSearch(binding) && readSelectedFrame === readFrame
 }
 
 async function readBoundCaptureFrame(
@@ -257,10 +196,8 @@ function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
     runtime,
     isCurrent: isCurrentSearch,
     publish: (snapshot) => {
-      const window = captureWindow
-      const canPublish = isTrustedFrame(window, currentMainFrame())
-      if (canPublish) {
-        window!.webContents.send('characterSearchChanged', snapshot)
+      if (isTrustedFrame(captureWindow, currentMainFrame())) {
+        captureWindow!.webContents.send('characterSearchChanged', snapshot)
       }
     }
   })
@@ -290,14 +227,12 @@ function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
     const window = captureWindow
     const startedWindowGeneration = windowGeneration
     requireSender(event, window)
-    const hasNoArguments = args.length === 0
-    if (!hasNoArguments) {
+    if (args.length !== 0) {
       throw new Error('Capture source access denied')
     }
     const sources = await getWindowSources()
     requireSender(event, window)
-    const isCurrent = isCurrentCapture(startedWindowGeneration)
-    if (!isCurrent) {
+    if (!isCurrentCapture(startedWindowGeneration)) {
       throw new Error('Capture source access denied')
     }
 
@@ -309,34 +244,27 @@ function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
     const startedWindowGeneration = windowGeneration
     requireSender(event, window)
     const sourceId = args[0]
-    const hasOneArgument = args.length === 1
-    const isSourceIdString = typeof sourceId === 'string'
-    const hasValidArgument = hasOneArgument && isSourceIdString
-    if (!hasValidArgument) {
+    if (args.length !== 1 || typeof sourceId !== 'string') {
       throw new Error('Capture source selection denied')
     }
-    const isCleanup = sourceId.length === 0
-    if (isCleanup) {
-      clearSource()
-
+    clearSource()
+    if (sourceId.length === 0) {
       return null
     }
-    clearSource()
     const selectionGeneration = sourceSelectionGeneration
     selectingSource = true
     try {
       const source = findSelectedSource(await getWindowSources(), sourceId)
       requireSender(event, window)
-      const isCurrent = isCurrentCapture(startedWindowGeneration)
-      if (!isCurrent) {
+      if (!isCurrentCapture(startedWindowGeneration)) {
         throw new Error('Capture source selection denied')
       }
-      const isLatestSelection = selectionGeneration === sourceSelectionGeneration
-      if (!isLatestSelection) {
+
+      if (selectionGeneration !== sourceSelectionGeneration) {
         return null
       }
-      const hasSource = source != null
-      if (!hasSource) {
+
+      if (source == null) {
         throw new Error('Selected capture source is no longer available')
       }
       const readFrame = bindWindowFrame(source.id)
@@ -345,8 +273,7 @@ function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
 
       return { id: source.id, name: source.name }
     } finally {
-      const isLatestSelection = selectionGeneration === sourceSelectionGeneration
-      if (isLatestSelection) {
+      if (selectionGeneration === sourceSelectionGeneration) {
         selectingSource = false
       }
     }
@@ -361,43 +288,34 @@ function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
   addHandler('controlCharacterSearch', (event, ...args) => {
     requireSearchSender(event)
     const control = parseSearchControl(args)
-    const hasValidControl = control != null
-    if (!hasValidControl) {
+    if (control == null) {
       return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
-    const isRead = control.action === SEARCH_ACTIONS.READ
-    if (isRead) {
-      return lifetime.result()
-    }
-    const isEnd = control.action === SEARCH_ACTIONS.END
-    if (isEnd) {
-      return lifetime.end(control.captureId)
-    }
+    switch (control.action) {
+      case SEARCH_ACTIONS.READ:
+        return lifetime.result()
+      case SEARCH_ACTIONS.END:
+        return lifetime.end(control.captureId)
+      case SEARCH_ACTIONS.RETRY:
+        return lifetime.retry(control)
+      case SEARCH_ACTIONS.LOOKUP:
+        // 서버 지정 조회는 controlManualSearch와 controlRaidSearch로만 받는다. 공유 schema가 LOOKUP을
+        // 통과시키므로 여기서 거절한다.
+        return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
+      case SEARCH_ACTIONS.BEGIN:
+        if (selectingSource || lifetime.current != null) {
+          return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_BUSY)
+        }
 
-    const isRetry = control.action === SEARCH_ACTIONS.RETRY
-    if (isRetry) {
-      return lifetime.retry(control)
-    }
+        if (selectedSourceId == null) {
+          return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
+        }
 
-    // 서버 지정 조회는 controlManualSearch와 controlRaidSearch로만 받는다. 공유 schema가 LOOKUP을
-    // 통과시키므로 여기서 거부하지 않으면 BEGIN으로 처리된다.
-    if (control.action === SEARCH_ACTIONS.LOOKUP) {
-      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
+        return lifetime.begin({
+          windowGeneration,
+          sourceGeneration: sourceSelectionGeneration
+        })
     }
-    const hasCapture = lifetime.current != null
-    const isBusy = selectingSource || hasCapture
-    if (isBusy) {
-      return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_BUSY)
-    }
-    const hasSource = selectedSourceId != null
-    if (!hasSource) {
-      return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
-    }
-
-    return lifetime.begin({
-      windowGeneration,
-      sourceGeneration: sourceSelectionGeneration
-    })
   })
 
   addHandler('notifyOcrCandidatesDetected', (event, ...args) => {
