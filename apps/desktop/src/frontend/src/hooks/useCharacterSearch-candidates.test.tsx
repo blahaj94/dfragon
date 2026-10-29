@@ -3,11 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useCharacterSearch } from './useCharacterSearch'
-import type {
-  CaptureSearch,
-  createCaptureSearch,
-  OcrCaptureObservation
-} from '../lib/capture-search'
+import type { CaptureSearch, createCaptureSearch } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
 import type { CharacterChoice, SearchSlot } from '../../../preload/common/types/search'
@@ -25,7 +21,6 @@ vi.mock('../lib/capture-search', () => ({ createCaptureSearch: mocks.create }))
 const SLOT = 1
 const NEXT_REQUEST_ID = '00000000-0000-4000-8000-000000000088'
 let value: ReturnType<typeof useCharacterSearch>
-let initial: ReturnType<typeof useCharacterSearch>
 let bridge: CaptureSearch
 let root: Root
 let container: HTMLDivElement
@@ -59,7 +54,7 @@ function selected(serverId: string) {
 function viewWithSlot(slot: SearchSlot): SearchView {
   const slots = emptySearchSlots(4).map((current) => (current.slot === slot.slot ? slot : current))
 
-  return { ready: true, slots, connectionFailed: false }
+  return { ready: true, slots, manualSlots: [false, false, false, false], connectionFailed: false }
 }
 
 function ocrSlotWithChoices(requestId = REQUEST_ID): SearchSlot {
@@ -129,7 +124,6 @@ beforeEach(async () => {
       />
     )
   )
-  initial = value
   await act(async () => value.begin(new AbortController().signal))
   await publish(viewWithSlot(ocrSlotWithChoices()))
 })
@@ -162,7 +156,6 @@ it('다른 후보를 한 번 누르면 같은 수명에서 그 서버로 조회�
     shownServerId: 'siroco',
     previewServerId: 'siroco'
   })
-  expect(value.manualSlots[SLOT]).toBe(true)
 
   await act(async () => value.pickCandidate(SLOT, 'siroco'))
 
@@ -274,27 +267,8 @@ it('회차를 끝내면 누른 후보를 버리고 다음 회차의 후보 창�
   await act(async () => value.begin(new AbortController().signal))
   await publish(viewWithSlot(ocrSlotWithChoices(NEXT_REQUEST_ID)))
 
-  expect(value.manualSlots).toEqual([false, false, false, false])
   expect(value.candidatePickers[SLOT]).toMatchObject({
     shownServerId: 'cain',
     previewServerId: null
   })
-})
-
-function ocr(slot: number): OcrCaptureObservation {
-  return { slot, nickname: '파티원', candidateNicknames: ['파티원'], portrait: null }
-}
-
-it('캡처 machine이 처음 받은 OCR 관측 함수도 수동 조회한 슬롯은 건너뛰고 캡처를 끝내면 다시 넘긴다', async () => {
-  await act(async () => value.lookupSlot(SLOT, searchRow.characterName, 'anton'))
-  await act(async () => {
-    initial.observeOcr(ocr(SLOT))
-    initial.observeOcr(ocr(0))
-  })
-  expect(bridge.observe).toHaveBeenCalledExactlyOnceWith(ocr(0))
-
-  await act(async () => initial.end())
-  expect(value.manualSlots[SLOT]).toBe(false)
-  await act(async () => initial.observeOcr(ocr(SLOT)))
-  expect(bridge.observe).toHaveBeenLastCalledWith(ocr(SLOT))
 })

@@ -100,3 +100,30 @@ it('공대 회차가 인식하는 동안 자리 맞바꾸기 요청을 거절하
   })
   expect(swapped).toBe(false)
 })
+
+it('공대 회차 중 직접 조회한 슬롯은 공대 수명으로 조회하고 그 회차의 OCR 결과를 통지하지 않으며, 다음 회차는 다시 통지한다', async () => {
+  const late = Promise.withResolvers<RaidSlotRecognition[]>()
+  raidMocks.recognize.mockReturnValueOnce(late.promise).mockResolvedValueOnce(recognized)
+  const control = vi.mocked(window.raidSearch.controlCharacterSearch)
+  const notifyOcr = vi.mocked(window.raidSearch.notifyOcrCandidatesDetected)
+  await act(async () => value.startRound())
+  await vi.waitFor(() => expect(raidMocks.recognize).toHaveBeenCalledOnce())
+
+  await act(async () => value.search.lookupSlot(0, '직접조회', 'cain'))
+  expect(control).toHaveBeenLastCalledWith(
+    expect.objectContaining({ action: 'lookup', slot: 0, nickname: '직접조회', serverId: 'cain' })
+  )
+  expect(control.mock.calls.filter(([command]) => command.action === 'begin')).toHaveLength(1)
+  expect(value.search.slots).toHaveLength(12)
+  expect(value.search.manualSlots[0]).toBe(true)
+  await act(async () => late.resolve(recognized))
+  await vi.waitFor(() => expect(value.phase).toBe('complete'))
+  expect(notifyOcr).not.toHaveBeenCalled()
+
+  await act(async () => value.startRound())
+  await vi.waitFor(() => expect(notifyOcr).toHaveBeenCalledOnce())
+  expect(notifyOcr).toHaveBeenCalledWith(
+    expect.objectContaining({ slot: 0, nickname: '첫째공대원' })
+  )
+  expect(value.search.manualSlots.every((manual) => !manual)).toBe(true)
+})
