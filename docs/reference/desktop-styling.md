@@ -61,6 +61,7 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 버튼 | `Button` | 보조 버튼은 공용 `secondary` 외형을 그대로 씁니다 |
 | 파티와 공대 헤더의 스냅샷 버튼 | `IconButton` | 켜고 끄는 토글이라 `pressed`를 주어 `aria-pressed`와 켜짐 모양(아이콘과 안쪽 2px 선이 `signal`)을 씁니다. 접근 가능한 이름은 `aria-label`로 줍니다. 상단 바 안의 헤더에 맞춰 `lg`를 28 정사각형, 16px 아이콘으로 줄이고 오른쪽 위를 자릅니다 |
 | 상단 바의 게임 연결 상태 | `StatusChip` `size="md"`를 감싼 `DialogTrigger` native button | 누르면 캡처 대화상자를 엽니다. 칩의 자른 모서리에 가리지 않게 포커스 링을 버튼 바깥에 둡니다 |
+| 파티, 공대 헤더의 클립보드로 복사 버튼 | native button(`components/ClipboardCopyButton`) | 늘 크림 아이콘과 안쪽 1px `signal` 선을 보여 `IconButton`의 눌림 상태와 겹치지 않도록 직접 그립니다. 28 정사각형에 `shapes.cutTopRight`이고, 자른 모서리가 바깥 outline을 가리므로 포커스 링은 안쪽에 그립니다. 성공하면 `CheckIcon`으로 바꾸고, 실패 문구의 `!` 칸은 위험 색입니다 |
 | 파티, 공대 헤더의 캡처 버튼 | `Button` `primary` `sm` | 높이 28로 줄이고 카메라 아이콘과 `Alt R` 글자만 둡니다. 접근 가능한 이름은 `<대상> 캡처, 단축키 Alt R`입니다 |
 | 상단 내비의 검색 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | trigger는 화면의 버튼(현재 항목 모양)을 `render`로 잇습니다 |
 | 서버 선택 | `Select` 칩, `surface="card"` | 이름 칸 안 오른쪽의 높이 16 칩(`ServerSelect`)이고, body portal의 목록도 카드 토큰으로 그립니다 |
