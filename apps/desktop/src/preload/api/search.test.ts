@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import type { SearchControl, SearchApi } from '../common/types/search'
+import type { AsyncIPCFunctions } from '../common/types/ipc'
 import {
   CAPTURE_ID,
   REQUEST_ID,
@@ -259,4 +260,45 @@ it('직접 검색 preload도 잘못된 invoke, event DTO를 전달하지 않는�
   manual.onCharacterSearchChanged(listener)
   renderer.on.mock.calls[0][1]({}, invalid)
   expect(listener).not.toHaveBeenCalled()
+})
+
+it('공대 preload는 12자리 snapshot만 renderer로 넘긴다', async () => {
+  await import('../index')
+  const raid = new Map(renderer.expose.mock.calls).get('raidSearch') as SearchApi & {
+    notifyOcrCandidatesDetected: AsyncIPCFunctions['notifyRaidOcrCandidatesDetected']
+  }
+  const raidSnapshot = searchSnapshot({
+    slots: Array.from({ length: 12 }, (_, slot) => ({ ...searchSnapshot().slots[0], slot }))
+  })
+  renderer.invoke.mockResolvedValue({ ok: true, snapshot: raidSnapshot })
+  expect(await raid.controlCharacterSearch({ action: 'read' })).toEqual({
+    ok: true,
+    snapshot: raidSnapshot
+  })
+  renderer.invoke.mockResolvedValue({ ok: true, snapshot: searchSnapshot() })
+  await expect(raid.controlCharacterSearch({ action: 'read' })).rejects.toThrow()
+
+  const observation = {
+    captureId: CAPTURE_ID,
+    slot: 11,
+    observationRevision: 1,
+    nickname: '가나',
+    candidateNicknames: ['가나'],
+    portrait: null,
+    raidRow: { jobText: '귀검사', valueColumn: 'fame', valueText: '12,345' }
+  } as const
+  renderer.invoke.mockResolvedValue({ ok: true, snapshot: raidSnapshot })
+  expect(await raid.notifyOcrCandidatesDetected(observation)).toEqual({
+    ok: true,
+    snapshot: raidSnapshot
+  })
+  expect(renderer.invoke).toHaveBeenLastCalledWith('notifyRaidOcrCandidatesDetected', observation)
+  renderer.invoke.mockResolvedValue({ ok: true, snapshot: searchSnapshot() })
+  await expect(raid.notifyOcrCandidatesDetected(observation)).rejects.toThrow()
+
+  const listener = vi.fn()
+  raid.onCharacterSearchChanged(listener)
+  renderer.events.emit('raidSearchChanged', {}, searchSnapshot())
+  renderer.events.emit('raidSearchChanged', {}, raidSnapshot)
+  expect(listener).toHaveBeenCalledExactlyOnceWith(raidSnapshot)
 })

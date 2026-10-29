@@ -6,7 +6,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
   CAPTURE_ID,
   REQUEST_ID,
-  invalidSearchSnapshots,
   searchRow,
   searchSnapshot,
   searchSlot
@@ -999,27 +998,3 @@ it('OCR 통지 응답이 유실되면 read로만 확인하고 같은 통지를 �
   expect(hook.getCurrent().search.slots[0]).toEqual(completed.slots[0])
   await hook.unmount()
 })
-
-it.each(invalidSearchSnapshots)(
-  '%s event는 검색 상태에 반영하지 않는다',
-  async (_name, invalid) => {
-    setSlots(0)
-    const hook = await renderPartyCaptureHook()
-    await act(async () => hook.getCurrent().source.selectSource('game'))
-    await shortcut()
-    const valid = searchSnapshot({
-      revision: 10,
-      slots: [
-        searchSlot({ nickname: 'Alice', state: 'success', rows: [searchRow] }),
-        ...searchSnapshot().slots.slice(1)
-      ]
-    })
-    await emit(valid)
-    expect(hook.getCurrent().search.slots).toEqual(valid.slots)
-    const malformed = invalid() as SearchSnapshot
-    const hasUsableRevision = Number.isSafeInteger(malformed.revision) && malformed.revision >= 0
-    await emit({ ...malformed, revision: hasUsableRevision ? 99 : malformed.revision })
-    expect(hook.getCurrent().search.slots).toEqual(valid.slots)
-    await hook.unmount()
-  }
-)
