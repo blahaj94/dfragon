@@ -87,30 +87,47 @@ test('요청 하나의 연결이 끊겨도 함께 기다리던 다른 요청은 
   const gate = new Promise<void>((resolve) => {
     release = resolve
   })
-  const { calls, fetchShopGrade } = recordingShopGrade(async () => {
-    await gate
+  const fetchSignals: AbortSignal[] = []
+  const service = createTodayGradeService(
+    async (_itemId, fetchSignal) => {
+      fetchSignals.push(fetchSignal)
+      await gate
+      fetchSignal.throwIfAborted()
 
-    return 90
-  })
-  const service = createTodayGradeService(fetchShopGrade, () => noonKst)
+      return 90
+    },
+    () => noonKst
+  )
   const disconnected = new AbortController()
   const left = service.get(disconnected.signal)
   const right = service.get(signal)
   disconnected.abort()
-  release()
 
+  assert.equal(fetchSignals.length, 11)
+  assert.ok(fetchSignals.every((fetchSignal) => !fetchSignal.aborted))
+  release()
   await assert.rejects(left, TodayGradeFailure)
   assert.deepEqual(await right, { percent: 90, expiresAt: nextMidnightKst })
-  assert.equal(calls.length, 11)
+  assert.equal(fetchSignals.length, 11)
 })
 
 test('서버를 종료하면 진행 중인 상점 조회를 취소하고 끝나기를 기다린다', async () => {
   const signals: AbortSignal[] = []
+  let settledFetches = 0
+  // 취소된 조회가 다음 timer에서야 끝나게 해, 종료가 그 끝을 기다리지 않으면 아래 개수가 0이 되게 한다.
   const service = createTodayGradeService(
     (_itemId, fetchSignal) =>
       new Promise<number>((_resolve, reject) => {
         signals.push(fetchSignal)
-        fetchSignal.addEventListener('abort', () => reject(fetchSignal.reason), { once: true })
+        fetchSignal.addEventListener(
+          'abort',
+          () =>
+            setTimeout(() => {
+              settledFetches++
+              reject(fetchSignal.reason)
+            }, 0),
+          { once: true }
+        )
       }),
     () => noonKst
   )
@@ -120,6 +137,7 @@ test('서버를 종료하면 진행 중인 상점 조회를 취소하고 끝나�
 
   assert.equal(signals.length, 11)
   assert.ok(signals.every((fetchSignal) => fetchSignal.aborted))
+  assert.ok(settledFetches > 0)
   await assert.rejects(pending, TodayGradeFailure)
 })
 
