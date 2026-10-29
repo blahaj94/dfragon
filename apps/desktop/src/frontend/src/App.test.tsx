@@ -225,14 +225,6 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고,
 
     return { ok: true, snapshot: raidSnapshot }
   })
-  const partyManualControl = vi.fn<SearchApi['controlCharacterSearch']>(async () => ({
-    ok: true,
-    snapshot: searchSnapshot({ captureId: null })
-  }))
-  vi.stubGlobal('manualSearch', {
-    controlCharacterSearch: partyManualControl,
-    onCharacterSearchChanged: vi.fn<SearchApi['onCharacterSearchChanged']>(() => () => {})
-  } satisfies SearchApi)
   vi.stubGlobal('raidSearch', {
     controlCharacterSearch: raidControl,
     onCharacterSearchChanged: vi.fn<SearchApi['onCharacterSearchChanged']>(() => () => {})
@@ -304,10 +296,7 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고,
     })
   )
   expect(
-    [
-      ...vi.mocked(window.search.controlCharacterSearch).mock.calls,
-      ...partyManualControl.mock.calls
-    ].map(([call]) => call.action)
+    vi.mocked(window.search.controlCharacterSearch).mock.calls.map(([call]) => call.action)
   ).not.toContain('lookup')
 
   await chooseScreen('파티')

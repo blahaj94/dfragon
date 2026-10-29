@@ -63,7 +63,9 @@ it('공대 수명은 12자리를 갖고 12번째 슬롯까지 조회하며 범�
       await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, slot))
     ).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })
   }
-  expect(await fixture.invoke('controlManualSearch', lookup(fixture.captureId, 4))).toMatchObject({
+  expect(
+    await fixture.invoke('controlCharacterSearch', lookup(fixture.captureId, 4))
+  ).toMatchObject({
     ok: false,
     error: { code: 'INVALID_SEARCH_COMMAND' }
   })
@@ -93,24 +95,26 @@ it('공대와 파티 카드 조회는 같은 슬롯 번호에서도 서로의 �
   await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
   const raidRequest = new Request(...fixture.fetchSearch.mock.calls[0])
 
-  const party = (await fixture.invoke('controlManualSearch', { action: 'begin' })) as {
+  const party = (await fixture.invoke('controlCharacterSearch', { action: 'begin' })) as {
     snapshot: { captureId: string }
   }
   expect(
     await fixture.invoke('controlRaidSearch', lookup(party.snapshot.captureId, 1))
   ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
-  expect(await fixture.invoke('controlManualSearch', lookup(fixture.captureId, 0))).toMatchObject({
+  expect(
+    await fixture.invoke('controlCharacterSearch', lookup(fixture.captureId, 0))
+  ).toMatchObject({
     ok: false,
     error: { code: 'STALE_SEARCH' }
   })
-  await fixture.invoke('controlManualSearch', lookup(party.snapshot.captureId, 0, 1, '다라'))
+  await fixture.invoke('controlCharacterSearch', lookup(party.snapshot.captureId, 0, 1, '다라'))
   await vi.waitFor(async () => {
-    const result = (await fixture.invoke('controlManualSearch', { action: 'read' })) as {
+    const result = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
       snapshot: { slots: { state: string }[] }
     }
     expect(result.snapshot.slots[0].state).toBe('empty')
   })
-  await fixture.invoke('controlManualSearch', {
+  await fixture.invoke('controlCharacterSearch', {
     action: 'end',
     captureId: party.snapshot.captureId
   })
@@ -275,7 +279,7 @@ it('공대 OCR 관측은 12번째 슬롯까지 받아 이름 후보 중 최고 �
 
 it('공대 OCR 관측은 다른 수명의 ID와 파티 캡처 채널로 섞이지 않는다', async () => {
   const fixture = await createSearchFixture('raid', INITIAL_PORTRAIT_COLOR_POLICY)
-  const party = (await fixture.invoke('controlManualSearch', { action: 'begin' })) as {
+  const party = (await fixture.invoke('controlCharacterSearch', { action: 'begin' })) as {
     snapshot: { captureId: string }
   }
   expect(

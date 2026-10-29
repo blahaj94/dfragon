@@ -31,6 +31,7 @@ it('공대 연결은 12자리 snapshot의 12번째 슬롯 결과를 보인다', 
     onChange: (next) => {
       view = next
     },
+    notifyOcr: vi.fn(),
     onInvalidated: vi.fn(),
     slotCount: 12
   })

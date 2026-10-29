@@ -38,16 +38,23 @@ beforeEach(() => {
 async function exposedSearch(): Promise<{
   search: SearchTestApi
   capture: ObservationTestApi
-  manual: SearchApi
+  raid: SearchApi
 }> {
   await import('../index')
   const exposed = new Map(renderer.expose.mock.calls)
   expect(exposed.get('search'), '검색 전용 preload API').toBeDefined()
   const search = exposed.get('search') as SearchTestApi
-  const manual = exposed.get('manualSearch') as SearchApi
+  const raid = exposed.get('raidSearch') as SearchApi
   const capture = exposed.get('api') as ObservationTestApi
 
-  return { search, manual, capture }
+  return { search, raid, capture }
+}
+
+function raidSnapshot(revision = 1) {
+  return searchSnapshot({
+    revision,
+    slots: Array.from({ length: 12 }, (_, slot) => ({ ...searchSnapshot().slots[0], slot }))
+  })
 }
 
 it('검색 feature는 제어 invoke와 단일 event만 노출하고 기존 notify를 확장한다', async () => {
@@ -57,7 +64,15 @@ it('검색 feature는 제어 invoke와 단일 event만 노출하고 기존 notif
     { action: 'read' },
     { action: 'begin' },
     { action: 'end', captureId: CAPTURE_ID },
-    { action: 'retry', captureId: CAPTURE_ID, slot: 2, requestId: REQUEST_ID }
+    { action: 'retry', captureId: CAPTURE_ID, slot: 2, requestId: REQUEST_ID },
+    {
+      action: 'lookup',
+      captureId: CAPTURE_ID,
+      slot: 3,
+      observationRevision: 1,
+      nickname: '가나',
+      serverId: 'cain'
+    }
   ]
   for (const control of controls) {
     await search.controlCharacterSearch(control)
@@ -77,56 +92,50 @@ it('검색 feature는 제어 invoke와 단일 event만 노출하고 기존 notif
   ])
 })
 
-it.each([
-  ['캡처', 'search', 'characterSearchChanged'],
-  ['직접 검색', 'manual', 'manualSearchChanged']
-] as const)(
-  '%s 구독 해제는 해당 listener만 멈추고 잘못된 DTO도 전달하지 않는다',
-  async (_name, kind, channel) => {
-    const { search, manual } = await exposedSearch()
-    const api = kind === 'search' ? search : manual
-    const first = vi.fn()
-    const second = vi.fn()
-    const unsubscribe = api.onCharacterSearchChanged(first)
-    const unsubscribeSecond = api.onCharacterSearchChanged(second)
-    const [[registeredChannel, firstWrapper], [, secondWrapper]] = renderer.on.mock.calls
-    const snapshot = searchSnapshot()
-    const rawEvent = { sender: 'private' }
-
-    renderer.events.emit(channel, rawEvent, snapshot)
-    unsubscribe()
-    renderer.events.emit(channel, rawEvent, { ...snapshot, private: true })
-    const nextSnapshot = searchSnapshot({ revision: 2 })
-    renderer.events.emit(channel, rawEvent, nextSnapshot)
-
-    expect(registeredChannel).toBe(channel)
-    expect(first).toHaveBeenCalledExactlyOnceWith(snapshot)
-    expect(second.mock.calls).toEqual([[snapshot], [nextSnapshot]])
-    expect(firstWrapper).not.toBe(secondWrapper)
-    expect(renderer.removeListener).toHaveBeenCalledExactlyOnceWith(channel, firstWrapper)
-    unsubscribeSecond()
-    renderer.events.emit(channel, rawEvent, searchSnapshot({ revision: 3 }))
-    expect(second).toHaveBeenCalledTimes(2)
-    expect(renderer.events.listenerCount(channel)).toBe(0)
-  }
-)
-
-it('같은 callback의 캡처 구독을 해제해도 직접 검색 구독은 유지된다', async () => {
-  const { search, manual } = await exposedSearch()
-  const listener = vi.fn()
-  const stopCapture = search.onCharacterSearchChanged(listener)
-  const stopManual = manual.onCharacterSearchChanged(listener)
+it('구독 해제는 해당 listener만 멈추고 잘못된 DTO도 전달하지 않는다', async () => {
+  const { search } = await exposedSearch()
+  const channel = 'characterSearchChanged'
+  const first = vi.fn()
+  const second = vi.fn()
+  const unsubscribe = search.onCharacterSearchChanged(first)
+  const unsubscribeSecond = search.onCharacterSearchChanged(second)
+  const [[registeredChannel, firstWrapper], [, secondWrapper]] = renderer.on.mock.calls
   const snapshot = searchSnapshot()
+  const rawEvent = { sender: 'private' }
 
-  stopCapture()
-  renderer.events.emit('characterSearchChanged', { sender: 'private' }, snapshot)
+  renderer.events.emit(channel, rawEvent, snapshot)
+  unsubscribe()
+  renderer.events.emit(channel, rawEvent, { ...snapshot, private: true })
+  const nextSnapshot = searchSnapshot({ revision: 2 })
+  renderer.events.emit(channel, rawEvent, nextSnapshot)
+
+  expect(registeredChannel).toBe(channel)
+  expect(first).toHaveBeenCalledExactlyOnceWith(snapshot)
+  expect(second.mock.calls).toEqual([[snapshot], [nextSnapshot]])
+  expect(firstWrapper).not.toBe(secondWrapper)
+  expect(renderer.removeListener).toHaveBeenCalledExactlyOnceWith(channel, firstWrapper)
+  unsubscribeSecond()
+  renderer.events.emit(channel, rawEvent, searchSnapshot({ revision: 3 }))
+  expect(second).toHaveBeenCalledTimes(2)
+  expect(renderer.events.listenerCount(channel)).toBe(0)
+})
+
+it('같은 callback의 파티 구독을 해제해도 공대 구독은 유지된다', async () => {
+  const { search, raid } = await exposedSearch()
+  const listener = vi.fn()
+  const stopParty = search.onCharacterSearchChanged(listener)
+  const stopRaid = raid.onCharacterSearchChanged(listener)
+  const snapshot = raidSnapshot()
+
+  stopParty()
+  renderer.events.emit('characterSearchChanged', { sender: 'private' }, searchSnapshot())
   expect(listener).not.toHaveBeenCalled()
-  renderer.events.emit('manualSearchChanged', { sender: 'private' }, snapshot)
+  renderer.events.emit('raidSearchChanged', { sender: 'private' }, snapshot)
 
   expect(listener).toHaveBeenCalledExactlyOnceWith(snapshot)
-  stopManual()
+  stopRaid()
   expect(renderer.events.listenerCount('characterSearchChanged')).toBe(0)
-  expect(renderer.events.listenerCount('manualSearchChanged')).toBe(0)
+  expect(renderer.events.listenerCount('raidSearchChanged')).toBe(0)
 })
 
 it.each(invalidSearchSnapshots)(
@@ -154,9 +163,9 @@ it.each(invalidSearchSnapshots)(
 )
 
 it.each([
-  { ok: true, error: { code: 'SEARCH_BUSY' }, snapshot: searchSnapshot() },
+  { ok: true, error: { code: 'STALE_SEARCH' }, snapshot: searchSnapshot() },
   { ok: false, error: { code: 'UNKNOWN' }, snapshot: searchSnapshot() },
-  { ok: false, error: { code: 'SEARCH_BUSY', message: 'private' }, snapshot: searchSnapshot() },
+  { ok: false, error: { code: 'STALE_SEARCH', message: 'private' }, snapshot: searchSnapshot() },
   { ok: true, snapshot: searchSnapshot(), private: true }
 ])('명령 결과의 strict schema도 검사한다: %j', async (invalid) => {
   const { search } = await exposedSearch()
@@ -184,19 +193,16 @@ it('승인된 상태, nullable 값과 후보 순서를 보존한다', async () =
   }
 })
 
-it.each([
-  'INVALID_SEARCH_COMMAND',
-  'SEARCH_NOT_ALLOWED',
-  'STALE_SEARCH',
-  'SEARCH_BUSY',
-  'SEARCH_RETRY_NOT_READY'
-])('정제된 명령 거절 %s는 예외나 검색 0건으로 바꾸지 않는다', async (code) => {
-  const { search } = await exposedSearch()
-  const result = { ok: false, error: { code }, snapshot: searchSnapshot() }
-  renderer.invoke.mockResolvedValue(result)
+it.each(['INVALID_SEARCH_COMMAND', 'SEARCH_NOT_ALLOWED', 'STALE_SEARCH', 'SEARCH_RETRY_NOT_READY'])(
+  '정제된 명령 거절 %s는 예외나 검색 0건으로 바꾸지 않는다',
+  async (code) => {
+    const { search } = await exposedSearch()
+    const result = { ok: false, error: { code }, snapshot: searchSnapshot() }
+    renderer.invoke.mockResolvedValue(result)
 
-  expect(await search.controlCharacterSearch({ action: 'read' })).toEqual(result)
-})
+    expect(await search.controlCharacterSearch({ action: 'read' })).toEqual(result)
+  }
+)
 
 it.each([
   ['빈 characterId', { ...searchRow, characterId: '' }],
@@ -234,32 +240,6 @@ it.each([
   renderer.events.emit('characterSearchChanged', { sender: 'private' }, structuredClone(invalid))
   expect(listener).not.toHaveBeenCalled()
   unsubscribe()
-})
-
-it('직접 검색 preload는 전용 invoke, event 채널과 같은 검증 DTO를 사용한다', async () => {
-  const { manual } = await exposedSearch()
-  expect(Object.keys(manual).sort()).toEqual(['controlCharacterSearch', 'onCharacterSearchChanged'])
-  await manual.controlCharacterSearch({ action: 'begin' })
-  expect(renderer.invoke.mock.calls).toEqual([['controlManualSearch', { action: 'begin' }]])
-  const listener = vi.fn()
-  const unsubscribe = manual.onCharacterSearchChanged(listener)
-  const [channel, wrapper] = renderer.on.mock.calls[0]
-  wrapper({ sender: 'private' }, searchSnapshot())
-  expect(channel).toBe('manualSearchChanged')
-  expect(listener).toHaveBeenCalledExactlyOnceWith(searchSnapshot())
-  unsubscribe()
-  expect(renderer.removeListener).toHaveBeenCalledExactlyOnceWith(channel, wrapper)
-})
-
-it('직접 검색 preload도 잘못된 invoke, event DTO를 전달하지 않는다', async () => {
-  const { manual } = await exposedSearch()
-  const invalid = { ...searchSnapshot(), private: true }
-  renderer.invoke.mockResolvedValue({ ok: true, snapshot: invalid })
-  await expect(manual.controlCharacterSearch({ action: 'read' })).rejects.toThrow()
-  const listener = vi.fn()
-  manual.onCharacterSearchChanged(listener)
-  renderer.on.mock.calls[0][1]({}, invalid)
-  expect(listener).not.toHaveBeenCalled()
 })
 
 it('공대 preload는 12자리 snapshot만 renderer로 넘긴다', async () => {

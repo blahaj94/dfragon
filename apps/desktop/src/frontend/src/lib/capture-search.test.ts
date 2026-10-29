@@ -27,7 +27,7 @@ function ocr(slot: number, nickname: string): OcrCaptureObservation {
   return { slot, nickname, candidateNicknames: [nickname], portrait: null }
 }
 
-async function fixture({ ocrSupported = true }: { ocrSupported?: boolean } = {}): Promise<{
+async function fixture(): Promise<{
   search: CaptureSearch
   control: Mock<SearchApi['controlCharacterSearch']>
   notifyOcr: Mock<(observation: OcrSearchObservation) => Promise<SearchCommandResult>>
@@ -55,7 +55,7 @@ async function fixture({ ocrSupported = true }: { ocrSupported?: boolean } = {})
         return () => {}
       }
     },
-    notifyOcr: ocrSupported ? notifyOcr : undefined,
+    notifyOcr,
     onChange: changed,
     onInvalidated: invalidated
   })
@@ -195,31 +195,6 @@ it.each(['이름 변경', 'end'] as const)(
     }
   }
 )
-
-it('OCR 전용 통지를 지원하지 않으면 기존 결과를 숨기고 연결 실패를 표시한다', async () => {
-  const f = await fixture({ ocrSupported: false })
-  f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
-  await f.search.begin({ signal: new AbortController().signal })
-  f.search.observe(ocr(0, '가나'))
-  const previous = searchSlot({ state: 'success', rows: [searchRow] })
-  f.emit(searchSnapshot({ revision: 3, slots: [previous, ...searchSnapshot().slots.slice(1)] }))
-  expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(previous)
-
-  expect(() =>
-    f.search.observe({
-      slot: 0,
-      nickname: '다라',
-      candidateNicknames: ['다라', '다러'],
-      portrait: null
-    })
-  ).not.toThrow()
-
-  expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
-  expect(f.changed.mock.lastCall?.[0].connectionFailed).toBe(true)
-  f.search.end()
-  expect(f.control).toHaveBeenCalledWith({ action: 'end', captureId: CAPTURE_ID })
-  expect(f.notifyOcr).not.toHaveBeenCalled()
-})
 
 it('연속 begin의 이전 응답은 자신의 ID만 end하고 새 관측 revision을 초기화하지 않는다', async () => {
   const f = await fixture()

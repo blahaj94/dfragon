@@ -110,12 +110,14 @@ async function setup(): Promise<{
   }
 }
 
-async function beginCapture(fixture: Awaited<ReturnType<typeof setup>>): Promise<void> {
+async function beginCapture(fixture: Awaited<ReturnType<typeof setup>>): Promise<string> {
   const result = await fixture.invoke('controlCharacterSearch', {
     action: 'begin'
   })
 
   expect(result).toMatchObject({ ok: true, snapshot: { captureId: expect.any(String) } })
+
+  return (result as { snapshot: { captureId: string } }).snapshot.captureId
 }
 
 beforeEach(() => {
@@ -220,21 +222,19 @@ describe('capture main document and source boundary', () => {
     )
   })
 
-  it('IPC 해제는 캡처, 직접 검색과 캡처 프레임 읽기를 정리하고 모든 전용 handler를 제거한다', async () => {
+  it('IPC 해제는 파티 수명과 캡처 프레임 읽기를 정리하고 모든 전용 handler를 제거한다', async () => {
     const fixture = await setup()
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
     const captured = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
       snapshot: { captureId: string }
     }
-    await fixture.invoke('controlManualSearch', { action: 'begin' })
     fixture.published.mockClear()
 
     fixture.dispose()
 
     expect(electron.removeHandler.mock.calls.map(([channel]) => channel).sort()).toEqual([
       'controlCharacterSearch',
-      'controlManualSearch',
       'controlRaidSearch',
       'listCaptureSources',
       'notifyOcrCandidatesDetected',
@@ -247,10 +247,7 @@ describe('capture main document and source boundary', () => {
       fixture.published.mock.calls
         .map(([channel, snapshot]) => [channel, snapshot.captureId])
         .sort()
-    ).toEqual([
-      ['characterSearchChanged', null],
-      ['manualSearchChanged', null]
-    ])
+    ).toEqual([['characterSearchChanged', null]])
     // 해제 전에 받은 handler 참조로 호출해도 정리된 캡처의 프레임은 읽지 않는다.
     await expect(fixture.invoke('readCaptureFrame', captured.snapshot.captureId)).rejects.toThrow(
       'CAPTURE_NOT_ALLOWED'
@@ -267,7 +264,7 @@ describe('capture main document and source boundary', () => {
     expect(electron.getSources).not.toHaveBeenCalled()
   })
 
-  it('서버 지정 조회는 캡처 검색 채널에서 거부하고 capture를 시작하지 않는다', async () => {
+  it('시작하지 않은 수명 ID의 서버 지정 조회는 STALE_SEARCH로 거절하고 수명을 시작하지 않는다', async () => {
     const fixture = await setup()
     await fixture.invoke('selectCaptureSource', sources[0].id)
 
@@ -282,12 +279,12 @@ describe('capture main document and source boundary', () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: { code: 'INVALID_SEARCH_COMMAND' },
+      error: { code: 'STALE_SEARCH' },
       snapshot: { captureId: null }
     })
   })
 
-  it('선택 source로 begin하고 이전 end가 새 capture를 끝내지 않는다', async () => {
+  it('begin은 이전 수명을 끝내고 새로 시작하며 이전 ID의 end는 새 수명을 끝내지 않는다', async () => {
     const fixture = await setup()
     await fixture.invoke('selectCaptureSource', sources[0].id)
     const begin = {
@@ -299,50 +296,41 @@ describe('capture main document and source boundary', () => {
     expect(first).toMatchObject({ ok: true, snapshot: { captureId: expect.any(String) } })
     const firstCaptureId = (first as { snapshot: { captureId: string } }).snapshot.captureId
     expect(firstCaptureId).toMatch(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i)
-    expect(await fixture.invoke('controlCharacterSearch', begin)).toMatchObject({
-      ok: false,
-      error: { code: 'SEARCH_BUSY' }
-    })
-
-    const ended = await fixture.invoke('controlCharacterSearch', {
-      action: 'end',
-      captureId: firstCaptureId
-    })
-
-    expect(ended).toMatchObject({ ok: true, snapshot: { captureId: null } })
     const second = await fixture.invoke('controlCharacterSearch', begin)
     expect(second).toMatchObject({ ok: true, snapshot: { captureId: expect.any(String) } })
     const secondCaptureId = (second as { snapshot: { captureId: string } }).snapshot.captureId
     expect(secondCaptureId).not.toBe(firstCaptureId)
+    await expect(fixture.invoke('readCaptureFrame', firstCaptureId)).rejects.toThrow(
+      'CAPTURE_NOT_ALLOWED'
+    )
+
     expect(
       await fixture.invoke('controlCharacterSearch', { action: 'end', captureId: firstCaptureId })
     ).toMatchObject({ ok: true, snapshot: { captureId: secondCaptureId } })
+    expect(
+      await fixture.invoke('controlCharacterSearch', { action: 'end', captureId: secondCaptureId })
+    ).toMatchObject({ ok: true, snapshot: { captureId: null } })
   })
 
   it.each(['missing-source', 'selecting-source'])(
-    'begin은 %s 상태를 승인된 오류로 거절한다',
+    '%s 상태의 begin은 수명을 시작하지만 그 수명으로는 프레임을 읽지 않는다',
     async (condition) => {
       const fixture = await setup()
-      const isSelectingSource = condition === 'selecting-source'
       const pending = deferred<typeof sources>()
       let selection: Promise<unknown> | undefined
-      if (isSelectingSource) {
+      if (condition === 'selecting-source') {
         electron.getSources.mockReturnValueOnce(pending.promise)
         selection = fixture.invoke('selectCaptureSource', sources[0].id)
         await Promise.resolve()
       }
-      const expectedCode = isSelectingSource ? 'SEARCH_BUSY' : 'SEARCH_NOT_ALLOWED'
 
       try {
-        const result = await fixture.invoke('controlCharacterSearch', {
-          action: 'begin'
-        })
+        const captureId = await beginCapture(fixture)
 
-        expect(result).toMatchObject({
-          ok: false,
-          error: { code: expectedCode },
-          snapshot: { captureId: null }
-        })
+        await expect(fixture.invoke('readCaptureFrame', captureId)).rejects.toThrow(
+          'CAPTURE_NOT_ALLOWED'
+        )
+        expect(nativeFrame.read).not.toHaveBeenCalled()
       } finally {
         pending.resolve(sources)
         await selection
@@ -350,27 +338,23 @@ describe('capture main document and source boundary', () => {
     }
   )
 
-  it.each(['source-clear'])(
-    '%s는 main capture를 지우고 종료된 ID의 cleanup을 허용한다',
-    async () => {
-      const fixture = await setup()
-      await fixture.invoke('selectCaptureSource', sources[0].id)
-      const begun = await fixture.invoke('controlCharacterSearch', {
-        action: 'begin'
-      })
-      expect(begun).toMatchObject({ ok: true, snapshot: { captureId: expect.any(String) } })
-      const captureId = (begun as { snapshot: { captureId: string } }).snapshot.captureId
-      await fixture.invoke('selectCaptureSource', '')
+  it('창 등록 해제는 파티 수명을 남기고 프레임 읽기만 막으며 그 ID의 end로 수명을 끝낸다', async () => {
+    const fixture = await setup()
+    await fixture.invoke('selectCaptureSource', sources[0].id)
+    const captureId = await beginCapture(fixture)
+    await fixture.invoke('selectCaptureSource', '')
 
-      expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
-        ok: true,
-        snapshot: { captureId: null }
-      })
-      expect(
-        await fixture.invoke('controlCharacterSearch', { action: 'end', captureId })
-      ).toMatchObject({ ok: true, snapshot: { captureId: null } })
-    }
-  )
+    expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
+      ok: true,
+      snapshot: { captureId }
+    })
+    await expect(fixture.invoke('readCaptureFrame', captureId)).rejects.toThrow(
+      'CAPTURE_NOT_ALLOWED'
+    )
+    expect(
+      await fixture.invoke('controlCharacterSearch', { action: 'end', captureId })
+    ).toMatchObject({ ok: true, snapshot: { captureId: null } })
+  })
 
   it.each([
     { name: '기존 shape', args: [{ slot: 0, nickname: '가나' }] },
@@ -430,11 +414,11 @@ describe('capture main document and source boundary', () => {
     const fixture = await setup()
     await expect(fixture.invoke('listCaptureSources')).resolves.toEqual(sources)
     await expect(fixture.invoke('selectCaptureSource', sources[0].id)).resolves.toEqual(sources[0])
-    await beginCapture(fixture)
+    const captureId = await beginCapture(fixture)
     await expect(fixture.invoke('selectCaptureSource', '')).resolves.toBeNull()
     expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
       ok: true,
-      snapshot: { captureId: null }
+      snapshot: { captureId }
     })
   })
 
@@ -636,6 +620,21 @@ describe('선택한 창의 네이티브 프레임 IPC', () => {
       await rejected
     }
   )
+
+  it('창 선택을 호출하기 전에 시작한 파티 수명으로는 그 뒤 등록한 창의 프레임을 읽지 않는다', async () => {
+    const f = await setup()
+    nativeFrame.read.mockResolvedValue({ kind: 'unsupported' })
+    const beforeSource = await beginCapture(f)
+    await f.invoke('selectCaptureSource', sources[0].id)
+    await expect(f.invoke('readCaptureFrame', beforeSource)).rejects.toThrow('CAPTURE_NOT_ALLOWED')
+    const beforeChange = await beginCapture(f)
+    await f.invoke('selectCaptureSource', sources[0].id)
+    await expect(f.invoke('readCaptureFrame', beforeChange)).rejects.toThrow('CAPTURE_NOT_ALLOWED')
+    expect(nativeFrame.read).not.toHaveBeenCalled()
+
+    const current = await beginCapture(f)
+    await expect(f.invoke('readCaptureFrame', current)).resolves.toEqual({ kind: 'unsupported' })
+  })
 
   it.each(['다른 문서', '파괴된 main frame'])(
     '%s에서는 네이티브 읽기를 시작하지 않는다',

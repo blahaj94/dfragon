@@ -173,7 +173,7 @@ describe('main 검색 관측과 slot 수명', () => {
         error: { code: 'INVALID_SEARCH_QUERY' }
       })
       expect(fixture.fetchSearch).not.toHaveBeenCalled()
-      const retry = await fixture.invoke('controlManualSearch', {
+      const retry = await fixture.invoke('controlCharacterSearch', {
         action: 'retry',
         captureId: fixture.captureId,
         slot: 0,

@@ -66,6 +66,7 @@ function fixture() {
   const lifetime = createCaptureSearchLifetime({
     publish: vi.fn(),
     isCurrent: () => true,
+    isCurrentOcr: () => true,
     runtime: {
       identification: {
         candidates,
@@ -300,5 +301,62 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
     expect(f.lifetime.snapshot().slots[0].state).toBe('pending')
     expect(f.lifetime.snapshot().slots[3]).not.toHaveProperty('details')
     expect(f.lifetime.snapshot().slots[3].selected).toMatchObject({ level: 115 })
+  })
+
+  it('같은 수명의 직접 조회가 끝날 때까지 이름과 서버를 정한 OCR 슬롯의 상세를 받지 않는다', async () => {
+    const f = fixture()
+    const search = deferred<CharacterCandidate[]>()
+    f.candidates.mockReturnValueOnce(search.promise)
+    f.lifetime.lookup({
+      captureId: f.captureId,
+      slot: 3,
+      observationRevision: 1,
+      nickname: '사아',
+      serverId: 'cain'
+    })
+    await f.identify(0)
+    await f.identify(1)
+    await f.identify(2)
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    expect(f.getDetails).not.toHaveBeenCalled()
+
+    search.resolve([candidate('사아')])
+    await vi.waitFor(() => expect(f.loads).toHaveLength(1))
+    expect(f.loads[0].characterId).toBe('id-사아')
+    f.loads[0].resolve()
+
+    await vi.waitFor(() =>
+      expect(f.loads.map(({ characterId }) => characterId)).toEqual(['id-사아', 'id-가나'])
+    )
+  })
+
+  it('같은 수명의 직접 조회가 호출 제한을 받으면 OCR 슬롯의 남은 상세도 받지 않는다', async () => {
+    const f = fixture()
+    const search = deferred<CharacterCandidate[]>()
+    f.candidates.mockReturnValueOnce(search.promise)
+    f.lifetime.lookup({
+      captureId: f.captureId,
+      slot: 3,
+      observationRevision: 1,
+      nickname: '사아',
+      serverId: 'cain'
+    })
+    await f.identify(0)
+    await f.identify(1)
+    await f.identify(2)
+
+    search.reject(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
+
+    await vi.waitFor(() =>
+      expect(f.lifetime.snapshot().slots[3].error).toEqual({ code: 'SEARCH_RATE_LIMITED' })
+    )
+    expect(
+      f.lifetime
+        .snapshot()
+        .slots.slice(0, 3)
+        .map((slot) => slot.details)
+    ).toEqual(['failed', 'failed', 'failed'])
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    expect(f.getDetails).not.toHaveBeenCalled()
   })
 })

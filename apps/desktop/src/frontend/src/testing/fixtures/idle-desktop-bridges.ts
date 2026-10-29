@@ -20,7 +20,6 @@ function idleSearch(slotCount: SearchSlotCount): SearchApi {
 }
 
 export function stubIdleDesktopBridges(): void {
-  vi.stubGlobal('manualSearch', idleSearch(SEARCH_SLOT_COUNTS.party))
   vi.stubGlobal('raidSearch', {
     ...idleSearch(SEARCH_SLOT_COUNTS.raid),
     notifyOcrCandidatesDetected: vi.fn(async () => {

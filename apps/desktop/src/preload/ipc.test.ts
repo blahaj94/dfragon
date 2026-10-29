@@ -16,9 +16,9 @@ describe('preload IPC adapter', () => {
   it('contract channel과 argument를 Electron에 전달한다', async () => {
     vi.mocked(ipcRenderer.invoke).mockResolvedValue('response')
 
-    const invoke = makeHandlerInvoker('controlManualSearch')
+    const invoke = makeHandlerInvoker('controlRaidSearch')
 
     await expect(invoke({ action: 'begin' })).resolves.toBe('response')
-    expect(ipcRenderer.invoke).toHaveBeenCalledWith('controlManualSearch', { action: 'begin' })
+    expect(ipcRenderer.invoke).toHaveBeenCalledWith('controlRaidSearch', { action: 'begin' })
   })
 })
