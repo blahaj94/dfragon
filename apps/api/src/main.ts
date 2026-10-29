@@ -1,10 +1,10 @@
 import 'reflect-metadata'
 import { writeSync } from 'node:fs'
-import { closeApp } from './app.js'
 import { createApiRuntime } from './runtime/application.js'
 import { readRuntimeConfiguration } from './runtime/configuration.js'
 
 const startupShutdownGraceMs = 1000
+const startupFailureMessage = 'API failed to start'
 
 async function main(): Promise<void> {
   const configuration = await readRuntimeConfiguration(process.env)
@@ -22,7 +22,7 @@ async function main(): Promise<void> {
     closing = ownedRuntime
       .close()
       .catch(() => {
-        console.error(closeApp.startupError)
+        console.error(startupFailureMessage)
         process.exitCode = 1
       })
       .finally(() => {
@@ -41,7 +41,7 @@ async function main(): Promise<void> {
       startupShutdownTimer = setTimeout(() => {
         // 시작 중인 앱 생성에는 취소 경로가 없다. Async 정리 완료와 구분한다.
         try {
-          writeSync(2, `${closeApp.startupError}\n`)
+          writeSync(2, `${startupFailureMessage}\n`)
         } finally {
           process.exit(1)
         }
@@ -94,6 +94,6 @@ async function main(): Promise<void> {
 try {
   await main()
 } catch {
-  console.error(closeApp.startupError)
+  console.error(startupFailureMessage)
   process.exitCode = 1
 }
