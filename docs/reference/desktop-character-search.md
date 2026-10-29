@@ -187,7 +187,9 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 일반 캡처는 [공용 파티 프레임 검출기](desktop-party-geometry.md)가 HP, MP와 주변 경계에서 확인한 닉네임 영역만 원본 크기로 자른다. BT.601 회색 변환과 Otsu 반전 이진화로 밝은 글자를 검게, 어두운 배경을 희게 만든다. 모델 worker에서 높이 48픽셀, 너비 최대 320픽셀로 한 번 리사이즈하고 실제 검은 글자 경계를 입력 폭 320의 가로 중앙으로 이동한다. 글자 크기와 세로 위치는 유지하며 새 좌우 여백은 이진화한 배경과 같은 흰색(정규화 값 1)으로 채운다. 구두점을 제거하는 잡음 필터나 세로 크롭은 추가하지 않는다. 제품 전처리 평가도 같은 중심화 경로를 사용하고 원본 평가만 기존 왼쪽 정렬을 유지한다. CTC 후보 디코더의 1위 문자열만 검색에 사용하며 모델 점수는 정답 확률이나 검색 허용 조건이 아니다.
 
-`createPartyOcrWorker`는 capture AbortSignal을 필수로 받는다. `recognize`는 worker가 보낸 `PartyOcrResult`(`{ candidates }`)를 그대로 반환하고, `terminate`는 동기 함수로 worker를 종료한다. Signal이 취소되면 초기화, 인식 중에도 worker를 종료하고 대기 요청을 거절한다. 응답이 없는 요청은 30초 뒤 종료한다. 이전 회차의 결과는 기존 signal, 검색 수명 검사에서 차단하며 회차 프레임의 첫 OCR 결과를 공개 검색으로 연결한다. 검색은 인증과 독립적이며 sender, source, capture 검사는 유지한다.
+`createPartyOcrWorker`는 AbortSignal을 필수로 받는다. `recognize`는 worker가 보낸 `PartyOcrResult`(`{ candidates }`)를 그대로 반환하고, `terminate`는 동기 함수로 worker를 종료한다. Signal이 취소되면 초기화, 인식 중에도 worker를 종료하고 대기 요청을 거절한다. 응답이 없는 요청은 30초 뒤 종료한다.
+
+`lib/ocr-worker-recognition.ts`의 `createSharedOcrWorker`는 이 worker 하나를 회차 사이에 유지해 회차마다 모델을 다시 불러오지 않는다. `usePartyCapture`가 창이 등록되면 worker를 미리 띄우고 창 변경, 중지, unmount 때 정리하며, 공대 회차도 같은 worker를 쓴다. Worker는 한 번에 이미지 하나만 받으므로 인식 요청을 차례로 보낸다. 취소된 회차의 남은 요청은 보내지 않고, 이미 보낸 요청 하나는 마친 뒤 그 결과를 버린다. 준비나 인식 요청이 실패한 worker는 버리고 다음 회차가 새로 띄운다. 이전 회차의 결과는 회차 signal, 검색 수명 검사에서 차단하며 회차 프레임의 첫 OCR 결과를 공개 검색으로 연결한다. 검색은 인증과 독립적이며 sender, source, capture 검사는 유지한다.
 
 한 표본의 근접한 결과나 높은 모델 점수를 전체 정확도로 일반화하지 않는다.
 
