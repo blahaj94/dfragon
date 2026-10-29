@@ -25,14 +25,14 @@ Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-�
 | `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                                 | Shared DTO, 오류 문구, feature API와 strict schema, 상태 조합 검증을 정의한다.                                                                                          |
 | `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                                    | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
 | `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                                       | XState actor가 구독 후 read, event 동기화와 revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                             |
-| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useManualCharacterLookup.ts`, `useCharacterSearch.ts` | XState가 Start별 시작, 종료 수명을 관리하고, factory와 hook은 로컬 관측 revision, 결과 필터, 슬롯별 retry를 연결한다. 파티 회차와 서버 지정 조회는 연결 하나를 함께 쓴다. |
+| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useManualCharacterLookup.ts`, `useCharacterSearch.ts` | XState가 Start별 시작, 종료 수명을 관리하고, factory와 hook은 로컬 관측 revision과 결과 필터를 연결한다. 파티 회차와 서버 지정 조회는 연결 하나를 함께 쓴다. |
 | `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `apps/desktop/src/frontend/src/lib/party-recognition.ts`                                     | 이전 검색, 인식 상태를 비우고 begin 완료 뒤 프레임 한 장으로 OCR과 검색을 연결한다. 늦은 begin의 자기 ID 정리와 회차 종료 뒤 결과 차단을 유지한다.                              |
 
-`createCaptureSearch`는 호출마다 연결, actor, 관측 상태를 클로저에 보관하고 제어 함수를 반환한다. 표시할 슬롯의 계산은 상태를 변경하지 않는 순수 함수로 분리한다. 캡처 검색 수명은 `idle → starting → active`와 `invalidated`, 최종 `disposed` 상태로 관리한다. 새 begin, end, 무효화, dispose는 이전 시작 actor를 종료한다. 시작 actor는 종료 뒤에도 직접 응답을 기다려 자신이 생성한 늦은 ID만 end하고 호출자에게 null을 반환한다. Main이 종료를 알린 수명은 로컬 상태만 비우며 END를 중복 전송하지 않는다. 슬롯의 관측 revision, 결과 필터, retry 정책은 OCR 통지와 서버를 고른 조회가 함께 쓴다.
+`createCaptureSearch`는 호출마다 연결, actor, 관측 상태를 클로저에 보관하고 제어 함수를 반환한다. 표시할 슬롯의 계산은 상태를 변경하지 않는 순수 함수로 분리한다. 캡처 검색 수명은 `idle → starting → active`와 `invalidated`, 최종 `disposed` 상태로 관리한다. 새 begin, end, 무효화, dispose는 이전 시작 actor를 종료한다. 시작 actor는 종료 뒤에도 직접 응답을 기다려 자신이 생성한 늦은 ID만 end하고 호출자에게 null을 반환한다. Main이 종료를 알린 수명은 로컬 상태만 비우며 END를 중복 전송하지 않는다. 슬롯의 관측 revision과 결과 필터는 OCR 통지와 서버를 고른 조회가 함께 쓴다.
 
 Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. 응답이 유실되면 read로 상태를 확인하지만 그 결과의 ID를 늦은 Start의 소유로 추정해 end하지 않는다. 해당 시작은 창을 다시 선택하도록 안내하며 같은 begin을 자동 재전송하지 않는다. Main은 begin마다 이전 수명을 끝내고 새로 시작하므로, 응답을 잃은 수명이 main에 남아도 다음 Alt+R이 바로 새 회차를 시작한다. 새 source 선택은 renderer가 회차를 끝내며 보내는 end로 수명을 정리하고, main은 OCR에서 시작한 진행 중 요청만 취소한다.
 
-`createCaptureSearchLifetime`은 각 슬롯에 XState actor를 만든다. 요청을 준비한 뒤 pending snapshot을 동기 발행하고, 해당 요청이 여전히 유효할 때만 HTTP를 시작한다. 새 OCR 관측이나 조회, end는 이전 요청을 취소한다. 같은 OCR 입력의 새 관측은 기존 요청의 observation revision만 올리고 요청을 다시 시작하지 않는다. 429로 실패한 슬롯은 기다리지 않고 바로 retry할 수 있으며 GET을 자동 재전송하지 않는다.
+`createCaptureSearchLifetime`은 각 슬롯에 XState actor를 만든다. 요청을 준비한 뒤 pending snapshot을 동기 발행하고, 해당 요청이 여전히 유효할 때만 HTTP를 시작한다. 새 OCR 관측이나 조회, end는 이전 요청을 취소한다. 같은 OCR 입력의 새 관측은 기존 요청의 observation revision만 올리고 요청을 다시 시작하지 않는다. 429로 실패한 슬롯은 GET을 자동 재전송하지 않으며, 기다리지 않고 바로 새 회차(Alt+R)나 서버를 고른 조회로 다시 조회할 수 있다.
 
 `createSearchConnection`은 연결마다 별도 XState actor를 클로저에 보관한다. `isReady()`는 호출 시점의 동기화 상태를 읽고, 명령은 호출 당시 actor를 참조해 재연결 후 늦은 응답을 격리한다. 구독의 초기 기준과 마지막 조회의 성공 여부를 병렬 상태로 표현한다. 이미 초기 기준을 세운 연결은 복구 조회에 실패해도 후속 event를 표시할 수 있지만, 다시 조회에 성공하기 전까지 새 begin은 차단한다. 초기 조회 성공 전 event는 최신 revision만 보류하며, 재연결, dispose는 이전 actor와 구독을 종료한다. 슬롯별 명령은 직렬화하지 않고 직접 응답을 각각 돌려준다. 종료된 actor에는 명령, 복구 조회 결과를 반영하지 않지만, 늦은 begin의 직접 응답과 그 ID의 end 전송은 캡처 정리를 위해 유지한다.
 
@@ -44,7 +44,7 @@ Main은 검색 수명을 앱 실행 동안 채널마다 한 번 만들고, rende
 
 `readCaptureFrame(captureId)`는 현재 선택한 창에만 결합된 읽기를 실행한다. 등록 문서와 source/capture 수명이 읽기 전후에 일치해야 하며, 임의 창 ID나 좌표를 renderer에서 받지 않는다. 검색 수명은 begin 때의 창 선택 세대에 묶이므로 창 선택을 호출하기 전에 시작한 수명으로는 읽지 않지만, 창 선택이 창 목록을 기다리는 동안 시작한 수명은 그 선택이 끝나면 읽을 수 있다(공대 수명도 같다). Preload는 반환된 RGBA 크기를 검증한다. 공통 lib는 네이티브 호출을 마치기 전에 자원과 DPI를 정리한다.
 
-회차를 시작하면 이전 검색, 인식 상태를 비우고 검색 수명을 시작한 뒤 프레임을 한 장만 읽어 보관한다. 영상 스트림과 HTMLVideoElement를 만들지 않는다. `party.ts`는 이 RGBA 프레임에서 네 슬롯의 닉네임과 얼굴 크롭을 생성한다. OCR과 얼굴 비교 검색에 같은 프레임을 사용한다. 일부 슬롯이 가려지거나 미검출이면 그 슬롯은 비워 두고 검색하지 않으며 나머지는 처리한다. 처리를 마친 뒤에는 다음 회차 시작, 창 변경, 중지 전까지 일반 인식용 프레임을 읽지 않는다. 재시도는 보관한 회차 입력과 결과를 사용하며 수동 조회도 새 프레임을 읽지 않는다. 진행 중이나 완료 뒤 Alt+R과 캡처 버튼은 이전 회차를 정리하고 처음부터 다시 시작하며 늦은 프레임이나 OCR 결과는 버린다. 검색 수명을 시작하는 동안 누른 Alt+R과 캡처 버튼은 무시한다. 창 변경은 회차와 검색 수명을 정리하고 새 창만 등록한다. 중지 뒤에는 창을 다시 선택한 다음 Alt+R이나 캡처 버튼을 눌러야 한다.
+회차를 시작하면 이전 검색, 인식 상태를 비우고 검색 수명을 시작한 뒤 프레임을 한 장만 읽어 보관한다. 영상 스트림과 HTMLVideoElement를 만들지 않는다. `party.ts`는 이 RGBA 프레임에서 네 슬롯의 닉네임과 얼굴 크롭을 생성한다. OCR과 얼굴 비교 검색에 같은 프레임을 사용한다. 일부 슬롯이 가려지거나 미검출이면 그 슬롯은 비워 두고 검색하지 않으며 나머지는 처리한다. 처리를 마친 뒤에는 다음 회차 시작, 창 변경, 중지 전까지 일반 인식용 프레임을 읽지 않는다. 수동 조회는 새 프레임을 읽지 않는다. 진행 중이나 완료 뒤 Alt+R과 캡처 버튼은 이전 회차를 정리하고 처음부터 다시 시작하며 늦은 프레임이나 OCR 결과는 버린다. 검색 수명을 시작하는 동안 누른 Alt+R과 캡처 버튼은 무시한다. 창 변경은 회차와 검색 수명을 정리하고 새 창만 등록한다. 중지 뒤에는 창을 다시 선택한 다음 Alt+R이나 캡처 버튼을 눌러야 한다.
 
 ## OCR 식별용 HTTP 통신 준비
 
@@ -203,7 +203,7 @@ Worker는 후보를 한 번 계산한 뒤 `{ text, confidence, candidates }`를 
 
 `PartyScreen`은 캡처 Provider가 Context로 제공하는 파티 캡처 결과를 `hooks/useScreenCaptureContext.ts`로 읽고, `lib/slot-cards.ts`의 `toSlotCards`로 슬롯마다 상태, 표시 캐릭터, 인식한 이름, 안내, 진행 표시, 스냅샷 표시를 묶어 `PartyPage`에 전달한다. `lib/character-card.ts`는 기본 정보만 표시 값으로 바꾸며 누락된 명성을 0으로 대체하거나 장비 점수를 계산하지 않는다. 실제 선택 identity가 바뀌면 카드의 편집 초기 상태도 교체해, 늦게 도착한 결과를 이름 수정 중으로 오인하지 않는다. 카드는 캐릭터 면 하나만 두며 상세 창, 면 탭, 스탯 한 줄과 서버 순위는 없다.
 
-카드는 중앙 진행 표시와 조회 완료, 빈 결과, 정제된 오류를 구분한다. 최고 명성 대체 결과는 얼굴 일치와 다르게 표시한다. 서버와 닉네임은 항상 수정할 수 있으며 Enter나 서버 변경으로 수동 조회한다. Alt+R은 기존 결과를 비우고 전체 OCR부터 새로 실행한다. 합성 미리보기의 이전 대기 상태와 재시도 시나리오는 제품의 새 회차 동작과 구분한다. Electron의 화면 확인은 실제 게임의 얼굴 식별 정확도 검증을 대신하지 않는다.
+카드는 중앙 진행 표시와 조회 완료, 빈 결과, 정제된 오류를 구분한다. 최고 명성 대체 결과는 얼굴 일치와 다르게 표시한다. 서버와 닉네임은 항상 수정할 수 있으며 Enter나 서버 변경으로 수동 조회한다. Alt+R은 기존 결과를 비우고 전체 OCR부터 새로 실행한다. 합성 미리보기의 이전 대기 상태 시나리오는 제품의 새 회차 동작과 구분한다. Electron의 화면 확인은 실제 게임의 얼굴 식별 정확도 검증을 대신하지 않는다.
 
 ## 실제 자료와 평가 범위
 
@@ -211,7 +211,7 @@ Worker는 후보를 한 번 계산한 뒤 `{ text, confidence, candidates }`를 
 
 캡처 화면은 게임 창과 캡처 중지를 한국어로 표시한다. 제품은 Alt+R 또는 파티 헤더의 캡처 버튼으로 회차를 시작하며 둘은 같은 회차 시작을 보낸다. 주기적인 반복 인식과 간격 선택은 제공하지 않는다. 1920×1080 테두리 없는 창 모드, UI 배율 50%와 닉네임이 보이는 상태를 안내하며, 인식 실패나 오인식 때 카드의 이름, 서버 입력으로 직접 조회할 수 있다. 창 선택, 캡처 준비, OCR 준비, 실행, 종료 상태는 계속 유지되는 `role="status"` 영역에서 표시한다. 상단 바 상태 배지는 회차 진행 중 `인식 중`, 완료 뒤 `인식 완료`, 안내 후 끝난 회차는 `확인 필요`이며 창 등록 중 `준비 중`과 창 감지 표시는 유지한다. 창 목록 실패는 게임 실행 후 앱 다시 열기, 선택 실패는 창 다시 선택, 회차 프레임을 쓸 수 없으면 Alt+R로 다시 시작하도록 안내한다. OCR 실패는 해당 단계의 복구 안내를 제공한다. 외부 오류 원문을 화면으로 전달하지 않는다. 지원 해상도, 배율과 main의 검색, 캡처 수명 검사는 바꾸지 않는다.
 
-기존 `@dfragon/ui`의 Button, ContentStack, ExampleSection, SupportingText를 조합한다. 후보의 ordered list와 슬롯별 이름 있는 section은 DFragon composition이며 공용 자산의 외형을 덮어쓰는 CSS, style은 없다. 각 슬롯에는 “슬롯 1 검색” 형태의 접근 가능한 이름, 진행 시 `aria-busy`와 상태 안내가 있다. Retry의 loading과 disabled는 함께 적용하며 한 슬롯의 진행이 다른 슬롯 버튼을 막지 않는다.
+기존 `@dfragon/ui`의 Button, ContentStack, ExampleSection, SupportingText를 조합한다. 후보의 ordered list와 슬롯별 이름 있는 section은 DFragon composition이며 공용 자산의 외형을 덮어쓰는 CSS, style은 없다. 각 슬롯에는 “슬롯 1 검색” 형태의 접근 가능한 이름, 진행 시 `aria-busy`와 상태 안내가 있다.
 
 Keyboard, focus, 좁은 화면, theme, reduced-motion의 실제 Electron 관측은 최종 실행 head의 Issue/PR evidence에 기록한다. 공용 spinner의 기존 motion 동작을 변경하지 않으며 unit 성공을 native UI 검증으로 대신하지 않는다.
 
@@ -239,7 +239,7 @@ Main의 공대 수명은 `SearchRuntime.ocrIdentification`을 `raid`로 두어 `
 
 공대 보드의 자리 맞바꾸기는 renderer 배치만 바꾼다. `useRaidCapture`의 `seatOrder[화면 자리]`가 그 자리에 놓인 공대 검색 슬롯이고, `RaidPage`는 조회를 그 슬롯 번호로 알린다. 그래서 main 공대 수명의 슬롯 번호와 요청, 취소, 늦은 응답 처리는 그대로이며 진행 중 조회와 늦은 응답은 옮겨 간 카드에 들어간다. 회차를 시작할 때(`beginRound`) 배치를 처음으로 되돌려 OCR 행 번호와 슬롯 번호, 화면 자리가 같아지고, 회차가 인식하는 동안은 `canMoveSeats`가 false라 맞바꾸지 않는다.
 
-파티와 공대 수명은 문서 세대만으로 유효성을 보지만 OCR에서 시작한 관측과 요청에는 `isCurrentOcr`(`capture/ipc-handler.ts`의 `isCurrentSearch`, 회차를 시작한 게임 창 선택 세대와 등록 상태)를 더 요구한다. 게임 창 선택이 시작되거나 캡처가 멈추면 `clearSource`가 카드 수명의 `cancelOcrRequests`를 불러 진행 중인 OCR에서 시작한 슬롯만 취소하고 비운다. 이전 회차의 OCR 통지와 OCR 실패의 재시도는 `STALE_SEARCH`로 거절하며, 서버를 고른 조회와 끝난 슬롯은 그대로다. 회차 중 사용자가 서버와 이름으로 조회한 슬롯은 OCR 관측을 보내지 않는다. Alt+R은 `hooks/useRestartShortcut.ts`로 보이는 화면의 회차만 받는다. 상단 바 상태 칩과 공대 헤더는 `lib/capture-presentation.ts`의 `getRaidScreenCapture`로 창 선택 상태와 공대 회차 상태를 고른다. Main의 `readRaidCaptureFrame`은 `capture/ipc-handler.ts`에, OCR 통지는 `search/manual-ipc.ts`의 공대 수명에 있다. 한 슬롯의 새 조회는 그 슬롯의 이전 요청만 취소하며, 동시 요청 수는 사용자가 조회한 슬롯 수를 넘지 않는다. 공개 검색의 호출 제한은 파티와 공대 조회가 함께 쓴다.
+파티와 공대 수명은 문서 세대만으로 유효성을 보지만 OCR에서 시작한 관측과 요청에는 `isCurrentOcr`(`capture/ipc-handler.ts`의 `isCurrentSearch`, 회차를 시작한 게임 창 선택 세대와 등록 상태)를 더 요구한다. 게임 창 선택이 시작되거나 캡처가 멈추면 `clearSource`가 카드 수명의 `cancelOcrRequests`를 불러 진행 중인 OCR에서 시작한 슬롯만 취소하고 비운다. 이전 회차의 OCR 통지는 `STALE_SEARCH`로 거절하며, 서버를 고른 조회와 끝난 슬롯은 그대로다. 회차 중 사용자가 서버와 이름으로 조회한 슬롯은 OCR 관측을 보내지 않는다. Alt+R은 `hooks/useRestartShortcut.ts`로 보이는 화면의 회차만 받는다. 상단 바 상태 칩과 공대 헤더는 `lib/capture-presentation.ts`의 `getRaidScreenCapture`로 창 선택 상태와 공대 회차 상태를 고른다. Main의 `readRaidCaptureFrame`은 `capture/ipc-handler.ts`에, OCR 통지는 `search/manual-ipc.ts`의 공대 수명에 있다. 한 슬롯의 새 조회는 그 슬롯의 이전 요청만 취소하며, 동시 요청 수는 사용자가 조회한 슬롯 수를 넘지 않는다. 공개 검색의 호출 제한은 파티와 공대 조회가 함께 쓴다.
 
 선택된 요약에는 상세 응답의 `guildName`과 `equipmentScore`, `card`를 둔다. `equipmentScore`는 [검증한 카드](#카드-전달과-점수-엔진)의 점수이며, 카드가 없거나 엔진이 계산하지 못하면 null로 보내고 추정하지 않는다. 엔진이 근사값을 냈어도 `equipmentScore`는 null이다. 카드는 null을 `-`로, 근사값을 `≈`를 붙인 값으로 표시한다.
 
