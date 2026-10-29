@@ -81,10 +81,6 @@ export function apiDetailsFromEngineInput(
     ? { ...oathValue, info: item(oathValue.info), crystal: list(oathValue.crystal, item) }
     : oathValue
   const { status: _stats, buff: _buff, ...header } = status
-  const skillStyle = input.skill_style.skill
-  const enrichedSkillStyle = isJsonObject(skillStyle)
-    ? { ...skillStyle, skillDetails: {} }
-    : skillStyle
   const metadata = {
     revision: 1,
     contentUpdatedAt: FETCHED_AT,
@@ -108,7 +104,7 @@ export function apiDetailsFromEngineInput(
     creature: item(input.creature.creature),
     oath: mappedOath,
     mistAssimilation: input.mist_assimilation.mistAssimilation,
-    skillStyle: enrichedSkillStyle,
+    skillStyle: input.skill_style.skill,
     buff: {
       equipment: buff(input.buff_equip_equipment, 'equipment'),
       avatar: buff(input.buff_equip_avatar, 'avatar'),

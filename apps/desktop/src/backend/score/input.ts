@@ -33,7 +33,6 @@ const RESPONSE_HEADER_FIELDS = [
 ] as const
 // 서버가 응답용으로 예약해 더한 필드다. Neople 원문에는 없으므로 엔진 입력에서 뺀다.
 const ITEM_DETAIL_FIELD = 'itemDetail'
-const SKILL_DETAILS_FIELD = 'skillDetails'
 
 export function isJsonObject(value: CharacterJsonValue | undefined): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -75,15 +74,6 @@ function restoreOriginal(
   return Object.fromEntries(entries)
 }
 
-function withoutSkillDetails(value: CharacterJsonValue): CharacterJsonValue {
-  if (!isJsonObject(value)) {
-    return value
-  }
-  const { [SKILL_DETAILS_FIELD]: _skillDetails, ...skill } = value
-
-  return skill
-}
-
 export function toScoreEngineInput(details: CharacterDetails): ScoreEngineInput {
   const items: Record<string, JsonObject> = {}
   const original = (value: CharacterJsonValue): CharacterJsonValue => restoreOriginal(value, items)
@@ -107,7 +97,7 @@ export function toScoreEngineInput(details: CharacterDetails): ScoreEngineInput 
     creature: document({ creature: original(details.creature) }),
     oath: document({ oath: original(details.oath) }),
     mist_assimilation: document({ mistAssimilation: original(details.mistAssimilation) }),
-    skill_style: document({ skill: withoutSkillDetails(original(details.skillStyle)) }),
+    skill_style: document({ skill: original(details.skillStyle) }),
     buff_equip_equipment: buff(details.buff.equipment),
     buff_equip_avatar: buff(details.buff.avatar),
     buff_equip_creature: buff(details.buff.creature),

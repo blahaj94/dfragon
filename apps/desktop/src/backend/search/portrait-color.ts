@@ -17,8 +17,6 @@ import {
 
 const RGB_CHANNELS = 3
 
-export const PORTRAIT_COLOR_LIMITS = { gridSize: 32 } as const
-
 export type PortraitColorPolicy = Readonly<{
   gridSize: number
   minCoverage: number
@@ -68,28 +66,6 @@ type CandidateIntegral = Readonly<{
   blue: Uint32Array
   opaque: Uint32Array
 }>
-
-function validatePolicy(policy: PortraitColorPolicy): void {
-  if (
-    policy == null ||
-    !Number.isSafeInteger(policy.gridSize) ||
-    policy.gridSize < 1 ||
-    policy.gridSize > PORTRAIT_COLOR_LIMITS.gridSize ||
-    !Number.isFinite(policy.minCoverage) ||
-    policy.minCoverage <= 0 ||
-    policy.minCoverage > 1 ||
-    !Number.isSafeInteger(policy.minComparedCells) ||
-    policy.minComparedCells < 1 ||
-    policy.minComparedCells > policy.gridSize * policy.gridSize ||
-    !Number.isFinite(policy.topFraction) ||
-    policy.topFraction <= 0 ||
-    policy.topFraction > 1 ||
-    !Number.isSafeInteger(policy.anchorRadius) ||
-    policy.anchorRadius < 0
-  ) {
-    throw new TypeError('Invalid portrait color comparison policy')
-  }
-}
 
 function cellEdges(length: number, gridSize: number): number[] {
   return Array.from({ length: gridSize + 1 }, (_, index) => Math.floor((index * length) / gridSize))
@@ -313,16 +289,12 @@ async function findBestWindow(
 }
 
 export function createPortraitColorScorer(policy: PortraitColorPolicy): PortraitColorScorer {
-  validatePolicy(policy)
-  const { gridSize, minCoverage, minComparedCells, topFraction, anchorRadius } = policy
-  const accepted = { gridSize, minCoverage, minComparedCells, topFraction, anchorRadius }
-
   return async ({ portrait, candidate, anchor, signal }) => {
     signal.throwIfAborted()
     validateImage(candidate)
     const budget = createSearchBudget()
     const raster = await rasterizePortrait(portrait, budget, signal)
-    const face = summarizeFace(raster, accepted.gridSize)
+    const face = summarizeFace(raster, policy.gridSize)
     signal.throwIfAborted()
     if (face === null) {
       return null
@@ -334,13 +306,13 @@ export function createPortraitColorScorer(policy: PortraitColorPolicy): Portrait
     }
     const range =
       anchor !== null
-        ? anchorRange(candidate, anchor, face, accepted.anchorRadius)
-        : searchRange(candidate, bounds, face, accepted.topFraction)
+        ? anchorRange(candidate, anchor, face, policy.anchorRadius)
+        : searchRange(candidate, bounds, face, policy.topFraction)
     if (range === null) {
       return null
     }
     const integral = await integrateCandidate(candidate, range, face, budget, signal)
-    const best = await findBestWindow(face, integral, range, accepted, budget, signal)
+    const best = await findBestWindow(face, integral, range, policy, budget, signal)
     signal.throwIfAborted()
 
     return best

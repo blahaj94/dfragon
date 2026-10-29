@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DiagnosticCode } from '../../preload/common/types/diagnostics'
 import { readEngineInput } from './details-test-fixture'
 import {
@@ -103,7 +103,6 @@ function nativeEngine(behavior: NativeBehavior = {}) {
       path: LIBRARY_PATH,
       load,
       decode,
-      now: () => 0,
       report: (code: DiagnosticCode) => reports.push(code)
     }
   }
@@ -184,6 +183,13 @@ describe('점수 엔진 로드 실패 정제', () => {
 
 describe('점수 엔진 호출과 결과 검증', () => {
   const input = readEngineInput('dealer-blade')
+  // 실제 계산 시간이 느린 호출 진단 기준(50ms)에 닿아 결과가 흔들리지 않게 시계를 멈춘다.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['performance'] })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
 
   it('입력 문서를 UTF-8 길이와 함께 넘기고 쓰는 결과만 검증해 돌려준 뒤 출력을 엔진으로 해제한다', () => {
     const native = nativeEngine()
@@ -336,8 +342,15 @@ describe('점수 엔진 호출과 결과 검증', () => {
 
   it('계산이 50ms를 넘으면 결과는 그대로 쓰고 느린 호출 진단을 남긴다', () => {
     const native = nativeEngine()
-    const times = [0, 50, 100, 151]
-    const engine = loadScoreEngine({ ...native.options, now: () => times.shift()! })!
+    const durations = [50, 51]
+    const engine = loadScoreEngine({
+      ...native.options,
+      decode: (pointer) => {
+        vi.advanceTimersByTime(durations.shift()!)
+
+        return native.options.decode(pointer)
+      }
+    })!
 
     expect(engine(input, 'equipment')).toEqual(engineResult)
     expect(native.reports).toEqual([])

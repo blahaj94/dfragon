@@ -64,28 +64,10 @@ export function isCharacterSearchNickname(nickname: string | undefined): nicknam
   )
 }
 
-export function validateSelectionPolicy(policy: CharacterSelectionPolicy): void {
-  if (
-    policy == null ||
-    !Number.isFinite(policy.maxDistance) ||
-    policy.maxDistance < 0 ||
-    !Number.isFinite(policy.minMargin) ||
-    policy.minMargin < 0 ||
-    !Number.isSafeInteger(policy.maxCandidates) ||
-    policy.maxCandidates < 2
-  ) {
-    throw new TypeError('Invalid character selection policy')
-  }
-}
-
 export function createCharacterIdentifier(
   services: IdentificationServices,
   policy: CharacterSelectionPolicy
 ) {
-  validateSelectionPolicy(policy)
-  const { maxDistance, minMargin, maxCandidates } = policy
-  const accepted = { maxDistance, minMargin, maxCandidates }
-
   return async (input: CharacterIdentificationInput): Promise<CharacterIdentification> => {
     const nickname = input.nicknames[0]
     if (input.nicknames.length > MAX_OCR_NAMES || !isCharacterSearchNickname(nickname)) {
@@ -100,7 +82,7 @@ export function createCharacterIdentifier(
     if (candidates.length === 1) {
       return toMatchedIdentification(highest, nickname, 'highest-fame', undefined)
     }
-    const compared = candidates.slice(0, accepted.maxCandidates)
+    const compared = candidates.slice(0, policy.maxCandidates)
     const scores = await scoreCandidates(services, input.portrait, compared)
     const best = closestScore(scores)
     if (best === null) {
@@ -111,7 +93,7 @@ export function createCharacterIdentifier(
       return toMatchedIdentification(highest, nickname, 'highest-fame', choices)
     }
 
-    if (isConfident(accepted, scores, best)) {
+    if (isConfident(policy, scores, best)) {
       return toMatchedIdentification(best.candidate, nickname, 'portrait', undefined)
     }
     const choices = scores.map(({ candidate, score }) =>

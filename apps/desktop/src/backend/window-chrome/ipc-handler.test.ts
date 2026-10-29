@@ -150,36 +150,6 @@ it.each(['closed', 'destroyed', 'dispose'] as const)(
   }
 )
 
-it('listener 등록 실패 시 이미 등록한 handler와 listener를 정리하고 오류를 전달한다', () => {
-  const f = windowFixture()
-  const failure = new Error('Synthetic listener registration failure')
-  vi.spyOn(f.window, 'on').mockImplementationOnce(() => {
-    throw failure
-  })
-
-  expect(() =>
-    registerWindowChromeWindow({ window: f.window as unknown as BrowserWindow, documentUrl })
-  ).toThrow(failure)
-  expect(mocks.remove.mock.calls).toEqual(channels.map((channel) => [channel]))
-  expect(f.contents.listenerCount('destroyed')).toBe(0)
-  expect(f.window.listenerCount('closed')).toBe(0)
-})
-
-it('handler 등록 실패 시 기존 handler를 제거하지 않는다', () => {
-  const f = windowFixture()
-  const failure = new Error('Synthetic handler registration failure')
-  mocks.handle.mockImplementationOnce(() => {
-    throw failure
-  })
-
-  expect(() =>
-    registerWindowChromeWindow({ window: f.window as unknown as BrowserWindow, documentUrl })
-  ).toThrow(failure)
-  expect(mocks.remove).not.toHaveBeenCalled()
-  expect(f.contents.listenerCount('destroyed')).toBe(0)
-  expect(f.window.listenerCount('closed')).toBe(0)
-})
-
 describe('창 내용 높이', () => {
   it('공대 화면 높이 300으로 늘리고 파티 화면 높이 163으로 줄이며 폭은 그대로 둔다', async () => {
     const f = fixture()

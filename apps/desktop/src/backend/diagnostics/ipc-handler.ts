@@ -16,8 +16,6 @@ export function registerDiagnosticsWindow({
   log?: DiagnosticLog
 }): () => void {
   let disposed = false
-  let historyRegistered = false
-  let reportRegistered = false
   const contents = window.webContents
 
   function hasTrustedDocument(): boolean {
@@ -99,32 +97,20 @@ export function registerDiagnosticsWindow({
     }
     disposed = true
     unsubscribe()
-    if (historyRegistered) {
-      ipcMain.removeHandler(DIAGNOSTIC_CHANNELS.history)
-    }
-
-    if (reportRegistered) {
-      ipcMain.removeHandler(DIAGNOSTIC_CHANNELS.report)
-    }
+    ipcMain.removeHandler(DIAGNOSTIC_CHANNELS.history)
+    ipcMain.removeHandler(DIAGNOSTIC_CHANNELS.report)
     contents.removeListener('before-input-event', beforeInput)
     contents.removeListener('render-process-gone', rendererGone)
     contents.removeListener('destroyed', dispose)
     window.removeListener('closed', dispose)
   }
 
-  try {
-    ipcMain.handle(DIAGNOSTIC_CHANNELS.history, history)
-    historyRegistered = true
-    ipcMain.handle(DIAGNOSTIC_CHANNELS.report, report)
-    reportRegistered = true
-    contents.on('before-input-event', beforeInput)
-    contents.on('render-process-gone', rendererGone)
-    contents.on('destroyed', dispose)
-    window.on('closed', dispose)
-  } catch (error) {
-    dispose()
-    throw error
-  }
+  ipcMain.handle(DIAGNOSTIC_CHANNELS.history, history)
+  ipcMain.handle(DIAGNOSTIC_CHANNELS.report, report)
+  contents.on('before-input-event', beforeInput)
+  contents.on('render-process-gone', rendererGone)
+  contents.on('destroyed', dispose)
+  window.on('closed', dispose)
 
   return dispose
 }

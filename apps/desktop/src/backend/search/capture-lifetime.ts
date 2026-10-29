@@ -131,7 +131,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const captureId = binding?.captureId ?? null
     const snapshotSlots = slots.map((slot) => {
       const error = slot.error
-      const hasError = error != null
       const copiedSlot = { ...slot }
       const rows = slot.rows.map((row) => ({ ...row }))
       copiedSlot.rows = rows
@@ -146,7 +145,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
           return { ...choice, face }
         })
       }
-      copiedSlot.error = hasError ? { ...error } : null
+      copiedSlot.error = error != null ? { ...error } : null
 
       return copiedSlot
     })
@@ -156,9 +155,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
 
   function result(code?: SearchCommandError): SearchCommandResult {
     const currentSnapshot = snapshot()
-    const hasError = code != null
-
-    if (hasError) {
+    if (code != null) {
       return { ok: false, error: { code }, snapshot: currentSnapshot }
     }
 
@@ -173,8 +170,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   }
 
   function end(captureId: string): SearchCommandResult {
-    const isCurrentCapture = binding?.captureId === captureId
-    if (isCurrentCapture) {
+    if (binding?.captureId === captureId) {
       invalidate()
     }
 
@@ -182,8 +178,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   }
 
   function invalidate(): void {
-    const hasCapture = binding != null
-    if (!hasCapture) {
+    if (binding == null) {
       return
     }
     binding = null
@@ -216,9 +211,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   function cancelOcrRequests(): void {
     let changed = false
     for (const slot of slotIndexes) {
-      const isOcrRequest = ocrInputs[slot] !== null
-      const isPending = slots[slot].state === 'pending'
-      if (isOcrRequest && isPending) {
+      if (ocrInputs[slot] !== null && slots[slot].state === 'pending') {
         cancelSlot(slot)
         slots[slot] = idleSlot({ slot, observationRevision: slots[slot].observationRevision })
         changed = true
@@ -314,22 +307,11 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.RETRY }>
   ): SearchCommandResult {
     const slot = slots[input.slot]
-    const isCurrent = isCurrentSlot(input)
-    if (!isCurrent) {
+    if (!isCurrentSlot(input)) {
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const error = slot.error
-    const isFailure = slot.state === 'failure'
-    const hasError = error != null
-    if (!isFailure) {
-      return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
-    }
-
-    if (!hasError) {
-      return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
-    }
-    const isRetryable = SEARCH_ERRORS[error.code].retryable
-    if (!isRetryable) {
+    if (slot.state !== 'failure' || error == null || !SEARCH_ERRORS[error.code].retryable) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     const wait = actors[input.slot].getSnapshot().context.wait
@@ -343,12 +325,8 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     if (isWaiting) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
-    const runtime = options.runtime
     const nickname = slot.nickname
-    const hasRuntime = runtime != null
-    const hasNickname = nickname != null
-    const canStart = hasRuntime && hasNickname
-    if (!canStart) {
+    if (options.runtime == null || nickname == null) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
 
@@ -392,17 +370,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     cancelSlot(input.slot)
-    const currentBinding = binding
-    const hasBinding = currentBinding != null
-    if (!hasBinding) {
-      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
-    }
-    const hasSameCapture = currentBinding.captureId === input.captureId
-    if (!hasSameCapture) {
-      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
-    }
-    const hasPermission = options.isCurrent(currentBinding)
-    if (!hasPermission) {
+    if (binding?.captureId !== input.captureId || !options.isCurrent(binding)) {
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
 
@@ -452,34 +420,25 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   }
 
   function isCurrentSlot(request: RequestIdentity): boolean {
-    const currentBinding = binding
-    if (currentBinding == null) {
-      return false
-    }
-    const hasPermission = options.isCurrent(currentBinding)
-    const hasSameCapture = currentBinding.captureId === request.captureId
-    const hasSameRequestId = slots[request.slot].requestId === request.requestId
-    const isCurrent = hasPermission && hasSameCapture && hasSameRequestId
-
-    return isCurrent
+    return (
+      binding != null &&
+      options.isCurrent(binding) &&
+      binding.captureId === request.captureId &&
+      slots[request.slot].requestId === request.requestId
+    )
   }
 
   function canComplete(request: SearchRequest): boolean {
-    const currentSlotMatches = isCurrentSlot(request)
-    const hasSameRequest = actors[request.slot].getSnapshot().context.request === request
-    const hasSameObservation =
+    return (
+      isCurrentSlot(request) &&
+      actors[request.slot].getSnapshot().context.request === request &&
       slots[request.slot].observationRevision === request.observationRevision
-    const canComplete = currentSlotMatches && hasSameRequest && hasSameObservation
-
-    return canComplete
+    )
   }
 
   function complete(request: SearchRequest, outcome: SearchOutcome): void {
     const result = outcome
-    const isCurrentRequest = canComplete(request)
-    const hasOutcome = result != null
-    const canPublish = isCurrentRequest && hasOutcome
-    if (!canPublish) {
+    if (!canComplete(request) || result == null) {
       return
     }
     const isSuccess = result.kind === 'success'
@@ -489,10 +448,9 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     delete completedSlot.choices
     delete completedSlot.details
     if (isSuccess) {
-      const hasRows = result.rows.length > 0
       slots[request.slot] = {
         ...completedSlot,
-        state: hasRows ? 'success' : 'empty',
+        state: result.rows.length > 0 ? 'success' : 'empty',
         rows: result.rows,
         error: null
       }
@@ -633,16 +591,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   }
 
   function emit(): void {
-    const currentBinding = binding
-    const hasBinding = currentBinding != null
-    if (hasBinding) {
-      const hasPermission = options.isCurrent(currentBinding)
-      const isInvalidated = !hasPermission
-      if (isInvalidated) {
-        invalidate()
+    if (binding != null && !options.isCurrent(binding)) {
+      invalidate()
 
-        return
-      }
+      return
     }
     revision += 1
     options.publish(snapshot())

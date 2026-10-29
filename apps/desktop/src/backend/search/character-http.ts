@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
-import { validateApiOrigin } from '../lib/api-origin'
 import type { MonotonicClock } from '../lib/monotonic-clock'
 import type {
   CharacterCandidate,
@@ -165,14 +164,13 @@ export function createCharacterCandidatesHttp({
   fetch: transport = fetchApi,
   clock
 }: ApiOptions): CharacterCandidatesHttp {
-  const origin = validateApiOrigin(apiOrigin)
   const client = createCharacterHttpClient(transport, CHARACTER_HTTP_LIMITS.candidateJsonBytes)
 
   return async ({ nickname, signal }) => {
     validateNickname(nickname)
     try {
       signal.throwIfAborted()
-      const response = await client.get(`${origin}/characters/candidates`, {
+      const response = await client.get(`${apiOrigin}/characters/candidates`, {
         searchParams: { characterName: nickname },
         headers: { Accept: 'application/json' },
         signal
@@ -239,14 +237,13 @@ export function createCharacterDetailsHttp({
   fetch: transport = fetchApi,
   clock
 }: ApiOptions): CharacterDetailsHttp {
-  const origin = validateApiOrigin(apiOrigin)
   const client = createCharacterHttpClient(transport, CHARACTER_HTTP_LIMITS.detailJsonBytes)
 
   return async ({ serverId, characterId, signal }) => {
     validateIdentity({ serverId, characterId })
     try {
       signal.throwIfAborted()
-      const response = await client.get(`${origin}/characters/${serverId}/${characterId}`, {
+      const response = await client.get(`${apiOrigin}/characters/${serverId}/${characterId}`, {
         headers: { Accept: 'application/json' },
         signal
       })
