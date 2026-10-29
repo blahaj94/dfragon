@@ -43,6 +43,8 @@ const mocks = vi.hoisted(() => {
   >(() => vi.fn())
   const readReleaseFeed = vi.fn<typeof import('./update-notice/http').readReleaseFeed>()
   const requestSingleInstanceLock = vi.fn(() => true)
+  const appendSwitch = vi.fn()
+  const whenReady = vi.fn()
   const quit = vi.fn()
   const setPath = vi.fn()
   const getPath = vi.fn()
@@ -78,6 +80,8 @@ const mocks = vi.hoisted(() => {
     readReleaseFeed,
     bootstrap: undefined as Promise<void> | undefined,
     requestSingleInstanceLock,
+    appendSwitch,
+    whenReady,
     quit,
     setPath,
     getPath,
@@ -99,15 +103,20 @@ vi.mock('electron', () => {
     }
   }
   const app = {
-    whenReady: () => ({
-      // biome-ignore lint/suspicious/noThenProperty: Electron whenReady()가 돌려주는 thenable을 흉내 낸다.
-      then: (callback: () => void | Promise<void>): Promise<void> => {
-        mocks.bootstrap = Promise.resolve().then(callback)
+    whenReady: () => {
+      mocks.whenReady()
 
-        return mocks.bootstrap.catch(() => undefined)
+      return {
+        // biome-ignore lint/suspicious/noThenProperty: Electron whenReady()가 돌려주는 thenable을 흉내 낸다.
+        then: (callback: () => void | Promise<void>): Promise<void> => {
+          mocks.bootstrap = Promise.resolve().then(callback)
+
+          return mocks.bootstrap.catch(() => undefined)
+        }
       }
-    }),
+    },
     on: mocks.appOn,
+    commandLine: { appendSwitch: mocks.appendSwitch },
     requestSingleInstanceLock: mocks.requestSingleInstanceLock,
     setPath: mocks.setPath,
     getPath: mocks.getPath,
@@ -240,6 +249,16 @@ it('채널 없는 개발 실행은 profile과 단일 인스턴스를 바꾸지 �
   expect(mocks.setPath).not.toHaveBeenCalled()
   expect(mocks.requestSingleInstanceLock).not.toHaveBeenCalled()
   expect(mocks.constructWindow).toHaveBeenCalledOnce()
+})
+
+it('OCR worker의 WASM thread가 쓰도록 앱 ready 전에 SharedArrayBuffer 기능을 켠다', async () => {
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.appendSwitch).toHaveBeenCalledExactlyOnceWith('enable-features', 'SharedArrayBuffer')
+  expect(mocks.appendSwitch.mock.invocationCallOrder[0]).toBeLessThan(
+    mocks.whenReady.mock.invocationCallOrder[0]
+  )
 })
 
 it('같은 채널의 두 번째 인스턴스는 IPC와 창을 만들지 않고 종료한다', async () => {
