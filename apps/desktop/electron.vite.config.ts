@@ -8,7 +8,6 @@ import { readChannelNameFromMode, readDesktopChannel } from './build/channels'
 
 const LIB_IMPORT_PATTERN = /^@dfragon\/lib$/
 const OCR_CONTRACT_IMPORT_PATTERN = /^@dfragon\/lib\/ocr-contract$/
-const PAGINATION_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/pagination$/
 const SHAPE_CHECK_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/shape-check$/
 const UI_IMPORT_PATTERN = /^@dfragon\/ui$/
 
@@ -28,10 +27,6 @@ export default defineConfig(({ mode, command }) => {
   const rendererAliases = [
     { find: '@frontend', replacement: resolve('src/frontend/src') },
     { find: LIB_IMPORT_PATTERN, replacement: libAlias },
-    {
-      find: PAGINATION_IMPORT_PATTERN,
-      replacement: resolve('../../packages/lib/src/utils/pagination.ts')
-    },
     { find: UI_IMPORT_PATTERN, replacement: resolve('../../packages/ui/src/index.tsx') }
   ]
   const rendererPlugins = [

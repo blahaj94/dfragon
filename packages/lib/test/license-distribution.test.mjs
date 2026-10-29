@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import { readFileSync, realpathSync } from 'node:fs'
-import { join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { collectPackages, packageNotice, resolvePackageRoot } from '@dfragon/licenses/collect'
@@ -34,20 +33,11 @@ test('빌드는 두 배포 위치에 고지 원문의 바이트를 그대로 보
   )
 })
 
-test('요청 제한 runtime 의존성의 고지는 수집하고 문자 표 생성용 codec은 제외한다', () => {
+test('runtime 의존성이 없어 고지를 하나도 수집하지 않는다', () => {
   const notices = collectPackages([], libRoot)
-  const ipAddress = notices.find(({ name }) => name === 'ipaddr.js')
-  const ipAddressRoot = resolvePackageRoot('ipaddr.js', libRoot)
-  const document = ipAddress?.documents.find(({ name }) => name === 'LICENSE')
 
-  assert.ok(document, 'runtime으로 소비하는 ipaddr.js의 원문이 포함되어야 한다')
-  assert.equal(document.text, readFileSync(join(ipAddressRoot, 'LICENSE'), 'utf8'))
-  assert.equal(
-    notices.some(({ name }) => name === 'iconv-lite'),
-    false
-  )
-  assert.equal(
-    notices.some(({ name }) => name === '@dfragon/licenses'),
-    false
+  assert.deepEqual(
+    notices.map(({ name }) => name),
+    []
   )
 })

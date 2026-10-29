@@ -63,18 +63,7 @@ export function validateDFNickname(
   return { isValid: true }
 }
 
-export type { DNFRectangle } from './dnf-party-geometry.js'
-export {
-  detectDNFPartyParticipantWindow,
-  cropDNFPartyParticipantNicknames
-} from './dnf-party-participants.js'
-export type {
-  DNFParticipantFrame,
-  DNFParticipantSlot,
-  DNFParticipantRow,
-  DNFParticipantDetection,
-  DNFParticipantCropResult
-} from './dnf-party-participants.js'
+export type { DNFParticipantFrame, DNFRectangle } from './dnf-party-geometry.js'
 export {
   detectDNFRaidParticipantWindow,
   cropDNFRaidParticipantNicknames

@@ -1,6 +1,5 @@
-import type { DNFRectangle } from './dnf-party-geometry.js'
+import type { DNFParticipantFrame, DNFRectangle } from './dnf-party-geometry.js'
 import { participantGrayscale } from './dnf-party-participant-matching.js'
-import type { DNFParticipantFrame } from './dnf-party-participants.js'
 import type { DNFRaidParticipantPosition, DNFRaidParticipantRow } from './dnf-raid-participants.js'
 
 export type DNFRaidParty = 'R' | 'Y' | 'G' | '싱글'

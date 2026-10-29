@@ -1,38 +1,23 @@
 # @dfragon/lib
 
-API, Desktop에서 입력 규칙, 요청 제한용 IP 키, DNF UI 좌표, 픽셀 계산을 재사용하는 공용 TypeScript 패키지입니다. 앱 source, React, Electron, Node 전용 runtime에 의존하지 않는 ESM과 선언 파일을 제공합니다.
+API, Desktop에서 입력 규칙, DNF UI 좌표, 픽셀 계산을 재사용하는 공용 TypeScript 패키지입니다. 앱 source, React, Electron, Node 전용 runtime에 의존하지 않는 ESM과 선언 파일을 제공합니다.
 
 소비 workspace의 `dependencies`에 `"@dfragon/lib": "workspace:*"`를 추가하고 `pnpm --filter @dfragon/lib build` 후 사용합니다. API의 build와 typecheck는 공용 패키지를 먼저 빌드합니다. 캐릭터명 검사와 DNF 계산 함수의 적용 범위는 아래 안내를 따릅니다.
-
-## 배열 페이지 나누기
-
-```ts
-import { paginate } from '@dfragon/lib/utils/pagination'
-
-const page = paginate(['a', 'b', 'c'], { page: 1, pageSize: 2 })
-// { items: ['c'], pageCount: 2, currentPage: 1 }
-```
-
-`page`는 0부터 시작하는 안전 정수이며, 범위를 벗어나면 첫 페이지나 마지막 페이지로 맞춥니다. 빈 배열도 `pageCount: 1`, `currentPage: 0`, `items: []`를 반환합니다. `pageSize`는 양의 안전 정수여야 하며, 두 숫자의 형식이 유효하지 않으면 `RangeError`를 던집니다.
-
-입력 배열을 변경하지 않고 선택한 항목을 새 배열로 반환하며, 순서와 항목의 참조는 유지합니다. 페이지 적용 여부와 페이지 크기는 호출자가 정합니다. Desktop 개발자 작업대는 OCR 목록에만 50개씩 적용하고 로컬 목록은 전체를 사용합니다.
 
 ## 값 모양 검사
 
 ```ts
-import { exactObject, isNonblankString, listOf, nullable, oneOf } from '@dfragon/lib/utils/shape-check'
+import { isNonblankString, isRecord } from '@dfragon/lib/utils/shape-check'
 
-const isRow = exactObject({ slotId: isNonblankString, grade: nullable(oneOf('종결', '준종결')) })
-listOf(isRow)([{ slotId: 'WEAPON', grade: null }]) // true
-isRow({ slotId: 'WEAPON', grade: null, extra: 1 }) // 정하지 않은 키가 있어 false
+isRecord({ a: 1 }) // true
+isNonblankString('  ') // 공백만 있어 false
 ```
 
-신뢰 경계를 넘어온 값이 정한 모양인지 스키마 라이브러리 없이 확인합니다. 모든 검사는 순수 함수이며 값을 바꾸거나 형 변환하지 않고 `true`, `false`만 돌려줍니다. zod 같은 의존성을 같이 묶을 수 없는 곳에서 씁니다.
+신뢰 경계를 넘어온 값이 정한 모양인지 확인합니다. 모든 검사는 순수 함수이며 값을 바꾸거나 형 변환하지 않습니다.
 
-- `exactObject`, `hasExactKeys`는 배열이 아닌 객체의 own key(symbol 포함)가 정확히 정한 키인지 봅니다.
-- `isFiniteNumber`는 NaN과 무한대를 거절하고, `isNonNegativeSafeInteger`, `isPositiveSafeInteger`는 안전 정수만 받습니다.
-- `isNonblankString`은 공백만 있는 문자열을 거절하고, `isNullableString`은 빈 문자열도 받습니다.
-- `isUtcTimestamp`는 `Z`로 끝나는 ISO 시각 중 실제 날짜만 받아 `2026-02-30T00:00Z`, `24:00`을 거절합니다. `isOffsetTimestamp`는 `±HH:MM` offset도 받습니다.
+- `isRecord`는 `null`도 배열도 아닌 객체를 받고 키와 prototype은 보지 않습니다.
+- `isFiniteNumber`는 NaN과 무한대를 거절합니다.
+- `isNonblankString`은 공백만 있는 문자열을 거절하고, `textOrNull`은 이를 통과한 문자열은 그대로, 나머지는 `null`로 돌려줍니다.
 
 ## 조건 단언
 
@@ -55,28 +40,7 @@ const invalidResponse = () => neopleSearchFailure('api')
 assert(Array.isArray(body.rows), invalidResponse)
 ```
 
-## 요청 제한용 IP 키
-
-요청 제한은 같은 접속자의 요청 횟수를 같은 키 아래에 기록해야 합니다. 같은 IP라도 표기가 다르면 별도 접속자로 집계될 수 있습니다. `getIpQuotaKey(peerAddress: string): string`은 이때 사용할 키를 만듭니다. 주소를 해석하는 `ipaddr.js` 의존성과 변환 규칙은 이 함수에서 관리합니다.
-
-```ts
-import { getIpQuotaKey } from '@dfragon/lib/utils/ip-quota-key'
-
-getIpQuotaKey('192.0.2.1') // '192.0.2.1'
-getIpQuotaKey('::ffff:192.0.2.1') // 같은 IPv4 주소이므로 '192.0.2.1'
-getIpQuotaKey('2001:db8:1234:5678::1') // 'ipv6:32.1.13.184.18.52.86.120'
-getIpQuotaKey('2001:db8:1234:5678::2') // 같은 /64이므로 같은 키
-getIpQuotaKey('invalid-address') // 'unknown'
-```
-
-- IPv4는 표기를 통일합니다. IPv4를 IPv6 모양으로 표현한 주소도 원래 IPv4와 같은 키를 사용합니다.
-- IPv6는 앞 64비트(`/64`, 전체 128비트의 절반)가 같은 주소를 묶습니다. 뒤쪽 주소만 바꿔 새 요청 한도를 얻는 것을 막는 기존 정책입니다. 같은 네트워크의 여러 접속자는 한도를 공유할 수 있습니다.
-- 비어 있거나 해석할 수 없는 주소는 모두 `unknown`을 사용합니다. 잘못된 문자열마다 새 한도를 만들지 않습니다.
-- 반환값은 요청 횟수 기록을 위한 내부 키입니다. IP 주소로 다시 해석하거나 이 함수에 재입력하지 않습니다.
-
-앱은 신뢰할 수 있는 접속 IP를 선택한 뒤 이 함수를 한 번 호출합니다. 프록시 신뢰 설정, HTTP 헤더 해석, 제한 횟수, 시간, 카운터 저장은 각 앱이 담당합니다. 이 함수는 주소 문자열만 받아 키를 반환하며 요청이나 전역 상태에 접근하지 않습니다.
-
-`./package.json`도 export하므로 빌드의 라이선스 수집기가 패키지 위치와 runtime 의존성을 찾을 수 있습니다. 기존 CP949 원문은 `dist/notices`에 유지하고 패키지 루트 `LICENSES`에도 복사해 배포합니다. `ipaddr.js` 원문은 설치된 의존성에서 수집합니다.
+`./package.json`도 export하므로 빌드의 라이선스 수집기가 패키지 위치를 찾을 수 있습니다. 기존 CP949 원문은 `dist/notices`에 유지하고 패키지 루트 `LICENSES`에도 복사해 배포합니다.
 
 ## 캐릭터 검색어 정책
 
@@ -130,51 +94,6 @@ pnpm --filter @dfragon/lib format:check
 `test`는 먼저 TypeScript build를 수행하고 Node 기본 test runner로 공개 package export와 경계값을 검증합니다. `src/cp949-characters.ts`는 `iconv-lite@0.7.3`의 CP949 encode/decode 왕복 결과에서 생성했습니다. 한글 완성형 전체는 연속 범위로 처리합니다. `iconv-lite`는 개발 의존성이며 앱 bundle에는 포함되지 않습니다. 생성 데이터의 라이선스는 [`@dfragon/licenses`의 원문](../licenses/notices/lib/iconv-lite-LICENSE)과 build 산출물 `dist/notices/iconv-lite-LICENSE`에 보존합니다.
 
 문자 표를 갱신할 때는 `pnpm --filter @dfragon/lib generate:cp949` 후 root에서 `pnpm exec biome format --write packages/lib/src/cp949-characters.ts`를 실행합니다. 테스트는 BMP 전체에 대해 원본 codec과 표의 일치를 검증합니다.
-
-## 파티참가인원 닉네임 검출, 크롭
-
-이동 가능한 **파티참가인원 팝업**의 `캐릭터 이름` 열을 처리합니다. 가로 파티 HUD의 `detectPartyFrameGeometry`와 다른 대상입니다. Desktop 개발자 작업 공간의 파티원창 크롭 탭에서 미리보기와 수집에 사용합니다.
-
-```ts
-import {
-  cropDNFPartyParticipantNicknames,
-  detectDNFPartyParticipantWindow,
-  type DNFParticipantFrame
-} from '@dfragon/lib'
-
-// 호출자가 캡처, 디코딩한 게임 client와 UI 0%의 기준 헤더입니다.
-declare const frame: DNFParticipantFrame
-declare const headingTemplate: DNFParticipantFrame
-
-// 위치와 행 상태만 필요할 때 사용합니다.
-const detection = detectDNFPartyParticipantWindow(frame, headingTemplate)
-
-// 검출과 원본 복사를 한 프레임에서 수행하므로 별도로 detect를 호출할 필요가 없습니다.
-const result = cropDNFPartyParticipantNicknames(frame, headingTemplate)
-if (result.status === 'found') {
-  for (const row of result.rows) {
-    if (row.crop === null) continue
-    // slot은 1~4 원래 행 번호입니다. 3번만 남아도 slot:3을 유지합니다.
-    // row.crop의 RGBA를 표시하거나 저장하는 일은 호출자가 담당합니다.
-    console.log(row.slot, row.nickname, row.crop.width, row.crop.height)
-  }
-}
-```
-
-두 함수의 입력은 `{ width, height, rgba }`입니다. `rgba`는 행 우선, 채널 순서 RGBA, premultiply하지 않은 `Uint8Array | Uint8ClampedArray`이고, padding 없이 정확히 `width × height × 4`바이트여야 합니다. alpha는 검출에 사용하지 않고 크롭에 그대로 보존합니다. 게임 client 크기는 양의 안전한 정수이며 한 변 8192px, 총 33,000,000픽셀 이하를 받습니다. 바탕화면, 창 테두리는 호출자가 제외합니다. 메모리 보호 한도 안의 모든 해상도, 화면 비율, 팝업 배율에서 검증됐다는 의미는 아닙니다.
-
-`headingTemplate`은 UI 0%에서 **레벨, 장비 점수, 캐릭터 이름, 직업명 네 열의 헤더 전체**를 배경과 테두리까지 포함해 자른 `368 × 17` RGBA입니다. 측정한 팝업 좌상단에서 `(14, 67)`부터 시작합니다. 자르기 외에 확대, 이진화, 글자만 추출하는 전처리를 하지 않습니다. 기준 이미지 제공, 디코딩, 갱신은 호출자가 소유하며 패키지에 게임 이미지나 플레이어 데이터는 포함하지 않습니다. 잘못된 크기, 바이트 배열과 대비가 없는 기준 헤더는 `RangeError`로 거절합니다.
-
-| `status` | 의미 |
-| --- | --- |
-| `found` | 헤더와 네 행 구조를 만족하는 팝업 하나를 검출했습니다. `window`, `scale`, `matchScore`, `rows`를 반환합니다. |
-| `not-found` | 검증 가능한 팝업이 없습니다. 화면 경계에 잘린 후보도 제외합니다. |
-| `ambiguous` | 서로 다른 팝업 후보가 둘 이상입니다. 하나를 임의로 선택하지 않습니다. |
-| `search-limit` | 조건을 만족하는 빨간 연결 영역이 128개를 초과하거나, 프레임 전체 헤더 비교가 64,000,000개 픽셀 표본 한도를 초과하려 합니다. 일부 후보만 검사해 성공을 반환하지 않습니다. |
-
-`window`와 각 행의 `nickname`은 입력 게임 client 기준의 정수 `{ x, y, width, height }`입니다. `rows`는 항상 위에서부터 네 개이며 각 행은 `{ slot, occupied, nickname }`입니다. 빈 행, 자물쇠 행도 남고, 네 행 모두 비어 있어도 창이 검출되면 `found`입니다. 크롭 함수는 각 행에 `crop`을 추가합니다. 참가자가 있으면 독립 RGBA 복사본, 없으면 `null`이며 입력 버퍼를 변경하거나 공유하지 않습니다. 크기 변경, 선명화, OCR는 하지 않습니다.
-
-`scale`은 헤더로 추정한 래스터 배율이며 게임 UI 설정 퍼센트가 아닙니다. `matchScore`는 평균을 뺀 정규화 상관 점수로, 식별 성공 확률이나 닉네임 판독 신뢰도가 아닙니다. 동기 CPU 계산이므로 반복 캡처에 연결할 때 실행 위치와 주기는 호출자가 정합니다.
 
 ## 12인 공대창 검출, 크롭
 

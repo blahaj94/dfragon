@@ -48,7 +48,6 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 
 - Package: `@dfragon/lib`, 위치: `packages/lib`. 앱, UI, 플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
 - `detectPartyFrameGeometry`는 가득 찬 HP, MP와 주변 테두리에서 HUD 닉네임 위치와 래스터 배율을 검출한다. 일반 Desktop OCR이 이 함수를 사용하며, 특정 해상도 일치 조건 대신 `isValidPartyFrameSize`의 메모리 보호 한도를 적용한다. [검출 범위와 한계](desktop-party-geometry.md#일반-캡처의-검출)를 참고한다.
-- `detectDNFPartyParticipantWindow`, `cropDNFPartyParticipantNicknames`는 RGBA 화면과 호출자가 제공한 기준 헤더로 이동 가능한 파티참가인원 팝업과 네 행의 상태를 찾아 원본 닉네임을 자른다. 빈 행, 자물쇠 행의 슬롯 번호를 유지한다. 이 함수를 쓰던 Desktop 개발자 도구를 지워 지금은 제품에서 쓰지 않는다. [입력 계약과 사용법](../../packages/lib/README.md#파티참가인원-닉네임-검출-크롭)을 참고한다.
 - `detectDNFRaidParticipantWindow`, `cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대 캡처에서 사용한다. `readDNFRaidParticipantMetadata`의 파티, 수치 판독, `readDNFRaidParticipantValues`의 수치 판독과 `classifyDNFRaidValueColumn`의 수치 열 종류 판별, `parseDNFRaidValueNotation`의 표기 해석은 순수 객체 반환에 한정한다. [공대원창 안내](desktop-raid-participants.md)를 참고한다.
 - `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색, 계정 규칙을 대신하지 않는다. 앱은 호출하지 않으며 dfragon-ocr의 학습 닉네임 생성이 원본으로 복사해 쓴다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
 - `pnpm --filter @dfragon/lib test`는 build 후 공개 export, 경계값, 문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.

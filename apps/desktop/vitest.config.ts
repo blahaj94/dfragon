@@ -3,7 +3,6 @@ import { rendererTransforms } from './build/renderer-transforms'
 import { defineConfig, type Plugin } from 'vitest/config'
 
 const OCR_CONTRACT_IMPORT_PATTERN = /^@dfragon\/lib\/ocr-contract$/
-const PAGINATION_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/pagination$/
 const SHAPE_CHECK_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/shape-check$/
 const SHARED_LIBRARY_IMPORT_PATTERN = /^@dfragon\/lib$/
 const SHARED_UI_IMPORT_PATTERN = /^@dfragon\/ui$/
@@ -43,12 +42,6 @@ export default defineConfig({
         find: OCR_CONTRACT_IMPORT_PATTERN,
         replacement: fileURLToPath(
           new URL('../../packages/lib/src/ocr-contract.ts', import.meta.url)
-        )
-      },
-      {
-        find: PAGINATION_IMPORT_PATTERN,
-        replacement: fileURLToPath(
-          new URL('../../packages/lib/src/utils/pagination.ts', import.meta.url)
         )
       },
       {
