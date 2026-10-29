@@ -113,11 +113,7 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
   const { identified, summary } = outcome.value
 
   if (identified.kind === 'invalid-input') {
-    return {
-      kind: 'failure',
-      error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null },
-      retryAfterReceivedAt: null
-    }
+    return { kind: 'failure', error: { code: 'INVALID_SEARCH_QUERY' } }
   }
 
   if (identified.kind !== 'matched') {

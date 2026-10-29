@@ -107,7 +107,7 @@ export const SEARCH_ERRORS = {
 } as const satisfies Record<string, SearchErrorDefinition>
 
 export type SearchErrorCode = keyof typeof SEARCH_ERRORS
-export type SearchError = Readonly<{ code: SearchErrorCode; retryAfterSeconds: number | null }>
+export type SearchError = Readonly<{ code: SearchErrorCode }>
 
 export const SEARCH_SLOT_STATES = ['idle', 'pending', 'success', 'empty', 'failure'] as const
 type SearchSlotState = (typeof SEARCH_SLOT_STATES)[number]

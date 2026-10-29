@@ -7,7 +7,6 @@ const SEARCH_OPERATION_TIMEOUT_MS = 15_000
 export type SearchOperationFailure = {
   kind: 'failure'
   error: SearchError
-  retryAfterReceivedAt: number | null
 }
 export type SearchOperationOutcome<T> =
   | { kind: 'success'; value: T }
@@ -25,7 +24,7 @@ export type SearchOperation = {
 type Check = { active: true } | { active: false; result: SearchOperationFailure | null }
 
 function failure(code: SearchErrorCode): SearchOperationFailure {
-  return { kind: 'failure', error: { code, retryAfterSeconds: null }, retryAfterReceivedAt: null }
+  return { kind: 'failure', error: { code } }
 }
 
 export async function runSearchOperation<T>(
@@ -121,11 +120,7 @@ export async function runSearchOperation<T>(
         return failure('SEARCH_NETWORK_ERROR')
       }
 
-      return {
-        kind: 'failure',
-        error: { code: error.code, retryAfterSeconds: error.retryAfterSeconds },
-        retryAfterReceivedAt: error.retryAfterReceivedAt
-      }
+      return failure(error.code)
     }
   }
 

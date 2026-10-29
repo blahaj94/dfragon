@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
-import type { MonotonicClock } from '../lib/monotonic-clock'
 import type {
   CharacterCandidate,
   CharacterDetails,
@@ -13,7 +12,6 @@ import { CHARACTER_IMAGE_LIMITS, decodeCharacterImage } from './character-image'
 import {
   createCharacterHttpClient,
   parseCharacterJson,
-  parseCharacterRetryAfter,
   throwCharacterTransportFailure
 } from './character-response'
 import {
@@ -93,7 +91,7 @@ const statusErrors: Readonly<Partial<Record<number, SearchErrorCode>>> = {
 }
 
 type TransportOptions = { fetch?: typeof fetch }
-type ApiOptions = TransportOptions & { apiOrigin: string; clock?: Pick<MonotonicClock, 'read'> }
+type ApiOptions = TransportOptions & { apiOrigin: string }
 type IdentityRequest = CharacterIdentity & { signal: AbortSignal }
 export type CharacterCandidatesHttp = (input: {
   nickname: string
@@ -132,12 +130,7 @@ function expectedErrorCode(status: number, details: boolean): string | undefined
   return statusErrors[status]
 }
 
-function assertApiSuccess(
-  response: Response,
-  body: unknown,
-  receivedAt: number,
-  details: boolean
-): void {
+function assertApiSuccess(response: Response, body: unknown, details: boolean): void {
   if (response.status === 200) {
     if (body != null && typeof body === 'object' && Object.hasOwn(body, 'error')) {
       throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
@@ -151,18 +144,12 @@ function assertApiSuccess(
   if (!code || !failure.success || failure.data.error.code !== expectedCode) {
     throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
   }
-  const limited = code === 'SEARCH_RATE_LIMITED'
-  const retryAfterSeconds = limited
-    ? parseCharacterRetryAfter(response.headers.get('Retry-After'))
-    : null
-  const retryAfterReceivedAt = limited ? receivedAt : null
-  throw new SearchHttpFailure(code, { retryAfterSeconds, retryAfterReceivedAt })
+  throw new SearchHttpFailure(code)
 }
 
 export function createCharacterCandidatesHttp({
   apiOrigin,
-  fetch: transport = fetchApi,
-  clock
+  fetch: transport = fetchApi
 }: ApiOptions): CharacterCandidatesHttp {
   const client = createCharacterHttpClient(transport, CHARACTER_HTTP_LIMITS.candidateJsonBytes)
 
@@ -175,9 +162,8 @@ export function createCharacterCandidatesHttp({
         headers: { Accept: 'application/json' },
         signal
       })
-      const receivedAt = clock?.read().monotonicMs ?? performance.now()
       const body = parseCharacterJson(await response.arrayBuffer())
-      assertApiSuccess(response, body, receivedAt, false)
+      assertApiSuccess(response, body, false)
       const parsed = candidatesSchema.safeParse(body)
       if (!parsed.success || parsed.data.rows.some((row) => row.characterName !== nickname)) {
         throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
@@ -192,9 +178,8 @@ export function createCharacterCandidatesHttp({
 }
 
 export function createCharacterImageHttp({
-  fetch: transport = fetchApi,
-  clock
-}: TransportOptions & { clock?: Pick<MonotonicClock, 'read'> } = {}): CharacterImageHttp {
+  fetch: transport = fetchApi
+}: TransportOptions = {}): CharacterImageHttp {
   const client = createCharacterHttpClient(transport, CHARACTER_HTTP_LIMITS.imageBytes)
 
   return async ({ serverId, characterId, signal }) => {
@@ -206,14 +191,10 @@ export function createCharacterImageHttp({
         headers: { Accept: 'image/png' },
         signal
       })
-      const receivedAt = clock?.read().monotonicMs ?? performance.now()
       if (response.status !== 200) {
         await response.body?.cancel().catch(() => undefined)
         if (response.status === 429) {
-          throw new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-            retryAfterSeconds: parseCharacterRetryAfter(response.headers.get('Retry-After')),
-            retryAfterReceivedAt: receivedAt
-          })
+          throw new SearchHttpFailure('SEARCH_RATE_LIMITED')
         }
         throw new SearchHttpFailure('NEOPLE_API_ERROR')
       }
@@ -234,8 +215,7 @@ export function createCharacterImageHttp({
 
 export function createCharacterDetailsHttp({
   apiOrigin,
-  fetch: transport = fetchApi,
-  clock
+  fetch: transport = fetchApi
 }: ApiOptions): CharacterDetailsHttp {
   const client = createCharacterHttpClient(transport, CHARACTER_HTTP_LIMITS.detailJsonBytes)
 
@@ -247,9 +227,8 @@ export function createCharacterDetailsHttp({
         headers: { Accept: 'application/json' },
         signal
       })
-      const receivedAt = clock?.read().monotonicMs ?? performance.now()
       const body = parseCharacterJson(await response.arrayBuffer())
-      assertApiSuccess(response, body, receivedAt, true)
+      assertApiSuccess(response, body, true)
       const parsed = detailsSchema.safeParse(body)
       if (
         !parsed.success ||

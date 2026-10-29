@@ -93,10 +93,7 @@ export const invalidSearchSnapshots: Array<[string, () => unknown]> = [
   ],
   ['idle request', () => withSearchSlot(searchSlot({ state: 'idle' }))],
   ['pending rows', () => withSearchSlot(searchSlot({ rows: [searchRow] }))],
-  [
-    'pending error',
-    () => withSearchSlot(searchSlot({ error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null } }))
-  ],
+  ['pending error', () => withSearchSlot(searchSlot({ error: { code: 'SEARCH_TIMEOUT' } }))],
   ['zero active observation', () => withSearchSlot(searchSlot({ observationRevision: 0 }))],
   ['missing active nickname', () => withSearchSlot(searchSlot({ nickname: null }))],
   ['missing active request', () => withSearchSlot(searchSlot({ requestId: null }))],
@@ -111,7 +108,7 @@ export const invalidSearchSnapshots: Array<[string, () => unknown]> = [
         searchSlot({
           state: 'failure',
           rows: [searchRow],
-          error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
+          error: { code: 'SEARCH_TIMEOUT' }
         })
       )
   ],
@@ -130,23 +127,6 @@ export const invalidSearchSnapshots: Array<[string, () => unknown]> = [
     () => withSearchSlot(searchSlot({ state: 'success', rows: [{ ...searchRow, fame: Infinity }] }))
   ],
   [
-    'retry time on timeout',
-    () =>
-      withSearchSlot(
-        searchSlot({ state: 'failure', error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: 2 } })
-      )
-  ],
-  [
-    'negative retry time',
-    () =>
-      withSearchSlot(
-        searchSlot({
-          state: 'failure',
-          error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: -1 }
-        })
-      )
-  ],
-  [
     'unknown error field',
     () =>
       withSearchSlot(
@@ -154,7 +134,6 @@ export const invalidSearchSnapshots: Array<[string, () => unknown]> = [
           state: 'failure',
           error: {
             code: 'SEARCH_TIMEOUT',
-            retryAfterSeconds: null,
             message: 'private'
           } as SearchSlot['error']
         })
