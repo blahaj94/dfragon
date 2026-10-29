@@ -122,9 +122,7 @@ test('공용 상세 13건은 응답 전에 모두 transport를 연다', { timeou
     (transport) => {
       const catalog = createNeopleCatalog('fixture', transport)
 
-      return Array.from({ length: 13 }, () =>
-        catalog(['fixture-item'], new AbortController().signal)
-      )
+      return Array.from({ length: 13 }, () => catalog(['fixture-item']))
     },
     { message: 'Catalog lookup failed' }
   )
