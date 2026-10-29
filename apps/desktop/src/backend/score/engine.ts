@@ -62,7 +62,6 @@ export type ScoreEngineOptions = Readonly<{
   load?: (path: string) => ScoreLibrary
   /** 해제는 엔진의 `dnfscore_free`가 맡는다. */
   decode?: (pointer: unknown) => string
-  now?: () => number
   report?: (code: DiagnosticCode) => void
 }>
 
@@ -123,7 +122,6 @@ export function loadScoreEngine(options: ScoreEngineOptions): ScoreEngine | null
     path,
     load = (libraryPath) => koffi.load(libraryPath) as unknown as ScoreLibrary,
     decode = decodeNativeString,
-    now = () => performance.now(),
     report = reportDiagnostic
   } = options
   if (path === null) {
@@ -192,9 +190,9 @@ export function loadScoreEngine(options: ScoreEngineOptions): ScoreEngine | null
   }
 
   return (input, calculator) => {
-    const startedAt = now()
+    const startedAt = performance.now()
     const text = callNativeOrNull(input, calculator)
-    if (now() - startedAt > SLOW_SCORE_MS) {
+    if (performance.now() - startedAt > SLOW_SCORE_MS) {
       report('SCORE_ENGINE_SLOW')
     }
 
