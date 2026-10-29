@@ -240,6 +240,7 @@ export function Preview(): React.JSX.Element {
     <>
       <main {...stylex.props(styles.app, styles.windowHeight(MAIN_WINDOW_HEIGHTS[searchMode]))}>
         <TopBar
+          grade={85}
           start={<MainNav />}
           center={<BoardHeaderSlot />}
           end={

@@ -8,6 +8,8 @@ import { registerCaptureIpc, registerCaptureWindow } from './capture/ipc-handler
 import { registerCapturePermissions } from './capture/permission-policy'
 import { readAppApiOrigin, readAppChannelName, readAppIdentity } from './lib/app-channel'
 import { fetchApi } from './api-fetch'
+import { readTodayGrade } from './today-grade/http'
+import { registerTodayGradeWindow } from './today-grade/ipc-handler'
 import { readReleaseFeed } from './update-notice/http'
 import { createUpdateNotices } from './update-notice/notices'
 import { registerUpdateNoticeWindow } from './update-notice/ipc-handler'
@@ -82,6 +84,7 @@ function createWindow(): void {
   let disposeShortcuts: (() => void) | undefined
   let disposeDiagnostics: (() => void) | undefined
   let disposeWindowChrome: (() => void) | undefined
+  let disposeTodayGrade: (() => void) | undefined
   try {
     registerCapturePermissions(session.defaultSession)
     registerCaptureWindow(window, rendererDocumentUrl)
@@ -100,6 +103,18 @@ function createWindow(): void {
       })
     } catch {
       // 새 버전 알림은 캡처 시작을 막지 않는다.
+    }
+    const apiOrigin = readAppApiOrigin()
+    if (apiOrigin != null) {
+      try {
+        disposeTodayGrade = registerTodayGradeWindow({
+          window,
+          documentUrl: rendererDocumentUrl,
+          readGrade: () => readTodayGrade(apiOrigin, fetchApi)
+        })
+      } catch {
+        // 오늘의 등급은 캡처 시작을 막지 않는다.
+      }
     }
     try {
       disposeWindowChrome = registerWindowChromeWindow({
@@ -127,6 +142,7 @@ function createWindow(): void {
     disposeDiagnostics?.()
     disposeWindowChrome?.()
     disposeUpdateNotice?.()
+    disposeTodayGrade?.()
     window.destroy()
     throw error
   }
