@@ -1,6 +1,7 @@
 import { isRecord } from '@dfragon/lib/utils/shape-check'
 import { fromKeys } from 'remeda'
 import { NEOPLE_SERVER_NAMES } from '../../constants/neople-character-search.js'
+import { CHARACTER_CACHE_TTL_MS } from './character-cache.js'
 import { characterDetailSections } from './sections.js'
 import type {
   CharacterDetailSection,
@@ -8,8 +9,6 @@ import type {
   CharacterPayload,
   CharacterPayloads
 } from './sections.js'
-
-const CHARACTER_FRESHNESS_MS = 5 * 60_000
 
 const basicFields = [
   'characterName',
@@ -39,7 +38,7 @@ function projectCharacter(
   return Object.assign(character, basic)
 }
 
-// Nothing is stored, so every section has revision 1 and both timestamps are this fetch.
+// All sections are cached as one fetch, so each has revision 1 and both timestamps are its Neople fetch time.
 function projectSectionMetadata(
   fetchedAt: Date
 ): Record<string, { revision: number; contentUpdatedAt: string; lastSuccessfulFetchAt: string }> {
@@ -54,7 +53,7 @@ function projectSectionMetadata(
 
 export function projectCharacterFreshness(fetchedAt: Date) {
   const lastSuccessfulFetchAt = fetchedAt.toISOString()
-  const expiresAt = new Date(fetchedAt.getTime() + CHARACTER_FRESHNESS_MS).toISOString()
+  const expiresAt = new Date(fetchedAt.getTime() + CHARACTER_CACHE_TTL_MS).toISOString()
 
   return { lastSuccessfulFetchAt, expiresAt }
 }
