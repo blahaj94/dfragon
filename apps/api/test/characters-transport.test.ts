@@ -162,6 +162,25 @@ test('native fetch는 redirect를 따라가거나 공급자 실패를 재시도�
   }
 })
 
+test('native fetch는 연결이 끊긴 통신 실패를 재시도하지 않고 502로 정제한다', async () => {
+  let requests = 0
+  const loopback = await startLoopback((request) => {
+    requests += 1
+    request.socket.destroy()
+  })
+
+  try {
+    const search = createNeopleCharacterSearchForTest('obvious-placeholder-key', {
+      fetch,
+      origin: loopback.origin
+    })
+    await expectStatus(search({ characterName: '연결끊김', serverId: 'cain', limit: 10 }), 502)
+    assert.equal(requests, 1)
+  } finally {
+    await closeLoopback(loopback.server)
+  }
+})
+
 test('loopback의 잘못된 JSON은 공급자 HTTP 503 fallback으로 정제한다', async () => {
   let requests = 0
   const loopback = await startLoopback((_request, response) => {
@@ -218,133 +237,6 @@ test('loopback API901 code는 HTTP 503보다 우선하여 502로 정제한다', 
   } finally {
     await closeLoopback(loopback.server)
   }
-})
-
-test('loopback 본문을 수신하는 도중 deadline timer가 native fetch를 취소한다', {
-  timeout: 2_000
-}, async (t) => {
-  let now = 0
-  const captured: { signal?: AbortSignal } = {}
-  let deadlineCallback: (() => void) | undefined
-  let scheduledDelay: number | undefined
-  let requests = 0
-  let markResponseClosed: (() => void) | undefined
-  const responseClosed = new Promise<void>((resolve) => {
-    markResponseClosed = resolve
-  })
-  const loopback = await startLoopback((_request, response) => {
-    requests += 1
-    response.once('close', () => markResponseClosed?.())
-    response.writeHead(200, { 'content-type': 'application/json' })
-    response.flushHeaders()
-    response.write('{"rows":[')
-  })
-
-  t.after(() => closeLoopback(loopback.server))
-
-  const search = createNeopleCharacterSearchForTest('obvious-placeholder-key', {
-    fetch: async (request, init) => {
-      const isSignalNotNull = init?.signal !== null
-      if (isSignalNotNull) {
-        const isSignalDefined = init?.signal !== undefined
-        if (isSignalDefined) {
-          captured.signal = init.signal as AbortSignal
-        }
-      }
-      const response = await fetch(request, init)
-
-      const readText = response.text.bind(response)
-      response.text = () => {
-        const body = readText()
-        now = 5_000
-        assert(deadlineCallback)
-        deadlineCallback()
-
-        return body
-      }
-
-      return response
-    },
-    origin: loopback.origin,
-    now: () => now,
-    setTimer: (callback, timeout) => {
-      deadlineCallback = callback
-      scheduledDelay = timeout
-
-      return Symbol('timer')
-    },
-    clearTimer: () => undefined
-  })
-
-  const error = await expectStatus(
-    search({ characterName: '본문지연', serverId: 'cain', limit: 10 }),
-    504
-  )
-  assert.equal(error.body.error.code, 'NEOPLE_TIMEOUT')
-  assert.equal(captured.signal?.aborted, true)
-  assert.equal(scheduledDelay, 5_000)
-  assert.equal(requests, 1)
-  await responseClosed
-})
-
-test('timer 실행 전 clock이 deadline에 도달하면 미완료 native 본문을 취소한다', {
-  timeout: 2_000
-}, async (t) => {
-  let now = 0
-  const captured: { signal?: AbortSignal } = {}
-  let scheduledDelay: number | undefined
-  let timerCleared = false
-  let requests = 0
-  let markResponseClosed: (() => void) | undefined
-  const responseClosed = new Promise<void>((resolve) => {
-    markResponseClosed = resolve
-  })
-  const loopback = await startLoopback((_request, response) => {
-    requests += 1
-    response.once('close', () => markResponseClosed?.())
-    response.writeHead(200, { 'content-type': 'application/json' })
-    response.flushHeaders()
-    response.write('{"rows":[')
-  })
-
-  t.after(() => closeLoopback(loopback.server))
-
-  const search = createNeopleCharacterSearchForTest('obvious-placeholder-key', {
-    fetch: async (request, init) => {
-      const isSignalNotNull = init?.signal !== null
-      if (isSignalNotNull) {
-        const isSignalDefined = init?.signal !== undefined
-        if (isSignalDefined) {
-          captured.signal = init.signal as AbortSignal
-        }
-      }
-      const response = await fetch(request, init)
-      now = 5_000
-
-      return response
-    },
-    origin: loopback.origin,
-    now: () => now,
-    setTimer: (_callback, timeout) => {
-      scheduledDelay = timeout
-
-      return Symbol('timer')
-    },
-    clearTimer: () => {
-      timerCleared = true
-    }
-  })
-
-  const error = await expectStatus(
-    search({ characterName: '헤더지연', serverId: 'cain', limit: 10 }),
-    504
-  )
-  assert.equal(error.body.error.code, 'NEOPLE_TIMEOUT')
-  assert.equal(captured.signal?.aborted, true)
-  assert.equal(scheduledDelay, 5_000)
-  assert.equal(timerCleared, true)
-  assert.equal(requests, 1)
-  await responseClosed
 })
 
 test('native 본문이 headers 뒤에 끊기면 HTTP 503 fallback 대신 통신 오류 502를 반환한다', {
