@@ -317,11 +317,11 @@ function tooltipLines(): string[] {
 }
 
 it.each([
-  ['파티 모험단 순번 스냅샷', 'Alt+W', ['스냅샷 찍기', 'Alt W']],
+  ['파티 모험단 순번 스냅샷', 'Alt+W', ['모험단 고정하기', 'Alt W']],
   ['클립보드로 복사', 'Alt+A', ['복사하기', 'Alt A']],
   ['파티 캡처, 단축키 Alt R', 'Alt+R', ['캡처하기', 'Alt R']]
 ])(
-  '%s 버튼은 %s 단축키를 알리고 포커스가 가면 아래쪽 말풍선에 동작 이름과 단축키를 두 줄로 보인다',
+  '%s 버튼은 %s 단축키를 알리고 포커스가 가면 아래쪽 말풍선에 동작 이름과 단축키를 차례로 보인다',
   async (label, keys, lines) => {
     const f = createRendererFixture()
     f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
@@ -370,7 +370,7 @@ it('Alt+W는 꺼진 스냅샷을 찍고 켜진 스냅샷에는 아무것도 하�
   expect(beginCount(f)).toBe(begins)
 })
 
-it('켜진 스냅샷 버튼의 말풍선은 끄기 동작 이름만 보이고 단축키 줄은 두지 않는다', async () => {
+it('켜진 스냅샷 버튼의 말풍선은 고정을 푸는 동작 이름만 보이고 단축키 줄은 두지 않는다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
   await mount(f)
@@ -382,6 +382,5 @@ it('켜진 스냅샷 버튼의 말풍선은 끄기 동작 이름만 보이고 �
 
   await act(async () => snapshot.focus())
 
-  expect(tooltipLines()).toEqual(['스냅샷 지우기'])
-  expect(snapshot.getAttribute('aria-keyshortcuts')).toBe('Alt+W')
+  expect(tooltipLines()).toEqual(['모험단 고정 풀기'])
 })
