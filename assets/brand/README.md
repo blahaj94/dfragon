@@ -9,6 +9,7 @@ node scripts/generate-brand-icons.mjs
 ```
 
 - Desktop `build/icon.ico`, `build/icon.icns`, `build/icon.png`: OS 앱과 설치 파일 아이콘
-- Desktop `resources/icon.png`: 실행 중인 창, Dock 아이콘
 - Desktop `resources/brand.png`: 화면 안의 브랜드 표시와 파비콘
 - Accounts `browser/icon.png`: 패스키 인증 화면의 브랜드 표시와 파비콘
+
+실행 중인 Desktop 창과 Dock 아이콘은 이 원본에서 만들지 않습니다. `apps/desktop/resources/time-of-day/`의 시간대별 바다 그림(`night.png`, `dawn.png`, `day.png`, `afternoon.png`, 256×256)을 PC 시각에 맞춰 바꿔 씁니다. 시간대 기준은 [Desktop MVP 카드 UI의 표현과 이미지](../../docs/rules/desktop-mvp-ui.md#표현과-이미지)에 있습니다.
