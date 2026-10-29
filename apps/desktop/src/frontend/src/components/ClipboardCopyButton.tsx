@@ -29,7 +29,7 @@ export function ClipboardCopyButton({
           <span {...stylex.props(styles.failureText)}>{FAILURE_MESSAGE}</span>
         </p>
       )}
-      <ShortcutTooltip shortcut="Alt A">
+      <ShortcutTooltip label="복사하기" shortcut="Alt A">
         <span {...stylex.props(windowChromeStyles.noDrag)}>
           <button
             type="button"

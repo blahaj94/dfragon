@@ -15,7 +15,7 @@ export function CaptureButton({
   onClick: () => void
 }): React.JSX.Element {
   return (
-    <ShortcutTooltip shortcut="Alt R">
+    <ShortcutTooltip label="캡처하기" shortcut="Alt R">
       <span {...stylex.props(windowChromeStyles.noDrag)}>
         <Button
           variant="primary"
