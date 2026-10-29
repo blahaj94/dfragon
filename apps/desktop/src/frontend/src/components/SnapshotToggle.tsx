@@ -60,13 +60,13 @@ export function SnapshotToggle({
             initialFocus={cancelRef}
             {...stylex.props(styles.popup, shapes.cutBottomRight)}
           >
-            <Popover.Title {...stylex.props(styles.title)}>스냅샷을 지우시겠습니까?</Popover.Title>
+            <Popover.Title {...stylex.props(styles.title)}>고정을 취소하시겠습니까?</Popover.Title>
             <div {...stylex.props(styles.actions)}>
               <Popover.Close ref={cancelRef} render={<Button variant="secondary" size="sm" />}>
-                취소
+                유지
               </Popover.Close>
               <Popover.Close render={<Button variant="primary" size="sm" />} onClick={onClear}>
-                지우기
+                고정 취소
               </Popover.Close>
             </div>
           </Popover.Popup>
