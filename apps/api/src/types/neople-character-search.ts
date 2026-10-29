@@ -42,23 +42,17 @@ export interface SearchErrorBody {
   }
 }
 
-export type FetchTransport = (request: string | URL, init?: RequestInit) => Promise<Response>
+export type FetchTransport = (request: Request, init?: RequestInit) => Promise<Response>
 export type SearchCharacters = (
   input: NeopleCharacterSearchInput
 ) => Promise<NeopleCharacterSearchResult>
 
 export interface SearchDependencies {
-  fetch: FetchTransport
+  fetch?: FetchTransport
   origin: string
-  now: () => number
-  setTimer: (callback: () => void, delay: number) => unknown
-  clearTimer: (timer: unknown) => void
 }
 
 export interface NeopleCharacterSearchTestDependencies {
   fetch: FetchTransport
   origin?: string
-  now?: () => number
-  setTimer?: SearchDependencies['setTimer']
-  clearTimer?: SearchDependencies['clearTimer']
 }
