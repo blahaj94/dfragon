@@ -5,6 +5,7 @@ export type CtcCandidate = {
 }
 
 const BEAM_WIDTH = 32
+const CANDIDATE_COUNT = 2
 const TOKENS_PER_STEP = 16
 const PROBABILITY_SUM_TOLERANCE = 1e-3
 const LOG_ZERO = Number.NEGATIVE_INFINITY
@@ -21,21 +22,8 @@ type Beam = Prefix & { blank: number; nonBlank: number; score: number }
 
 const INVALID_CTC_LABEL_SURROGATE_PATTERN = /[\uD800-\uDFFF]/u
 
-export function decodeCtcCandidates(
-  data: Float32Array,
-  steps: number,
-  characters: readonly string[],
-  candidateCount = 2
-): CtcCandidate[] {
-  if (!Number.isSafeInteger(candidateCount) || candidateCount < 1) {
-    throw new RangeError('CTC candidate count must be a positive safe integer.')
-  }
-  const beamWidth = Math.max(BEAM_WIDTH, candidateCount)
-  const classes = characters.length + 1
-  if (!Number.isSafeInteger(steps) || steps < 0 || data.length !== steps * classes) {
-    throw new Error('OCR model output shape mismatch.')
-  }
-
+// 후보를 닉네임 문자열로 합치므로 label이 겹치거나 여러 문자이면 다른 경로가 같은 후보로 섞인다.
+export function assertCtcLabels(characters: readonly string[]): void {
   if (
     new Set(characters).size !== characters.length ||
     characters.some(
@@ -45,6 +33,14 @@ export function decodeCtcCandidates(
   ) {
     throw new Error('CTC labels must be unique Unicode characters.')
   }
+}
+
+export function decodeCtcCandidates(
+  data: Float32Array,
+  steps: number,
+  characters: readonly string[]
+): CtcCandidate[] {
+  const classes = characters.length + 1
   const frames = collectFrames(data, steps, classes)
   let beams: Beam[] = [{ nickname: '', tokens: [], blank: 0, nonBlank: LOG_ZERO, score: 0 }]
 
@@ -73,7 +69,7 @@ export function decodeCtcCandidates(
       beam.score = addLogProbabilities(beam.blank, beam.nonBlank)
     }
     beams.sort(compareBeams)
-    beams.length = Math.min(beams.length, beamWidth)
+    beams.length = Math.min(beams.length, BEAM_WIDTH)
   }
 
   for (const beam of beams) {
@@ -81,7 +77,7 @@ export function decodeCtcCandidates(
   }
   beams.sort(compareBeams)
 
-  return beams.slice(0, candidateCount).map((beam, index) => {
+  return beams.slice(0, CANDIDATE_COUNT).map((beam, index) => {
     const rank = index + 1
     const modelScore = Math.min(100, Math.exp(beam.score) * 100)
     const nickname = beam.nickname

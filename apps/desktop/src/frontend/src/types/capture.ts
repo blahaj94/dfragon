@@ -1,14 +1,12 @@
 import type { CtcCandidate } from '../lib/ctc-candidates'
 
 export type PartyOcrResult = {
-  text: string
-  confidence: number
   candidates: CtcCandidate[]
 }
 
 export type PartyOcrWorker = {
-  recognize: (image: HTMLCanvasElement) => Promise<{ data: PartyOcrResult }>
-  terminate: () => Promise<void>
+  recognize: (image: HTMLCanvasElement) => Promise<PartyOcrResult>
+  terminate: () => void
 }
 
 export type CapturePhase =

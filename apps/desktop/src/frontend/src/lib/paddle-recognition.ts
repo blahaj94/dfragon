@@ -1,16 +1,11 @@
 import { nicknameCenterOffset } from './nickname-pixels'
 
-export { decodeCtcCandidates } from './ctc-candidates'
-
 export const MODEL_INPUT_HEIGHT = 48
 export const MODEL_INPUT_WIDTH = 320
 const NICKNAME_PADDING = 1
 const ZERO_PADDING = 0
 
-export function recognitionInputValues(
-  pixels: ImageData,
-  preprocessing: 'party' | 'raw'
-): Float32Array {
+export function recognitionInputValues(pixels: ImageData): Float32Array {
   const height = MODEL_INPUT_HEIGHT
   const width = MODEL_INPUT_WIDTH
   const resizedWidth = Math.min(width, Math.ceil((height * pixels.width) / pixels.height))
@@ -22,9 +17,8 @@ export function recognitionInputValues(
   context.imageSmoothingQuality = 'low'
   context.drawImage(original, 0, 0, resizedWidth, height)
   const rgba = context.getImageData(0, 0, resizedWidth, height).data
-  const normalize = preprocessing === 'party' ? normalizedNicknameBgr : normalizedBgr
 
-  return normalize(rgba, resizedWidth, height, width)
+  return normalizedNicknameBgr(rgba, resizedWidth, height, width)
 }
 
 export function normalizedNicknameBgr(

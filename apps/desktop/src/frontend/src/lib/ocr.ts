@@ -11,11 +11,8 @@ class OcrWorkerUnavailableError extends Error {
   }
 }
 
-export async function createPartyOcrWorker(
-  signal?: AbortSignal,
-  preprocessing: 'party' | 'raw' = 'party'
-): Promise<PartyOcrWorker> {
-  signal?.throwIfAborted()
+export async function createPartyOcrWorker(signal: AbortSignal): Promise<PartyOcrWorker> {
+  signal.throwIfAborted()
   const worker = new Worker(new URL('./paddle.worker.ts', import.meta.url), { type: 'module' })
   let stopped = false
   let stopReason: Error = new DOMException('OCR stopped.', 'AbortError')
@@ -31,7 +28,7 @@ export async function createPartyOcrWorker(
     }
     stopped = true
     stopReason = error
-    signal?.removeEventListener('abort', abort)
+    signal.removeEventListener('abort', abort)
     worker.terminate()
     const current = pending
     pending = null
@@ -43,7 +40,7 @@ export async function createPartyOcrWorker(
   function abort(): void {
     terminate()
   }
-  signal?.addEventListener('abort', abort, { once: true })
+  signal.addEventListener('abort', abort, { once: true })
   worker.onerror = (event): void => {
     event.preventDefault()
     terminate(new OcrWorkerUnavailableError('PaddleOCR could not complete recognition.'))
@@ -65,9 +62,7 @@ export async function createPartyOcrWorker(
     clearTimeout(current.timer)
     current.resolve(value)
   }
-  function request(
-    input: { root: string } | { pixels: ImageData; preprocessing: 'party' | 'raw' }
-  ): Promise<Reply> {
+  function request(input: { root: string } | { pixels: ImageData }): Promise<Reply> {
     if (stopped) {
       return Promise.reject(stopReason)
     }
@@ -102,7 +97,7 @@ export async function createPartyOcrWorker(
           throw new Error('Could not read the OCR image.')
         }
         const pixels = context.getImageData(0, 0, image.width, image.height)
-        const result = await request({ pixels, preprocessing })
+        const result = await request({ pixels })
         if ('ready' in result) {
           const error = new OcrWorkerUnavailableError(
             'PaddleOCR returned an invalid recognition result.'
@@ -111,9 +106,9 @@ export async function createPartyOcrWorker(
           throw error
         }
 
-        return { data: result }
+        return result
       },
-      async terminate() {
+      terminate() {
         terminate()
       }
     }

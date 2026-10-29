@@ -157,6 +157,24 @@ export function binarizeNicknamePixels(data: Uint8ClampedArray): void {
   }
 }
 
+export function toBinarizedTextCanvas(
+  image: Readonly<{ width: number; height: number; rgba: ArrayLike<number> }>
+): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.width = image.width
+  canvas.height = image.height
+  const context = canvas.getContext('2d')
+  if (context == null) {
+    throw new Error('Could not create a text recognition canvas.')
+  }
+  const pixels = context.createImageData(image.width, image.height)
+  pixels.data.set(image.rgba)
+  binarizeNicknamePixels(pixels.data)
+  context.putImageData(pixels, 0, 0)
+
+  return canvas
+}
+
 /** 두 밝기 집단의 분산이 가장 커지는 임계값을 OpenCV의 확률, 평균 계산 순서로 찾는다. */
 function findOtsuThreshold(histogram: Uint32Array, count: number, total: number): number {
   const scale = 1 / count

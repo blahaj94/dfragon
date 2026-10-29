@@ -1,10 +1,6 @@
 import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
-import {
-  decodeCtcCandidates,
-  MODEL_INPUT_HEIGHT,
-  MODEL_INPUT_WIDTH,
-  recognitionInputValues
-} from './paddle-recognition'
+import { assertCtcLabels, decodeCtcCandidates } from './ctc-candidates'
+import { MODEL_INPUT_HEIGHT, MODEL_INPUT_WIDTH, recognitionInputValues } from './paddle-recognition'
 import type { PartyOcrResult } from '../types/capture'
 
 const DICTIONARY_CARRIAGE_RETURN_PATTERN = /\r/g
@@ -27,6 +23,7 @@ async function initializeModel(root: string): Promise<void> {
     .replace(DICTIONARY_FINAL_NEWLINE_PATTERN, '')
     .split('\n')
   characters.push(' ')
+  assertCtcLabels(characters)
   session = await InferenceSession.create(new URL('korean-rec.onnx', root).toString(), {
     executionProviders: ['wasm'],
     logSeverityLevel: 3
@@ -34,11 +31,11 @@ async function initializeModel(root: string): Promise<void> {
 }
 
 /** 이미지 전처리, 추론, 디코딩을 수행하고 성공과 실패 모두 텐서를 정리한다. */
-async function recognizeAndReply(pixels: ImageData, preprocessing: 'party' | 'raw'): Promise<void> {
+async function recognizeAndReply(pixels: ImageData): Promise<void> {
   if (session == null) {
     throw new Error('OCR model unavailable.')
   }
-  const tensor = new Tensor('float32', recognitionInputValues(pixels, preprocessing), [
+  const tensor = new Tensor('float32', recognitionInputValues(pixels), [
     1,
     3,
     MODEL_INPUT_HEIGHT,
@@ -51,17 +48,16 @@ async function recognizeAndReply(pixels: ImageData, preprocessing: 'party' | 'ra
     const [batch, steps, classes] = output.dims
     if (
       batch !== 1 ||
+      !Number.isSafeInteger(steps) ||
       classes !== characters.length + 1 ||
-      !(output.data instanceof Float32Array)
+      !(output.data instanceof Float32Array) ||
+      output.data.length !== steps * classes
     ) {
       throw new Error('OCR model output shape mismatch.')
     }
 
     const candidates = decodeCtcCandidates(output.data, steps, characters)
-    const first = candidates[0]
-    const text = first?.nickname ?? ''
-    const confidence = first?.modelScore ?? 0
-    postMessage({ text, confidence, candidates } satisfies PartyOcrResult)
+    postMessage({ candidates } satisfies PartyOcrResult)
   } finally {
     tensor.dispose()
     if (outputs != null) {
@@ -73,11 +69,9 @@ async function recognizeAndReply(pixels: ImageData, preprocessing: 'party' | 'ra
 }
 
 // 메시지 경계는 모델 내부 오류를 노출하지 않고 공개 응답만 전달한다.
-globalThis.onmessage = async (
-  event: MessageEvent<{ root?: string; pixels?: ImageData; preprocessing?: 'party' | 'raw' }>
-) => {
+globalThis.onmessage = async (event: MessageEvent<{ root?: string; pixels?: ImageData }>) => {
   try {
-    const { root, pixels, preprocessing } = event.data
+    const { root, pixels } = event.data
     if (root != null) {
       await initializeModel(root)
       postMessage({ ready: true })
@@ -85,10 +79,10 @@ globalThis.onmessage = async (
       return
     }
 
-    if (pixels == null || (preprocessing !== 'party' && preprocessing !== 'raw')) {
+    if (pixels == null) {
       throw new Error('OCR model unavailable.')
     }
-    await recognizeAndReply(pixels, preprocessing)
+    await recognizeAndReply(pixels)
   } catch {
     // Never forward model exceptions, image pixels, or recognized names to logs.
     postMessage({ failed: true })
