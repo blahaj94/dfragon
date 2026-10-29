@@ -7,19 +7,17 @@ API, Desktop에서 입력 규칙, DNF UI 좌표, 픽셀 계산을 재사용하�
 ## 값 모양 검사
 
 ```ts
-import { exactObject, isNonblankString, listOf, nullable, oneOf } from '@dfragon/lib/utils/shape-check'
+import { isNonblankString, isRecord } from '@dfragon/lib/utils/shape-check'
 
-const isRow = exactObject({ slotId: isNonblankString, grade: nullable(oneOf('종결', '준종결')) })
-listOf(isRow)([{ slotId: 'WEAPON', grade: null }]) // true
-isRow({ slotId: 'WEAPON', grade: null, extra: 1 }) // 정하지 않은 키가 있어 false
+isRecord({ a: 1 }) // true
+isNonblankString('  ') // 공백만 있어 false
 ```
 
-신뢰 경계를 넘어온 값이 정한 모양인지 스키마 라이브러리 없이 확인합니다. 모든 검사는 순수 함수이며 값을 바꾸거나 형 변환하지 않고 `true`, `false`만 돌려줍니다. zod 같은 의존성을 같이 묶을 수 없는 곳에서 씁니다.
+신뢰 경계를 넘어온 값이 정한 모양인지 확인합니다. 모든 검사는 순수 함수이며 값을 바꾸거나 형 변환하지 않습니다.
 
-- `exactObject`, `hasExactKeys`는 배열이 아닌 객체의 own key(symbol 포함)가 정확히 정한 키인지 봅니다.
-- `isFiniteNumber`는 NaN과 무한대를 거절하고, `isNonNegativeSafeInteger`, `isPositiveSafeInteger`는 안전 정수만 받습니다.
-- `isNonblankString`은 공백만 있는 문자열을 거절하고, `isNullableString`은 빈 문자열도 받습니다.
-- `isUtcTimestamp`는 `Z`로 끝나는 ISO 시각 중 실제 날짜만 받아 `2026-02-30T00:00Z`, `24:00`을 거절합니다. `isOffsetTimestamp`는 `±HH:MM` offset도 받습니다.
+- `isRecord`는 `null`도 배열도 아닌 객체를 받고 키와 prototype은 보지 않습니다.
+- `isFiniteNumber`는 NaN과 무한대를 거절합니다.
+- `isNonblankString`은 공백만 있는 문자열을 거절하고, `textOrNull`은 이를 통과한 문자열은 그대로, 나머지는 `null`로 돌려줍니다.
 
 ## 조건 단언
 
