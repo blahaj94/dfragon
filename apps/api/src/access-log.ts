@@ -11,6 +11,8 @@ const UNMATCHED_ROUTE = '<unmatched>'
 const CORRELATION_ID_HEADER = 'X-Correlation-Id'
 const errorCodes = new WeakMap<Response, string>()
 const errorChains = new WeakMap<Response, ErrorChainEntry[]>()
+const neopleStages = new WeakMap<Response, Record<string, number>>()
+const sharedNeopleFetches = new WeakSet<Response>()
 
 function dropStreamError(): void {
   // 닫힌 log pipe의 EPIPE 같은 쓰기 오류는 접근 로그 한 줄을 잃는 것으로 끝낸다.
@@ -35,6 +37,18 @@ export const writeAccessLogToStdout = createStreamAccessLogSink(process.stdout)
 
 export function recordAccessLogErrorCode(response: Response, code: string): void {
   errorCodes.set(response, code)
+}
+
+export function recordAccessLogNeopleStage(
+  response: Response,
+  stage: string,
+  durationMs: number
+): void {
+  neopleStages.set(response, { ...neopleStages.get(response), [stage]: durationMs })
+}
+
+export function recordAccessLogSharedNeopleFetch(response: Response): void {
+  sharedNeopleFetches.add(response)
 }
 
 /**
@@ -67,7 +81,8 @@ function readRouteTemplate(request: Request): string {
 
 /**
  * 요청 하나당 allowlist field만 담은 JSON 한 줄을 남긴다. URL, query, header, body와
- * 오류 message는 남기지 않고, 5xx 응답에만 정제한 오류 chain을 붙인다. Correlation ID는
+ * 오류 message는 남기지 않고, 5xx 응답에만 정제한 오류 chain을 붙인다. 캐릭터 상세 요청에는
+ * 끝난 Neople 단계별 대기 시간만 붙인다. Correlation ID는
  * 클라이언트 값 대신 서버가 만들어 `X-Correlation-Id` 응답 header로도 돌려준다.
  */
 export function createAccessLog(sink: AccessLogSink) {
@@ -90,6 +105,8 @@ export function createAccessLog(sink: AccessLogSink) {
         code: errorCodes.get(response),
         errorChain,
         durationMs: Math.round(performance.now() - startedAt),
+        neopleMs: neopleStages.get(response),
+        neopleShared: sharedNeopleFetches.has(response) ? true : undefined,
         correlationId,
         aborted
       }

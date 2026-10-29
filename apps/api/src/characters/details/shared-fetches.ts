@@ -1,3 +1,4 @@
+import type { NeopleStage, NeopleStageTimings, RecordNeopleStage } from './neople-stages.js'
 import type { CharacterIdentity, FetchedCharacterPayloads } from './sections.js'
 
 interface SharedFetch {
@@ -5,6 +6,8 @@ interface SharedFetch {
   promise: Promise<FetchedCharacterPayloads>
   waiters: number
   settled: boolean
+  stages: Map<NeopleStage, number>
+  timings: Set<NeopleStageTimings>
 }
 
 // One process shares overlapping fetches; a caller disconnect must not cancel other callers.
@@ -16,7 +19,8 @@ export class SharedCharacterFetches {
   async run(
     identity: CharacterIdentity,
     signal: AbortSignal,
-    work: (signal: AbortSignal) => Promise<FetchedCharacterPayloads>
+    timings: NeopleStageTimings,
+    work: (signal: AbortSignal, recordStage: RecordNeopleStage) => Promise<FetchedCharacterPayloads>
   ): Promise<FetchedCharacterPayloads> {
     signal.throwIfAborted()
     if (this.closed) {
@@ -26,11 +30,21 @@ export class SharedCharacterFetches {
     let sharedFetch = this.byCharacter.get(key)
     if (!sharedFetch || sharedFetch.controller.signal.aborted) {
       const controller = new AbortController()
+      const stages = new Map<NeopleStage, number>()
+      const stageTimings = new Set<NeopleStageTimings>()
+      const recordStage: RecordNeopleStage = (stage, durationMs) => {
+        stages.set(stage, durationMs)
+        for (const waiter of stageTimings) {
+          waiter.record(stage, durationMs)
+        }
+      }
       sharedFetch = {
         controller,
-        promise: Promise.resolve().then(() => work(controller.signal)),
+        promise: Promise.resolve().then(() => work(controller.signal, recordStage)),
         waiters: 0,
-        settled: false
+        settled: false,
+        stages,
+        timings: stageTimings
       }
       const owned = sharedFetch
       this.byCharacter.set(key, owned)
@@ -44,9 +58,16 @@ export class SharedCharacterFetches {
           this.pending.delete(owned)
         })
         .catch(() => undefined)
+    } else {
+      timings.markShared()
     }
     const shared = sharedFetch
     shared.waiters++
+    // A caller that joins late still reports the stages that finished before it arrived.
+    for (const [stage, durationMs] of shared.stages) {
+      timings.record(stage, durationMs)
+    }
+    shared.timings.add(timings)
     let cancel: () => void = () => undefined
     try {
       return await new Promise<FetchedCharacterPayloads>((resolve, reject) => {
@@ -59,6 +80,7 @@ export class SharedCharacterFetches {
       })
     } finally {
       signal.removeEventListener('abort', cancel)
+      shared.timings.delete(timings)
       shared.waiters--
       if (shared.waiters === 0 && !shared.settled) {
         shared.controller.abort()

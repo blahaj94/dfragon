@@ -4,6 +4,7 @@ import { projectCharacterDetails, projectCharacterFreshness } from './project.js
 import type { CharacterIdentity } from './sections.js'
 import { enrichCharacterDetails } from '../catalog/enrich.js'
 import { SharedCharacterFetches } from './shared-fetches.js'
+import { type NeopleStageTimings, elapsedMs, ignoredNeopleStageTimings } from './neople-stages.js'
 import type { CatalogService } from '../catalog/service.js'
 import { projectCharacterCard } from '../card/project.js'
 
@@ -20,25 +21,36 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
   const active = new Set<Promise<unknown>>()
 
   const fetches = new SharedCharacterFetches()
-  const respond = async (identity: CharacterIdentity, requestSignal: AbortSignal) => {
+  const respond = async (
+    identity: CharacterIdentity,
+    requestSignal: AbortSignal,
+    timings: NeopleStageTimings
+  ) => {
     const signal = AbortSignal.any([requestSignal, shutdown.signal])
     try {
       if (signal.aborted) {
         throw new CharacterDetailFailure('internal')
       }
-      const { payloads, fetchedAt } = await fetches.run(identity, signal, async (fetchSignal) => {
-        fetchSignal.throwIfAborted()
-        const payloads = await adapter(identity, fetchSignal)
-        fetchSignal.throwIfAborted()
-        const fetchedAt = new Date()
+      const { payloads, fetchedAt } = await fetches.run(
+        identity,
+        signal,
+        timings,
+        async (fetchSignal, recordStage) => {
+          fetchSignal.throwIfAborted()
+          const payloads = await adapter(identity, fetchSignal, recordStage)
+          fetchSignal.throwIfAborted()
+          const fetchedAt = new Date()
 
-        return { payloads, fetchedAt }
-      })
+          return { payloads, fetchedAt }
+        }
+      )
       signal.throwIfAborted()
       const projected = projectCharacterDetails(identity, payloads, fetchedAt)
       const freshness = projectCharacterFreshness(fetchedAt)
       const card = projectCharacterCard(projected)
+      const catalogStartedAt = performance.now()
       const details = await enrichCharacterDetails(projected, deps.catalog, signal)
+      timings.record('catalog', elapsedMs(catalogStartedAt))
       signal.throwIfAborted()
 
       return { ...details, freshness, card }
@@ -48,8 +60,12 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
   }
 
   return {
-    get(identity: CharacterIdentity, signal: AbortSignal) {
-      const operation = respond(identity, signal)
+    get(
+      identity: CharacterIdentity,
+      signal: AbortSignal,
+      timings: NeopleStageTimings = ignoredNeopleStageTimings
+    ) {
+      const operation = respond(identity, signal, timings)
       active.add(operation)
       operation.finally(() => active.delete(operation)).catch(() => undefined)
 

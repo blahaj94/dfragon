@@ -7,6 +7,7 @@ import {
 } from '../../errors/neople-search.js'
 import type { FetchTransport } from '../../types/neople-character-search.js'
 import { CharacterDetailFailure } from './errors.js'
+import { type RecordNeopleStage, elapsedMs } from './neople-stages.js'
 import { CHARACTER_DETAIL_SECTIONS, characterDetailSections } from './sections.js'
 import type {
   CharacterDetailSection,
@@ -54,7 +55,8 @@ export function validateCharacterPayload(
 
 export type FetchCharacterDetails = (
   identity: CharacterIdentity,
-  signal: AbortSignal
+  signal: AbortSignal,
+  recordStage?: RecordNeopleStage
 ) => Promise<CharacterPayloads>
 
 interface TransportDependencies {
@@ -80,7 +82,7 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
     throwHttpErrors: false
   })
 
-  return async (identity, requestSignal) => {
+  return async (identity, requestSignal, recordStage) => {
     const failureController = new AbortController()
     const signal = AbortSignal.any([requestSignal, failureController.signal])
     const results = {} as CharacterPayloads
@@ -105,9 +107,13 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       // ky hands an already aborted request to fetch, so a cancelled request stops before any transport.
       requestSignal.throwIfAborted()
       // Confirm identity before spending the other ten provider requests.
+      const basicStartedAt = performance.now()
       await load('basic')
+      recordStage?.('basic', elapsedMs(basicStartedAt))
       const sections = characterDetailSections.filter((section) => section !== 'basic')
+      const sectionsStartedAt = performance.now()
       await Promise.all(sections.map(load))
+      recordStage?.('sections', elapsedMs(sectionsStartedAt))
 
       return results
     } catch (error) {
