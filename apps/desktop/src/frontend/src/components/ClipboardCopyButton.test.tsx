@@ -91,6 +91,7 @@ it('쓰기가 실패하면 ! 오류 문구를 보이고 다음 복사가 성공�
   await act(async () => button().click())
   expect(failure()).toBe(`!${FAILURE}`)
   expect(container.querySelector('[data-clipboard-announcer]')?.textContent).toBe(FAILURE)
+  expect(container.querySelectorAll('[role="status"]')).toHaveLength(1)
   expect(showsCopyIcon()).toBe(true)
 
   await act(async () => button().click())
