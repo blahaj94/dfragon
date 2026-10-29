@@ -7,12 +7,12 @@ import { apiSchemas } from './schemas.js'
 export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle(`${PRODUCT_NAME} API`)
-    .setDescription('캐릭터 검색, 상세와 모험단 조회를 제공하는 공개 API입니다.')
+    .setDescription('캐릭터 검색과 상세 조회를 제공하는 공개 API입니다.')
     .setVersion('1.0.0')
     .addTag('캐릭터', '로그인 없이 검색과 상세 정보 조회')
     .build()
 
-  // 로그인 완료 화면의 script 금지 CSP는 유지하고 문서 경로만 자체 asset을 허용합니다.
+  // 문서 경로만 자체 asset을 허용합니다.
   app.use('/docs', (_request: Request, response: Response, next: () => void) => {
     response.setHeader(
       'Content-Security-Policy',

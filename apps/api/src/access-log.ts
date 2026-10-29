@@ -53,17 +53,16 @@ export function recordAccessLogErrorChain(response: Response, error: unknown): v
 
 function readRouteTemplate(request: Request): string {
   const route: unknown = request.route
-  const isRoute = typeof route === 'object' && route !== null && 'path' in route
-  if (!isRoute) {
+  if (
+    typeof route !== 'object' ||
+    route === null ||
+    !('path' in route) ||
+    typeof route.path !== 'string'
+  ) {
     return UNMATCHED_ROUTE
   }
 
-  const template = route.path
-  if (typeof template !== 'string') {
-    return UNMATCHED_ROUTE
-  }
-
-  return template
+  return route.path
 }
 
 /**

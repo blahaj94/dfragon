@@ -46,8 +46,7 @@ export async function readRuntimeConfiguration(environment: NodeJS.ProcessEnv) {
     }
     const trustedProxyHops = proxyMode === 'single-hop' ? (1 as const) : undefined
     const apiKey = readSecretInput(environment.NEOPLE_API_KEY, environment.NEOPLE_API_KEY_FILE)
-    const isApiKeyDefined = apiKey !== undefined
-    if (!isApiKeyDefined) {
+    if (apiKey === undefined) {
       throw new Error(invalidConfiguration)
     }
     const localHttps = await readLocalHttps(environment, port, environment.API_ORIGIN ?? '')
