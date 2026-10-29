@@ -4,47 +4,40 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { enrichCharacterDetails } from '../src/characters/catalog/enrich.js'
-import { catalogKey } from '../src/characters/catalog/types.js'
-import type { CatalogKey } from '../src/characters/catalog/types.js'
 import type { projectCharacterDetails } from '../src/characters/details/project.js'
 
 const signal = new AbortController().signal
-const item: CatalogKey = { kind: 'item', itemId: 'fixture-item' }
-function catalogPayload(key: CatalogKey) {
-  return { itemId: key.itemId, itemName: '합성 아이템 ' + key.itemId }
+const item = 'fixture-item'
+function catalogPayload(itemId: string) {
+  return { itemId, itemName: '합성 아이템 ' + itemId }
+}
+function catalogPayloads(itemIds: string[]) {
+  return new Map(itemIds.map((itemId) => [itemId, catalogPayload(itemId)]))
 }
 test('중복을 제거한 128개까지만 조회하고 15개 이하 배치 9개를 모두 동시에 시작한다', async () => {
   let active = 0,
     peak = 0,
     count = 0
-  const service = createCatalogService(async (keys) => {
-    assert(keys.length <= 15)
+  const service = createCatalogService(async (itemIds) => {
+    assert(itemIds.length <= 15)
     active++
     peak = Math.max(active, peak)
-    count += keys.length
+    count += itemIds.length
     await Promise.resolve()
     active--
 
-    return keys.map((key) => {
-      const payload = catalogPayload(key)
-
-      return { key, payload }
-    })
+    return catalogPayloads(itemIds)
   })
-  const keys: CatalogKey[] = Array.from({ length: 140 }, (_, i) => {
-    const itemId = `item-${i}`
-
-    return { kind: 'item', itemId }
-  })
-  const result = await service.load([...keys, keys[0]!], signal)
+  const itemIds = Array.from({ length: 140 }, (_, i) => `item-${i}`)
+  const result = await service.load([...itemIds, itemIds[0]!], signal)
   assert.equal(count, 128)
   // 예전 동시 3 batch 제한에서는 peak가 3이었다.
   assert.equal(peak, 9)
   assert.equal(result.size, 140)
-  for (const [index, key] of keys.entries()) {
-    const expectedData = index < 128 ? catalogPayload(key) : null
+  for (const [index, itemId] of itemIds.entries()) {
+    const expectedData = index < 128 ? catalogPayload(itemId) : null
     const expectedStatus = index < 128 ? 'fresh' : 'unavailable'
-    const detail = result.get(catalogKey(key))!.detail
+    const detail = result.get(itemId)!
     assert.deepEqual(detail.data, expectedData)
     assert.equal(detail.status, expectedStatus)
     assert.equal(detail.fetchedAt === null, index >= 128)
@@ -54,29 +47,21 @@ test('중복을 제거한 128개까지만 조회하고 15개 이하 배치 9개�
 test('처리 기한이 끝나면 진행 중인 아이템 조회를 쓰지 않고 취소된 요청은 전송하지 않는다', async () => {
   let calls = 0
   const controller = new AbortController()
-  const keys: CatalogKey[] = Array.from({ length: 10 }, (_, i) => {
-    const itemId = `item-${i}`
-
-    return { kind: 'item', itemId }
-  })
+  const itemIds = Array.from({ length: 10 }, (_, i) => `item-${i}`)
   const service = createCatalogService(async (group, requestSignal) => {
     calls++
     await delay(30, undefined, { signal: requestSignal })
 
-    return group.map((key) => {
-      const payload = catalogPayload(key)
-
-      return { key, payload }
-    })
+    return catalogPayloads(group)
   }, 5)
-  const result = await service.load(keys, signal)
+  const result = await service.load(itemIds, signal)
   assert.equal(calls, 1)
   const started = calls
-  for (const entry of result.values()) {
-    assert.deepEqual(entry.detail, { data: null, fetchedAt: null, status: 'unavailable' })
+  for (const detail of result.values()) {
+    assert.deepEqual(detail, { data: null, fetchedAt: null, status: 'unavailable' })
   }
   controller.abort()
-  await assert.rejects(service.load(keys, controller.signal))
+  await assert.rejects(service.load(itemIds, controller.signal))
   assert.equal(calls, started)
 })
 
@@ -94,12 +79,9 @@ test('공급자 응답을 요청 itemId로 대응하고 옵션을 보존하며 �
       ]
     })
   }
-  const values = await createNeopleCatalog('fixture-key', fetchImpl)(
-    [item, { kind: 'item', itemId: 'missing' }],
-    signal
-  )
-  assert.equal(values.length, 1)
-  assert.deepEqual(values[0]!.payload.option, { value: '3%' })
+  const values = await createNeopleCatalog('fixture-key', fetchImpl)([item, 'missing'], signal)
+  assert.deepEqual([...values.keys()], [item])
+  assert.deepEqual(values.get(item)!.option, { value: '3%' })
   assert(!requestPaths[0]!.includes('fixture-key'))
   const failure = createNeopleCatalog('fixture-key', async () => {
     throw new Error('secret upstream message')
@@ -118,7 +100,7 @@ test('공급자 응답을 요청 itemId로 대응하고 옵션을 보존하며 �
     throw new Error('secret upstream message')
   })
   const result = await service.load([item], signal)
-  assert.equal(result.get(catalogKey(item))!.detail.status, 'unavailable')
+  assert.equal(result.get(item)!.status, 'unavailable')
   assert.equal(JSON.stringify([...result]).includes('secret'), false)
 })
 
@@ -158,14 +140,12 @@ test('14개 장비 슬롯, 마법부여 스킬 옵션, 체인 null과 캐릭터 
   }
   const original = structuredClone(details)
   let requested = 0
-  const service = createCatalogService(async (keys) => {
-    requested += keys.length
+  const service = createCatalogService(async (itemIds) => {
+    requested += itemIds.length
 
-    return keys.map((key) => {
-      const payload = { ...catalogPayload(key), tune: [{ level: 0 }] }
-
-      return { key, payload }
-    })
+    return new Map(
+      itemIds.map((itemId) => [itemId, { ...catalogPayload(itemId), tune: [{ level: 0 }] }])
+    )
   })
   const result = await enrichCharacterDetails(details, service, signal)
   assert.equal(requested, 1)
@@ -193,16 +173,12 @@ test('연결 종료 뒤 늦은 성공은 반환하지 않고 연결된 요청의
     const release = new Promise<void>((resolve) => {
       finishFetch = resolve
     })
-    const service = createCatalogService(async (keys, requestSignal) => {
+    const service = createCatalogService(async (itemIds, requestSignal) => {
       markStarted()
       await release
       assert.equal(requestSignal.aborted, disconnected)
 
-      return keys.map((key) => {
-        const payload = { ...catalogPayload(key), late: true }
-
-        return { key, payload }
-      })
+      return new Map(itemIds.map((itemId) => [itemId, { ...catalogPayload(itemId), late: true }]))
     })
     const pending = service.load([item], controller.signal)
     await started
@@ -214,7 +190,7 @@ test('연결 종료 뒤 늦은 성공은 반환하지 않고 연결된 요청의
       await assert.rejects(pending, { name: 'AbortError' })
     } else {
       const result = await pending
-      assert.deepEqual(result.get(catalogKey(item))!.detail.data, {
+      assert.deepEqual(result.get(item)!.data, {
         itemId: 'fixture-item',
         itemName: '합성 아이템 fixture-item',
         late: true
@@ -237,12 +213,7 @@ test('이미 취소된 공용 상세 요청은 전송하지 않는다', async ()
 })
 
 test('아이템 다중 응답의 누락, 중복, 잘못된 이름은 저장 대상에서 제외하고 올바른 이웃만 유지한다', async () => {
-  const wanted: CatalogKey[] = [
-    { kind: 'item', itemId: 'valid' },
-    { kind: 'item', itemId: 'duplicate' },
-    { kind: 'item', itemId: 'missing' },
-    { kind: 'item', itemId: 'bad-name' }
-  ]
+  const wanted = ['valid', 'duplicate', 'missing', 'bad-name']
   const valid = {
     itemId: 'valid',
     itemName: '정상 아이템',
@@ -263,5 +234,5 @@ test('아이템 다중 응답의 누락, 중복, 잘못된 이름은 저장 대�
     })
   )
 
-  assert.deepEqual(await adapter(wanted, signal), [{ key: wanted[0], payload: valid }])
+  assert.deepEqual(await adapter(wanted, signal), new Map([['valid', valid]]))
 })

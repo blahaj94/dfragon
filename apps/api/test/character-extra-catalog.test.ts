@@ -2,13 +2,12 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { enrichCharacterDetails } from '../src/characters/catalog/enrich.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
-import { catalogKey } from '../src/characters/catalog/types.js'
-import type { CatalogDetail, CatalogKey, CatalogValue } from '../src/characters/catalog/types.js'
+import type { CatalogDetail } from '../src/characters/catalog/types.js'
 import type { projectCharacterDetails } from '../src/characters/details/project.js'
 
 const signal = new AbortController().signal
-function catalogPayload(key: CatalogKey) {
-  return { itemId: key.itemId, itemName: '합성 아이템 ' + key.itemId }
+function catalogPayload(itemId: string) {
+  return { itemId, itemName: '합성 아이템 ' + itemId }
 }
 
 function fixture(): ReturnType<typeof projectCharacterDetails> {
@@ -55,17 +54,19 @@ function fixture(): ReturnType<typeof projectCharacterDetails> {
 test('장착 부속에 공용 상세를 연결하고 원본, 빈 슬롯, 서약 setId를 보존한다', async () => {
   const details = fixture(),
     original = structuredClone(details),
-    calls: CatalogKey[] = []
-  const service = createCatalogService(async (keys) => {
-    calls.push(...keys)
+    calls: string[] = []
+  const service = createCatalogService(async (itemIds) => {
+    calls.push(...itemIds)
 
-    return keys.map((key): CatalogValue => {
-      const base = catalogPayload(key)
-      const itemSet = { setItemId: 'shared-set' }
-      const payload = { ...base, ...itemSet, tune: [{ level: 0, setPoint: 165 }] }
+    return new Map(
+      itemIds.map((itemId) => {
+        const base = catalogPayload(itemId)
+        const itemSet = { setItemId: 'shared-set' }
+        const payload = { ...base, ...itemSet, tune: [{ level: 0, setPoint: 165 }] }
 
-      return { key, payload }
-    })
+        return [itemId, payload]
+      })
+    )
   })
   const result = await enrichCharacterDetails(details, service, signal)
   assert.deepEqual(details, original)
@@ -151,20 +152,16 @@ test('잘못된 참조는 조회하지 않고 반복 아이템은 한 번씩 연
     creature: { creature: null, skillInfo: [] }
   }
   const original = structuredClone(details)
-  const requested: CatalogKey[] = []
-  const catalog = createCatalogService(async (keys) => {
-    requested.push(...keys)
+  const requested: string[] = []
+  const catalog = createCatalogService(async (itemIds) => {
+    requested.push(...itemIds)
 
-    return keys.map((key) => {
-      const payload = catalogPayload(key)
-
-      return { key, payload }
-    })
+    return new Map(itemIds.map((itemId) => [itemId, catalogPayload(itemId)]))
   })
 
   const result = await enrichCharacterDetails(details, catalog, signal)
 
-  assert.deepEqual(requested.map(catalogKey).sort(), ['item:buff', 'item:shared'])
+  assert.deepEqual(requested.sort(), ['buff', 'shared'])
   const equipment = result.equipment.equipment as Array<Record<string, unknown> | null>
   assert.deepEqual(
     equipment.map((entry) => entry?.itemId),
@@ -180,7 +177,7 @@ test('잘못된 참조는 조회하지 않고 반복 아이템은 한 번씩 연
   assert.deepEqual(details, original)
 })
 
-test('예약된 itemDetail은 공용 조회값으로 교체하고 캐릭터 옵션은 보존한다', async () => {
+test('예약된 itemDetail은 공용 조회값으로 교체하고 캐릭터 옵션과 원본 skillStyle의 skillDetails, 추가 필드는 보존한다', async () => {
   const details = fixture()
   details.equipment = {
     equipment: [{ itemId: 'equipment', option: '장착 옵션', itemDetail: { injected: true } }],
@@ -192,15 +189,14 @@ test('예약된 itemDetail은 공용 조회값으로 교체하고 캐릭터 옵�
   details.buff = { equipment: null, avatar: null, creature: null }
   details.skillStyle = {
     style: { active: [{ skillId: 'first' }] },
-    skillDetails: { obsolete: { injected: true } }
+    skillDetails: { upstream: { retained: true } },
+    future: { retained: true }
   }
   const original = structuredClone(details)
-  const catalog = createCatalogService(async (keys) => {
-    return keys.map((key) => {
-      const payload = { ...catalogPayload(key), tune: { level: 0 } }
-
-      return { key, payload }
-    })
+  const catalog = createCatalogService(async (itemIds) => {
+    return new Map(
+      itemIds.map((itemId) => [itemId, { ...catalogPayload(itemId), tune: { level: 0 } }])
+    )
   })
 
   const result = await enrichCharacterDetails(details, catalog, signal)
@@ -212,8 +208,6 @@ test('예약된 itemDetail은 공용 조회값으로 교체하고 캐릭터 옵�
     itemName: '합성 아이템 equipment',
     tune: { level: 0 }
   })
-  const skillStyle = result.skillStyle as Record<string, unknown>
-  assert.equal(Object.hasOwn(skillStyle, 'skillDetails'), false)
-  assert.deepEqual(skillStyle.style, (details.skillStyle as Record<string, unknown>).style)
+  assert.deepEqual(result.skillStyle, details.skillStyle)
   assert.deepEqual(details, original)
 })
