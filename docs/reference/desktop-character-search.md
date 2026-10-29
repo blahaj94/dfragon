@@ -113,7 +113,7 @@ Main은 검색 수명을 앱 실행 동안 채널마다 한 번 만들고, rende
 - **캐시**: `completed-cache.ts`의 메모리 LRU로 최대 64개, 16MiB, 5분이다. 캐시 hit는 대기열을 건너뛰며, 대기하는 동안 앞 요청이 같은 캐릭터를 받았으면 그 값을 쓴다. 완료값만 공유한다.
 - **요청 주소**: 이미지는 검증한 서버와 캐릭터 ID로 구성한 `img-api.neople.co.kr/df/servers/{serverId}/characters/{characterId}?zoom=1`에서 받는다. API key와 로그인 cookie를 보내지 않는다.
 - **429**: 이미지 응답의 429는 `SEARCH_RATE_LIMITED`와 `retryAfterSeconds`로 바뀌어 점수 없음으로 처리하지 않는다.
-- **정책 등록**: 비교 정책은 `registerCaptureIpc` 등록 때 한 번 검증한다. 잘못된 정책은 등록을 거절하고, renderer는 정책을 보낼 수 없다.
+- **정책 등록**: 비교 정책은 main이 코드 상수 `INITIAL_PORTRAIT_COLOR_POLICY`로 `registerCaptureIpc`에 넘기며 runtime에 다시 검증하지 않는다. renderer는 정책을 보낼 수 없다.
 
 이미지를 받지 못하거나 점수가 없는 후보는 거리 없이 남고, 나머지 후보의 비교는 계속한다. 그 후보를 얼굴 일치로 표시하거나 다음 OCR 이름으로 넘어가지 않는다. 후보 검색과 상세 조회의 HTTP 실패, 429는 기존 오류로 전달하며 실행 취소, 만료와 늦은 결과 차단을 유지한다. 명성이 같은 후보는 기존 순서, null 명성은 마지막 순서를 유지한다.
 
