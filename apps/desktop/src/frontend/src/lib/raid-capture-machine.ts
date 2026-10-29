@@ -13,7 +13,7 @@ import {
   getWaitingStatus
 } from './capture-round'
 import type { OcrCaptureObservation } from './capture-search'
-import { recognizeWithOcrWorker } from './ocr-worker-recognition'
+import type { OcrRecognition } from './ocr-worker-recognition'
 import { recognizeRaidRows, type RaidSlotRecognition } from './raid-recognition'
 import { reportRendererDiagnostic, showRejectedOcrNickname } from './runtime-diagnostics'
 
@@ -25,6 +25,7 @@ type RaidCaptureInput = {
   beginSearch: (signal: AbortSignal) => Promise<string | null>
   readFrame: (captureId: string) => Promise<RaidFrameResult>
   observeOcr: (input: OcrCaptureObservation) => void
+  recognizeWithOcr: OcrRecognition
 }
 
 type RaidCaptureContext = {
@@ -61,9 +62,15 @@ export const raidCaptureMachine = setup({
         input.effects.readFrame(input.captureId)
     ),
     recognize: fromPromise(
-      ({ input, signal }: { input: readonly (RaidFrameRow | null)[]; signal: AbortSignal }) =>
-        recognizeWithOcrWorker(signal, OCR_FAILED_STATUS, (recognizeText) =>
-          recognizeRaidRows(input, recognizeText)
+      ({
+        input,
+        signal
+      }: {
+        input: { rows: readonly (RaidFrameRow | null)[]; effects: RaidCaptureInput }
+        signal: AbortSignal
+      }) =>
+        input.effects.recognizeWithOcr(signal, OCR_FAILED_STATUS, (recognizeText) =>
+          recognizeRaidRows(input.rows, recognizeText)
         )
     )
   },
@@ -229,7 +236,7 @@ export const raidCaptureMachine = setup({
           invoke: {
             src: 'recognize',
             // frame 상태의 성공 전이에서 확보한 회차의 크롭만 인식한다.
-            input: ({ context }) => context.rows,
+            input: ({ context }) => ({ rows: context.rows, effects: context.effects }),
             onDone: [
               {
                 guard: ({ event }) => event.output.some((result) => result.kind === 'failed'),

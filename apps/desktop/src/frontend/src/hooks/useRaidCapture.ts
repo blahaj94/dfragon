@@ -6,6 +6,7 @@ import { getRecognizedNicknames } from '../lib/recognized-nicknames'
 import { createSeatOrder, swapSeats as swapSeatOrder, type SeatOrder } from '../lib/raid-seats'
 import { useManualCharacterLookup, type ManualCharacterLookup } from './useManualCharacterLookup'
 import { useDesktopShortcut } from './useDesktopShortcut'
+import type { OcrRecognition } from '../lib/ocr-worker-recognition'
 
 export type RaidCapture = {
   search: ManualCharacterLookup
@@ -27,7 +28,7 @@ export type RaidCapture = {
 
 /**
  * 공대 화면의 캡처 회차, 12자리 조회와 자리 배치를 묶는다. 게임 창 선택과 중지는 파티 캡처가 소유하며, 이
- * hook은 그 등록 상태를 공대 회차에 알린다.
+ * hook은 그 등록 상태를 공대 회차에 알린다. OCR worker도 파티 캡처가 창을 등록한 동안 띄워 둔 것을 함께 쓴다.
  *
  * 자리 배치는 화면 자리에 놓인 검색 슬롯만 바꾸고 main 공대 검색 수명의 슬롯 번호는 그대로 둔다. 그래서
  * 맞바꾼 뒤에도 진행 중 조회와 늦은 응답은 같은 슬롯, 곧 옮겨 간 카드에 들어간다. 회차는 12자리를 비우고
@@ -38,11 +39,13 @@ export type RaidCapture = {
 export function useRaidCapture({
   sourceId,
   sourceReady,
-  receivesShortcut
+  receivesShortcut,
+  recognizeWithOcr
 }: {
   receivesShortcut: boolean
   sourceId: string
   sourceReady: boolean
+  recognizeWithOcr: OcrRecognition
 }): RaidCapture {
   // 파티 카드와 다른 main 검색 수명을 써서 파티 네 자리와 공대 12자리가 서로의 결과를 덮어쓰지 않는다.
   const search = useManualCharacterLookup(
@@ -64,7 +67,8 @@ export function useRaidCapture({
     input: {
       beginSearch: beginRound,
       readFrame: (captureId) => window.raidSearch.readCaptureFrame(captureId),
-      observeOcr: search.observeOcr
+      observeOcr: search.observeOcr,
+      recognizeWithOcr
     }
   })
 
