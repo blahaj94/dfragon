@@ -1,94 +1,34 @@
 import 'reflect-metadata'
-import { writeSync } from 'node:fs'
 import { createApiRuntime } from './runtime/application.js'
 import { readRuntimeConfiguration } from './runtime/configuration.js'
 
-const startupShutdownGraceMs = 1000
 const startupFailureMessage = 'API failed to start'
 
 async function main(): Promise<void> {
   const configuration = await readRuntimeConfiguration(process.env)
-  let runtime: Awaited<ReturnType<typeof createApiRuntime>> | undefined
-  let stopping = false
-  let starting = true
-  let startupShutdownTimer: ReturnType<typeof setTimeout> | undefined
-  let closing: Promise<void> | undefined
-  const close = (ownedRuntime: Awaited<ReturnType<typeof createApiRuntime>>): Promise<void> => {
-    const pendingClose = closing
-    const isClosing = pendingClose !== undefined
-    if (isClosing) {
-      return pendingClose
-    }
-    closing = ownedRuntime
-      .close()
-      .catch(() => {
-        console.error(startupFailureMessage)
-        process.exitCode = 1
-      })
-      .finally(() => {
-        clearTimeout(startupShutdownTimer)
-        process.off('SIGINT', shutdown)
-        process.off('SIGTERM', shutdown)
-      })
-
-    return closing
-  }
-  const shutdown = (): void => {
-    const isFirstSignal = !stopping
-    const shouldLimitStartup = starting && isFirstSignal
-    stopping = true
-    if (shouldLimitStartup) {
-      startupShutdownTimer = setTimeout(() => {
-        // 시작 중인 앱 생성에는 취소 경로가 없다. Async 정리 완료와 구분한다.
-        try {
-          writeSync(2, `${startupFailureMessage}\n`)
-        } finally {
-          process.exit(1)
-        }
-      }, startupShutdownGraceMs)
-    }
-    const ownedRuntime = runtime
-    const hasRuntime = ownedRuntime !== undefined
-    const canClose = hasRuntime && !starting
-    if (canClose) {
-      close(ownedRuntime)
-    }
-  }
-
-  process.on('SIGINT', shutdown)
-  process.on('SIGTERM', shutdown)
-
+  const app = await createApiRuntime(configuration)
   try {
-    runtime = await createApiRuntime(configuration)
-    // 초기화 중 signal이 오면 완료 뒤 port를 열지 않고 소유 자원을 정리한다.
-    if (stopping) {
-      starting = false
-      await close(runtime)
-
-      return
-    }
-
     if (configuration.localHttps !== undefined) {
-      await runtime.app.listen(configuration.port, '127.0.0.1')
+      await app.listen(configuration.port, '127.0.0.1')
     } else {
-      await runtime.app.listen(configuration.port)
-    }
-    starting = false
-    if (stopping) {
-      await close(runtime)
+      await app.listen(configuration.port)
     }
   } catch (error) {
-    starting = false
-    process.off('SIGINT', shutdown)
-    process.off('SIGTERM', shutdown)
-    const ownedRuntime = runtime
-    const hasRuntime = ownedRuntime !== undefined
-    if (hasRuntime) {
-      await close(ownedRuntime)
-    }
-    clearTimeout(startupShutdownTimer)
+    await app.close()
     throw error
   }
+
+  const shutdown = (): void => {
+    // close가 열린 연결을 기다리며 끝나지 않으면 두 번째 signal은 Node 기본 동작으로 즉시 종료한다.
+    process.off('SIGINT', shutdown)
+    process.off('SIGTERM', shutdown)
+    app.close().catch(() => {
+      console.error(startupFailureMessage)
+      process.exitCode = 1
+    })
+  }
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
 }
 
 try {
