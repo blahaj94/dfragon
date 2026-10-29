@@ -46,6 +46,8 @@ pnpm --filter @dfragon/desktop build:win
 
 Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 한국어(대한민국, LCID `0x0412`)로 기록합니다. 이 값은 EXE 메타데이터에 적용하며 앱 UI와 라이선스 원문은 기존 구성을 유지합니다.
 
+패키지에는 Chromium이 직접 띄우는 문구의 번역 파일(`locales/*.pak`) 가운데 한국어(`ko`)와 영어(`en-US`)만 넣습니다. 앱 화면은 한국어로만 만들기 때문에 나머지 53개 언어(약 49MB)는 넣지 않습니다. 다른 언어로 설정한 Windows에서는 Chromium이 영어로 대신 열어, Chromium 기본 문구와 진단 기록의 시각 표기가 영어 형식으로 나옵니다.
+
 ### 포터블 exe와 GitHub Releases
 
 같은 환경에서 `pnpm --filter @dfragon/desktop build:win:portable`을 실행하면 `apps/desktop/dist/DFragon-<버전>-x64-portable.exe`가 생성됩니다. Windows x64에서 이 파일을 내려받아 실행하며 Node.js나 별도 설치 프로그램은 필요하지 않습니다. 설치형처럼 실행할 때 Windows 관리자 권한을 요청합니다. OCR 모델과 실행 라이브러리도 포함합니다. 실행할 때 임시 폴더에 앱을 풀기 때문에 첫 실행에 시간이 걸릴 수 있습니다.
