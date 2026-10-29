@@ -196,7 +196,7 @@ it('공대 헤더에 파티와 같은 모양의 캡처 버튼과 마지막 캡�
   expect(button.getAttribute('aria-keyshortcuts')).toBe('Alt+R')
   expect(button.querySelector('kbd')).toBeNull()
   expect(button.querySelector('svg')).not.toBeNull()
-  expect(button.textContent).toBe('Alt R')
+  expect(button.textContent).toBe('')
   expect(raidHeader().textContent).toContain('마지막 캡처')
   expectSingleAnnouncement('Alt+R을 눌러 공대를 인식해 주세요.')
   await act(async () => button.click())
@@ -346,4 +346,25 @@ it('공대 회차 중 캡처를 중지하면 회차를 끝내고 늦은 이름�
   expect(raid.notifyOcr).not.toHaveBeenCalled()
   expectSingleAnnouncement('캡처를 중지했습니다.')
   expect(raidCaptureButton().disabled).toBe(true)
+})
+
+it('공대 화면의 Alt+W는 공대 스냅샷만 켜고 Alt+A는 공대 열두 자리를 파티마다 한 줄로 복사한다', async () => {
+  const f = createRendererFixture()
+  stubRaidSearch()
+  await mount(f)
+  await showScreen('공대')
+
+  await f.shortcut('take-snapshot')
+  expect(
+    document.querySelector('[aria-label="공대 모험단 순번 스냅샷"]')?.getAttribute('aria-pressed')
+  ).toBe('true')
+  await f.shortcut('copy-clipboard')
+  expect(window.desktopClipboard.writeText).toHaveBeenCalledExactlyOnceWith(
+    ['[], [], [], []', '[], [], [], []', '[], [], [], []'].join('\n')
+  )
+
+  await showScreen('파티')
+  expect(
+    document.querySelector('[aria-label="파티 모험단 순번 스냅샷"]')?.getAttribute('aria-pressed')
+  ).toBe('false')
 })
