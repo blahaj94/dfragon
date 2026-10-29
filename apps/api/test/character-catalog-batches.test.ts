@@ -46,9 +46,9 @@ test('중복 참조를 한 번씩 조회하고 아이템은 15개 이내로 제�
 
 test('공급자는 아이템 15개 요청을 받고 16개 요청은 전송 전에 거절한다', async () => {
   let calls = 0
-  const adapter = createNeopleCatalog('fixture-key', async (input) => {
+  const adapter = createNeopleCatalog('fixture-key', async (request) => {
     calls++
-    const url = new URL(String(input))
+    const url = new URL(request.url)
     assert.equal(url.pathname, '/df/multi/items')
     const ids = url.searchParams.get('itemIds')
     assert.equal(ids?.split(',').length, 15)

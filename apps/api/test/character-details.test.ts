@@ -67,9 +67,9 @@ test('공급자 알려진 code를 우선 분류하고 기본 조회 실패는 �
   ] as const) {
     let calls = 0
     const adapter = createNeopleCharacterDetailsForTest('fake-key', {
-      fetch: async (_url, init) => {
+      fetch: async (request) => {
         calls++
-        assert.equal(new Headers(init?.headers).get('apikey'), 'fake-key')
+        assert.equal(request.headers.get('apikey'), 'fake-key')
 
         return new Response(typeof body === 'string' ? body : JSON.stringify(body), { status })
       }
@@ -85,36 +85,88 @@ test('공급자 알려진 code를 우선 분류하고 기본 조회 실패는 �
   }
 })
 
-test('실제 HTTP transport는 미완성 body의 전체 제한 시간을 지키고 redirect를 따라가지 않는다', async () => {
-  let mode = 'stall'
+test('연결 오류는 재시도하지 않고 원문 없이 공급자 오류로 반환한다', async () => {
+  let calls = 0
+  const adapter = createNeopleCharacterDetailsForTest('fake-key', {
+    fetch: async () => {
+      calls++
+      // undici가 연결 실패에 쓰는 오류와 같은 이름, 문구다.
+      throw new TypeError('fetch failed', { cause: new Error('sensitive socket detail') })
+    }
+  })
+  await assert.rejects(adapter(identity, new AbortController().signal), (error: unknown) => {
+    assert(error instanceof CharacterDetailFailure)
+    assert.equal(error.status, 502)
+    assert.equal(JSON.stringify(error.body).includes('sensitive'), false)
+
+    return true
+  })
+  assert.equal(calls, 1)
+})
+
+test('공급자가 header나 body를 보내지 않으면 HTTP client timeout 뒤 504로 반환하고 transport를 취소한다', {
+  timeout: 2_000
+}, async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const neverSettles = (signal: AbortSignal) =>
+    new Promise<never>((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+    })
+  for (const stall of ['header', 'body'] as const) {
+    let signal: AbortSignal | undefined
+    let markWaiting!: () => void
+    const waiting = new Promise<void>((resolve) => {
+      markWaiting = resolve
+    })
+    const adapter = createNeopleCharacterDetailsForTest('fake-key', {
+      fetch: async (request) => {
+        signal = request.signal
+        if (stall === 'header') {
+          markWaiting()
+
+          return neverSettles(request.signal)
+        }
+        const pull = () => {
+          markWaiting()
+
+          return neverSettles(request.signal)
+        }
+
+        return new Response(new ReadableStream({ pull }, { highWaterMark: 0 }))
+      }
+    })
+    const pending = assert.rejects(
+      adapter(identity, new AbortController().signal),
+      (error: unknown) => error instanceof CharacterDetailFailure && error.status === 504,
+      stall
+    )
+    // ky는 fetch 호출, body 읽기 직전에 timer를 걸기 때문에 대기가 시작되면 timer가 등록돼 있다.
+    await waiting
+    // ky 기본 timeout 값을 고정하지 않도록 어떤 기본값보다도 넉넉히 진행한다.
+    t.mock.timers.tick(60_000)
+    await pending
+    assert.equal(signal?.aborted, true, stall)
+  }
+})
+
+test('실제 HTTP transport는 redirect를 따라가지 않고 공급자 오류로 반환한다', async () => {
   let requests = 0
   const server = createServer((_request, response) => {
     requests++
-    if (mode === 'redirect') {
-      response.writeHead(302, { location: '/unexpected' }).end()
-    } else {
-      response.writeHead(200, { 'content-type': 'application/json' })
-      response.write('{')
-    }
+    response.writeHead(302, { location: '/unexpected' }).end()
   })
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   const address = server.address()
   assert(address && typeof address !== 'string')
   try {
     const adapter = createNeopleCharacterDetailsForTest('fake-key', {
-      origin: `http://127.0.0.1:${address.port}`,
-      timeoutMs: 150
+      origin: `http://127.0.0.1:${address.port}`
     })
-    await assert.rejects(
-      adapter(identity, new AbortController().signal),
-      (error: unknown) => error instanceof CharacterDetailFailure && error.status === 504
-    )
-    mode = 'redirect'
     await assert.rejects(
       adapter(identity, new AbortController().signal),
       (error: unknown) => error instanceof CharacterDetailFailure && error.status === 502
     )
-    assert.equal(requests, 2)
+    assert.equal(requests, 1)
   } finally {
     server.closeAllConnections()
     await new Promise<void>((resolve) => server.close(() => resolve()))
@@ -148,6 +200,21 @@ test('기본 응답 뒤 취소되면 남은 섹션은 전송하지 않는다', a
   finish()
   await rejected
   assert.equal(calls, 1)
+})
+
+test('이미 취소된 요청은 기본 조회도 전송하지 않는다', async () => {
+  const controller = new AbortController()
+  controller.abort()
+  let calls = 0
+  const adapter = createNeopleCharacterDetailsForTest('fixture-key', {
+    fetch: async () => {
+      calls++
+
+      return Response.json(basic)
+    }
+  })
+  await assert.rejects(adapter(identity, controller.signal), { status: 500 })
+  assert.equal(calls, 0)
 })
 
 test('상세 ID는 대소문자와 ASCII 경계 1~256자를 보존하고 빈 값, 257자, 비ASCII를 거절한다', () => {
@@ -244,12 +311,12 @@ test('기본 식별 응답을 확인한 뒤 나머지 10개를 동시에 시작�
     peak = 0
   const prefix = '/df/servers/siroco/characters/fixture-character'
   const adapter = createNeopleCharacterDetailsForTest('fixture-key', {
-    fetch: async (input, options) => {
-      const url = new URL(String(input))
+    fetch: async (request) => {
+      const url = new URL(request.url)
       assert(url.pathname.startsWith(prefix))
       assert.equal(url.search, '')
-      assert.equal(new Headers(options?.headers).get('apikey'), 'fixture-key')
-      assert.equal(options?.redirect, 'error')
+      assert.equal(request.headers.get('apikey'), 'fixture-key')
+      assert.equal(request.redirect, 'error')
       const suffix = url.pathname.slice(prefix.length)
       const section = sectionsByPath.get(suffix)
       assert(section)
@@ -325,8 +392,8 @@ test('각 상세 섹션의 필수 최상위 envelope를 검사하되 미장착 n
 test('기본 응답 뒤 한 섹션이 실패하면 부분 성공을 반환하지 않는다', async () => {
   const paths: string[] = []
   const adapter = createNeopleCharacterDetailsForTest('fixture-key', {
-    fetch: async (input) => {
-      const path = new URL(String(input)).pathname
+    fetch: async (request) => {
+      const path = new URL(request.url).pathname
       paths.push(path)
       if (path.endsWith('/fixture-character')) {
         return Response.json(basic)
@@ -349,4 +416,37 @@ test('기본 응답 뒤 한 섹션이 실패하면 부분 성공을 반환하지
   })
   assert.equal(paths.length, 11)
   assert.equal(new Set(paths).size, paths.length)
+})
+
+test('기본 응답 뒤 한 섹션이 실패하면 아직 진행 중인 다른 섹션 요청을 취소한다', {
+  timeout: 2_000
+}, async () => {
+  const pendingSignals: AbortSignal[] = []
+  const adapter = createNeopleCharacterDetailsForTest('fixture-key', {
+    fetch: async (request) => {
+      const path = new URL(request.url).pathname
+      if (path.endsWith('/fixture-character')) {
+        return Response.json(basic)
+      }
+
+      if (path.endsWith('/equip/equipment')) {
+        return Response.json({ error: { code: 'API901', message: 'private section failure' } })
+      }
+
+      pendingSignals.push(request.signal)
+
+      return new Promise<Response>((_resolve, reject) => {
+        request.signal.addEventListener(
+          'abort',
+          () => reject(new DOMException('요청 취소', 'AbortError')),
+          { once: true }
+        )
+      })
+    }
+  })
+
+  await assert.rejects(adapter(identity, new AbortController().signal), { status: 502 })
+  // 실패보다 늦게 시작하는 섹션은 transport를 열지 않으므로 진행 중이던 요청 수는 실행 순서에 따라 다르다.
+  assert(pendingSignals.length > 0)
+  assert(pendingSignals.every((signal) => signal.aborted))
 })
