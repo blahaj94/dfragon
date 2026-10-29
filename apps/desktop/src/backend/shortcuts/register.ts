@@ -3,7 +3,7 @@ import {
   DESKTOP_SHORTCUT_CHANNEL,
   DESKTOP_SHORTCUTS
 } from '../../preload/common/types/desktop-shortcut'
-import { createKeyboardShortcut } from '../lib/keyboard-shortcut'
+import { createAltKeyShortcut } from '../lib/keyboard-shortcut'
 import { isCurrentProcessForeground, isDnfForeground } from '../lib/win32-window-capture'
 
 const VK_R = 0x52
@@ -30,8 +30,8 @@ export function registerDesktopShortcuts({
     return !frame.isDestroyed() && !frame.detached && frame.url === rendererDocumentUrl
   }
 
-  const shortcut = createKeyboardShortcut({
-    bindings: [{ key: VK_R, alt: true, action: DESKTOP_SHORTCUTS.restartSearch }],
+  const shortcut = createAltKeyShortcut({
+    key: VK_R,
     isForeground: () => isTrusted() && (isCurrentProcessForeground() || isDnfForeground())
   })
 
@@ -74,9 +74,9 @@ export function registerDesktopShortcuts({
   contents.on('did-navigate', onNavigated)
   contents.on('render-process-gone', onRendererGone)
   window.once('closed', dispose)
-  const registered = shortcut.register((action) => {
+  const registered = shortcut.register(() => {
     if (isTrusted()) {
-      contents.mainFrame.send(DESKTOP_SHORTCUT_CHANNEL, action)
+      contents.mainFrame.send(DESKTOP_SHORTCUT_CHANNEL, DESKTOP_SHORTCUTS.restartSearch)
     }
   })
   if (!registered && process.platform === 'win32') {

@@ -90,7 +90,7 @@ export function createWin32KeyboardHook({
   register: (handler: KeyboardHandler) => boolean
   unregister: (handler: KeyboardHandler) => void
 } {
-  const handlers = new Set<KeyboardHandler>()
+  let handler: KeyboardHandler | null = null
   let registration:
     | { api: Win32KeyboardApi; callback: bigint; hook: bigint | null | undefined }
     | undefined
@@ -124,22 +124,17 @@ export function createWin32KeyboardHook({
     const event = Number(message)
     const down = event === WM_KEYDOWN || event === WM_SYSKEYDOWN
     const up = event === WM_KEYUP || event === WM_SYSKEYUP
-    if (code !== 0 || data == null || handlers.size === 0 || (!down && !up)) {
+    const current = handler
+    if (code !== 0 || data == null || current == null || (!down && !up)) {
       return api.callNext(code, message, data)
     }
     let handled = false
     try {
       const key = api.readVirtualKey(data)
       const modifiers = api.readModifiers()
-      for (const handler of handlers) {
-        try {
-          handled = handler({ key, down, modifiers }) || handled
-        } catch {
-          // One consumer must not disrupt normal key delivery or the other subscriptions.
-        }
-      }
+      handled = current({ key, down, modifiers })
     } catch {
-      // Failed native reads leave normal keyboard delivery intact.
+      // Failed native reads or a throwing handler leave normal keyboard delivery intact.
     }
 
     if (handled) {
@@ -149,12 +144,16 @@ export function createWin32KeyboardHook({
     return api.callNext(code, message, data)
   }
 
-  function register(handler: KeyboardHandler): boolean {
+  function register(nextHandler: KeyboardHandler): boolean {
     if (platform !== 'win32') {
       return false
     }
+
+    if (handler != null && handler !== nextHandler) {
+      return false
+    }
     try {
-      if (handlers.size === 0) {
+      if (handler == null) {
         release()
         const api = loadNativeApi()
         const callback = api.registerCallback((code, message, data) =>
@@ -168,7 +167,7 @@ export function createWin32KeyboardHook({
           return false
         }
       }
-      handlers.add(handler)
+      handler = nextHandler
 
       return true
     } catch {
@@ -176,9 +175,12 @@ export function createWin32KeyboardHook({
     }
   }
 
-  function unregister(handler: KeyboardHandler): void {
-    handlers.delete(handler)
-    if (handlers.size === 0) {
+  function unregister(target: KeyboardHandler): void {
+    if (handler === target) {
+      handler = null
+    }
+
+    if (handler == null) {
       release()
     }
   }
