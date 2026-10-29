@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: architecture
-last-reviewed: 2026-10-26
+last-reviewed: 2026-10-29
 ---
 
 # Architecture Overview
@@ -48,13 +48,13 @@ Desktop은 파티, 공대 캡처와 검색, 카드의 캐릭터 면만 둔다. �
 
 ## 점수 엔진 경계
 
-비공개 저장소가 만든 C 네이티브 점수 엔진(Windows DLL, macOS dylib)은 Desktop main이 `koffi`로 불러 쓴다(2026-10-19 결정, [Issue #716](https://github.com/blahaj94/dfragon/issues/716)). 로더는 `apps/desktop/src/backend/score/engine.ts`다.
+비공개 저장소가 만든 C 네이티브 점수 엔진(Windows DLL, macOS dylib)은 Desktop main process가 띄운 Node worker thread 하나에서 `koffi`로 불러 쓴다(2026-10-19 결정, [Issue #716](https://github.com/blahaj94/dfragon/issues/716), worker 이전은 [Issue #987](https://github.com/blahaj94/dfragon/issues/987)). Main의 경계는 `apps/desktop/src/backend/score/engine.ts`, worker 진입은 `worker.ts`다. 엔진은 OS thread마다 첫 계산을 초기화하므로 준비와 모든 계산을 같은 worker에서 하고, main은 계산을 기다리는 동안 막히지 않는다.
 
 | 대상 | 책임 |
 | --- | --- |
 | 비공개 엔진 저장소 | 엔진의 소스, 계산 데이터, 빌드, Release를 소유한다. |
 | 이 저장소 | 엔진을 불러 쓰는 로더와 바이너리 입수 script만 둔다. 엔진의 소스, 데이터, 바이너리를 commit하지 않는다. |
-| `apps/desktop` main | 엔진을 `koffi`로 로드하고 호출하는 유일한 실행 위치다. |
+| `apps/desktop` main | Main process의 점수 worker가 엔진을 `koffi`로 로드하고 호출하는 유일한 실행 위치다. 결과 검증과 진단은 main이 맡는다. |
 | renderer, preload, `apps/api` | 엔진을 로드하거나 import하지 않는다. renderer는 main이 계산해 전달한 결과만 받는다. |
 
 - **빌드 조건**: 엔진 바이너리는 CI secret으로 입수한다. 엔진 없는 빌드를 허용한다.
