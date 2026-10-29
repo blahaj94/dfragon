@@ -37,7 +37,7 @@ API workspace의 직접 의존성 목록은 `apps/api/package.json`에서, API�
 
 실제 변경에서는 package의 engine과 peer 조건, ESM 및 TypeScript 호환성을 확인하고 영향받는 동작을 검증합니다. Registry metadata만으로 설치, build 성공을 주장하지 않습니다.
 
-HTTP client는 Node 내장 `fetch`, test runner와 assertion은 `node:test`, `node:assert/strict`를 사용합니다. 이 실행 방식은 API에 적용하며 다른 app으로 일반화하지 않습니다. Query와 응답 경계는 [`character-search.md`](character-search.md)를 따릅니다.
+HTTP client는 `ky`(Node 내장 `fetch` 위에서 동작), test runner와 assertion은 `node:test`, `node:assert/strict`를 사용합니다. 이 실행 방식은 API에 적용하며 다른 app으로 일반화하지 않습니다. Query와 응답 경계는 [`character-search.md`](character-search.md)를 따릅니다.
 
 ## Build와 test 계약
 
