@@ -31,12 +31,12 @@ export class CharacterSearchController {
     if (request.method !== 'GET') {
       throw new NeopleSearchFailure('query')
     }
-    await respondWithCancellation(response, (signal) => {
+    await respondWithCancellation(response, () => {
       if (candidates) {
-        return this.service.candidates(request.ip, request.originalUrl, signal)
+        return this.service.candidates(request.originalUrl)
       }
 
-      return this.service.search(request.ip, request.originalUrl, signal)
+      return this.service.search(request.originalUrl)
     })
   }
 }

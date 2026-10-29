@@ -4,11 +4,19 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { readApiBuildInfo } from '../src/build-info.js'
+import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createApiHttpApp } from '../src/http.js'
 import type { SearchCharacters } from '../src/types/neople-character-search.js'
 
 const unusedSearchCharacters: SearchCharacters = async () => {
   throw new Error('build info requests must not search Neople characters')
+}
+const unusedProvider = async (): Promise<never> => {
+  throw new Error('build info requests must not call Neople')
+}
+const unusedProviders = {
+  search: { searchCharacters: unusedSearchCharacters },
+  details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) }
 }
 const commit = '1234567890abcdef1234567890abcdef12345678'
 
@@ -38,12 +46,7 @@ test('공개 version 응답은 캐시하지 않고 시작 시점 값을 유지�
   t.after(() => rm(directory, { recursive: true, force: true }))
   const path = join(directory, 'build-info.json')
   await writeFile(path, JSON.stringify({ service: 'api', commit }))
-  const app = await createApiHttpApp(
-    { searchCharacters: unusedSearchCharacters },
-    undefined,
-    undefined,
-    path
-  )
+  const app = await createApiHttpApp({ ...unusedProviders, buildInfoPath: path })
   try {
     await app.listen(0, '127.0.0.1')
     const origin = await app.getUrl()
@@ -63,12 +66,10 @@ test('공개 version 응답은 캐시하지 않고 시작 시점 값을 유지�
 test('이전 이미지에 메타데이터가 없어도 version 응답은 API 서비스를 식별한다', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-api-version-old-'))
   t.after(() => rm(directory, { recursive: true, force: true }))
-  const app = await createApiHttpApp(
-    { searchCharacters: unusedSearchCharacters },
-    undefined,
-    undefined,
-    join(directory, 'missing.json')
-  )
+  const app = await createApiHttpApp({
+    ...unusedProviders,
+    buildInfoPath: join(directory, 'missing.json')
+  })
   try {
     await app.listen(0, '127.0.0.1')
     const response = await fetch(`${await app.getUrl()}/version`)

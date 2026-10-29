@@ -5,20 +5,11 @@ import type {
 } from '../types/neople-character-search.js'
 
 export interface CharacterSearchDependencies {
-  readonly trustedProxyHops?: 1
   readonly searchCharacters: SearchCharacters
 }
 
 export interface CharacterSearchHttpService {
-  search(
-    peerAddress: string | undefined,
-    originalUrl: string,
-    signal?: AbortSignal
-  ): Promise<CharacterSearchResult>
-  candidates(
-    peerAddress: string | undefined,
-    originalUrl: string,
-    signal?: AbortSignal
-  ): Promise<CharacterCandidatesResult>
+  search(originalUrl: string): Promise<CharacterSearchResult>
+  candidates(originalUrl: string): Promise<CharacterCandidatesResult>
   onModuleDestroy(): Promise<void>
 }

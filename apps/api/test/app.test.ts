@@ -8,7 +8,11 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { Controller, Get, Injectable } from '@nestjs/common'
+import type { CallHandler } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
+import type { Request, Response } from 'express'
+import { finalize } from 'rxjs'
+import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createApiHttpApp } from '../src/http.js'
 import type { SearchCharacters } from '../src/types/neople-character-search.js'
 
@@ -35,9 +39,15 @@ const apiRoot = fileURLToPath(new URL('../../', import.meta.url))
 const unusedSearchCharacters: SearchCharacters = async () => {
   throw new Error('app lifecycle test must not search Neople characters')
 }
+const unusedProvider = async (): Promise<never> => {
+  throw new Error('app lifecycle test must not call Neople')
+}
 
 test('createApiHttpApp은 listen 전에는 port를 열지 않고 close 뒤 port를 닫는다', async () => {
-  const app = await createApiHttpApp({ searchCharacters: unusedSearchCharacters })
+  const app = await createApiHttpApp({
+    search: { searchCharacters: unusedSearchCharacters },
+    details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) }
+  })
   const server = app.getHttpServer() as Server
 
   assert.equal(server.listening, false)
@@ -48,6 +58,79 @@ test('createApiHttpApp은 listen 전에는 port를 열지 않고 close 뒤 port�
     await app.close()
   }
   assert.equal(server.listening, false)
+})
+
+test('createApiHttpApp은 앱 설정의 trustedProxyHops를 Express trust proxy로 쓴다', async () => {
+  for (const [trustedProxyHops, expected] of [
+    [1, 1],
+    [undefined, false]
+  ] as const) {
+    const app = await createApiHttpApp({
+      search: { searchCharacters: unusedSearchCharacters },
+      details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) },
+      trustedProxyHops
+    })
+
+    try {
+      assert.equal(app.getHttpAdapter().getInstance().get('trust proxy'), expected)
+    } finally {
+      await app.close()
+    }
+  }
+})
+
+test('controller 전에 연결이 끊긴 검색, 상세 요청은 공급자를 호출하지 않는다', {
+  timeout: 5000
+}, async (t) => {
+  const paths = [
+    '/characters?characterName=ab',
+    '/characters/candidates?characterName=ab',
+    '/characters/cain/fixture-character'
+  ]
+  const providerCalls: string[] = []
+  const recordCall = (provider: string) => async (): Promise<never> => {
+    providerCalls.push(provider)
+    throw new Error('disconnected request must not call Neople')
+  }
+  const app = await createApiHttpApp({
+    search: { searchCharacters: recordCall('search') },
+    details: {
+      fetchDetails: recordCall('details'),
+      catalog: createCatalogService(recordCall('catalog'))
+    }
+  })
+  t.after(() => app.close())
+  // 클라이언트가 요청을 보낸 직후 연결을 끊어 controller보다 socket 종료가 먼저인 상황을 만든다.
+  app.use((request: Request, _response: Response, next: () => void) => {
+    request.socket.destroy()
+    next()
+  })
+  // 요청은 socket 종료로 먼저 실패하므로, 공급자 호출 여부는 controller가 끝난 뒤에 확인한다.
+  let handledCount = 0
+  let markAllHandled!: () => void
+  const allHandled = new Promise<void>((resolve) => {
+    markAllHandled = resolve
+  })
+  app.useGlobalInterceptors({
+    intercept: (_context: unknown, next: CallHandler) =>
+      next.handle().pipe(
+        finalize(() => {
+          handledCount += 1
+          if (handledCount === paths.length) {
+            markAllHandled()
+          }
+        })
+      )
+  })
+  await app.listen(0, '127.0.0.1')
+  const origin = await app.getUrl()
+
+  for (const path of paths) {
+    await assert.rejects(fetch(`${origin}${path}`), path)
+  }
+  await allHandled
+
+  assert.deepEqual(providerCalls, [])
 })
 
 test('test module route는 listen 후 생성자로 주입한 provider의 응답을 HTTP로 제공한다', async () => {
