@@ -66,7 +66,9 @@ URL, query, header, body, 오류 message와 캐릭터 ID, 이름은 남기지 �
 `basic`은 기본정보, `sections`는 나머지 섹션 10개의 병렬 조회, `catalog`는 공용 아이템 조회다.
 실패한 요청은 성공한 단계까지만 남는다.
 같은 캐릭터의 겹친 요청은 기본정보와 섹션 조회를 공유하므로 그 조회를 기다린 요청들에 같은 `basic`, `sections` 값이 붙고, 진행 중인 조회에 합류한 요청에는 `neopleShared: true`가 붙는다.
-캐릭터 캐시가 맞은 요청은 Neople을 기다리지 않으므로 `basic`, `sections` 없이 `catalog`만 남는다.
+캐릭터 캐시가 맞았지만 [저장한 응답 본문](../rules/character-details.md#응답-본문-재사용과-압축)이 없는 요청은 Neople을 기다리지 않으므로 `basic`, `sections` 없이 `catalog`만 남는다.
+저장한 응답 본문을 그대로 보낸 요청은 Neople도 공용 아이템도 기다리지 않으므로 `neopleMs` 없이 `responseCached: true`가 붙는다.
+`responseCached`는 상세 GET과 강제 갱신에만 붙고, 저장한 본문 없이 새로 만든 응답에는 붙지 않는다.
 강제 갱신은 캐시를 건너뛰므로 새로 받았거나 합류한 조회의 `basic`, `sections`가 붙는다.
 `catalog`는 그 요청이 공용 아이템 정보를 기다린 시간이다.
 공용 아이템은 24시간 캐시하므로 모든 아이템이 캐시에 있으면 거의 0이고, 다른 요청이 이미 조회 중인 아이템은 그 조회를 함께 기다린다.
@@ -74,6 +76,7 @@ URL, query, header, body, 오류 message와 캐릭터 ID, 이름은 남기지 �
 ```json
 {"time":"2026-10-29T00:00:00.000Z","service":"api","method":"GET","route":"/characters/:serverId/:characterId","status":200,"durationMs":512,"neopleMs":{"basic":88,"sections":231,"catalog":176},"correlationId":"<uuid>"}
 {"time":"2026-10-29T00:00:05.000Z","service":"api","method":"GET","route":"/characters/:serverId/:characterId","status":200,"durationMs":4,"neopleMs":{"catalog":1},"correlationId":"<uuid>"}
+{"time":"2026-10-29T00:00:09.000Z","service":"api","method":"GET","route":"/characters/:serverId/:characterId","status":200,"durationMs":0,"responseCached":true,"correlationId":"<uuid>"}
 ```
 
 ## 서버 이미지
