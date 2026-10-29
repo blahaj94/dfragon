@@ -49,8 +49,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     onFailure: () => {
       failed = true
       publish()
-    },
-    onRunChanged: () => lifetime.send({ type: 'INVALIDATE' })
+    }
   })
   const lifetime = createActor(captureSearchMachine, {
     input: {

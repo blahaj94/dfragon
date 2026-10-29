@@ -50,10 +50,6 @@ function isSupersededStart(
     return false
   }
 
-  if (latest.runId !== completed.runId) {
-    return true
-  }
-
   return latest.revision > completed.revision && latest.captureId !== captureId
 }
 

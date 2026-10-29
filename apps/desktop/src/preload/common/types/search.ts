@@ -127,7 +127,6 @@ export type SearchSlot = Readonly<{
 }>
 
 export type SearchSnapshot = Readonly<{
-  runId: string
   revision: number
   captureId: string | null
   slots: readonly SearchSlot[]

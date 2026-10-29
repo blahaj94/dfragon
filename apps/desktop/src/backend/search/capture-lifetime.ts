@@ -110,7 +110,6 @@ export type CaptureSearchLifetime = {
 }
 
 export function createCaptureSearchLifetime(options: Options): CaptureSearchLifetime {
-  const runId = randomUUID()
   let revision = 0
   let binding: CaptureBinding | null = null
   const slotIndexes = Array.from(
@@ -152,7 +151,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       return copiedSlot
     })
 
-    return { runId, revision: snapshotRevision, captureId, slots: snapshotSlots }
+    return { revision: snapshotRevision, captureId, slots: snapshotSlots }
   }
 
   function result(code?: SearchCommandError): SearchCommandResult {

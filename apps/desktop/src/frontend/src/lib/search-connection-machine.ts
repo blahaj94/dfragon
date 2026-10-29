@@ -14,7 +14,6 @@ type ConnectionEvent =
   | { type: 'RESULT'; snapshot: SearchSnapshot }
   | { type: 'READ_SUCCEEDED'; snapshot: SearchSnapshot }
   | { type: 'READ_FAILED' }
-  | { type: 'RUN_CHANGED' }
 
 type ConnectionTarget = { api: SearchApi; slotCount: SearchSlotCount }
 type ConnectionContext = ConnectionTarget & {
@@ -69,16 +68,8 @@ export const searchConnectionMachine = setup({
     acceptSnapshot: enqueueActions(
       ({ context, enqueue }, { snapshot }: { snapshot: SearchSnapshot }) => {
         const previous = context.snapshot
-        if (previous != null) {
-          if (previous.runId !== snapshot.runId) {
-            enqueue.raise({ type: 'RUN_CHANGED' })
-
-            return
-          }
-
-          if (snapshot.revision <= previous.revision) {
-            return
-          }
+        if (previous != null && snapshot.revision <= previous.revision) {
+          return
         }
         enqueue.assign({ snapshot })
       }
@@ -89,11 +80,7 @@ export const searchConnectionMachine = setup({
       }
       const previous = context.queued
       const snapshot = event.snapshot
-      if (
-        previous != null &&
-        previous.runId === snapshot.runId &&
-        snapshot.revision <= previous.revision
-      ) {
+      if (previous != null && snapshot.revision <= previous.revision) {
         return {}
       }
 
@@ -123,7 +110,6 @@ export const searchConnectionMachine = setup({
         input: ({ context }) => ({ api: context.api, slotCount: context.slotCount })
       },
       on: {
-        RUN_CHANGED: '#searchConnection.replaced',
         RESULT: {
           actions: { type: 'acceptSnapshot', params: ({ event }) => ({ snapshot: event.snapshot }) }
         }
@@ -197,7 +183,6 @@ export const searchConnectionMachine = setup({
           }
         }
       }
-    },
-    replaced: { type: 'final' }
+    }
   }
 })

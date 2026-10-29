@@ -18,7 +18,6 @@ type ConnectionOptions = {
   slotCount: SearchSlotCount
   onSnapshot: (snapshot: SearchSnapshot | null) => void
   onFailure: () => void
-  onRunChanged: () => void
 }
 
 export type SearchConnection = {
@@ -46,12 +45,6 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
     currentActor = actor
     let previous: ConnectionState | undefined
     actor.subscribe((state) => {
-      if (state.status === 'done') {
-        options.onRunChanged()
-        connect()
-
-        return
-      }
       const changed = shouldPublishSnapshot(previous, state)
       const readFailed = isNewReadFailure(previous, state)
       previous = state
