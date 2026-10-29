@@ -93,7 +93,7 @@ export function ApiCharacterDetails() {
     ApiOperation({
       summary: '캐릭터 상세 조회',
       description:
-        '공개 API. Neople 11개 캐릭터 섹션을 모두 조회하여 반환합니다. 캐릭터 조회 결과는 API 메모리에 1시간 캐시하며 그동안 같은 캐릭터는 Neople을 다시 부르지 않습니다. sections의 시각과 freshness.lastSuccessfulFetchAt은 Neople에서 받은 시각, freshness.expiresAt은 그 1시간 뒤입니다. 캐릭터 조회 실패 시 부분 결과는 없으며 실패는 캐시하지 않습니다. 공용 아이템 상세는 API 메모리에 24시간 캐시하며 조회에 실패하면 unavailable 상태를 반환합니다. 아이템 상세는 장비, 아바타, 엠블렘, 크리쳐, 아티팩트, 서약, 결정, 버프 장착 항목에 연결합니다. 공용 아이템 상세는 최대 128개 참조이며, 동시에 들어온 요청들의 아이템을 중복 없이 15개씩 묶어 조회합니다. IP별, 서버 전체 호출 제한은 없습니다. 같은 프로세스에서 겹치는 동일 캐릭터 조회는 공유합니다. Query와 HEAD는 허용하지 않습니다.'
+        '공개 API. Neople 11개 캐릭터 섹션을 모두 조회하여 반환합니다. 캐릭터 조회 결과는 API 메모리에 1시간 캐시하며 그동안 같은 캐릭터는 Neople을 다시 부르지 않습니다. 그동안 처음 만든 응답 본문을 그대로 보내며, Accept-Encoding에 br이 있으면 미리 압축한 brotli 본을 Content-Encoding: br로 보낼 수 있습니다. 공용 아이템이 하나라도 unavailable인 응답은 저장하지 않습니다. sections의 시각과 freshness.lastSuccessfulFetchAt은 Neople에서 받은 시각, freshness.expiresAt은 그 1시간 뒤입니다. 캐릭터 조회 실패 시 부분 결과는 없으며 실패는 캐시하지 않습니다. 공용 아이템 상세는 API 메모리에 24시간 캐시하며 조회에 실패하면 unavailable 상태를 반환합니다. 아이템 상세는 장비, 아바타, 엠블렘, 크리쳐, 아티팩트, 서약, 결정, 버프 장착 항목에 연결합니다. 공용 아이템 상세는 최대 128개 참조이며, 동시에 들어온 요청들의 아이템을 중복 없이 15개씩 묶어 조회합니다. IP별, 서버 전체 호출 제한은 없습니다. 같은 프로세스에서 겹치는 동일 캐릭터 조회는 공유합니다. Query와 HEAD는 허용하지 않습니다.'
     }),
     ...characterParams,
     success('CharacterDetails', '정제된 상세 정보, 섹션별 조회 시각과 freshness 만료 시각'),
@@ -106,7 +106,7 @@ export function ApiCharacterRefresh() {
     ApiOperation({
       summary: '캐릭터 상세 강제 갱신',
       description:
-        '공개 API. 캐릭터 캐시를 건너뛰고 Neople 11개 캐릭터 섹션을 다시 받아 캐시를 덮어쓴 뒤 상세 조회와 같은 응답을 반환합니다. 같은 캐릭터를 이미 Neople에서 받는 중이면 그 조회를 함께 기다립니다. 공용 아이템 상세는 캐시를 그대로 씁니다. 새로 받지 못하면 상세 조회와 같은 오류를 반환하고 기존 캐시는 그대로 둡니다. Query는 허용하지 않으며 body는 읽지 않습니다.'
+        '공개 API. 캐릭터 캐시를 건너뛰고 Neople 11개 캐릭터 섹션을 다시 받아 캐시를 덮어쓴 뒤 상세 조회와 같은 응답을 반환합니다. 같은 캐릭터를 이미 Neople에서 받는 중이면 그 조회를 함께 기다립니다. 공용 아이템 상세는 캐시를 그대로 쓰고, 새로 만든 응답 본문이 이후 상세 조회의 응답이 됩니다. 새로 받지 못하면 상세 조회와 같은 오류를 반환하고 기존 캐시는 그대로 둡니다. Query는 허용하지 않으며 body는 읽지 않습니다.'
     }),
     ...characterParams,
     success('CharacterDetails', '다시 받은 상세 정보, 섹션별 조회 시각과 freshness 만료 시각'),

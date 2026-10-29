@@ -3,7 +3,9 @@ import type { NeopleStage, NeopleStageTimings, RecordNeopleStage } from './neopl
 import type { CharacterIdentity, FetchedCharacterPayloads } from './sections.js'
 
 export const CHARACTER_CACHE_TTL_MS = 60 * 60 * 1000
-// One character's eleven raw sections are about 35KB of JSON, so 1,000 characters keep the cache near 35MB.
+// One character keeps about 35KB of raw sections plus the detail service's stored response (about 150KB) and its
+// brotli copy (about 18KB), so 1,000 characters stay near 200MB. Production RSS was about 300MB after load
+// against a container limit of about 4GB, which leaves room for the full cache.
 const CHARACTER_CACHE_MAX_CHARACTERS = 1_000
 
 export type FetchCharacter = (
