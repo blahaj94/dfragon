@@ -26,7 +26,7 @@ import {
   createCachedCharacterDetails
 } from '../search/character-response-cache'
 import { createPortraitColorScorer, type PortraitColorPolicy } from '../search/portrait-color'
-import { validateSelectionPolicy, type CharacterSelectionPolicy } from '../search/identify'
+import type { CharacterSelectionPolicy } from '../search/identify'
 import type { SearchRuntime } from '../search/request'
 import type { ScoreEngine } from '../score/engine'
 import { registerManualSearchIpc, type ManualSearchKind } from '../search/manual-ipc'
@@ -174,11 +174,7 @@ function createSearchRuntime(
     return undefined
   }
   const policy = configuration.portraitColorPolicy
-  // 잘못된 정책은 요청마다 실패하지 않도록 등록할 때 거절한다.
   const scorePortrait = createPortraitColorScorer(policy)
-  const { maxDistance, minMargin, maxCandidates } = policy
-  const selection = { maxDistance, minMargin, maxCandidates }
-  validateSelectionPolicy(selection)
   const candidates = createCachedCharacterCandidates(createCharacterCandidatesHttp(configuration))
   const image = createCharacterImageSource({ image: createCharacterImageHttp(configuration) })
   const details = createCachedCharacterDetails(createCharacterDetailsHttp(configuration))
@@ -186,7 +182,7 @@ function createSearchRuntime(
   return {
     clock: configuration.clock,
     score: configuration.score,
-    identification: { candidates, image, details, scorePortrait, selection }
+    identification: { candidates, image, details, scorePortrait, selection: policy }
   }
 }
 
