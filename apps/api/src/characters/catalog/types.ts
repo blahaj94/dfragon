@@ -6,26 +6,10 @@ export const CATALOG_LIMITS = {
   maximumReferencesPerLoad: 128
 } as const
 
-export type CatalogKey = { kind: 'item'; itemId: string }
-
-export interface CatalogValue {
-  key: CatalogKey
-  payload: CharacterPayload
-}
-
 export interface CatalogDetail {
   data: CharacterPayload | null
   fetchedAt: string | null
   status: 'fresh' | 'unavailable'
-}
-
-export interface CatalogResult {
-  key: CatalogKey
-  detail: CatalogDetail
-}
-
-export function catalogKey(key: CatalogKey): string {
-  return `item:${key.itemId}`
 }
 
 export function isCatalogId(value: unknown): value is string {

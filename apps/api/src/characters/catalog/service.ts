@@ -1,25 +1,22 @@
 import { chunk } from 'remeda'
-import { CATALOG_LIMITS, catalogKey, unavailableDetail } from './types.js'
-import type { CatalogDetail, CatalogKey, CatalogResult } from './types.js'
+import { CATALOG_LIMITS, unavailableDetail } from './types.js'
+import type { CatalogDetail } from './types.js'
 import type { FetchCatalog } from './neople.js'
 
 export function createCatalogService(fetchCatalog: FetchCatalog, timeoutMs = 10_000) {
   return {
-    async load(
-      keys: CatalogKey[],
-      requestSignal: AbortSignal
-    ): Promise<Map<string, CatalogResult>> {
-      const unique = [...new Map(keys.map((key) => [catalogKey(key), key])).values()]
-      const results = new Map<string, CatalogResult>(
-        unique.map((key) => [catalogKey(key), { key, detail: unavailableDetail }])
+    async load(itemIds: string[], requestSignal: AbortSignal): Promise<Map<string, CatalogDetail>> {
+      const unique = [...new Set(itemIds)]
+      const details = new Map<string, CatalogDetail>(
+        unique.map((itemId) => [itemId, unavailableDetail])
       )
       requestSignal.throwIfAborted()
       if (unique.length === 0) {
-        return results
+        return details
       }
       // A malformed upstream character cannot turn a public request into unbounded fan-out.
       const signal = AbortSignal.any([requestSignal, AbortSignal.timeout(timeoutMs)])
-      async function loadReferences(references: CatalogKey[]) {
+      async function loadReferences(references: string[]) {
         const bounded = references.slice(0, CATALOG_LIMITS.maximumReferencesPerLoad)
         if (bounded.length === 0 || signal.aborted) {
           return
@@ -31,12 +28,11 @@ export function createCatalogService(fetchCatalog: FetchCatalog, timeoutMs = 10_
               return
             }
             try {
-              const values = await fetchCatalog(group, signal)
+              const payloads = await fetchCatalog(group, signal)
               signal.throwIfAborted()
               const fetchedAt = new Date().toISOString()
-              for (const value of values) {
-                const detail: CatalogDetail = { data: value.payload, fetchedAt, status: 'fresh' }
-                results.set(catalogKey(value.key), { key: value.key, detail })
+              for (const [itemId, data] of payloads) {
+                details.set(itemId, { data, fetchedAt, status: 'fresh' })
               }
             } catch {
               // A failed lookup leaves the reference unavailable; the character response still succeeds.
@@ -47,7 +43,7 @@ export function createCatalogService(fetchCatalog: FetchCatalog, timeoutMs = 10_
       await loadReferences(unique)
       requestSignal.throwIfAborted()
 
-      return results
+      return details
     }
   }
 }
