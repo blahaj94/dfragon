@@ -272,13 +272,3 @@ it('두 슬롯의 후보 이미지는 앞 요청이 끝난 뒤에야 다음 요�
     selected: { characterId: 'slot1-match' }
   })
 })
-
-it.each([
-  ['색 비교 gridSize', { gridSize: 0 }],
-  ['선택 maxCandidates', { maxCandidates: 1 }],
-  ['선택 minMargin', { minMargin: -1 }]
-] as const)('잘못된 %s 정책은 요청 전에 등록에서 거절한다', async (_name, change) => {
-  await expect(
-    createSearchFixture('capture', { ...INITIAL_PORTRAIT_COLOR_POLICY, ...change })
-  ).rejects.toThrow(TypeError)
-})

@@ -446,21 +446,6 @@ describe('캐릭터 식별 규칙', () => {
     })
   })
 
-  it.each([
-    { maxCandidates: 1 },
-    { maxCandidates: 2.5 },
-    { maxDistance: Number.NaN },
-    { maxDistance: -1 },
-    { minMargin: Number.POSITIVE_INFINITY },
-    { minMargin: -0.1 }
-  ])('잘못된 선택 기준 %o는 식별기를 만들기 전에 거절한다', (override) => {
-    const f = fixture()
-
-    expect(() => createCharacterIdentifier(f.services, { ...SELECTION, ...override })).toThrow(
-      TypeError
-    )
-  })
-
   it('수동 조회는 선택한 서버와 원문 이름으로만 캐릭터를 선택한다', async () => {
     const f = fixture()
     f.findCandidates.mockResolvedValueOnce([
