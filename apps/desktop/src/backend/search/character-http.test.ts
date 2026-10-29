@@ -3,7 +3,6 @@ import type { AddressInfo } from 'node:net'
 import { crc32, deflateSync } from 'node:zlib'
 import { PNG } from 'pngjs'
 import { describe, expect, it, vi } from 'vitest'
-import type { MonotonicClock } from '../lib/monotonic-clock'
 import type { CharacterCandidate, CharacterDetails } from '../../preload/common/types/character'
 import {
   CHARACTER_HTTP_LIMITS,
@@ -348,19 +347,14 @@ describe('캐릭터 PNG HTTP', () => {
     expect(fetch).toHaveBeenCalledOnce()
   })
 
-  it('이미지 429는 수신 시각과 Retry-After를 보존한 호출 제한으로 알리고 재시도하지 않는다', async () => {
+  it('이미지 429는 호출 제한으로 알리고 재시도하지 않는다', async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(new Response(null, { status: 429, headers: { 'Retry-After': '7' } }))
-    const clock: Pick<MonotonicClock, 'read'> = {
-      read: () => ({ monotonicMs: 1234 })
-    }
-    const read = createCharacterImageHttp({ fetch, clock })
+    const read = createCharacterImageHttp({ fetch })
 
     await expect(read({ ...identity, signal: signal() })).rejects.toMatchObject({
-      code: 'SEARCH_RATE_LIMITED',
-      retryAfterSeconds: 7,
-      retryAfterReceivedAt: 1234
+      code: 'SEARCH_RATE_LIMITED'
     })
     expect(fetch).toHaveBeenCalledOnce()
   })
@@ -404,26 +398,19 @@ describe('캐릭터 PNG HTTP', () => {
 
 describe('캐릭터 통신 실패와 호출자 취소', () => {
   it.each(['candidates', 'details'] as const)(
-    '%s의 호출 제한은 수신 시각과 Retry-After를 보존하고 재시도하지 않는다',
+    '%s의 호출 제한은 Retry-After와 관계없이 호출 제한으로 알리고 재시도하지 않는다',
     async (kind) => {
       const code = kind === 'details' ? 'CHARACTER_RATE_LIMITED' : 'SEARCH_RATE_LIMITED'
       const fetch = vi
         .fn<typeof globalThis.fetch>()
         .mockResolvedValue(json({ error: { code } }, 429, { 'Retry-After': '7' }))
-      const clock: Pick<MonotonicClock, 'read'> = {
-        read: () => ({ monotonicMs: 1234 })
-      }
-      const options = { apiOrigin: API_ORIGIN, fetch, clock }
+      const options = { apiOrigin: API_ORIGIN, fetch }
       const request =
         kind === 'details'
           ? createCharacterDetailsHttp(options)({ ...identity, signal: signal() })
           : createCharacterCandidatesHttp(options)({ nickname: '가나', signal: signal() })
 
-      await expect(request).rejects.toMatchObject({
-        code: 'SEARCH_RATE_LIMITED',
-        retryAfterSeconds: 7,
-        retryAfterReceivedAt: 1234
-      })
+      await expect(request).rejects.toMatchObject({ code: 'SEARCH_RATE_LIMITED' })
       expect(fetch).toHaveBeenCalledOnce()
     }
   )

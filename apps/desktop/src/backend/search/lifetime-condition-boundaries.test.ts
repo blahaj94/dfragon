@@ -86,7 +86,7 @@ it('검색 불가 닉네임의 새 관측은 이전 HTTP와 deadline을 취소�
     nickname: '',
     state: 'failure',
     rows: [],
-    error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null }
+    error: { code: 'INVALID_SEARCH_QUERY' }
   })
   expect(result.snapshot.slots[0].requestId).not.toBe(pending.snapshot.slots[0].requestId)
   expect(previousSignal.aborted).toBe(true)
@@ -101,19 +101,14 @@ it('검색 불가 닉네임의 새 관측은 이전 HTTP와 deadline을 취소�
   lifetime.end(captureId)
 })
 
-it('Stop은 모든 슬롯의 HTTP와 429 대기를 정리하고 새 수명을 늦은 완료, 종료로부터 보호한다', async () => {
+it('Stop은 모든 슬롯의 HTTP와 실패를 정리하고 새 수명을 늦은 완료, 종료로부터 보호한다', async () => {
   const firstResponse = deferred<readonly CharacterCandidate[]>()
   const thirdResponse = deferred<readonly CharacterCandidate[]>()
   const clock = new FakeMonotonicClock()
   const http = vi
     .fn<CharacterCandidatesHttp>()
     .mockReturnValueOnce(firstResponse.promise)
-    .mockRejectedValueOnce(
-      new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 2,
-        retryAfterReceivedAt: clock.monotonicMs
-      })
-    )
+    .mockRejectedValueOnce(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
     .mockReturnValueOnce(thirdResponse.promise)
     .mockResolvedValueOnce([])
   const publish = vi.fn<(snapshot: SearchSnapshot) => void>()
@@ -131,7 +126,7 @@ it('Stop은 모든 슬롯의 HTTP와 429 대기를 정리하고 새 수명을 �
   await vi.waitFor(() =>
     expect(lifetime.snapshot().slots[1]).toMatchObject({
       state: 'failure',
-      error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 2 }
+      error: { code: 'SEARCH_RATE_LIMITED' }
     })
   )
   const before = lifetime.snapshot()
@@ -209,7 +204,7 @@ it('pending 발행 중 새 관측이 요청을 대체하면 이전 요청의 HTT
     nickname: '',
     state: 'failure',
     rows: [],
-    error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null }
+    error: { code: 'INVALID_SEARCH_QUERY' }
   })
   await flushCompletion()
   expect(http).not.toHaveBeenCalled()

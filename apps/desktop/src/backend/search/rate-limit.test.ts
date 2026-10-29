@@ -1,20 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SearchSlot } from '../../preload/common/types/search'
 import { createSearchFixture, jsonResponse, requestPaths } from './search-test-fixture'
-import { createCaptureSearchLifetime } from './capture-lifetime'
-import { deferred } from '../lib/async-test-fixture'
-import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
-import { SearchHttpFailure } from './http'
-import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
 type Fixture = Awaited<ReturnType<typeof createSearchFixture>>
 
-async function limited(fixture: Fixture, retryAfter?: string): Promise<SearchSlot> {
-  const headers: Record<string, string> = {}
-  const hasRetryAfter = retryAfter != null
-  if (hasRetryAfter) {
-    headers['Retry-After'] = retryAfter
-  }
+async function limited(fixture: Fixture, headers: Record<string, string>): Promise<SearchSlot> {
   fixture.fetchSearch.mockResolvedValueOnce(
     jsonResponse({
       status: 429,
@@ -25,7 +15,6 @@ async function limited(fixture: Fixture, retryAfter?: string): Promise<SearchSlo
   await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).not.toBe('pending'))
   const slot = (await fixture.read()).slots[0]
-  expect(slot).toMatchObject({ state: 'failure', rows: [], error: { code: 'SEARCH_RATE_LIMITED' } })
   expect(slot.requestId).toEqual(expect.any(String))
 
   return slot
@@ -40,142 +29,19 @@ function retry(fixture: Fixture, slot: SearchSlot): Promise<unknown> {
   })
 }
 
-async function flushSearch(): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0))
-}
-
-describe('main의 429 Retry-After와 사용자 재시도', () => {
-  it('body 완료 전에 429 대기가 만료되면 timer나 자동 GET 없이 같은 실패를 활성화한다', async () => {
-    const clock = new FakeMonotonicClock()
-    const response = deferred<[]>()
-    const http = vi.fn(() => response.promise)
-    const lifetime = createCaptureSearchLifetime({
-      runtime: {
-        clock,
-        identification: {
-          candidates: http,
-          image: vi.fn(),
-          details: vi.fn(),
-          scorePortrait: vi.fn(),
-          selection: INITIAL_PORTRAIT_COLOR_POLICY
-        },
-        score: () => null
-      },
-      isCurrent: () => true,
-      publish: vi.fn()
-    })
-    const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot
-      .captureId!
-    const pending = lifetime.lookup({
-      captureId,
-      slot: 0,
-      observationRevision: 1,
-      nickname: '가나',
-      serverId: 'cain'
-    })
-    await vi.waitFor(() => expect(http).toHaveBeenCalledTimes(1))
-    const receivedAt = clock.monotonicMs
-    clock.advance(3_000)
-
-    response.reject(
-      new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 2,
-        retryAfterReceivedAt: receivedAt
-      })
-    )
-
-    await vi.waitFor(() =>
-      expect(lifetime.snapshot().slots[0]).toMatchObject({
-        requestId: pending.snapshot.slots[0].requestId,
-        state: 'failure',
-        error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
-      })
-    )
-    expect(http).toHaveBeenCalledTimes(1)
-    expect(clock.scheduled.every((task) => task.cancelled)).toBe(true)
-  })
-
-  it('body 검증에 걸린 시간을 더하지 않고 headers 수신 시각부터 Retry-After를 지킨다', async () => {
-    const fixture = await createSearchFixture()
-    const pull = vi.fn()
-    let finish!: () => void
-    let bodyFinished = false
-    const body = new ReadableStream<Uint8Array>(
-      {
-        start(controller) {
-          finish = () => {
-            if (bodyFinished) {
-              return
-            }
-            bodyFinished = true
-            const text = JSON.stringify({ error: { code: 'SEARCH_RATE_LIMITED' } })
-            controller.enqueue(new TextEncoder().encode(text))
-            controller.close()
-          }
-        },
-        pull
-      },
-      { highWaterMark: 0 }
-    )
-    fixture.fetchSearch.mockResolvedValueOnce(
-      new Response(body, { status: 429, headers: { 'Retry-After': '2' } })
-    )
-    await fixture.startSearch({ slot: 0, observationRevision: 1, nickname: '가나' })
-
-    try {
-      await vi.waitFor(() => expect(pull).toHaveBeenCalled())
-      fixture.clock.advance(1_000)
-      finish()
-      await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('failure'))
-      const failed = (await fixture.read()).slots[0]
-      expect(failed.error).toEqual({ code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 2 })
-      fixture.clock.advance(999)
-      expect(await retry(fixture, failed)).toMatchObject({
-        ok: false,
-        error: { code: 'SEARCH_RETRY_NOT_READY' }
-      })
-      fixture.clock.advance(1)
-      await flushSearch()
-
-      expect((await fixture.read()).slots[0]).toEqual({
-        ...failed,
-        error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
-      })
-      expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
-    } finally {
-      finish()
-    }
-  })
-
-  it.each(['2', '0002'])(
-    '유효한 %s초는 만료 전 retry를 거절하고 같은 실패의 버튼만 활성화한다',
-    async (header) => {
+describe('main의 429와 사용자 재시도', () => {
+  it.each<[string, Record<string, string>]>([
+    ['없는', {}],
+    ['2초인', { 'Retry-After': '2' }]
+  ])(
+    'Retry-After가 %s 429는 호출 제한 실패로 두고 자동 GET 없이 바로 사용자 retry를 받는다',
+    async (_name, headers) => {
       const fixture = await createSearchFixture()
-      const failed = await limited(fixture, header)
-      expect(failed.error).toEqual({ code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 2 })
-      expect(await retry(fixture, failed)).toMatchObject({
-        ok: false,
-        error: { code: 'SEARCH_RETRY_NOT_READY' }
-      })
+      const failed = await limited(fixture, headers)
 
-      fixture.clock.advance(1_999)
-      await flushSearch()
-      expect(await retry(fixture, failed)).toMatchObject({
-        ok: false,
-        error: { code: 'SEARCH_RETRY_NOT_READY' }
-      })
-      const waiting = await fixture.read()
-      fixture.clock.advance(1)
-      await flushSearch()
-      const expired = await fixture.read()
-
-      expect(expired.slots[0]).toEqual({
-        ...failed,
-        error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
-      })
-      expect(expired.revision).toBeGreaterThan(waiting.revision)
+      expect(failed).toMatchObject({ state: 'failure', rows: [] })
+      expect(failed.error).toEqual({ code: 'SEARCH_RATE_LIMITED' })
       expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
-      expect(fixture.published).toHaveBeenLastCalledWith('characterSearchChanged', expired)
       expect(await retry(fixture, failed)).toMatchObject({ ok: true })
       await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
       expect(requestPaths(fixture.fetchSearch)).toEqual([
@@ -183,92 +49,6 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
         '/characters/candidates'
       ])
       expect((await fixture.read()).slots[0].requestId).not.toBe(failed.requestId)
-    }
-  )
-
-  it.each([
-    undefined,
-    '',
-    '0',
-    '-1',
-    '+1',
-    '1.5',
-    '1e2',
-    '1 2',
-    'Tue, 08 Sep 2026 00:00:00 GMT',
-    '9007199254740992'
-  ])(
-    '누락/invalid Retry-After %j는 null이고 임의 대기 없이 수동 retry를 허용한다',
-    async (header) => {
-      const fixture = await createSearchFixture()
-      const failed = await limited(fixture, header)
-
-      expect(failed.error).toEqual({ code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: null })
-      expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
-      expect(await retry(fixture, failed)).toMatchObject({ ok: true })
-      await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-      expect(requestPaths(fixture.fetchSearch)).toEqual([
-        '/characters/candidates',
-        '/characters/candidates'
-      ])
-    }
-  )
-
-  it('큰 safe integer 초는 Node timer 상한 때문에 즉시 만료되지 않는다', async () => {
-    const fixture = await createSearchFixture()
-    const schedule = fixture.clock.schedule.bind(fixture.clock)
-    // Node의 2^31-1ms 초과 delay가 1ms로 바뀌는 경계를 clock effect에서 모사한다.
-    vi.spyOn(fixture.clock, 'schedule').mockImplementation((delay, callback) => {
-      const exceedsTimerRange = delay > 2_147_483_647
-      const nativeDelay = exceedsTimerRange ? 1 : delay
-
-      return schedule(nativeDelay, callback)
-    })
-    const failed = await limited(fixture, String(Number.MAX_SAFE_INTEGER))
-
-    fixture.clock.advance(1)
-    await flushSearch()
-
-    expect((await fixture.read()).slots[0]).toEqual({
-      ...failed,
-      error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: Number.MAX_SAFE_INTEGER }
-    })
-    expect(await retry(fixture, failed)).toMatchObject({
-      ok: false,
-      error: { code: 'SEARCH_RETRY_NOT_READY' }
-    })
-    expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
-  })
-
-  it.each(['source-clear', 'new-observation'])(
-    '%s는 이전 429 timer를 폐기하고 만료 때 현재 상태나 HTTP를 바꾸지 않는다',
-    async (action) => {
-      const fixture = await createSearchFixture()
-      await limited(fixture, '2')
-      const isSourceClear = action === 'source-clear'
-
-      if (isSourceClear) {
-        await fixture.invoke('selectCaptureSource', '')
-      } else {
-        await fixture.startSearch({ slot: 0, observationRevision: 2, nickname: '다라' })
-        await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-      }
-      const before = await fixture.read()
-      const publishedBefore = fixture.published.mock.calls.length
-      const hasPendingTimer = fixture.clock.scheduled.some((task) => {
-        const isFuture = task.at > fixture.clock.monotonicMs
-        const isActive = !task.cancelled && isFuture
-
-        return isActive
-      })
-      expect(hasPendingTimer).toBe(false)
-
-      fixture.clock.advance(2_000)
-      await flushSearch()
-
-      expect(await fixture.read()).toEqual(before)
-      expect(fixture.published).toHaveBeenCalledTimes(publishedBefore)
-      expect(fixture.fetchSearch).toHaveBeenCalledTimes(isSourceClear ? 1 : 2)
     }
   )
 })

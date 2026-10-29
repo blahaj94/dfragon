@@ -173,9 +173,9 @@ it('승인된 상태, nullable 값과 후보 순서를 보존한다', async () =
     searchSlot({ state: 'empty' }),
     searchSlot({
       state: 'failure',
-      error: { code: 'SEARCH_NETWORK_ERROR', retryAfterSeconds: null }
+      error: { code: 'SEARCH_NETWORK_ERROR' }
     }),
-    searchSlot({ state: 'failure', error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 } })
+    searchSlot({ state: 'failure', error: { code: 'SEARCH_RATE_LIMITED' } })
   ]
   for (const slot of slots) {
     const result = { ok: true, snapshot: withSearchSlot(slot) }

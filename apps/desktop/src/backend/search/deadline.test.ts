@@ -63,7 +63,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
       expect((await fixture.read()).slots[0]).toMatchObject({
         state: 'failure',
         rows: [],
-        error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
+        error: { code: 'SEARCH_TIMEOUT' }
       })
       expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
     } finally {
@@ -89,7 +89,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
       const expired = elapsed === 15_000
       expect((await fixture.read()).slots[0]).toMatchObject(
         expired
-          ? { state: 'failure', error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null } }
+          ? { state: 'failure', error: { code: 'SEARCH_TIMEOUT' } }
           : { state: 'empty', error: null }
       )
     }
@@ -112,7 +112,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
     expect((await fixture.read()).slots[0]).toMatchObject({
       state: 'failure',
       rows: [],
-      error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
+      error: { code: 'SEARCH_TIMEOUT' }
     })
   })
 
@@ -134,7 +134,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
         state: 'failure',
         observationRevision: 2,
         requestId: before.slots[0].requestId,
-        error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
+        error: { code: 'SEARCH_TIMEOUT' }
       })
       expect(fixture.fetchSearch).toHaveBeenCalledTimes(1)
     } finally {
@@ -177,7 +177,7 @@ describe('검색 접수부터 전체 완료까지 하나의 monotonic 예산', (
       await flushSearch()
       expect((await fixture.read()).slots[0]).toMatchObject({
         state: 'failure',
-        error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
+        error: { code: 'SEARCH_TIMEOUT' }
       })
     } finally {
       response.resolve(jsonResponse({ body: { rows: [] } }))

@@ -250,13 +250,10 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
   })
 
   it.each(['후보', '이미지'] as const)(
-    '%s 호출 제한은 원래 수신 시각을 유지하고 명성 대체로 바꾸지 않는다',
+    '%s 호출 제한은 명성 대체로 바꾸지 않고 호출 제한 실패로 끝낸다',
     async (stage) => {
       const f = fixture()
-      const error = new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 30,
-        retryAfterReceivedAt: 1000
-      })
+      const error = new SearchHttpFailure('SEARCH_RATE_LIMITED')
       if (stage === '후보') {
         f.candidates.mockRejectedValueOnce(error)
       } else {
@@ -271,8 +268,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
 
       expect(await f.identify(f.input)).toEqual({
         kind: 'failure',
-        error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 30 },
-        retryAfterReceivedAt: 1000
+        error: { code: 'SEARCH_RATE_LIMITED' }
       })
       expect(f.candidates).toHaveBeenCalledOnce()
       if (stage === '이미지') {
@@ -557,21 +553,15 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
     expect(score).not.toHaveBeenCalled()
   })
 
-  it('상세 호출 제한은 원래 수신 시각을 유지해 전달한다', async () => {
+  it('상세 호출 제한은 호출 제한 실패로 전달하고 엔진을 부르지 않는다', async () => {
     const f = fixture()
     const score = vi.fn<ScoreEngine>(() => engineResult)
     const request = cardRequest(f, score)
-    f.getDetails.mockRejectedValueOnce(
-      new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 30,
-        retryAfterReceivedAt: 1000
-      })
-    )
+    f.getDetails.mockRejectedValueOnce(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
 
     expect(await request()).toEqual({
       kind: 'failure',
-      error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 30 },
-      retryAfterReceivedAt: 1000
+      error: { code: 'SEARCH_RATE_LIMITED' }
     })
     expect(score).not.toHaveBeenCalled()
   })

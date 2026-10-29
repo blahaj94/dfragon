@@ -335,11 +335,6 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       slot: 0,
       requestId: failed.slots[0].requestId
     }
-    expect(await fixture.invoke('controlCharacterSearch', retry)).toMatchObject({
-      ok: false,
-      error: { code: 'SEARCH_RETRY_NOT_READY' }
-    })
-    fixture.clock.advance(2_000)
     expect(fixture.fetchSearch).toHaveBeenCalledOnce()
     fixture.fetchSearch.mockReset()
     resolveMatch(fixture)

@@ -393,7 +393,7 @@ it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 재�
       searchSlot({
         nickname: '이름0',
         state: 'failure',
-        error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
+        error: { code: 'SEARCH_TIMEOUT' }
       }),
       ...currentSearch.slots.slice(1)
     ]

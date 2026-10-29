@@ -18,8 +18,8 @@ const failureCases: [SearchErrorCode, DiagnosticCode][] = [
 ]
 
 it.each(failureCases)('%s 실패는 고정 진단 코드 %s만 남긴다', (code, expected) => {
-  const error = { code, retryAfterSeconds: 15, providerMessage: 'synthetic private response' }
-  reportSearchOutcome({ kind: 'failure', error, retryAfterReceivedAt: 123 })
+  const error = { code, providerMessage: 'synthetic private response' }
+  reportSearchOutcome({ kind: 'failure', error })
   expect(report).toHaveBeenCalledExactlyOnceWith(expected)
 })
 
