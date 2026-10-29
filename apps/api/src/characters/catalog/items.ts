@@ -1,4 +1,4 @@
-import { isObject } from '../details/neople.js'
+import { isRecord } from '@dfragon/lib/utils/shape-check'
 import type { projectCharacterDetails } from '../details/project.js'
 import type { CharacterPayload } from '../details/sections.js'
 
@@ -9,7 +9,7 @@ export function mapCharacterItems(
   mapItem: (item: CharacterPayload) => CharacterPayload
 ): CharacterDetails {
   const leaf = (value: unknown): unknown => {
-    if (isObject(value)) {
+    if (isRecord(value)) {
       return mapItem(value)
     }
 
@@ -23,7 +23,7 @@ export function mapCharacterItems(
     return value
   }
   const item = (value: unknown): unknown => {
-    if (!isObject(value)) {
+    if (!isRecord(value)) {
       return value
     }
     const result = { ...mapItem(value) }
@@ -43,7 +43,7 @@ export function mapCharacterItems(
   }
   const buff = Object.fromEntries(
     Object.entries(details.buff).map(([section, value]) => {
-      if (isObject(value) && Object.hasOwn(value, section)) {
+      if (isRecord(value) && Object.hasOwn(value, section)) {
         const snapshot = { ...value }
         const mapped = list(value[section], item)
         const mappedSection = { ...snapshot, [section]: mapped }
@@ -62,7 +62,7 @@ export function mapCharacterItems(
   const avatar = list(details.avatar, item)
   const creature = item(details.creature)
   let mappedOath = oath
-  if (isObject(oath)) {
+  if (isRecord(oath)) {
     const oathSnapshot = { ...oath }
     const info = Object.hasOwn(oath, 'info') ? { info: item(oath.info) } : {}
     const crystal = Object.hasOwn(oath, 'crystal') ? { crystal: list(oath.crystal, item) } : {}

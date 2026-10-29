@@ -1,3 +1,4 @@
+import { isRecord } from '@dfragon/lib/utils/shape-check'
 import ky, { isTimeoutError } from 'ky'
 import { NEOPLE_ORIGIN } from '../../constants/neople-character-search.js'
 import {
@@ -14,10 +15,6 @@ import type {
   CharacterPayload,
   CharacterPayloads
 } from './sections.js'
-
-export function isObject(value: unknown): value is CharacterPayload {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-}
 
 const sectionFields: Record<CharacterDetailSection, readonly string[]> = {
   basic: [],
@@ -39,7 +36,7 @@ export function validateCharacterPayload(
   section: CharacterDetailSection
 ): CharacterPayload {
   if (
-    !isObject(body) ||
+    !isRecord(body) ||
     body.characterId !== identity.characterId ||
     body.serverId !== identity.serverId ||
     typeof body.characterName !== 'string' ||

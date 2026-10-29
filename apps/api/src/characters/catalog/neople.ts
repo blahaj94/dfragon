@@ -1,14 +1,14 @@
+import { isRecord } from '@dfragon/lib/utils/shape-check'
 import ky from 'ky'
 import { NEOPLE_ORIGIN } from '../../constants/neople-character-search.js'
 import type { FetchTransport } from '../../types/neople-character-search.js'
-import { isObject } from '../details/neople.js'
 import { CATALOG_LIMITS, isCatalogId } from './types.js'
 import type { CatalogKey, CatalogValue } from './types.js'
 
 export type FetchCatalog = (keys: CatalogKey[], signal: AbortSignal) => Promise<CatalogValue[]>
 
 function selectRequestedRows(body: unknown, keys: CatalogKey[]): CatalogValue[] {
-  if (!isObject(body)) {
+  if (!isRecord(body)) {
     throw new Error('Invalid catalog body')
   }
 
@@ -18,12 +18,12 @@ function selectRequestedRows(body: unknown, keys: CatalogKey[]): CatalogValue[] 
   const rows = body.rows
 
   return keys.flatMap((key) => {
-    const matches = rows.filter((row) => isObject(row) && row.itemId === key.itemId)
+    const matches = rows.filter((row) => isRecord(row) && row.itemId === key.itemId)
     const row: unknown = matches[0]
 
     if (
       matches.length === 1 &&
-      isObject(row) &&
+      isRecord(row) &&
       typeof row.itemName === 'string' &&
       row.itemName.trim()
     ) {
