@@ -59,7 +59,7 @@ afterEach(async () => {
 })
 
 it('게임 캡처 없이 서버 지정 조회를 시작하고 같은 수명에서 다음 입력을 처리한다', async () => {
-  await act(async () => current.lookup(2, '수동이름', 'siroco'))
+  await act(async () => current.lookupSlot(2, '수동이름', 'siroco'))
   expect(control).toHaveBeenCalledWith({
     action: 'lookup',
     captureId: CAPTURE_ID,
@@ -68,7 +68,7 @@ it('게임 캡처 없이 서버 지정 조회를 시작하고 같은 수명에�
     nickname: '수동이름',
     serverId: 'siroco'
   })
-  await act(async () => current.lookup(2, '수정이름', 'cain'))
+  await act(async () => current.lookupSlot(2, '수정이름', 'cain'))
   expect(control).toHaveBeenLastCalledWith({
     action: 'lookup',
     captureId: CAPTURE_ID,
@@ -84,8 +84,8 @@ it('시작 응답을 기다리는 동안 같은 슬롯을 수정하면 최신 �
   const start = Promise.withResolvers<SearchCommandResult>()
   control.mockReturnValueOnce(start.promise)
   await act(async () => {
-    current.lookup(0, '이전', 'cain')
-    current.lookup(0, '최신', 'siroco')
+    current.lookupSlot(0, '이전', 'cain')
+    current.lookupSlot(0, '최신', 'siroco')
   })
   await act(async () =>
     start.resolve({ ok: true, snapshot: searchSnapshot({ captureId: CAPTURE_ID, revision: 1 }) })
@@ -108,8 +108,8 @@ it('시작 응답을 기다리는 동안 같은 슬롯을 수정하면 최신 �
 it('전체 재검색으로 초기화한 뒤 이전 시작 응답이 도착해도 조회하지 않는다', async () => {
   const start = Promise.withResolvers<SearchCommandResult>()
   control.mockReturnValueOnce(start.promise)
-  await act(async () => current.lookup(0, '이전', 'cain'))
-  await act(async () => current.reset())
+  await act(async () => current.lookupSlot(0, '이전', 'cain'))
+  await act(async () => current.end())
   await act(async () =>
     start.resolve({ ok: true, snapshot: searchSnapshot({ captureId: CAPTURE_ID, revision: 1 }) })
   )
@@ -118,12 +118,12 @@ it('전체 재검색으로 초기화한 뒤 이전 시작 응답이 도착해도
 })
 
 it('main이 수명을 끝내면 연결을 비우고 알린 뒤 다음 조회는 수명을 다시 시작한다', async () => {
-  await act(async () => current.lookup(0, '이전', 'cain'))
+  await act(async () => current.lookupSlot(0, '이전', 'cain'))
   snapshot = searchSnapshot({ captureId: null, revision: snapshot.revision + 1 })
   await act(async () => emit(snapshot))
 
   expect(invalidated).toHaveBeenCalledOnce()
-  await act(async () => current.lookup(0, '다음', 'cain'))
+  await act(async () => current.lookupSlot(0, '다음', 'cain'))
   expect(control.mock.calls.filter(([command]) => command.action === 'begin')).toHaveLength(2)
   expect(control).toHaveBeenLastCalledWith(
     expect.objectContaining({ action: 'lookup', nickname: '다음', observationRevision: 1 })
