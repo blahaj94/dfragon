@@ -2,9 +2,11 @@ import * as stylex from '@stylexjs/stylex'
 import { BoardHeader } from '../../components/BoardHeader'
 import { BoardTitle } from '../../components/BoardTitle'
 import { CaptureButton } from '../../components/CaptureButton'
+import { ClipboardCopyButton } from '../../components/ClipboardCopyButton'
 import { LastCaptureTime } from '../../components/LastCaptureTime'
 import { SnapshotToggle } from '../../components/SnapshotToggle'
 import { useBoardHeaderPortal } from '../../hooks/useBoardHeaderPortal'
+import { useClipboardCopy } from '../../hooks/useClipboardCopy'
 import { usePartySlotCards } from '../../hooks/usePartySlotCards'
 import { useScreenCaptureContext } from '../../hooks/useScreenCaptureContext'
 import { filledSlotCount } from '../../lib/slot-cards'
@@ -13,8 +15,9 @@ import { styles } from './PartyScreen.style'
 
 export function PartyScreen(): React.JSX.Element {
   const { partyCapture: capture } = useScreenCaptureContext()
-  const { cards, snapshot } = usePartySlotCards(capture)
+  const { cards, snapshot, clipboardText } = usePartySlotCards(capture)
   const { renderBoardHeader } = useBoardHeaderPortal()
+  const clipboard = useClipboardCopy(clipboardText)
 
   return (
     <div {...stylex.props(styles.party)}>
@@ -39,6 +42,7 @@ export function PartyScreen(): React.JSX.Element {
                 onTake={snapshot.take}
                 onClear={snapshot.clear}
               />
+              <ClipboardCopyButton status={clipboard.status} onCopy={clipboard.copy} />
               <CaptureButton
                 target="파티"
                 disabled={!capture.canStartCapture}

@@ -1,3 +1,4 @@
+import type { ClipboardIPCFunctions } from './clipboard'
 import type { CaptureSource, RaidFrameResult, WindowFrameResult } from './capture'
 import type { SearchControl, SearchCommandResult, OcrSearchObservation } from './search'
 import type { DiagnosticIPCFunctions } from './diagnostics'
@@ -8,7 +9,8 @@ type SearchControlCommand = (control: SearchControl) => Promise<SearchCommandRes
 type OcrCandidatesNotification = (observation: OcrSearchObservation) => Promise<SearchCommandResult>
 
 interface AsyncIPCFunctions
-  extends DiagnosticIPCFunctions,
+  extends ClipboardIPCFunctions,
+    DiagnosticIPCFunctions,
     UpdateNoticeIPCFunctions,
     WindowChromeIPCFunctions {
   listCaptureSources: () => Promise<CaptureSource[]>
