@@ -351,7 +351,7 @@ test('상세 요청 로그에는 Neople 단계별 대기 시간만 붙이고, �
   assert.equal(failed!.neopleShared, undefined)
 })
 
-test('캐시가 맞은 상세 요청 로그에는 basic, sections가 없고 강제 갱신은 refresh route로 다시 받은 단계를 남기며 query가 붙은 강제 갱신은 거절한다', {
+test('저장한 응답을 다시 보낸 상세 요청 로그는 단계 시간 없이 responseCached로 표시하고 강제 갱신은 refresh route로 다시 받은 단계를 남기며 query가 붙은 강제 갱신은 거절한다', {
   timeout: 5000
 }, async (t) => {
   const basicRequests: string[] = []
@@ -377,7 +377,9 @@ test('캐시가 맞은 상세 요청 로그에는 basic, sections가 없고 강�
           })
         }
       }),
-      catalog: createCatalogService(async () => new Map())
+      catalog: createCatalogService(
+        async (itemIds) => new Map(itemIds.map((itemId) => [itemId, { itemId }]))
+      )
     },
     writeAccessLog: logs.sink
   })
@@ -408,18 +410,19 @@ test('캐시가 맞은 상세 요청 로그에는 basic, sections가 없고 강�
 
   assert.equal(basicRequests.length, 2)
   const entries = logs.lines.map((line) => {
-    const { route, neopleMs } = readEntry(line).fields
+    const { route, neopleMs, responseCached } = readEntry(line).fields
 
-    return { route, stages: Object.keys(neopleMs ?? {}).sort() }
+    return { route, stages: Object.keys(neopleMs ?? {}).sort(), responseCached }
   })
   const detailRoute = '/characters/:serverId/:characterId'
   const refreshRoute = `${detailRoute}/refresh`
+  const built = ['basic', 'catalog', 'sections']
   assert.deepEqual(entries, [
-    { route: detailRoute, stages: ['basic', 'catalog', 'sections'] },
-    { route: detailRoute, stages: ['catalog'] },
-    { route: refreshRoute, stages: ['basic', 'catalog', 'sections'] },
-    { route: detailRoute, stages: ['catalog'] },
-    { route: refreshRoute, stages: [] }
+    { route: detailRoute, stages: built, responseCached: undefined },
+    { route: detailRoute, stages: [], responseCached: true },
+    { route: refreshRoute, stages: built, responseCached: undefined },
+    { route: detailRoute, stages: [], responseCached: true },
+    { route: refreshRoute, stages: [], responseCached: undefined }
   ])
 })
 
