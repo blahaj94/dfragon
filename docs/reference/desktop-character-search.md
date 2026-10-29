@@ -173,7 +173,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 엔진 호출은 main process가 띄운 Node worker thread 하나(`backend/score/worker.ts`)에서 한다. 엔진의 첫 계산은 OS thread마다 약 1초의 초기화를 따로 하므로, 준비와 이후 모든 계산을 같은 worker에서 해야 초기화를 한 번만 낸다. koffi의 `.async`는 pool thread마다 초기화를 다시 해 쓰지 않는다. 검색 수명을 시작하는 begin(`manual-ipc.ts`)이 `prepare`로 worker를 띄우고, worker는 라이브러리를 연 뒤 제품에 실은 합성 입력(`warmup-input.ts`)으로 장비, 버프 계산기를 한 번씩 불러 초기화를 끝낸다. 이 입력은 버퍼 직업의 캐릭터 식별 칸만 둔 문서이며, 결과는 쓰지 않는다. 준비 중에 도착한 계산 요청은 차례로 기다리고, 준비 전에 점수를 계산하면 그때 worker를 띄운다.
 
-라이브러리 경로가 없거나 worker가 라이브러리를 열지 못하면 `SCORE_ENGINE_UNAVAILABLE`을 한 번 남기고 앱이 끝날 때까지 다시 열지 않는다. Worker가 오류로 끝나거나 10초 안에 응답하지 않으면 worker를 정리하고 기다리던 점수만 null로 두며 `SCORE_ENGINE_FAILED`를 남긴다. 그 뒤의 점수는 다음 begin이 새 worker를 띄울 때까지 null이다. 상세 요약은 점수와 관계없이 그대로 성공한다. 앱이 끝날 때(`quit`) worker를 정리한다.
+라이브러리 경로가 없거나 worker가 라이브러리를 열지 못하면 `SCORE_ENGINE_UNAVAILABLE`을 한 번 남기고 앱이 끝날 때까지 다시 열지 않는다. Worker가 오류나 종료로 끝나면 worker를 정리하고 기다리던 점수만 null로 두며 `SCORE_ENGINE_FAILED`를 남긴다. 응답 기한은 두지 않아, 엔진이 멈추면 그 카드의 점수는 상세 요청이 취소될 때까지 기다린다. 그 뒤의 점수는 다음 begin이 새 worker를 띄울 때까지 null이다. 상세 요약은 점수와 관계없이 그대로 성공한다. 앱이 끝날 때(`quit`) worker를 정리한다.
 
 점수 계산은 상세 조회를 마친 같은 상세 operation의 `run` 안에서 비동기로 기다린다. `card-assembler.ts`는 비동기 점수 함수만 받고 worker를 모른다. 계산을 기다리는 중 캡처가 끝나거나 새 요청으로 바뀌면 `run`의 신호로 응답을 기다리지 않고, 늦게 온 응답과 카드는 발행하지 않는다. 계산 중인 네이티브 호출은 멈출 수 없으므로 worker가 잰 호출 시간이 50ms를 넘으면 `SCORE_ENGINE_SLOW`를 남긴다. Release `native-v0.3.1`(규칙 rev14)을 macOS arm64에서 golden 벡터 두 건으로 잰 로컬 측정에서는 worker 준비가 약 1.3초였고, 준비 뒤 딜러 계산은 2~5ms, 버퍼 계산은 40~55ms였다. 그동안 main event loop의 지연은 최대 약 12ms였다. Host Node와 Electron 44 main process에서 확인했고, Windows의 시간과 DLL 로드는 확인하지 않았다. Renderer와 preload는 엔진을 부르지 못하고 main이 검증해 넘긴 카드만 받는다.
 

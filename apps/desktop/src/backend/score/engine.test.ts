@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { DiagnosticCode } from '../../preload/common/types/diagnostics'
 import { readEngineInput } from './details-test-fixture'
 import { createScoreEngine, resolveScoreLibraryPath } from './engine'
@@ -287,15 +287,11 @@ describe('점수 worker 결과 검증', () => {
 })
 
 describe('점수 worker 실패와 정리', () => {
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
   it.each([
     ['오류로 끝남', (worker: FakeWorker) => worker.emit('error', new Error('worker failed'))],
     ['예고 없이 종료됨', (worker: FakeWorker) => worker.emit('exit', 1)]
   ])(
-    'worker가 %s이면 기다리던 점수만 비우고 다음 캡처 준비 때 새 worker를 띄운다',
+    'worker가 %s이면 기다리던 점수만 비우고 늦은 응답은 버리며 다음 캡처 준비 때 새 worker를 띄운다',
     async (_name, stop) => {
       const { engine, workers, reports, spawn } = scoreEngine()
       engine.prepare()
@@ -305,6 +301,7 @@ describe('점수 worker 실패와 정리', () => {
 
       expect(await pending).toBeNull()
       expect(workers[0].terminated).toBe(true)
+      workers[0].reply(JSON.stringify(engineResult))
       expect(await calculate(engine)).toBeNull()
       expect(spawn).toHaveBeenCalledOnce()
       expect(reports).toEqual(['SCORE_ENGINE_FAILED', 'SCORE_ENGINE_FAILED'])
@@ -314,20 +311,6 @@ describe('점수 worker 실패와 정리', () => {
       expect(await next).toEqual(engineResult)
     }
   )
-
-  it('worker가 응답하지 않으면 점수를 비우고 worker를 정리하며 늦은 응답은 버린다', async () => {
-    vi.useFakeTimers()
-    const { engine, workers, reports } = scoreEngine()
-    const pending = calculate(engine)
-
-    await vi.advanceTimersByTimeAsync(60_000)
-
-    expect(await pending).toBeNull()
-    expect(workers[0].terminated).toBe(true)
-    expect(reports).toEqual(['SCORE_ENGINE_FAILED'])
-    workers[0].reply(JSON.stringify(engineResult))
-    expect(reports).toEqual(['SCORE_ENGINE_FAILED'])
-  })
 
   it('취소된 계산은 응답을 기다리지 않고 취소 이유로 끝나며 늦은 응답은 버린다', async () => {
     const { engine, workers, reports } = scoreEngine()
