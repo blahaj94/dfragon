@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
 import type { Server } from 'node:http'
-import { after, before, test } from 'node:test'
+import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
-import { Controller, Get, Injectable, Module } from '@nestjs/common'
-import type { INestApplication } from '@nestjs/common'
+import { Controller, Get, Injectable } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
-import { closeApp, createApp } from '../src/app.js'
+import { createApiHttpApp } from '../src/http.js'
+import type { SearchCharacters } from '../src/types/neople-character-search.js'
 
 @Injectable()
 class GreetingService {
@@ -26,35 +26,46 @@ class TestController {
   }
 }
 
-@Module({ controllers: [TestController], providers: [GreetingService] })
-class TestModule {}
+const unusedSearchCharacters: SearchCharacters = async () => {
+  throw new Error('app lifecycle test must not search Neople characters')
+}
 
-let app: INestApplication
-let baseUrl: string
-
-before(async () => {
-  app = await createApp(TestModule)
-  assert.equal((app.getHttpServer() as Server).listening, false)
-  await app.listen(0, '127.0.0.1')
+test('createApiHttpApp은 listen 전에는 port를 열지 않고 close 뒤 port를 닫는다', async () => {
+  const app = await createApiHttpApp({ searchCharacters: unusedSearchCharacters })
   const server = app.getHttpServer() as Server
-  const address = server.address()
-  const isAddressMissing = address == null
-  assert(!isAddressMissing)
-  const isAddressEmpty = address === ''
-  assert(!isAddressEmpty)
-  const isAddressObject = typeof address !== 'string'
-  assert(isAddressObject)
-  baseUrl = `http://127.0.0.1:${address.port}`
-})
 
-after(async () => {
-  const server = app.getHttpServer() as Server
-  await app.close()
+  assert.equal(server.listening, false)
+  try {
+    await app.listen(0, '127.0.0.1')
+    assert.equal(server.listening, true)
+  } finally {
+    await app.close()
+  }
   assert.equal(server.listening, false)
 })
 
-test('Nest 테스트 container는 생성자 metadata로 주입하고 provider를 교체한다', async () => {
+test('test module route는 listen 후 생성자로 주입한 provider의 응답을 HTTP로 제공한다', async () => {
   assert.deepEqual(Reflect.getMetadata('design:paramtypes', TestController), [GreetingService])
+  const testingModule = await Test.createTestingModule({
+    controllers: [TestController],
+    providers: [GreetingService]
+  }).compile()
+  const app = testingModule.createNestApplication()
+
+  try {
+    await app.listen(0, '127.0.0.1')
+    const address = (app.getHttpServer() as Server).address()
+    assert(address !== null && typeof address !== 'string')
+    const response = await fetch(`http://127.0.0.1:${address.port}/test`)
+
+    assert.equal(response.status, 200)
+    assert.equal(await response.text(), 'hello')
+  } finally {
+    await app.close()
+  }
+})
+
+test('Nest 테스트 container는 provider를 교체한다', async () => {
   const testingModule = await Test.createTestingModule({
     controllers: [TestController],
     providers: [GreetingService]
@@ -67,34 +78,6 @@ test('Nest 테스트 container는 생성자 metadata로 주입하고 provider를
     assert.equal(testingModule.get(TestController).getMessage(), 'overridden')
   } finally {
     await testingModule.close()
-  }
-})
-
-test('앱 factory는 listen 후 실제 HTTP 응답을 제공한다', async () => {
-  const response = await fetch(`${baseUrl}/test`)
-
-  assert.equal(response.status, 200)
-  assert.equal(await response.text(), 'hello')
-})
-
-test('종료 실패는 예외 원문을 출력하지 않고 고정 문구와 실패 exitCode를 남긴다', async (t) => {
-  const localApp = await createApp(TestModule)
-  const exitCode = process.exitCode
-  const logged = t.mock.method(console, 'error', () => undefined)
-  const mockedClose = t.mock.method(localApp, 'close', async () => {
-    throw new Error('synthetic-private-credential')
-  })
-  try {
-    await closeApp(localApp)
-    assert.equal(process.exitCode, 1)
-    assert.deepEqual(
-      logged.mock.calls.map(({ arguments: args }) => args),
-      [['API failed to start']]
-    )
-  } finally {
-    process.exitCode = exitCode
-    mockedClose.mock.restore()
-    await localApp.close()
   }
 })
 

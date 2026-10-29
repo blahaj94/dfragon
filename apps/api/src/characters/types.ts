@@ -4,12 +4,6 @@ import type {
   SearchCharacters
 } from '../types/neople-character-search.js'
 
-export interface SearchClock {
-  now(): number
-  setTimer(callback: () => void, delay: number): unknown
-  clearTimer(timer: unknown): void
-}
-
 export interface CharacterSearchDependencies {
   readonly trustedProxyHops?: 1
   readonly searchCharacters: SearchCharacters
