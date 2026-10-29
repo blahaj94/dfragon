@@ -45,7 +45,6 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
 
   const connection = createSearchConnection({
     api: options.api,
-    slotCount,
     onSnapshot: (snapshot) => accept(snapshot),
     onFailure: () => {
       failed = true
