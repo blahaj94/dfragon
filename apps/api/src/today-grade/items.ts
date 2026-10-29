@@ -1,5 +1,5 @@
 // 2026-10-30 사용자 결정: 방어구 5, 악세서리 3, 특수장비 3부위의 115레벨 에픽 대표 아이템이다. 팔찌와 목걸이는
-// 시로코 퍼리조아가 낀 아이템, 나머지는 API 테스트 fixture의 아이템이다.
+// 시로코 퍼리조아가 낀 아이템, 반지는 Desktop 점수 엔진 fixture, 나머지는 API 테스트 fixture의 아이템이다.
 export const TODAY_GRADE_ITEMS = [
   { slot: 'JACKET', itemId: '11f55a9437e514d46ee55c8a8ae82b7e', itemName: '긍휼 속 자비의 상의' },
   { slot: 'SHOULDER', itemId: '2d81feba3c9977d5ffa32fd378785bf0', itemName: '숭고한 심판의 어깨' },
