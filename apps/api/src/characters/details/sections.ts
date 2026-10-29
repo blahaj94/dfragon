@@ -21,11 +21,9 @@ export type { CharacterIdentity } from '../identity.js'
 
 export type CharacterPayload = Record<string, unknown>
 
-export interface CharacterSectionResponse {
-  section: CharacterDetailSection
-  payload: CharacterPayload
-  revision: number
-  contentUpdatedAt: Date
-  lastSuccessfulFetchAt: Date
-}
 export type CharacterPayloads = Record<CharacterDetailSection, CharacterPayload>
+
+export interface FetchedCharacterPayloads {
+  payloads: CharacterPayloads
+  fetchedAt: Date
+}

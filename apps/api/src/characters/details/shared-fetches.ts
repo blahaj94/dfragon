@@ -1,8 +1,8 @@
-import type { CharacterIdentity, CharacterSectionResponse } from './sections.js'
+import type { CharacterIdentity, FetchedCharacterPayloads } from './sections.js'
 
 interface SharedFetch {
   controller: AbortController
-  promise: Promise<CharacterSectionResponse[]>
+  promise: Promise<FetchedCharacterPayloads>
   waiters: number
   settled: boolean
 }
@@ -16,8 +16,8 @@ export class SharedCharacterFetches {
   async run(
     identity: CharacterIdentity,
     signal: AbortSignal,
-    work: (signal: AbortSignal) => Promise<CharacterSectionResponse[]>
-  ): Promise<CharacterSectionResponse[]> {
+    work: (signal: AbortSignal) => Promise<FetchedCharacterPayloads>
+  ): Promise<FetchedCharacterPayloads> {
     signal.throwIfAborted()
     if (this.closed) {
       throw new Error('Character fetches closed')
@@ -49,7 +49,7 @@ export class SharedCharacterFetches {
     shared.waiters++
     let cancel: () => void = () => undefined
     try {
-      return await new Promise<CharacterSectionResponse[]>((resolve, reject) => {
+      return await new Promise<FetchedCharacterPayloads>((resolve, reject) => {
         cancel = () => reject(new Error('Character fetch canceled'))
         signal.addEventListener('abort', cancel, { once: true })
         shared.promise.then(resolve, reject)

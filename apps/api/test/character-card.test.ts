@@ -4,10 +4,7 @@ import test from 'node:test'
 import { projectCharacterCard } from '../src/characters/card/project.js'
 import type { CharacterCard } from '../src/characters/card/types.js'
 import { projectCharacterDetails } from '../src/characters/details/project.js'
-import type {
-  CharacterDetailSection,
-  CharacterSectionResponse
-} from '../src/characters/details/sections.js'
+import type { CharacterDetailSection } from '../src/characters/details/sections.js'
 
 // 이전 Desktop은 카드 전체를 엄격하게 검사하므로 지운 칸은 빈 값으로 남긴다.
 const retiredFields = {
@@ -34,17 +31,8 @@ test('실응답 fixture의 딜러와 버퍼는 역할만 정하고 지운 칸은
     const { serverId, characterId } = fixture.sections.basic as Record<string, string>
     const identity = { serverId: serverId!, characterId: characterId! }
     const at = new Date('2026-10-19T00:00:00.000Z')
-    const rows = Object.entries(fixture.sections).map(
-      ([section, payload]): CharacterSectionResponse => ({
-        section: section as CharacterDetailSection,
-        payload,
-        revision: 1,
-        contentUpdatedAt: at,
-        lastSuccessfulFetchAt: at
-      })
-    )
 
-    const card = projectCharacterCard(projectCharacterDetails(identity, rows))
+    const card = projectCharacterCard(projectCharacterDetails(identity, fixture.sections, at))
 
     assert.deepEqual(card, { role, ...retiredFields }, role)
   }

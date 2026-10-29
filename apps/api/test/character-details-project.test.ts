@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { CharacterDetailFailure } from '../src/characters/details/errors.js'
 import { projectCharacterDetails } from '../src/characters/details/project.js'
-import { characterDetailSections } from '../src/characters/details/sections.js'
 import type {
   CharacterDetailSection,
   CharacterPayload,
-  CharacterSectionResponse
+  CharacterPayloads
 } from '../src/characters/details/sections.js'
 
 const identity = { serverId: 'siroco', characterId: 'fixture-character' }
@@ -25,24 +23,15 @@ const storedPayloads = {
   buff_creature: { ...common, skill: { buff: null } }
 } satisfies Record<CharacterDetailSection, CharacterPayload>
 
-function rowsFor(
-  payloads: Partial<Record<CharacterDetailSection, CharacterPayload>> = {}
-): CharacterSectionResponse[] {
-  return characterDetailSections.map((section) => {
-    const payload = structuredClone(payloads[section] ?? storedPayloads[section])
+const fetchedAt = new Date('2026-09-01T00:01:00.000Z')
 
-    return {
-      section,
-      payload,
-      revision: 1,
-      contentUpdatedAt: new Date('2026-09-01T00:00:00.000Z'),
-      lastSuccessfulFetchAt: new Date('2026-09-01T00:01:00.000Z'),
-      requestStartedAt: new Date('2026-09-01T00:00:30.000Z')
-    }
-  })
+function payloadsFor(
+  payloads: Partial<Record<CharacterDetailSection, CharacterPayload>> = {}
+): CharacterPayloads {
+  return structuredClone({ ...storedPayloads, ...payloads })
 }
 
-test('섹션 응답 순서와 무관하게 공통 헤더를 모으고 섹션의 장착 값과 조회 메타데이터를 보존한다', () => {
+test('공통 헤더를 모으고 섹션의 장착 값을 보존하며 섹션마다 revision 1과 조회 시각을 담는다', () => {
   const status = [
     { name: '힘', value: 0 },
     { name: '공격 속도', value: '48.3%' }
@@ -60,7 +49,7 @@ test('섹션 응답 순서와 무관하게 공통 헤더를 모으고 섹션의 
     equipment,
     futureOption: { rate: '3%' }
   }
-  const rows = rowsFor({
+  const payloads = payloadsFor({
     basic: {
       ...common,
       level: 115,
@@ -81,19 +70,15 @@ test('섹션 응답 순서와 무관하게 공통 헤더를 모으고 섹션의 
     mist_assimilation: { ...common, mistAssimilation: { level: 0 } },
     skill_style: { ...common, skill: skillStyle },
     buff_equipment: { ...common, skill: { buff: buffEquipment } }
-  }).reverse()
-  const basicRow = rows.find((row) => row.section === 'basic')!
-  basicRow.revision = 7
-  basicRow.contentUpdatedAt = new Date('2026-09-02T00:00:00.000Z')
-  basicRow.lastSuccessfulFetchAt = new Date('2026-09-02T00:01:00.000Z')
-  const original = structuredClone(rows)
+  })
+  const original = structuredClone(payloads)
   const metadata = {
     revision: 1,
-    contentUpdatedAt: '2026-09-01T00:00:00.000Z',
+    contentUpdatedAt: '2026-09-01T00:01:00.000Z',
     lastSuccessfulFetchAt: '2026-09-01T00:01:00.000Z'
   }
 
-  const result = projectCharacterDetails(identity, rows)
+  const result = projectCharacterDetails(identity, payloads, fetchedAt)
 
   assert.deepEqual(result, {
     character: {
@@ -119,11 +104,7 @@ test('섹션 응답 순서와 무관하게 공통 헤더를 모으고 섹션의 
     skillStyle,
     buff: { equipment: buffEquipment, avatar: null, creature: null },
     sections: {
-      basic: {
-        revision: 7,
-        contentUpdatedAt: '2026-09-02T00:00:00.000Z',
-        lastSuccessfulFetchAt: '2026-09-02T00:01:00.000Z'
-      },
+      basic: metadata,
       status: metadata,
       equipment: metadata,
       avatar: metadata,
@@ -136,18 +117,19 @@ test('섹션 응답 순서와 무관하게 공통 헤더를 모으고 섹션의 
       buff_creature: metadata
     }
   })
-  assert.deepEqual(rows, original)
+  assert.deepEqual(payloads, original)
 })
 
 test('선택 신상 정보의 누락은 null로 정제하고 미장착 null과 빈 배열을 구분한다', () => {
   const result = projectCharacterDetails(
     identity,
-    rowsFor({
+    payloadsFor({
       avatar: { ...common, avatar: [] },
       buff_equipment: { ...common, skill: { buff: { equipment: [] } } },
       buff_avatar: { ...common, skill: null },
       buff_creature: { ...common, skill: {} }
-    })
+    }),
+    fetchedAt
   )
 
   assert.deepEqual(result.character, {
@@ -172,27 +154,4 @@ test('선택 신상 정보의 누락은 null로 정제하고 미장착 null과 �
   assert.equal(result.mistAssimilation, null)
   assert.equal(result.skillStyle, null)
   assert.deepEqual(result.buff, { equipment: { equipment: [] }, avatar: null, creature: null })
-})
-
-test('11개 섹션 중 하나라도 저장값이 없으면 정제된 내부 오류로 거절한다', async (t) => {
-  for (const section of characterDetailSections) {
-    await t.test(`${section} 저장값 누락`, () => {
-      const rows = rowsFor().filter((row) => row.section !== section)
-      assert.throws(
-        () => projectCharacterDetails(identity, rows),
-        (error: unknown) => {
-          assert(error instanceof CharacterDetailFailure)
-          assert.equal(error.status, 500)
-          assert.deepEqual(error.body, {
-            error: {
-              code: 'INTERNAL_SERVER_ERROR',
-              message: '서버 오류로 캐릭터 정보를 처리하지 못했습니다.'
-            }
-          })
-
-          return true
-        }
-      )
-    })
-  }
 })
