@@ -4,7 +4,6 @@ import type { CharacterCandidate, CharacterDetails } from '../../preload/common/
 import type { CharacterCandidatesHttp, CharacterDetailsHttp } from './character-http'
 import { createCaptureSearchLifetime } from './capture-lifetime'
 import { deferred } from '../lib/async-test-fixture'
-import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { SearchHttpFailure } from './http'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
@@ -68,7 +67,6 @@ function fixture() {
     publish: vi.fn(),
     isCurrent: () => true,
     runtime: {
-      clock: new FakeMonotonicClock(),
       identification: {
         candidates,
         image: vi.fn(),

@@ -1,7 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import { createCaptureSearchLifetime, type CaptureBinding } from './capture-lifetime'
 import { deferred } from '../lib/async-test-fixture'
-import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { SearchHttpFailure } from './http'
 import type { SearchRuntime } from './request'
 import type { CharacterCandidatesHttp } from './character-http'
@@ -29,9 +28,8 @@ function binding(): Omit<CaptureBinding, 'captureId'> {
   return { windowGeneration: 2, sourceGeneration: 3 }
 }
 
-function runtime(candidates: CharacterCandidatesHttp, clock: FakeMonotonicClock): SearchRuntime {
+function runtime(candidates: CharacterCandidatesHttp): SearchRuntime {
   return {
-    clock,
     identification: {
       candidates,
       image: vi.fn(),
@@ -56,15 +54,14 @@ async function flushCompletion(): Promise<void> {
   await new Promise<void>((resolve) => setImmediate(resolve))
 }
 
-it('검색 불가 닉네임의 새 관측은 이전 HTTP와 deadline을 취소하고 입력 실패로 교체한다', async () => {
+it('검색 불가 닉네임의 새 관측은 이전 HTTP를 취소하고 입력 실패로 교체한다', async () => {
   const response = deferred<readonly CharacterCandidate[]>()
-  const clock = new FakeMonotonicClock()
   const http = vi.fn<CharacterCandidatesHttp>().mockReturnValue(response.promise)
   const publish = vi.fn<(snapshot: SearchSnapshot) => void>()
   const lifetime = createCaptureSearchLifetime({
     publish,
     isCurrent: () => true,
-    runtime: runtime(http, clock)
+    runtime: runtime(http)
   })
   const captureId = lifetime.begin(binding()).snapshot.captureId!
   const pending = lifetime.observeOcr(
@@ -91,7 +88,6 @@ it('검색 불가 닉네임의 새 관측은 이전 HTTP와 deadline을 취소�
   expect(result.snapshot.slots[0].requestId).not.toBe(pending.snapshot.slots[0].requestId)
   expect(previousSignal.aborted).toBe(true)
   expect(http).toHaveBeenCalledTimes(1)
-  expect(clock.scheduled.every((task) => task.cancelled)).toBe(true)
   publish.mockClear()
 
   response.resolve(rows)
@@ -104,7 +100,6 @@ it('검색 불가 닉네임의 새 관측은 이전 HTTP와 deadline을 취소�
 it('Stop은 모든 슬롯의 HTTP와 실패를 정리하고 새 수명을 늦은 완료, 종료로부터 보호한다', async () => {
   const firstResponse = deferred<readonly CharacterCandidate[]>()
   const thirdResponse = deferred<readonly CharacterCandidate[]>()
-  const clock = new FakeMonotonicClock()
   const http = vi
     .fn<CharacterCandidatesHttp>()
     .mockReturnValueOnce(firstResponse.promise)
@@ -115,7 +110,7 @@ it('Stop은 모든 슬롯의 HTTP와 실패를 정리하고 새 수명을 늦은
   const lifetime = createCaptureSearchLifetime({
     publish,
     isCurrent: () => true,
-    runtime: runtime(http, clock)
+    runtime: runtime(http)
   })
   const oldCaptureId = lifetime.begin(binding()).snapshot.captureId!
   for (const slot of [0, 1, 2]) {
@@ -151,11 +146,7 @@ it('Stop은 모든 슬롯의 HTTP와 실패를 정리하고 새 수명을 늦은
     }))
   })
   expect([requests[0].signal.aborted, requests[2].signal.aborted]).toEqual([true, true])
-  expect(clock.scheduled.every((task) => task.cancelled)).toBe(true)
   expect(publish).toHaveBeenCalledExactlyOnceWith(ended.snapshot)
-  clock.advance(20_000)
-  await flushCompletion()
-  expect(lifetime.snapshot()).toEqual(ended.snapshot)
   expect(http).toHaveBeenCalledTimes(3)
 
   const newCaptureId = lifetime.begin(binding()).snapshot.captureId!
@@ -177,11 +168,10 @@ it('Stop은 모든 슬롯의 HTTP와 실패를 정리하고 새 수명을 늦은
   lifetime.end(newCaptureId)
 })
 
-it('pending 발행 중 새 관측이 요청을 대체하면 이전 요청의 HTTP나 deadline을 시작하지 않는다', async () => {
-  const clock = new FakeMonotonicClock()
+it('pending 발행 중 새 관측이 요청을 대체하면 이전 요청의 HTTP를 시작하지 않는다', async () => {
   const http = vi.fn<CharacterCandidatesHttp>().mockResolvedValue([])
   const lifetime = createCaptureSearchLifetime({
-    runtime: runtime(http, clock),
+    runtime: runtime(http),
     isCurrent: () => true,
     publish: (snapshot) => {
       if (snapshot.slots[0].state === 'pending') {
@@ -208,24 +198,21 @@ it('pending 발행 중 새 관측이 요청을 대체하면 이전 요청의 HTT
   })
   await flushCompletion()
   expect(http).not.toHaveBeenCalled()
-  expect(clock.scheduled).toHaveLength(0)
   lifetime.end(captureId)
 })
 
-it('한 검색 수명의 종료는 다른 수명의 HTTP, deadline, 결과를 건드리지 않는다', async () => {
+it('한 검색 수명의 종료는 다른 수명의 HTTP, 결과를 건드리지 않는다', async () => {
   const firstResponse = deferred<readonly CharacterCandidate[]>()
   const secondResponse = deferred<readonly CharacterCandidate[]>()
   const firstHttp = vi.fn<CharacterCandidatesHttp>().mockReturnValue(firstResponse.promise)
   const secondHttp = vi.fn<CharacterCandidatesHttp>().mockReturnValue(secondResponse.promise)
-  const firstClock = new FakeMonotonicClock()
-  const secondClock = new FakeMonotonicClock()
   const first = createCaptureSearchLifetime({
-    runtime: runtime(firstHttp, firstClock),
+    runtime: runtime(firstHttp),
     isCurrent: () => true,
     publish: vi.fn()
   })
   const second = createCaptureSearchLifetime({
-    runtime: runtime(secondHttp, secondClock),
+    runtime: runtime(secondHttp),
     isCurrent: () => true,
     publish: vi.fn()
   })
@@ -243,9 +230,7 @@ it('한 검색 수명의 종료는 다른 수명의 HTTP, deadline, 결과를 �
 
   expect(first.snapshot().captureId).toBeNull()
   expect(firstHttp.mock.calls[0][0].signal.aborted).toBe(true)
-  expect(firstClock.scheduled.every((task) => task.cancelled)).toBe(true)
   expect(secondHttp.mock.calls[0][0].signal.aborted).toBe(false)
-  expect(secondClock.scheduled.some((task) => !task.cancelled)).toBe(true)
   expect(second.snapshot()).toEqual(secondPending)
   secondResponse.resolve([])
   await vi.waitFor(() =>
@@ -266,7 +251,7 @@ it.each(['성공', '실패'])(
     const publish = vi.fn<(snapshot: SearchSnapshot) => void>()
     let current = true
     const lifetime = createCaptureSearchLifetime({
-      runtime: runtime(http, new FakeMonotonicClock()),
+      runtime: runtime(http),
       isCurrent: () => current,
       publish
     })

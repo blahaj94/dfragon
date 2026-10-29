@@ -97,7 +97,7 @@ describe('검색 전체 응답과 정제 실패', () => {
     }
   )
 
-  it('deadline 전 body stream의 transport 오류는 JSON 오류와 구분한다', async () => {
+  it('body stream의 transport 오류는 JSON 오류와 구분한다', async () => {
     const body = new ReadableStream<Uint8Array>(
       {
         pull(controller) {

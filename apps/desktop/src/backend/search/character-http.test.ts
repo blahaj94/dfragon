@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { crc32, deflateSync } from 'node:zlib'
 import { PNG } from 'pngjs'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CharacterCandidate, CharacterDetails } from '../../preload/common/types/character'
 import {
   CHARACTER_HTTP_LIMITS,
@@ -13,6 +13,10 @@ import {
 import { SearchHttpFailure } from './http'
 
 vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 const API_ORIGIN = 'https://api.example.test'
 const IMAGE_URL = 'https://img-api.neople.co.kr/df/servers/cain/characters/character-1?zoom=1'
@@ -538,6 +542,69 @@ describe('캐릭터 통신 실패와 호출자 취소', () => {
       } finally {
         await server.close()
       }
+    }
+  )
+
+  it.each([
+    ['candidates', 'header'],
+    ['candidates', 'body'],
+    ['image', 'header'],
+    ['image', 'body'],
+    ['details', 'header'],
+    ['details', 'body']
+  ] as const)(
+    '%s의 %s가 오지 않으면 HTTP client timeout 뒤 검색 시간 초과로 끝내고 요청을 중단한다',
+    async (kind, stall) => {
+      vi.useFakeTimers()
+      const neverSettles = (abort: AbortSignal): Promise<never> =>
+        new Promise((_resolve, reject) => {
+          abort.addEventListener('abort', () => reject(abort.reason), { once: true })
+        })
+      let transportSignal: AbortSignal | undefined
+      let markWaiting!: () => void
+      const waiting = new Promise<void>((resolve) => {
+        markWaiting = resolve
+      })
+      const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+        const requestSignal = new Request(input, init).signal
+        transportSignal = requestSignal
+        if (stall === 'header') {
+          markWaiting()
+
+          return neverSettles(requestSignal)
+        }
+        const pull = (): Promise<never> => {
+          markWaiting()
+
+          return neverSettles(requestSignal)
+        }
+
+        return new Response(new ReadableStream({ pull }, { highWaterMark: 0 }), {
+          headers: { 'Content-Type': kind === 'image' ? 'image/png' : 'application/json' }
+        })
+      })
+      let request: Promise<unknown>
+      if (kind === 'candidates') {
+        request = createCharacterCandidatesHttp({ apiOrigin: API_ORIGIN, fetch })({
+          nickname: '가나',
+          signal: signal()
+        })
+      } else if (kind === 'image') {
+        request = createCharacterImageHttp({ fetch })({ ...identity, signal: signal() })
+      } else {
+        request = createCharacterDetailsHttp({ apiOrigin: API_ORIGIN, fetch })({
+          ...identity,
+          signal: signal()
+        })
+      }
+
+      const failure = expect(request).rejects.toMatchObject({ code: 'SEARCH_TIMEOUT' })
+      await waiting
+      // ky 기본 timeout 값을 고정하지 않도록 어떤 기본값보다도 넉넉히 진행한다.
+      await vi.advanceTimersByTimeAsync(60_000)
+      await failure
+      expect(transportSignal?.aborted).toBe(true)
+      expect(fetch).toHaveBeenCalledOnce()
     }
   )
 

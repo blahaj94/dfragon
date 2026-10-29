@@ -3,7 +3,6 @@ import type { MockedFunction } from 'vitest'
 import type { CharacterCandidate, CharacterDetails } from '../../preload/common/types/character'
 import type { RaidRowObservation } from '../../preload/common/types/search'
 import { deferred } from '../lib/async-test-fixture'
-import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { runDetailsRequest, runSearchRequest } from './request'
 import type { CharacterCandidatesHttp, CharacterDetailsHttp } from './character-http'
 import type { ScoreEngine, ScoreEngineResult } from '../score/engine'
@@ -73,7 +72,6 @@ const SCORE_ROW: RaidRowObservation = {
 }
 
 function fixture(engineScores: Record<string, number | null>) {
-  const clock = new FakeMonotonicClock()
   const controller = new AbortController()
   const calls: string[] = []
   const candidates: MockedFunction<CharacterCandidatesHttp> = vi.fn(async () => [
@@ -94,7 +92,6 @@ function fixture(engineScores: Record<string, number | null>) {
     return engineResult(engineScores[id] ?? null)
   })
   const runtime = () => ({
-    clock,
     identification: {
       candidates,
       image: vi.fn(),
@@ -112,7 +109,6 @@ function fixture(engineScores: Record<string, number | null>) {
     runSearchRequest({
       runtime: runtime(),
       nickname: '공대원',
-      startedAt: clock.monotonicMs,
       signal: controller.signal,
       isCurrent,
       ocrInput: { candidateNicknames: ['공대원'], portrait: null, raidRow }
@@ -126,13 +122,12 @@ function fixture(engineScores: Record<string, number | null>) {
     return runDetailsRequest({
       runtime: runtime(),
       summary: identified.selected.summary,
-      startedAt: clock.monotonicMs,
       signal: controller.signal,
       isCurrent
     })
   }
 
-  return { clock, controller, calls, candidates, getDetails, score, request, loadDetails }
+  return { controller, calls, candidates, getDetails, score, request, loadDetails }
 }
 
 describe('공대 장비 점수 열의 식별', () => {
@@ -227,6 +222,7 @@ describe('고른 공대원의 상세 조회', () => {
 
   it('고른 후보의 상세를 기다리는 중 캡처가 끝나면 늦은 결과를 반영하지 않는다', async () => {
     const f = fixture({ first: 50_000 })
+    // 취소를 무시하고 늦게 끝나는 의존성이다.
     const pendingDetails = deferred<CharacterDetails>()
     f.getDetails.mockReturnValueOnce(pendingDetails.promise)
     const pending = f.loadDetails()
@@ -234,41 +230,12 @@ describe('고른 공대원의 상세 조회', () => {
     const signal = f.getDetails.mock.calls[0][0].signal
 
     f.controller.abort()
+    pendingDetails.resolve(details('first'))
 
     expect(await pending).toBeNull()
     expect(signal.aborted).toBe(true)
-    pendingDetails.resolve(details('first'))
-    await new Promise<void>((resolve) => setImmediate(resolve))
     expect(f.getDetails).toHaveBeenCalledOnce()
     expect(f.score).not.toHaveBeenCalled()
-  })
-
-  it('고른 후보의 상세에서 15초 경계에 닿으면 점수를 계산하지 않고 요청을 종료한다', async () => {
-    const f = fixture({ first: 50_000 })
-    f.getDetails.mockImplementationOnce(async ({ characterId }) => {
-      f.clock.elapseWithoutTimers(15_000)
-
-      return details(characterId)
-    })
-
-    expect(await f.loadDetails()).toMatchObject({
-      kind: 'failure',
-      error: { code: 'SEARCH_TIMEOUT' }
-    })
-    expect(f.getDetails).toHaveBeenCalledOnce()
-    expect(f.score).not.toHaveBeenCalled()
-  })
-
-  it('응답 없는 고른 후보의 상세도 상세 요청을 접수한 시각의 15초에 종료한다', async () => {
-    const f = fixture({ first: 50_000 })
-    f.getDetails.mockReturnValueOnce(new Promise(() => undefined))
-    const pending = f.loadDetails()
-    await vi.waitFor(() => expect(f.getDetails).toHaveBeenCalledOnce())
-
-    f.clock.advance(15_000)
-
-    expect(await pending).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
-    expect(f.getDetails.mock.calls[0][0].signal.aborted).toBe(true)
   })
 })
 
@@ -278,7 +245,6 @@ it.each([[['']], [[' 공대원']], [['가', '나', '다']]])(
     const f = fixture({})
     const outcome = await runSearchRequest({
       runtime: {
-        clock: f.clock,
         identification: {
           candidates: f.candidates,
           image: vi.fn(),
@@ -290,7 +256,6 @@ it.each([[['']], [[' 공대원']], [['가', '나', '다']]])(
         score: f.score
       },
       nickname: nicknames[0],
-      startedAt: f.clock.monotonicMs,
       signal: f.controller.signal,
       isCurrent: () => true,
       ocrInput: { candidateNicknames: nicknames, portrait: null, raidRow: SCORE_ROW }

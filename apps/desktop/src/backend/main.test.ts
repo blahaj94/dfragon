@@ -296,14 +296,13 @@ it('API 미구성이면 검색 설정 없이 캡처 IPC를 등록한다', async 
   expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith(undefined)
 })
 
-it('API origin이 있으면 검색 시계, 얼굴 비교 정책과 점수 엔진을 캡처 IPC에 연결한다', async () => {
+it('API origin이 있으면 얼굴 비교 정책과 점수 엔진을 캡처 IPC에 연결한다', async () => {
   vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
   await import('./main')
   await mocks.bootstrap
 
   expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith({
     apiOrigin: 'https://api.synthetic.test',
-    clock: expect.objectContaining({ read: expect.any(Function), schedule: expect.any(Function) }),
     portraitColorPolicy: expect.any(Object),
     score: expect.any(Function)
   })
