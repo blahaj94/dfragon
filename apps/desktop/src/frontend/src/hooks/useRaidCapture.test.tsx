@@ -13,7 +13,7 @@ const raidMocks = vi.hoisted(() => ({ recognize: vi.fn() }))
 vi.mock('../lib/raid-recognition', () => ({ recognizeRaidRows: raidMocks.recognize }))
 // 글자 인식 worker는 jsdom에서 띄울 수 없어 인식 결과만 테스트가 정한다.
 vi.mock('../lib/ocr', () => ({
-  createPartyOcrWorker: async () => ({ recognize: vi.fn(), terminate: async () => {} })
+  createPartyOcrWorker: async () => ({ recognize: vi.fn(), terminate: () => {} })
 }))
 
 const crop = { width: 86, height: 17, rgba: new Uint8Array(86 * 17 * 4) }

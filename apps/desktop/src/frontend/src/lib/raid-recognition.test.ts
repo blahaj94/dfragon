@@ -8,16 +8,12 @@ const recognize = vi.fn<PartyOcrWorker['recognize']>()
 // jsdom에는 canvas 구현이 없어 인식에 넘긴 canvas의 픽셀만 기록하는 2d 문맥을 둔다.
 const drawn = new Map<HTMLCanvasElement, Uint8ClampedArray>()
 
-function result(nickname: string): { data: PartyOcrResult } {
+function result(nickname: string): PartyOcrResult {
   return {
-    data: {
-      text: nickname,
-      confidence: 90,
-      candidates: [
-        { rank: 1, modelScore: 90, nickname },
-        { rank: 2, modelScore: 10, nickname: '다른후보' }
-      ]
-    }
+    candidates: [
+      { rank: 1, modelScore: 90, nickname },
+      { rank: 2, modelScore: 10, nickname: '다른후보' }
+    ]
   }
 }
 

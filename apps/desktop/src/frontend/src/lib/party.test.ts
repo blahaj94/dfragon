@@ -8,7 +8,10 @@ import type { PartyOcrWorker } from '../types/capture'
 type NicknameCanvas = {
   width: number
   height: number
-  getContext: () => { putImageData: ReturnType<typeof vi.fn> }
+  getContext: () => {
+    createImageData: (width: number, height: number) => { data: Uint8ClampedArray }
+    putImageData: ReturnType<typeof vi.fn>
+  }
 }
 
 afterEach(() => vi.unstubAllGlobals())
@@ -122,7 +125,12 @@ function captureCanvas(
 
       return frameCanvas
     }
-    const context = { putImageData: vi.fn() }
+    const context = {
+      createImageData: (width: number, height: number) => ({
+        data: new Uint8ClampedArray(width * height * 4)
+      }),
+      putImageData: vi.fn()
+    }
     const nickname = { width: 0, height: 0, getContext: () => context }
     nicknames.push(nickname)
 
@@ -261,9 +269,7 @@ it('회차 한 장의 네 슬롯 닉네임 픽셀과 얼굴 원문을 함께 인
     expect(Array.from(data.slice(0, 12))).toEqual([0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255])
     const text = `슬롯${slot}`
 
-    return {
-      data: { text, confidence: 1, candidates: [{ nickname: text, rank: 1, modelScore: 1 }] }
-    }
+    return { candidates: [{ nickname: text, rank: 1, modelScore: 1 }] }
   })
 
   const results = await recognizePartyFrame(setup.frame, recognize)
