@@ -15,6 +15,7 @@ import {
 } from './slot-lifetime-machine'
 import { sameOcrSearchInput } from '../../preload/common/search/ocr-input'
 import { SEARCH_SLOT_COUNTS } from '../../preload/common/types/search'
+import type { SelectedCharacterSummary } from '../../preload/common/types/character'
 import type {
   SearchCommandError,
   SearchCommandResult,
@@ -62,7 +63,6 @@ function idleSlot({
   }
 }
 
-/** 이름과 서버를 정한 슬롯 하나의 상세 조회. 수명마다 한 번에 하나만 실행한다. */
 type DetailsJob = RequestIdentity & { controller: AbortController }
 
 export type CaptureSearchLifetime = {
@@ -92,7 +92,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       input: { canComplete, complete }
     }).start()
   )
-  let detailsJob: DetailsJob | null = null
+  const detailsJobs = new Map<number, DetailsJob>()
 
   function snapshot(): SearchSnapshot {
     const snapshotRevision = revision
@@ -153,8 +153,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     for (const slot of slotIndexes) {
       cancelSlot(slot)
     }
-    detailsJob?.controller.abort()
-    detailsJob = null
+    for (const job of detailsJobs.values()) {
+      job.controller.abort()
+    }
+    detailsJobs.clear()
     slots = slotIndexes.map((slot) => idleSlot({ slot }))
     emit()
   }
@@ -185,9 +187,11 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   }
 
   function failPendingDetails(matches: (slot: number) => boolean): boolean {
-    if (detailsJob !== null && matches(detailsJob.slot)) {
-      detailsJob.controller.abort()
-      detailsJob = null
+    for (const [slot, job] of detailsJobs) {
+      if (matches(slot)) {
+        job.controller.abort()
+        detailsJobs.delete(slot)
+      }
     }
     let changed = false
     for (const slot of slotIndexes) {
@@ -309,10 +313,8 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
 
   function cancelSlot(slot: number): void {
     actors[slot].send({ type: 'CANCEL' })
-    if (detailsJob?.slot === slot) {
-      detailsJob.controller.abort()
-      detailsJob = null
-    }
+    detailsJobs.get(slot)?.controller.abort()
+    detailsJobs.delete(slot)
     ocrInputs[slot] = null
   }
 
@@ -374,9 +376,9 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       }
     }
     actors[request.slot].send({ type: 'FINISH', request })
-    // 후보 검색이 호출 제한을 받아도 남은 상세를 받지 않는다.
+    // 후보 검색이 호출 제한을 받아도 아직 시작하지 않은 상세를 받지 않는다.
     if (!isSuccess && result.error.code === 'SEARCH_RATE_LIMITED') {
-      failPendingDetails(() => true)
+      failPendingDetails((slot) => !detailsJobs.has(slot))
     }
     emit()
   }
@@ -384,30 +386,47 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   /**
    * 어느 슬롯이든 조회 중이면 시작하지 않아, 회차의 모든 슬롯이 이름과 서버를 먼저 정한 뒤 상세를 받는다.
    */
-  function startNextDetails(): void {
+  function startPendingDetails(): void {
     const runtime = options.runtime
     const captureId = binding?.captureId
-    if (detailsJob !== null || runtime === undefined || captureId === undefined) {
+    if (runtime === undefined || captureId === undefined) {
       return
     }
 
     if (slots.some((slot) => slot.state === 'pending')) {
       return
     }
-    const next = slots.find((slot) => slot.details === 'pending')
-    if (next?.selected === undefined || next.requestId === null) {
-      return
+    for (const slot of slots) {
+      if (
+        slot.details === 'pending' &&
+        slot.selected !== undefined &&
+        slot.requestId !== null &&
+        !detailsJobs.has(slot.slot)
+      ) {
+        const job: DetailsJob = {
+          slot: slot.slot,
+          captureId,
+          requestId: slot.requestId,
+          controller: new AbortController()
+        }
+        startDetails({ runtime, job, summary: slot.selected })
+      }
     }
-    const job: DetailsJob = {
-      slot: next.slot,
-      captureId,
-      requestId: next.requestId,
-      controller: new AbortController()
-    }
-    detailsJob = job
+  }
+
+  function startDetails({
+    runtime,
+    job,
+    summary
+  }: {
+    runtime: SearchRuntime
+    job: DetailsJob
+    summary: SelectedCharacterSummary
+  }): void {
+    detailsJobs.set(job.slot, job)
     runDetailsRequest({
       runtime,
-      summary: next.selected,
+      summary,
       signal: job.controller.signal,
       isCurrent: () => isCurrentDetails(job)
     })
@@ -416,26 +435,28 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   }
 
   function isCurrentDetails(job: DetailsJob): boolean {
-    return detailsJob === job && isCurrentSlot(job) && slots[job.slot].details === 'pending'
+    return (
+      detailsJobs.get(job.slot) === job &&
+      isCurrentSlot(job) &&
+      slots[job.slot].details === 'pending'
+    )
   }
 
   function finishDetails(job: DetailsJob, outcome: DetailsOutcome): void {
     const isCurrent = isCurrentDetails(job)
-    if (detailsJob === job) {
-      detailsJob = null
+    if (detailsJobs.get(job.slot) === job) {
+      detailsJobs.delete(job.slot)
     }
 
     if (!isCurrent || outcome === null) {
-      startNextDetails()
-
       return
     }
 
     if (outcome.kind === 'failure') {
       slots[job.slot] = { ...slots[job.slot], details: 'failed' }
-      // 호출 제한을 받으면 남은 상세도 받지 않아 제한 중에 요청을 더 보내지 않는다.
+      // 호출 제한을 받으면 아직 시작하지 않은 상세를 보내지 않는다. 이미 나간 다른 슬롯의 요청은 끝까지 받아 반영한다.
       if (outcome.error.code === 'SEARCH_RATE_LIMITED') {
-        failPendingDetails(() => true)
+        failPendingDetails((slot) => !detailsJobs.has(slot))
       }
     } else {
       const completedSlot = { ...slots[job.slot], selected: outcome.summary }
@@ -453,7 +474,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     }
     revision += 1
     options.publish(snapshot())
-    startNextDetails()
+    startPendingDetails()
   }
 
   return {

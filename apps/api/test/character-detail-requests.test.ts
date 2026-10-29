@@ -4,6 +4,7 @@ import { setImmediate as nextTurn } from 'node:timers/promises'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createCharacterDetailService } from '../src/characters/details/service.js'
 import { CharacterDetailFailure } from '../src/characters/details/errors.js'
+import type { NeopleStageTimings } from '../src/characters/details/neople-stages.js'
 import type { CharacterPayloads } from '../src/characters/details/sections.js'
 
 const identity = { serverId: 'siroco', characterId: 'refresh-fixture' }
@@ -191,6 +192,62 @@ test('겹친 요청의 대기자들은 같은 조회 시각의 freshness와 sect
   } finally {
     globalThis.Date = RealDate
   }
+})
+
+test('공유 조회를 기다린 요청들은 늦게 합류해도 같은 Neople 단계 시간을 받고, 합류한 요청만 공유로 표시한다', async (t) => {
+  const basicDone = gate(),
+    finish = gate()
+  let calls = 0
+  const service = createCharacterDetailService({
+    catalog,
+    fetchDetails: async (_identity, _signal, recordStage) => {
+      calls++
+      recordStage?.('basic', 12)
+      basicDone.release()
+      await finish.promise
+      recordStage?.('sections', 34)
+
+      return payloads
+    }
+  })
+  t.after(async () => {
+    finish.release()
+    await service.onModuleDestroy()
+  })
+  function collectTimings() {
+    const stages: Record<string, number> = {}
+    let shared = false
+
+    return {
+      stages,
+      isShared: () => shared,
+      timings: {
+        record: (stage, durationMs) => {
+          stages[stage] = durationMs
+        },
+        markShared: () => {
+          shared = true
+        }
+      } satisfies NeopleStageTimings
+    }
+  }
+  const owner = collectTimings(),
+    joiner = collectTimings()
+
+  const first = service.get(identity, signal, owner.timings)
+  await basicDone.promise
+  const second = service.get(identity, signal, joiner.timings)
+  finish.release()
+  await Promise.all([first, second])
+
+  assert.equal(calls, 1)
+  for (const { stages } of [owner, joiner]) {
+    const { catalog: catalogMs, ...neople } = stages
+    assert.deepEqual(neople, { basic: 12, sections: 34 })
+    assert(Number.isInteger(catalogMs) && catalogMs! >= 0)
+  }
+  assert.equal(owner.isShared(), false)
+  assert.equal(joiner.isShared(), true)
 })
 
 test('마지막 대기자가 취소하면 공유 작업을 취소하고 새 요청은 독립 조회한다', async (t) => {
