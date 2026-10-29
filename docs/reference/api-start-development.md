@@ -1,7 +1,7 @@
 ---
 type: reference
 scope: server runtime configuration and product images
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-29
 ---
 
 # 서버 실행과 이미지
@@ -55,6 +55,22 @@ Desktop은 OS 인증서 신뢰를 사용하며 인증서 오류를 무시하지 
 
 `pnpm --filter @dfragon/api test`는 HTTP, 설정과 build를 검증한다. 이미지 입력과 운영 책임은 [제품 안내](#서버-이미지)를 따른다.
 로컬 성공은 실제 DNS/TLS 검증을 대신하지 않는다.
+
+## 접근 로그
+
+API는 요청마다 stdout에 JSON 한 줄을 남긴다(`apps/api/src/access-log.ts`).
+필드는 `time`, `service`, `method`, route template, `status`, 오류 `code`, 5xx의 정제한 `errorChain`, `durationMs`, `correlationId`, 연결이 먼저 끊긴 요청의 `aborted`다.
+URL, query, header, body, 오류 message와 캐릭터 ID, 이름은 남기지 않는다.
+
+`GET /characters/:serverId/:characterId`에는 Neople을 기다린 단계별 시간을 `neopleMs`에 정수 ms로 붙인다.
+`basic`은 기본정보, `sections`는 나머지 섹션 10개의 병렬 조회, `catalog`는 공용 아이템 조회다.
+실패한 요청은 성공한 단계까지만 남는다.
+같은 캐릭터의 겹친 요청은 기본정보와 섹션 조회를 공유하므로 그 조회를 기다린 요청들에 같은 `basic`, `sections` 값이 붙고, 진행 중인 조회에 합류한 요청에는 `neopleShared: true`가 붙는다.
+공용 아이템 조회는 요청마다 따로 하므로 `catalog`는 요청별 값이다.
+
+```json
+{"time":"2026-10-29T00:00:00.000Z","service":"api","method":"GET","route":"/characters/:serverId/:characterId","status":200,"durationMs":512,"neopleMs":{"basic":88,"sections":231,"catalog":176},"correlationId":"<uuid>"}
+```
 
 ## 서버 이미지
 

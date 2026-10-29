@@ -6,6 +6,8 @@ import { CharacterDetailFailure } from './errors.js'
 import { parseCharacterIdentity } from '../identity.js'
 import type { CharacterDetailService } from './service.js'
 import { respondWithCancellation } from '../../http-response.js'
+import { recordAccessLogNeopleStage, recordAccessLogSharedNeopleFetch } from '../../access-log.js'
+import type { NeopleStageTimings } from './neople-stages.js'
 
 export const CHARACTER_DETAIL_SERVICE = Symbol('CHARACTER_DETAIL_SERVICE')
 
@@ -25,8 +27,12 @@ export class CharacterDetailController {
       request.params.characterId,
       request.originalUrl
     )
+    const timings: NeopleStageTimings = {
+      record: (stage, durationMs) => recordAccessLogNeopleStage(response, stage, durationMs),
+      markShared: () => recordAccessLogSharedNeopleFetch(response)
+    }
     await respondWithCancellation(response, (signal) => {
-      return this.service.get(identity, signal)
+      return this.service.get(identity, signal, timings)
     })
   }
 }

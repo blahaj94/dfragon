@@ -271,6 +271,84 @@ test('상세의 Neople 실패는 상세 오류와 원래 원인만 chain에 남�
   assert.deepEqual(malformed, ['CharacterDetailFailure', 'SyntaxError'])
 })
 
+test('상세 요청 로그에는 Neople 단계별 대기 시간만 붙이고, 실패한 요청은 끝난 단계까지만 남긴다', {
+  timeout: 5000
+}, async (t) => {
+  const sectionFields: Record<string, Record<string, unknown>> = {
+    '': { jobId: 'job' },
+    '/status': { status: [], buff: [] },
+    '/equip/equipment': { equipment: [{ itemId: 'fixture-item' }], setItemInfo: [] },
+    '/equip/avatar': { avatar: [] },
+    '/equip/creature': { creature: null },
+    '/equip/oath': { oath: null },
+    '/equip/mist-assimilation': { mistAssimilation: null },
+    '/skill/style': { skill: { style: { active: [] } } },
+    '/skill/buff/equip/equipment': { skill: { buff: null } },
+    '/skill/buff/equip/avatar': { skill: { buff: null } },
+    '/skill/buff/equip/creature': { skill: { buff: null } }
+  }
+  const failingCharacterId = `${secrets.pathValue}-failing`
+  const detailPath = /^\/df\/servers\/siroco\/characters\/([^/]+)(.*)$/
+  const catalogRequests: string[][] = []
+  const logs = collectAccessLogs()
+  const app = await createApiHttpApp({
+    search: { searchCharacters: unusedProvider },
+    details: {
+      fetchDetails: createNeopleCharacterDetailsForTest('fake-key', {
+        fetch: async (request) => {
+          const [, characterId, suffix = ''] = detailPath.exec(new URL(request.url).pathname) ?? []
+          if (characterId === failingCharacterId && suffix !== '') {
+            return Response.json({ error: { code: 'API901', message: secrets.errorDetail } })
+          }
+
+          return Response.json({
+            serverId: 'siroco',
+            characterId,
+            characterName: secrets.characterName,
+            ...sectionFields[suffix]
+          })
+        }
+      }),
+      catalog: createCatalogService(async (itemIds) => {
+        catalogRequests.push(itemIds)
+
+        return new Map()
+      })
+    },
+    writeAccessLog: logs.sink
+  })
+  t.after(() => app.close())
+  await app.listen(0, '127.0.0.1')
+  const origin = await app.getUrl()
+  for (const [count, characterId, status] of [
+    [1, secrets.pathValue, 200],
+    [2, failingCharacterId, 502]
+  ] as const) {
+    const response = await fetch(`${origin}/characters/siroco/${characterId}`)
+    assert.equal(response.status, status)
+    await response.arrayBuffer()
+    await logs.waitFor(count)
+  }
+
+  assert.deepEqual(catalogRequests, [['fixture-item']])
+  const output = logs.lines.join('\n')
+  for (const value of [secrets.pathValue, secrets.characterName, secrets.errorDetail]) {
+    assert.equal(output.includes(value), false, value)
+  }
+  const [succeeded, failed] = logs.lines.map((line) => {
+    const { neopleMs, neopleShared } = readEntry(line).fields
+
+    return { stages: neopleMs as Record<string, number>, neopleShared }
+  })
+  assert.deepEqual(Object.keys(succeeded!.stages).sort(), ['basic', 'catalog', 'sections'])
+  assert.deepEqual(Object.keys(failed!.stages), ['basic'])
+  for (const durationMs of [...Object.values(succeeded!.stages), failed!.stages.basic]) {
+    assert(Number.isInteger(durationMs) && durationMs! >= 0)
+  }
+  assert.equal(succeeded!.neopleShared, undefined)
+  assert.equal(failed!.neopleShared, undefined)
+})
+
 test('Stack을 만든 뒤 message가 바뀌면 frame을 생략하고, 원래 오류를 정제하다 예외가 나면 원인을 생략한다', {
   timeout: 5000
 }, async (t) => {
