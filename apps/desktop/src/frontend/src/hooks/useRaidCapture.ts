@@ -4,11 +4,11 @@ import { getRaidCapturePhase, raidCaptureMachine } from '../lib/raid-capture-mac
 import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
 import { getRecognizedNicknames } from '../lib/recognized-nicknames'
 import { createSeatOrder, swapSeats as swapSeatOrder, type SeatOrder } from '../lib/raid-seats'
-import { useRaidSearch } from './useRaidSearch'
+import { useManualCharacterLookup, type ManualCharacterLookup } from './useManualCharacterLookup'
 import { useRestartShortcut } from './useRestartShortcut'
 
 export type RaidCapture = {
-  search: ReturnType<typeof useRaidSearch>
+  search: ManualCharacterLookup
   phase: ReturnType<typeof getRaidCapturePhase>
   recognizing: boolean
   nicknames: (string | null)[]
@@ -44,16 +44,21 @@ export function useRaidCapture({
   sourceId: string
   sourceReady: boolean
 }): RaidCapture {
-  const search = useRaidSearch()
+  // 파티 카드와 다른 main 검색 수명을 써서 파티 네 자리와 공대 12자리가 서로의 결과를 덮어쓰지 않는다.
+  const search = useManualCharacterLookup(
+    window.raidSearch,
+    SEARCH_SLOT_COUNTS.raid,
+    window.raidSearch.notifyOcrCandidatesDetected
+  )
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
-  const { beginRound: beginSearchRound } = search
+  const { begin: beginSearch } = search
   const beginRound = useCallback(
     (signal: AbortSignal): Promise<string | null> => {
       setSeatOrder(createSeatOrder())
 
-      return beginSearchRound(signal)
+      return beginSearch(signal)
     },
-    [beginSearchRound]
+    [beginSearch]
   )
   const [snapshot, send] = useMachine(raidCaptureMachine, {
     input: {
