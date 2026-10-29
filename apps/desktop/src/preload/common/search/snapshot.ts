@@ -183,45 +183,17 @@ const schemas = {
   [SEARCH_SLOT_COUNTS.raid]: createSchemas(SEARCH_SLOT_COUNTS.raid)
 }
 
-function isObject(value: unknown): value is object {
-  return value !== null && typeof value === 'object'
-}
-
-function hasExactOwnShape(input: unknown, parsed: unknown): boolean {
-  if (!isObject(parsed)) {
-    return true
-  }
-
-  if (!isObject(input)) {
-    return false
-  }
-  const expectedKeys = Reflect.ownKeys(parsed)
-  if (Reflect.ownKeys(input).length !== expectedKeys.length) {
-    return false
-  }
-
-  return expectedKeys.every((key) => hasExactOwnField(input, parsed, key))
-}
-
-function hasExactOwnField(input: object, parsed: object, key: PropertyKey): boolean {
-  if (!Object.hasOwn(input, key)) {
-    return false
-  }
-
-  return hasExactOwnShape(Reflect.get(input, key), Reflect.get(parsed, key))
-}
-
 export function parseSearchSnapshot(
   value: unknown,
   slotCount: SearchSlotCount = SEARCH_SLOT_COUNTS.party
 ): SearchSnapshot | null {
   const parsed = schemas[slotCount].snapshot.safeParse(value)
-  const isValid = parsed.success && hasExactOwnShape(value, parsed.data)
-  if (isValid) {
-    return parsed.data
+
+  if (!parsed.success) {
+    return null
   }
 
-  return null
+  return parsed.data
 }
 
 export function parseSearchResult(
@@ -229,10 +201,10 @@ export function parseSearchResult(
   slotCount: SearchSlotCount = SEARCH_SLOT_COUNTS.party
 ): SearchCommandResult | null {
   const parsed = schemas[slotCount].result.safeParse(value)
-  const isValid = parsed.success && hasExactOwnShape(value, parsed.data)
-  if (isValid) {
-    return parsed.data
+
+  if (!parsed.success) {
+    return null
   }
 
-  return null
+  return parsed.data
 }
