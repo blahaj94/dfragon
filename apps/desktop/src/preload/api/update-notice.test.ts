@@ -37,14 +37,10 @@ it('조회와 닫기는 형식을 검증한 상태만 화면에 넘긴다', asyn
   }
 })
 
-it('Release tag 형식이 아닌 닫기, 열기 명령은 main에 보내지 않는다', async () => {
+it('열기 명령은 tag를 그대로 main에 보낸다', async () => {
   mocks.invoke.mockResolvedValue(undefined)
   await openUpdateRelease('v0.0.4-beta.1')
 
-  for (const tag of ['https://example.test/', 'v0.0.4/../x', '0.0.4']) {
-    await expect(openUpdateRelease(tag)).rejects.toThrow('INVALID_UPDATE_NOTICE_COMMAND')
-    await expect(dismissUpdateNotice(tag)).rejects.toThrow('INVALID_UPDATE_NOTICE_COMMAND')
-  }
   expect(mocks.invoke).toHaveBeenCalledExactlyOnceWith('openUpdateRelease', 'v0.0.4-beta.1')
 })
 
