@@ -18,6 +18,9 @@ const mocks = vi.hoisted(() => {
   const registerWindowChromeWindow = vi.fn<
     typeof import('./window-chrome/ipc-handler').registerWindowChromeWindow
   >(() => vi.fn())
+  const registerTodayGradeWindow = vi.fn<
+    typeof import('./today-grade/ipc-handler').registerTodayGradeWindow
+  >(() => vi.fn())
   const disposeMainDiagnostics = vi.fn()
   const registerMainDiagnosticErrors = vi.fn(() => disposeMainDiagnostics)
   const reportDiagnostic = vi.fn()
@@ -60,6 +63,7 @@ const mocks = vi.hoisted(() => {
     disposeCapture,
     registerDiagnosticsWindow,
     registerWindowChromeWindow,
+    registerTodayGradeWindow,
     registerMainDiagnosticErrors,
     disposeMainDiagnostics,
     reportDiagnostic,
@@ -162,6 +166,9 @@ vi.mock('./diagnostics/ipc-handler', () => ({
 }))
 vi.mock('./window-chrome/ipc-handler', () => ({
   registerWindowChromeWindow: mocks.registerWindowChromeWindow
+}))
+vi.mock('./today-grade/ipc-handler', () => ({
+  registerTodayGradeWindow: mocks.registerTodayGradeWindow
 }))
 vi.mock('./score/worker?nodeWorker', () => ({ default: mocks.createScoreWorker }))
 vi.mock('./diagnostics/log', () => ({
@@ -443,6 +450,26 @@ it.each([undefined, 'http://localhost:5173'])(
   }
 )
 
+it('API 주소가 있는 채널만 메인 창 문서 URL로 오늘의 등급 IPC를 등록한다', async () => {
+  vi.stubEnv('DFRAGON_API_ORIGIN', undefined)
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.registerTodayGradeWindow).not.toHaveBeenCalled()
+
+  vi.resetModules()
+  vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel('test', {}))
+  mocks.windows = []
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.registerTodayGradeWindow).toHaveBeenCalledExactlyOnceWith({
+    window: mocks.windows[0],
+    documentUrl: pathToFileURL(mocks.loadFile.mock.lastCall![0]).href,
+    readGrade: expect.any(Function)
+  })
+})
+
 it('창 색상 IPC 등록 실패에도 캡처를 시작하고 창을 연다', async () => {
   mocks.registerWindowChromeWindow.mockImplementationOnce(() => {
     throw new Error('Synthetic window chrome registration failure')
@@ -484,7 +511,9 @@ it('창 구성 후반이 실패하면 등록한 IPC와 만든 창을 폐기하�
   const disposeShortcuts = vi.fn()
   const disposeDiagnostics = vi.fn()
   const disposeUpdateNotice = vi.fn()
+  const disposeTodayGrade = vi.fn()
   mocks.registerWindowChromeWindow.mockReturnValueOnce(disposeWindowChrome)
+  mocks.registerTodayGradeWindow.mockReturnValueOnce(disposeTodayGrade)
   mocks.registerDesktopShortcuts.mockReturnValueOnce(disposeShortcuts)
   mocks.registerDiagnosticsWindow.mockReturnValueOnce(disposeDiagnostics)
   mocks.registerUpdateNoticeWindow.mockReturnValueOnce(disposeUpdateNotice)
@@ -501,7 +530,8 @@ it('창 구성 후반이 실패하면 등록한 IPC와 만든 창을 폐기하�
     disposeWindowChrome,
     disposeShortcuts,
     disposeDiagnostics,
-    disposeUpdateNotice
+    disposeUpdateNotice,
+    disposeTodayGrade
   ]) {
     expect(dispose).toHaveBeenCalledOnce()
   }

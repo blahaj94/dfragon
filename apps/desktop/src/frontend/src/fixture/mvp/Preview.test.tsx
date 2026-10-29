@@ -25,7 +25,7 @@ it('미리보기는 앱 첫 줄의 상단 바와 그 아래 파티 콘텐츠를 
   const main = container.querySelector('main')!
   const header = main.firstElementChild!
   expect(header.tagName).toBe('HEADER')
-  expect(header.textContent).toContain('DFragon')
+  expect(header.querySelector('[aria-label="등급 85퍼센트, 언커먼"]')?.textContent).toBe('85%')
   expect(header.textContent).toContain('창 감지됨')
   expect(header.querySelector('[aria-label^="화면 캡처"]')).not.toBeNull()
   expect(header.querySelector('[aria-label$="테마"]')).toBeNull()
