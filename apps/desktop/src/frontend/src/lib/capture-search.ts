@@ -1,7 +1,7 @@
 import { createActor } from 'xstate'
 import type { SearchView } from '../types/search'
 import { emptySearchSlots } from './slots'
-import { SEARCH_ACTIONS, SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
+import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
 import type {
   SearchApi,
   OcrSearchInput,
@@ -19,7 +19,7 @@ type SearchOptions = {
   notifyOcr: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
   onChange: (view: SearchView) => void
   onInvalidated: () => void
-  slotCount?: SearchSlotCount
+  slotCount: SearchSlotCount
 }
 
 export type OcrCaptureObservation = OcrSearchInput & Readonly<{ slot: number; nickname: string }>
@@ -34,7 +34,7 @@ export type CaptureSearch = {
 }
 
 export function createCaptureSearch(options: SearchOptions): CaptureSearch {
-  const slotCount = options.slotCount ?? SEARCH_SLOT_COUNTS.party
+  const { slotCount } = options
   let revisions = Array.from({ length: slotCount }, () => 0)
   let snapshot: SearchSnapshot | null = null
   let failed = false
@@ -166,10 +166,10 @@ function getVisibleSearchSlots({
   revisions: readonly number[]
   slotCount: SearchSlotCount
 }): readonly SearchSlot[] {
-  if (captureId == null || snapshot?.captureId !== captureId) {
-    return emptySearchSlots(slotCount)
-  }
   const empty = emptySearchSlots(slotCount)
+  if (captureId == null || snapshot?.captureId !== captureId) {
+    return empty
+  }
 
   return snapshot.slots.map((slot) => {
     if (canShowSlot(slot, revisions[slot.slot])) {

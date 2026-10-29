@@ -1,12 +1,6 @@
-import {
-  SEARCH_SLOT_COUNTS,
-  type SearchSlot,
-  type SearchSlotCount
-} from '../../../preload/common/types/search'
+import type { SearchSlot, SearchSlotCount } from '../../../preload/common/types/search'
 
-export function emptySearchSlots(
-  slotCount: SearchSlotCount = SEARCH_SLOT_COUNTS.party
-): SearchSlot[] {
+export function emptySearchSlots(slotCount: SearchSlotCount): SearchSlot[] {
   return Array.from({ length: slotCount }, (_, slot) => ({
     slot,
     observationRevision: 0,
