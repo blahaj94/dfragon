@@ -319,19 +319,27 @@ it('스냅샷 표시를 걷으면 칩과 오버레이가 함께 사라진다', a
   expect(decorationCount()).toBe(decorations)
 })
 
-it('이름에 들어가거나 고치는 동안 선택 상태와 수정 중 표시를 보이고 조회하면 돌아온다', async () => {
+function lookupProgress(): Element | null {
+  return card().querySelector('[role="status"][aria-label="1번 캐릭터 확인 중"]')
+}
+
+it('이름에 들어가거나 고치는 동안 선택 상태로 보이되 진행 표시는 없고 조회하면 돌아온다', async () => {
   const lookup = vi.fn()
   await render({ state: 'success', character: found, onLookup: lookup })
   const input = container.querySelector('input')!
   await act(async () => input.focus())
   expect(card().getAttribute('data-state')).toBe('selected')
-  expect(card().querySelector('[role="img"][aria-label="이름 수정 중"]')).not.toBeNull()
+  expect(statusMark()).toBeNull()
+  expect(lookupProgress()).toBeNull()
+  expect(card().getAttribute('aria-busy')).toBe('false')
   await act(async () => input.blur())
   expect(card().getAttribute('data-state')).toBe('default')
 
   await enterName('고친이름')
   expect(card().getAttribute('data-state')).toBe('selected')
   expect(card().textContent).toContain('Enter로 조회')
+  expect(statusMark()).toBeNull()
+  expect(lookupProgress()).toBeNull()
   await act(async () =>
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
   )
@@ -339,6 +347,21 @@ it('이름에 들어가거나 고치는 동안 선택 상태와 수정 중 표�
   await render({ state: 'pending', nickname: '고친이름', onLookup: lookup })
   expect(card().getAttribute('data-state')).toBe('default')
   expect(statusMark()).toBeNull()
+  expect(lookupProgress()).not.toBeNull()
+})
+
+it('찾은 카드는 다시 조회하는 동안에만 진행 표시를 보인다', async () => {
+  await render({ state: 'success', character: found })
+  await act(async () => container.querySelector('input')!.focus())
+  expect(lookupProgress()).toBeNull()
+
+  await render({ state: 'success', character: found, loading: true })
+  expect(lookupProgress()).not.toBeNull()
+  expect(card().getAttribute('aria-busy')).toBe('true')
+
+  await render({ state: 'success', character: found, loading: false })
+  expect(lookupProgress()).toBeNull()
+  expect(card().getAttribute('aria-busy')).toBe('false')
 })
 
 function columnLines(): HTMLElement[] {
@@ -597,7 +620,7 @@ it('후보가 있으면 후보 창을 띄워 초상화로 고르고 지금 보�
   expect(pick).toHaveBeenCalledExactlyOnceWith('siroco')
 })
 
-it('미리보기 중이면 카드를 선택 상태로 보이고 그 후보에 한 번 더 누르면 확정이라고 알린다', async () => {
+it('미리보기 중이면 진행 표시 없이 카드를 선택 상태로 보이고 그 후보에 한 번 더 누르면 확정이라고 알린다', async () => {
   await render({
     state: 'success',
     character: found,
@@ -606,7 +629,8 @@ it('미리보기 중이면 카드를 선택 상태로 보이고 그 후보에 �
   })
 
   expect(card().getAttribute('data-state')).toBe('selected')
-  expect(card().querySelector('[aria-label="후보 미리보기 중"]')).not.toBeNull()
+  expect(statusMark()).toBeNull()
+  expect(lookupProgress()).toBeNull()
   expect(candidateTile('시로코').getAttribute('aria-label')).toBe(
     '시로코, 모험단 정보 없음, 미리보기 중, 한 번 더 누르면 확정'
   )

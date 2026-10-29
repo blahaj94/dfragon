@@ -145,5 +145,5 @@ it('후보 고르기 미리보기에서 후보를 누르면 미리보기 중이 
 
   await act(async () => candidateTile('카인').click())
   expect(candidateWindow()).toBeNull()
-  expect(firstCard().querySelector('[aria-label="후보 미리보기 중"]')).toBeNull()
+  expect(firstCard().getAttribute('data-state')).toBe('default')
 })

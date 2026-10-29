@@ -407,6 +407,34 @@ it('조회 중, 실패, 결과 0건은 자리마다 따로 보이고 실패 안�
   expect(card(0).getAttribute('aria-busy')).toBe('false')
 })
 
+it('이름 칸에 들어가거나 고치는 동안은 선택 상태만 보이고 진행 표시는 조회하는 동안에만 보인다', async () => {
+  const lookup = vi.fn()
+  await render({ characters: [member], lookupSlot: lookup })
+  const card = (): HTMLElement => seats()[0].querySelector('article')!
+  const progress = (): Element | null => card().querySelector('[aria-label="1번 캐릭터 확인 중"]')
+  const marks = (): Element[] => [
+    ...card().querySelectorAll('[role="img"]:not([aria-label$="이미지 없음"])')
+  ]
+  const input = seats()[0].querySelector('input')!
+  await act(async () => input.focus())
+  expect(card().getAttribute('data-state')).toBe('selected')
+  expect(marks()).toEqual([])
+  expect(progress()).toBeNull()
+  expect(card().getAttribute('aria-busy')).toBe('false')
+
+  await enterName(seats()[0], '고친이름')
+  await act(async () =>
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  )
+  expect(lookup).toHaveBeenCalledOnce()
+  const slots = [...idle]
+  slots[0] = 'pending'
+  await render({ slots, lookupSlot: lookup })
+  expect(progress()).not.toBeNull()
+  expect(card().getAttribute('aria-busy')).toBe('true')
+  expect(marks()).toEqual([])
+})
+
 it('찾은 카드의 안내는 소속 줄을 지키며 보조 기술에만 전하고 명성과 장비 점수 라벨을 둔다', async () => {
   const notices: (string | undefined)[] = Array.from({ length: 12 }, () => undefined)
   notices[1] = '장비 점수로 추정한 후보입니다.'
