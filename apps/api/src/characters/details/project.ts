@@ -1,7 +1,7 @@
+import { isRecord } from '@dfragon/lib/utils/shape-check'
 import { fromEntries, fromKeys } from 'remeda'
 import { NEOPLE_SERVER_NAMES } from '../../constants/neople-character-search.js'
 import { CharacterDetailFailure } from './errors.js'
-import { isObject } from './neople.js'
 import { characterDetailSections } from './sections.js'
 import type { CharacterIdentity, CharacterPayload, CharacterSectionResponse } from './sections.js'
 
@@ -65,7 +65,7 @@ export function projectCharacterDetails(
   const character = projectCharacter(identity, basic)
   const sectionBuff = (section: CharacterSectionResponse['section']) => {
     const skill = body(section).skill
-    const value = isObject(skill) ? (skill.buff ?? null) : null
+    const value = isRecord(skill) ? (skill.buff ?? null) : null
 
     return value
   }

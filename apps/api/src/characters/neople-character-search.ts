@@ -13,6 +13,7 @@ import {
   neopleStatusFailure,
   NeopleSearchFailure
 } from '../errors/neople-search.js'
+import { CHARACTER_ID_PATTERN } from './identity.js'
 import type {
   CharacterSearchRow,
   NeopleCharacterSearchResult,
@@ -21,8 +22,6 @@ import type {
   SearchCharacters,
   SearchDependencies
 } from '../types/neople-character-search.js'
-
-const INVALID_CHARACTER_ID_CHARACTERS_PATTERN = /[^a-zA-Z0-9_-]/
 
 const nativeDependencies: SearchDependencies = {
   origin: NEOPLE_ORIGIN
@@ -43,8 +42,7 @@ function projectRow(candidate: unknown, input: NeopleCharacterSearchInput): Char
   if (input.wordType === 'match') {
     assert(characterName.toLowerCase() === input.characterName.toLowerCase(), invalidResponse)
     assert(NEOPLE_SERVER_NAMES.has(serverId), invalidResponse)
-    assert(characterId.length <= 256, invalidResponse)
-    assert(!INVALID_CHARACTER_ID_CHARACTERS_PATTERN.test(characterId), invalidResponse)
+    assert(CHARACTER_ID_PATTERN.test(characterId), invalidResponse)
   }
 
   const serverName = NEOPLE_SERVER_NAMES.get(serverId) ?? null

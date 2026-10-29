@@ -1,4 +1,4 @@
-import { isObject } from '../details/neople.js'
+import { isRecord } from '@dfragon/lib/utils/shape-check'
 import type { projectCharacterDetails } from '../details/project.js'
 import { mapCharacterItems } from './items.js'
 import type { CatalogService } from './service.js'
@@ -31,7 +31,7 @@ export async function enrichCharacterDetails(
 
     return item
   })
-  if (isObject(enriched.skillStyle) && Object.hasOwn(enriched.skillStyle, 'skillDetails')) {
+  if (isRecord(enriched.skillStyle) && Object.hasOwn(enriched.skillStyle, 'skillDetails')) {
     const skillStyle = { ...enriched.skillStyle }
     delete skillStyle.skillDetails
 

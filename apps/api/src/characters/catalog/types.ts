@@ -1,3 +1,4 @@
+import { CHARACTER_ID_PATTERN } from '../identity.js'
 import type { CharacterPayload } from '../details/sections.js'
 
 export const CATALOG_LIMITS = {
@@ -27,10 +28,8 @@ export function catalogKey(key: CatalogKey): string {
   return `item:${key.itemId}`
 }
 
-const CATALOG_ID_PATTERN = /^[a-zA-Z0-9_-]{1,256}$/
-
 export function isCatalogId(value: unknown): value is string {
-  return typeof value === 'string' && CATALOG_ID_PATTERN.test(value)
+  return typeof value === 'string' && CHARACTER_ID_PATTERN.test(value)
 }
 
 export const unavailableDetail: CatalogDetail = {

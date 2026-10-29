@@ -1,4 +1,4 @@
-import { isObject } from '../details/neople.js'
+import { isRecord } from '@dfragon/lib/utils/shape-check'
 import type { projectCharacterDetails } from '../details/project.js'
 import type { CharacterPayload } from '../details/sections.js'
 
@@ -9,7 +9,7 @@ export function mapCharacterItems(
   mapItem: (item: CharacterPayload) => CharacterPayload
 ): CharacterDetails {
   const leaf = (value: unknown): unknown => {
-    if (isObject(value)) {
+    if (isRecord(value)) {
       return mapItem(value)
     }
 
@@ -23,7 +23,7 @@ export function mapCharacterItems(
     return value
   }
   const item = (value: unknown): unknown => {
-    if (!isObject(value)) {
+    if (!isRecord(value)) {
       return value
     }
     const result = { ...mapItem(value) }
@@ -43,10 +43,8 @@ export function mapCharacterItems(
   }
   const buff = Object.fromEntries(
     Object.entries(details.buff).map(([section, value]) => {
-      if (isObject(value) && Object.hasOwn(value, section)) {
-        const snapshot = { ...value }
-        const mapped = list(value[section], item)
-        const mappedSection = { ...snapshot, [section]: mapped }
+      if (isRecord(value) && Object.hasOwn(value, section)) {
+        const mappedSection = { ...value, [section]: list(value[section], item) }
 
         return [section, mappedSection]
       }
@@ -55,22 +53,19 @@ export function mapCharacterItems(
     })
   ) as CharacterDetails['buff']
   const oath = details.oath
-  const snapshot = { ...details }
-  const equipmentSnapshot = { ...details.equipment }
   const equipmentItems = list(details.equipment.equipment, item)
-  const equipment = { ...equipmentSnapshot, equipment: equipmentItems }
+  const equipment = { ...details.equipment, equipment: equipmentItems }
   const avatar = list(details.avatar, item)
   const creature = item(details.creature)
   let mappedOath = oath
-  if (isObject(oath)) {
-    const oathSnapshot = { ...oath }
+  if (isRecord(oath)) {
     const info = Object.hasOwn(oath, 'info') ? { info: item(oath.info) } : {}
     const crystal = Object.hasOwn(oath, 'crystal') ? { crystal: list(oath.crystal, item) } : {}
-    mappedOath = { ...oathSnapshot, ...info, ...crystal }
+    mappedOath = { ...oath, ...info, ...crystal }
   }
 
   return {
-    ...snapshot,
+    ...details,
     equipment,
     avatar,
     creature,
