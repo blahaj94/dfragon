@@ -149,6 +149,8 @@ function mainEnvironment(): {
     performance,
     setTimeout,
     clearTimeout,
+    setInterval,
+    clearInterval,
     __dirname: resolve('out/backend'),
     process: {
       on: vi.fn(),

@@ -178,6 +178,10 @@ vi.mock('./clipboard/ipc-handler', () => ({
   registerClipboardWindow: mocks.registerClipboardWindow
 }))
 vi.mock('./score/worker?nodeWorker', () => ({ default: mocks.createScoreWorker }))
+vi.mock('./app-icon/register', () => ({
+  readAppIcon: () => '/synthetic/time-of-day/day.png',
+  registerTimeOfDayIcon: () => vi.fn()
+}))
 vi.mock('./diagnostics/log', () => ({
   registerMainDiagnosticErrors: mocks.registerMainDiagnosticErrors,
   reportDiagnostic: mocks.reportDiagnostic

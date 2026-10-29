@@ -2,7 +2,7 @@ import { app, BrowserWindow, session } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'node:url'
 import { optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+import { readAppIcon, registerTimeOfDayIcon } from './app-icon/register'
 import { validateDevRendererUrl } from './renderer-document'
 import { registerCaptureIpc, registerCaptureWindow } from './capture/ipc-handler'
 import { registerCapturePermissions } from './capture/permission-policy'
@@ -72,7 +72,7 @@ function createWindow(): void {
     titleBarStyle: 'hidden',
     titleBarOverlay: getTitleBarOverlay(process.platform),
     backgroundColor: WINDOW_CHROME_COLORS.color,
-    icon,
+    icon: readAppIcon(),
     webPreferences: {
       backgroundThrottling: false,
       preload: join(__dirname, '../preload/index.js'),
@@ -178,9 +178,8 @@ app.whenReady().then(() => {
     return
   }
 
-  if (process.platform === 'darwin') {
-    app.dock?.setIcon(icon)
-  }
+  const disposeAppIcon = registerTimeOfDayIcon()
+  app.on('quit', disposeAppIcon)
 
   const disposeMainDiagnostics = registerMainDiagnosticErrors()
   app.on('quit', disposeMainDiagnostics)

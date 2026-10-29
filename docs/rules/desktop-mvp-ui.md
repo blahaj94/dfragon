@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: desktop-mvp-ui
-last-reviewed: 2026-10-27
+last-reviewed: 2026-10-30
 ---
 
 # Desktop MVP 카드 UI
@@ -143,6 +143,7 @@ last-reviewed: 2026-10-27
 - Desktop은 다크 테마 하나만 쓰고 저장된 라이트 설정은 읽지 않는다(2026-10-27, [Issue #818](https://github.com/blahaj94/dfragon/issues/818)).
 - 글꼴은 번들한 마루미냐 한글(MaruMinya Hangul)이며 한국어 줄바꿈과 표기 기준은 [글꼴과 한국어 타이포그래피](design-system.md#글꼴과-한국어-타이포그래피)를 따른다. 한글 글자는 12px 하나(행간 14)로 쓰고, 숫자는 상단 바의 인원수, 회차, 마지막 캡처 초만 Barlow Condensed로 쓴다.
 - 무료 아이콘의 디자인 원본은 [Lucide 아이콘 목록](https://lucide.dev/icons)이다. 현재 사용 중인 camera, chevron-down, check, copy, monitor, refresh-cw, external-link를 기준으로 구현 자산과 출처를 맞추고, 선 끝과 꺾임은 각지게(`stroke-linecap="square"`, `stroke-linejoin="miter"`) 그린다. 스냅샷은 dfragon-design [아이콘](https://github.com/blahaj94/dfragon-design/blob/main/design/icons.md)의 DFragon 아이콘을 쓴다.
+- 실행 중인 창과 Dock 아이콘은 PC의 현지 시각에 따라 같은 바다 풍경의 시간대 그림으로 바뀐다. 0시~4시와 22시~24시는 밤, 4시~6시와 18시~22시는 새벽, 6시~12시는 낮, 12시~18시는 오후 그림이고, 1분마다 확인해 시간대가 바뀌면 교체한다. 설치 파일과 exe 아이콘은 바뀌지 않는다(2026-10-30 사용자 요청). 22시~24시는 요청에 없어 0시부터의 밤에 이었다.
 - 캐릭터 이미지: `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=<zoom>`.
 
 이미지 로딩은 HTTPS `https://img-api.neople.co.kr` 고정 origin 하나만 허용한다. Renderer CSP의 `img-src`는 이 origin과 `self`, `data:`만 둔다. `*`, 임의 origin, renderer fetch, Neople API key를 추가하지 않는다. URL은 검증한 식별자와 고정 base로 구성하고 외부 데이터의 임의 URL을 그대로 사용하지 않는다. 네트워크 오류, 누락, 이미지 decode 실패에는 같은 크기의 대체 표시를 둔다. 합성 미리보기는 출처를 기록한 로컬 자산을 사용하며 제품 CSP의 원격 허용을 선행하지 않는다.
