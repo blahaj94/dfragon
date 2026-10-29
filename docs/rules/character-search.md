@@ -171,7 +171,7 @@ Timeout이 나면 transport를 취소하고, 늦게 도착한 response나 code�
 
 Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778](https://github.com/blahaj94/dfragon/issues/778)의 사용자 결정으로 모든 검색, 캐릭터 섹션, 공용 상세가 함께 쓰던 프로세스 전체 최근 60초 600회, 동시 12회 예산을 없앴다. 공대 12자리가 동시에 조회하면 동시 12회에 닿아 일부 슬롯이 429로 실패할 수 있었기 때문이다. 이제 API는 검색에서 429를 반환하지 않으며, 많은 요청이 몰려 Neople API key의 공식 할당량을 넘으면 key가 막혀 모든 사용자의 검색, 상세가 공급자 오류로 실패할 수 있다. API는 결과를 저장하지 않아 모든 상세 요청이 Neople을 부른다. 같은 결정으로 [캐릭터 상세](character-details.md#오류-호출-제한)의 동시 섹션 조회, 공용 상세 동시 호출 제한도 없앴다.
 
-위 표의 `429 SEARCH_RATE_LIMITED`는 앞단 proxy가 호출 제한을 둘 때 쓸 응답 형식으로 남긴다. Desktop은 429 body의 `error.code`가 이 값일 때만 `Retry-After`를 읽으므로, proxy의 429는 위 표의 body와 양의 정수 초 `Retry-After`를 함께 반환한다. 
+위 표의 `429 SEARCH_RATE_LIMITED`는 앞단 proxy가 호출 제한을 둘 때 쓸 응답 형식으로 남긴다. Desktop은 429 body의 `error.code`가 이 값일 때만 호출 제한 실패로 본다. 2026-10-29 [#954](https://github.com/blahaj94/dfragon/issues/954) 결정으로 Desktop은 `Retry-After`를 읽지 않고 기다리지도 않으므로, 사용자는 호출 제한 실패 뒤 바로 다시 시도할 수 있다.
 
 단일 호스트 Caddy 배포는 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의 1-hop `trust proxy`를 켠다. Caddy가 `X-Forwarded-For`를 직접 연결한 클라이언트 주소로 덮어쓰고, API의 공개 port는 loopback으로 제한한다. 외부의 유일한 경로가 Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 직접 접근 주체까지 인증하는 설정은 아니다. 다중 proxy, 외부 직접 접근으로 확대하지 않는다. 지금은 API에 IP를 key로 쓰는 한도가 없어 이 설정이 응답에 영향을 주지 않지만, 운영 설정을 바꾸지 않도록 설정 읽기는 남겨 둔다.
 
