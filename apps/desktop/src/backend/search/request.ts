@@ -42,7 +42,7 @@ export type IdentificationAdapters = {
 export type SearchRuntime = {
   identification: IdentificationAdapters
   ocrIdentification?: 'portrait' | 'raid'
-  score: ScoreEngine
+  scoreEngine: ScoreEngine
 }
 export type SearchOutcome =
   | {
@@ -94,7 +94,7 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
         return { identified, summary: null }
       }
       const base = candidateSummary(identified.candidate)
-      const summary = await loadDetailsSummary(base, adapters, execution, input.runtime.score)
+      const summary = await loadDetailsSummary(base, adapters, execution, input.runtime.scoreEngine)
 
       return { identified, summary }
     }
@@ -140,7 +140,7 @@ export async function runDetailsRequest(input: {
   const adapters = input.runtime.identification
   const outcome = await runSearchOperation(
     { signal: input.signal, isCurrent: input.isCurrent },
-    (execution) => loadDetailsSummary(input.summary, adapters, execution, input.runtime.score)
+    (execution) => loadDetailsSummary(input.summary, adapters, execution, input.runtime.scoreEngine)
   )
   if (outcome === null || outcome.kind === 'failure') {
     return outcome
@@ -171,12 +171,16 @@ async function loadDetailsSummary(
   base: SelectedCharacterSummary,
   adapters: IdentificationAdapters,
   execution: SearchOperation,
-  score: ScoreEngine
+  scoreEngine: ScoreEngine
 ): Promise<SelectedCharacterSummary> {
   const identity = { serverId: base.serverId, characterId: base.characterId }
   const details = await execution.run((signal) => adapters.details({ ...identity, signal }))
-  // 엔진 호출도 같은 취소, 현재 요청 판정 안에서 실행해 늦은 결과를 버린다.
-  const card = await execution.run(async () => buildCharacterCard(details, score))
+  // 점수 계산도 같은 취소, 현재 요청 판정 안에서 실행해 늦은 결과를 버린다.
+  const card = await execution.run((signal) =>
+    buildCharacterCard(details, (scoreInput, calculator) =>
+      scoreEngine.calculate(scoreInput, calculator, signal)
+    )
+  )
   const character = details.character
   const adventureName = displayText(character.adventureName)
   const jobName = displayText(character.jobName)

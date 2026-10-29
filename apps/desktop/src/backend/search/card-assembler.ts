@@ -6,8 +6,13 @@ import type {
   CharacterDetails,
   CharacterScoreCalculator
 } from '../../preload/common/types/character'
-import { toScoreEngineInput } from '../score/input'
-import type { ScoreEngine, ScoreEngineResult } from '../score/engine'
+import { toScoreEngineInput, type ScoreEngineInput } from '../score/input'
+import type { ScoreEngineResult } from '../score/engine'
+
+export type CalculateScore = (
+  input: ScoreEngineInput,
+  calculator: CharacterScoreCalculator
+) => Promise<ScoreEngineResult | null>
 
 function scoreCalculator(role: CharacterCardRole | null): CharacterScoreCalculator {
   if (role === 'buffer') {
@@ -42,16 +47,16 @@ function toCardScore(result: ScoreEngineResult): CharacterCardScore {
   }
 }
 
-export function buildCharacterCard(
+export async function buildCharacterCard(
   details: CharacterDetails,
-  score: ScoreEngine
-): CharacterCard | null {
+  score: CalculateScore
+): Promise<CharacterCard | null> {
   const parsed = apiCharacterCardSchema.safeParse(details.card)
   if (!parsed.success) {
     return null
   }
   const { role } = parsed.data
-  const result = score(toScoreEngineInput(details), scoreCalculator(role))
+  const result = await score(toScoreEngineInput(details), scoreCalculator(role))
   if (result === null) {
     return { role, score: null }
   }

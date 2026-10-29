@@ -155,7 +155,7 @@ type SearchConfiguration = {
   apiOrigin: string
   fetch?: typeof fetch
   portraitColorPolicy: PortraitColorPolicy & CharacterSelectionPolicy
-  score: ScoreEngine
+  scoreEngine: ScoreEngine
 }
 
 function createSearchRuntime(
@@ -171,7 +171,7 @@ function createSearchRuntime(
   const details = createCachedCharacterDetails(createCharacterDetailsHttp(configuration))
 
   return {
-    score: configuration.score,
+    scoreEngine: configuration.scoreEngine,
     identification: { candidates, image, details, scorePortrait, selection: policy }
   }
 }

@@ -1,9 +1,7 @@
 import { isAbsolute, join } from 'node:path'
-import koffi from 'koffi'
 import { z } from 'zod'
 import type { CharacterScoreCalculator } from '../../preload/common/types/character'
 import type { DiagnosticCode } from '../../preload/common/types/diagnostics'
-import { reportDiagnostic } from '../diagnostics/log'
 import type { ScoreEngineInput } from './input'
 
 export const SCORE_LIBRARY_FILE_NAMES: Readonly<Partial<Record<NodeJS.Platform, string>>> = {
@@ -11,8 +9,10 @@ export const SCORE_LIBRARY_FILE_NAMES: Readonly<Partial<Record<NodeJS.Platform, 
   darwin: 'libdnfscore.dylib',
   linux: 'libdnfscore.so'
 }
-const SCORE_SUCCESS = 0
 const SLOW_SCORE_MS = 50
+// worker가 응답하지 않을 때 점수만 비우고 상세를 끝내는 상한이다. 측정한 계산은 첫 준비가 약 1.3초, 이후 한 번에
+// 120ms 이하라 공대 12자리가 한꺼번에 쌓여도 이 안에 끝난다.
+const SCORE_RESPONSE_TIMEOUT_MS = 10_000
 
 const nonblank = z.string().refine((value) => value.trim().length > 0)
 const nullableNumber = z.number().nullable()
@@ -49,21 +49,52 @@ const resultSchema = z
 
 export type ScoreEngineResult = z.infer<typeof resultSchema>
 
-export type ScoreEngine = (
-  input: ScoreEngineInput,
-  calculator: CharacterScoreCalculator
-) => ScoreEngineResult | null
+export type ScoreEngine = Readonly<{
+  /** 엔진이 없거나 계산하지 못하면 null이다. 신호가 취소되면 그 이유로 거절한다. */
+  calculate: (
+    input: ScoreEngineInput,
+    calculator: CharacterScoreCalculator,
+    signal: AbortSignal
+  ) => Promise<ScoreEngineResult | null>
+  /** 캡처를 시작할 때 부른다. 점수 worker를 띄워 첫 계산 초기화를 미리 끝낸다. */
+  prepare: () => void
+}>
 
-type NativeFunction = (...args: unknown[]) => unknown
-export type ScoreLibrary = Readonly<{ func(definition: string): NativeFunction }>
+export type ScoreWorkerData = Readonly<{ path: string }>
+export type ScoreWorkerRequest = Readonly<{
+  id: number
+  input: ScoreEngineInput
+  calculator: CharacterScoreCalculator
+}>
+export type ScoreWorkerMessage =
+  | Readonly<{ kind: 'unavailable' }>
+  | Readonly<{ kind: 'result'; id: number; text: string | null; elapsedMs: number }>
+
+export type ScoreWorker = {
+  postMessage: (request: ScoreWorkerRequest) => void
+  on(event: 'message', listener: (message: ScoreWorkerMessage) => void): unknown
+  on(event: 'error', listener: (error: Error) => void): unknown
+  on(event: 'exit', listener: (exitCode: number) => void): unknown
+  terminate: () => unknown
+}
 
 export type ScoreEngineOptions = Readonly<{
   path: string | null
-  load?: (path: string) => ScoreLibrary
-  /** 해제는 엔진의 `dnfscore_free`가 맡는다. */
-  decode?: (pointer: unknown) => string
-  report?: (code: DiagnosticCode) => void
+  spawn: (data: ScoreWorkerData) => ScoreWorker
+  report: (code: DiagnosticCode) => void
 }>
+
+type ScoreReply = Readonly<{ text: string | null; elapsedMs: number }>
+type RunningWorker = Readonly<{
+  worker: ScoreWorker
+  pending: Map<number, (reply: ScoreReply | null) => void>
+}>
+type WorkerState =
+  | Readonly<{ kind: 'idle' }>
+  | Readonly<{ kind: 'running'; running: RunningWorker }>
+  /** worker가 죽었거나 응답하지 않았다. 다음 캡처 시작에서 다시 띄운다. */
+  | Readonly<{ kind: 'stopped' }>
+  | Readonly<{ kind: 'unavailable' }>
 
 type ScoreLibraryLocation = Readonly<{
   isPackaged: boolean
@@ -98,10 +129,6 @@ export function resolveScoreLibraryPath(location: ScoreLibraryLocation): string 
   return configured
 }
 
-function decodeNativeString(pointer: unknown): string {
-  return koffi.decode(pointer, 'char', -1) as string
-}
-
 function parseResult(text: string, calculator: CharacterScoreCalculator): ScoreEngineResult | null {
   let value: unknown
   try {
@@ -117,109 +144,151 @@ function parseResult(text: string, calculator: CharacterScoreCalculator): ScoreE
   return parsed.data
 }
 
-export function loadScoreEngine(options: ScoreEngineOptions): ScoreEngine | null {
-  const {
-    path,
-    load = (libraryPath) => koffi.load(libraryPath) as unknown as ScoreLibrary,
-    decode = decodeNativeString,
-    report = reportDiagnostic
-  } = options
-  if (path === null) {
-    report('SCORE_ENGINE_UNAVAILABLE')
+/**
+ * 네이티브 엔진은 첫 계산 초기화를 OS thread마다 따로 하므로, 준비와 모든 계산을 worker 하나에서 한다. 진단은
+ * worker가 보낸 결과로 main에서 남긴다.
+ */
+export function createScoreEngine(
+  options: ScoreEngineOptions
+): ScoreEngine & Readonly<{ dispose: () => void }> {
+  const { path, spawn, report } = options
+  let state: WorkerState = { kind: 'idle' }
+  let nextRequestId = 0
 
-    return null
-  }
-  let scoreNative: NativeFunction
-  let freeNative: NativeFunction
-  try {
-    const library = load(path)
-    const version = library.func('const char *dnfscore_version(void)')
-    scoreNative = library.func(
-      'int dnfscore_score(const char *json, size_t len, const char *calculator, _Out_ void **out)'
-    )
-    freeNative = library.func('void dnfscore_free(void *value)')
-    const engineVersion = version()
-    if (typeof engineVersion !== 'string' || engineVersion.trim().length === 0) {
-      throw new Error('SCORE_ENGINE_VERSION_INVALID')
-    }
-  } catch {
-    // 원문 오류는 라이브러리 경로를 담을 수 있어 진단 코드로만 남긴다.
-    report('SCORE_ENGINE_UNAVAILABLE')
-
-    return null
-  }
-
-  function callNative(
-    input: ScoreEngineInput,
-    calculator: CharacterScoreCalculator
-  ): string | null {
-    const json = JSON.stringify(input)
-    const output: unknown[] = [null]
-    let pointer: unknown = null
-    try {
-      const status = scoreNative(json, Buffer.byteLength(json, 'utf8'), calculator, output)
-      pointer = output[0] ?? null
-      if (status !== SCORE_SUCCESS || pointer === null) {
-        return null
-      }
-
-      return decode(pointer)
-    } finally {
-      // 실패 코드와 함께 돌려준 문자열도 엔진이 할당했으므로 같은 엔진으로 해제한다.
-      if (pointer !== null) {
-        freeNative(pointer)
-      }
-    }
-  }
-
-  function callNativeOrNull(
-    input: ScoreEngineInput,
-    calculator: CharacterScoreCalculator
-  ): string | null {
-    try {
-      return callNative(input, calculator)
-    } catch {
+  function currentRunning(worker: ScoreWorker): RunningWorker | null {
+    if (state.kind !== 'running' || state.running.worker !== worker) {
       return null
     }
+
+    return state.running
   }
 
-  function reportFailed(): null {
-    report('SCORE_ENGINE_FAILED')
-
-    return null
+  function finish(worker: ScoreWorker, next: WorkerState, code: DiagnosticCode | null): void {
+    const running = currentRunning(worker)
+    if (running === null) {
+      return
+    }
+    state = next
+    if (code !== null) {
+      report(code)
+    }
+    const settles = [...running.pending.values()]
+    running.pending.clear()
+    for (const settle of settles) {
+      settle(null)
+    }
+    worker.terminate()
   }
 
-  return (input, calculator) => {
-    const startedAt = performance.now()
-    const text = callNativeOrNull(input, calculator)
-    if (performance.now() - startedAt > SLOW_SCORE_MS) {
+  function receive(worker: ScoreWorker, message: ScoreWorkerMessage): void {
+    if (message.kind === 'unavailable') {
+      finish(worker, { kind: 'unavailable' }, 'SCORE_ENGINE_UNAVAILABLE')
+
+      return
+    }
+    const settle = currentRunning(worker)?.pending.get(message.id)
+    settle?.({ text: message.text, elapsedMs: message.elapsedMs })
+  }
+
+  function start(): void {
+    if (path === null) {
+      state = { kind: 'unavailable' }
+      report('SCORE_ENGINE_UNAVAILABLE')
+
+      return
+    }
+    let worker: ScoreWorker
+    try {
+      worker = spawn({ path })
+    } catch {
+      state = { kind: 'stopped' }
+      report('SCORE_ENGINE_FAILED')
+
+      return
+    }
+    state = { kind: 'running', running: { worker, pending: new Map() } }
+    const stop = (): void => finish(worker, { kind: 'stopped' }, 'SCORE_ENGINE_FAILED')
+    worker.on('message', (message) => receive(worker, message))
+    worker.on('error', stop)
+    worker.on('exit', stop)
+  }
+
+  function prepare(): void {
+    if (state.kind === 'idle' || state.kind === 'stopped') {
+      start()
+    }
+  }
+
+  function request(
+    running: RunningWorker,
+    input: ScoreEngineInput,
+    calculator: CharacterScoreCalculator,
+    signal: AbortSignal
+  ): Promise<ScoreReply | null> {
+    const { promise, resolve, reject } = Promise.withResolvers<ScoreReply | null>()
+    const id = nextRequestId
+    nextRequestId += 1
+    const timer = setTimeout(
+      () => finish(running.worker, { kind: 'stopped' }, 'SCORE_ENGINE_FAILED'),
+      SCORE_RESPONSE_TIMEOUT_MS
+    )
+    const cleanup = (): void => {
+      clearTimeout(timer)
+      signal.removeEventListener('abort', abort)
+      running.pending.delete(id)
+    }
+    // 계산 중인 네이티브 호출은 멈출 수 없으므로, 취소된 요청은 응답을 기다리지 않고 늦은 응답은 버린다.
+    const abort = (): void => {
+      cleanup()
+      reject(signal.reason)
+    }
+    running.pending.set(id, (reply) => {
+      cleanup()
+      resolve(reply)
+    })
+    signal.addEventListener('abort', abort, { once: true })
+    running.worker.postMessage({ id, input, calculator })
+
+    return promise
+  }
+
+  async function calculate(
+    input: ScoreEngineInput,
+    calculator: CharacterScoreCalculator,
+    signal: AbortSignal
+  ): Promise<ScoreEngineResult | null> {
+    signal.throwIfAborted()
+    if (state.kind === 'idle') {
+      start()
+    } else if (state.kind === 'stopped') {
+      report('SCORE_ENGINE_FAILED')
+    }
+
+    if (state.kind !== 'running') {
+      return null
+    }
+    const reply = await request(state.running, input, calculator, signal)
+    if (reply === null) {
+      return null
+    }
+
+    if (reply.elapsedMs > SLOW_SCORE_MS) {
       report('SCORE_ENGINE_SLOW')
     }
-
-    if (text === null) {
-      return reportFailed()
-    }
-    const result = parseResult(text, calculator)
+    const result = reply.text !== null ? parseResult(reply.text, calculator) : null
     if (result === null) {
-      return reportFailed()
+      report('SCORE_ENGINE_FAILED')
     }
 
     return result
   }
-}
 
-export function createLazyScoreEngine(load: () => ScoreEngine | null): ScoreEngine {
-  let engine: ScoreEngine | null | undefined
-
-  return (input, calculator) => {
-    if (engine === undefined) {
-      engine = load()
+  function dispose(): void {
+    if (state.kind === 'running') {
+      finish(state.running.worker, { kind: 'unavailable' }, null)
     }
-
-    if (engine === null) {
-      return null
-    }
-
-    return engine(input, calculator)
+    state = { kind: 'unavailable' }
   }
+
+  return { calculate, prepare, dispose }
 }

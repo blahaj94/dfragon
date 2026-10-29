@@ -86,6 +86,7 @@ export function registerManualSearchIpc({
       case SEARCH_ACTIONS.BEGIN:
         // An explicit new begin also recovers a session whose reply was lost.
         lifetime.invalidate()
+        runtime?.scoreEngine.prepare()
 
         return lifetime.begin({
           windowGeneration: windowGeneration(),
