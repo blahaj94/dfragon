@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import { isReleaseTag, parseUpdateNoticeSnapshot } from '../common/update-notice'
+import { parseUpdateNoticeSnapshot } from '../common/update-notice'
 import {
   UPDATE_NOTICE_CHANNELS,
   type UpdateNoticeApi,
@@ -15,27 +15,16 @@ function requireSnapshot(value: unknown): UpdateNoticeSnapshot {
   return snapshot
 }
 
-function requireTag(tag: unknown): string {
-  if (!isReleaseTag(tag)) {
-    throw new Error('INVALID_UPDATE_NOTICE_COMMAND')
-  }
-
-  return tag
-}
-
 export const getUpdateNotice: UpdateNoticeApi['getUpdateNotice'] = async () => {
   return requireSnapshot(await ipcRenderer.invoke(UPDATE_NOTICE_CHANNELS.read))
 }
 
 export const dismissUpdateNotice: UpdateNoticeApi['dismissUpdateNotice'] = async (tag) => {
-  const command = requireTag(tag)
-
-  return requireSnapshot(await ipcRenderer.invoke(UPDATE_NOTICE_CHANNELS.dismiss, command))
+  return requireSnapshot(await ipcRenderer.invoke(UPDATE_NOTICE_CHANNELS.dismiss, tag))
 }
 
 export const openUpdateRelease: UpdateNoticeApi['openUpdateRelease'] = async (tag) => {
-  const command = requireTag(tag)
-  await ipcRenderer.invoke(UPDATE_NOTICE_CHANNELS.open, command)
+  await ipcRenderer.invoke(UPDATE_NOTICE_CHANNELS.open, tag)
 }
 
 export const onUpdateNoticeChanged: UpdateNoticeApi['onUpdateNoticeChanged'] = (listener) => {
