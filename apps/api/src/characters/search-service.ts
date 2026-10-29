@@ -17,11 +17,9 @@ export function createCharacterSearchService(
   let closed = false
 
   const search = async (
-    peerAddress: string | undefined,
-    input: NeopleCharacterSearchInput,
-    requestSignal?: AbortSignal
+    input: NeopleCharacterSearchInput
   ): Promise<NeopleCharacterSearchResult> => {
-    if (closed || !peerAddress || requestSignal?.aborted === true) {
+    if (closed) {
       throw new NeopleSearchFailure('internal')
     }
 
@@ -36,10 +34,10 @@ export function createCharacterSearchService(
   }
 
   return {
-    async search(peerAddress, originalUrl, requestSignal) {
+    async search(originalUrl) {
       const input = parseCharacterSearchQuery(originalUrl)
 
-      const result = await search(peerAddress, input, requestSignal)
+      const result = await search(input)
       const rows = result.rows.map(
         (row): CharacterCandidate =>
           pick(row, ['characterId', 'characterName', 'serverId', 'serverName', 'fame'])
@@ -47,9 +45,9 @@ export function createCharacterSearchService(
 
       return { rows } satisfies CharacterSearchResult
     },
-    async candidates(peerAddress, originalUrl, requestSignal) {
+    async candidates(originalUrl) {
       const input = parseCharacterCandidatesQuery(originalUrl)
-      const result = await search(peerAddress, input, requestSignal)
+      const result = await search(input)
       const candidates = result.rows.map((candidate): CharacterImageCandidate => {
         const serverId = encodeURIComponent(candidate.serverId)
         const characterId = encodeURIComponent(candidate.characterId)

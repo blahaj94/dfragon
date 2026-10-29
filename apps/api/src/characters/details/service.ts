@@ -20,14 +20,10 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
   const active = new Set<Promise<unknown>>()
 
   const fetches = new SharedCharacterFetches()
-  const respond = async (
-    peerAddress: string | undefined,
-    identity: CharacterIdentity,
-    requestSignal: AbortSignal
-  ) => {
+  const respond = async (identity: CharacterIdentity, requestSignal: AbortSignal) => {
     const signal = AbortSignal.any([requestSignal, shutdown.signal])
     try {
-      if (!peerAddress || signal.aborted) {
+      if (signal.aborted) {
         throw new CharacterDetailFailure('internal')
       }
       const { payloads, fetchedAt } = await fetches.run(identity, signal, async (fetchSignal) => {
@@ -52,8 +48,8 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
   }
 
   return {
-    get(peerAddress: string | undefined, identity: CharacterIdentity, signal: AbortSignal) {
-      const operation = respond(peerAddress, identity, signal)
+    get(identity: CharacterIdentity, signal: AbortSignal) {
+      const operation = respond(identity, signal)
       active.add(operation)
       operation.finally(() => active.delete(operation)).catch(() => undefined)
 

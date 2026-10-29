@@ -26,7 +26,7 @@ export class CharacterDetailController {
       request.originalUrl
     )
     await respondWithCancellation(response, (signal) => {
-      return this.service.get(request.ip, identity, signal)
+      return this.service.get(identity, signal)
     })
   }
 }
