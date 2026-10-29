@@ -9,7 +9,6 @@ import ky, { isTimeoutError } from 'ky'
 import { NEOPLE_ORIGIN, NEOPLE_SERVER_NAMES } from '../constants/neople-character-search.js'
 import {
   classifyNeopleUpstreamFailure,
-  neopleSearchFailure,
   neopleStatusFailure,
   NeopleSearchFailure
 } from '../errors/neople-search.js'
@@ -27,7 +26,7 @@ const nativeDependencies: SearchDependencies = {
   origin: NEOPLE_ORIGIN
 }
 
-const invalidResponse = (): NeopleSearchFailure => neopleSearchFailure('api')
+const invalidResponse = (): NeopleSearchFailure => new NeopleSearchFailure('api')
 
 function projectRow(candidate: unknown, input: NeopleCharacterSearchInput): CharacterSearchRow {
   assert(isRecord(candidate), invalidResponse)
@@ -125,11 +124,13 @@ function makeSearch(apiKey: string, dependencies: SearchDependencies): SearchCha
         .json<NeopleCharacterSearchResult>()
     } catch (error) {
       if (isTimeoutError(error)) {
-        throw neopleSearchFailure('timeout')
+        throw new NeopleSearchFailure('timeout')
       }
 
       const failure =
-        error instanceof NeopleSearchFailure ? error : neopleSearchFailure('api', { cause: error })
+        error instanceof NeopleSearchFailure
+          ? error
+          : new NeopleSearchFailure('api', { cause: error })
       throw failure
     }
   }

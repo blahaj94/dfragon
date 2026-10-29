@@ -2,7 +2,7 @@ import { ApiTags } from '@nestjs/swagger'
 import { ApiCharacterCandidates, ApiCharacterSearch } from '../swagger/operations.js'
 import { Controller, Get, Inject, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
-import { neopleSearchFailure } from '../errors/neople-search.js'
+import { NeopleSearchFailure } from '../errors/neople-search.js'
 import { respondWithCancellation } from '../http-response.js'
 import type { CharacterSearchHttpService } from './types.js'
 
@@ -29,7 +29,7 @@ export class CharacterSearchController {
 
   private async respond(request: Request, response: Response, candidates: boolean): Promise<void> {
     if (request.method !== 'GET') {
-      throw neopleSearchFailure('query')
+      throw new NeopleSearchFailure('query')
     }
     await respondWithCancellation(response, (signal) => {
       if (candidates) {

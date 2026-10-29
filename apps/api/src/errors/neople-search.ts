@@ -30,9 +30,9 @@ const errors = {
   }
 } as const satisfies Record<string, { status: number; code: string; message: string }>
 
-type SearchErrorDefinition = (typeof errors)[keyof typeof errors]
+type NeopleSearchFailureKind = keyof typeof errors
 
-const upstreamCodeErrors = new Map<string, keyof typeof errors>([
+const upstreamCodeErrors = new Map<string, NeopleSearchFailureKind>([
   ['API000', 'internal'],
   ['API003', 'internal'],
   ['API004', 'internal'],
@@ -52,30 +52,24 @@ const upstreamCodeErrors = new Map<string, keyof typeof errors>([
 
 export class NeopleSearchFailure extends SanitizedFailure {
   readonly body: SearchErrorBody
-  readonly status: SearchErrorDefinition['status']
+  readonly kind: NeopleSearchFailureKind
+  readonly status: (typeof errors)[NeopleSearchFailureKind]['status']
 
-  constructor(definition: SearchErrorDefinition, options: FailureOptions = {}) {
+  constructor(kind: NeopleSearchFailureKind, options: FailureOptions = {}) {
+    const definition = errors[kind]
     super(definition.message, options)
     this.name = 'NeopleSearchFailure'
+    this.kind = kind
     this.status = definition.status
     this.body = { error: { code: definition.code, message: definition.message } }
   }
-}
-
-export function neopleSearchFailure(
-  kind: keyof typeof errors,
-  options?: FailureOptions
-): NeopleSearchFailure {
-  const error = errors[kind]
-
-  return new NeopleSearchFailure(error, options)
 }
 
 export function neopleStatusFailure(status: number, options?: FailureOptions): NeopleSearchFailure {
   const isTemporarilyUnavailable = status === 429 || status === 503
   const failureKind = isTemporarilyUnavailable ? 'unavailable' : 'api'
 
-  return neopleSearchFailure(failureKind, options)
+  return new NeopleSearchFailure(failureKind, options)
 }
 
 export function classifyNeopleUpstreamFailure(
@@ -95,7 +89,7 @@ export function classifyNeopleUpstreamFailure(
   const knownError = typeof code === 'string' ? upstreamCodeErrors.get(code) : undefined
 
   if (knownError !== undefined) {
-    return neopleSearchFailure(knownError)
+    return new NeopleSearchFailure(knownError)
   }
 
   return neopleStatusFailure(status)
