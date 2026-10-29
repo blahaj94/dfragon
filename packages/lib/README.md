@@ -34,6 +34,27 @@ isRow({ slotId: 'WEAPON', grade: null, extra: 1 }) // 정하지 않은 키가 �
 - `isNonblankString`은 공백만 있는 문자열을 거절하고, `isNullableString`은 빈 문자열도 받습니다.
 - `isUtcTimestamp`는 `Z`로 끝나는 ISO 시각 중 실제 날짜만 받아 `2026-02-30T00:00Z`, `24:00`을 거절합니다. `isOffsetTimestamp`는 `±HH:MM` offset도 받습니다.
 
+## 조건 단언
+
+```ts
+import { assert } from '@dfragon/lib/utils/assert'
+import { isRecord } from '@dfragon/lib/utils/shape-check'
+
+assert(isRecord(value))
+value.rows // 이 줄부터 value는 Record<string, unknown>
+```
+
+`assert(condition, failure?)`는 조건이 falsy이면 실패를 던지고, 통과하면 TypeScript가 이후 코드에서 조건을 참으로 보고 타입을 좁힙니다. Electron preload처럼 Node 전용 모듈을 쓸 수 없는 곳에서도 쓰도록 `node:assert`에 의존하지 않습니다.
+
+- `failure`를 주지 않거나 문자열을 주면 그 message로 이 패키지의 `AssertionError`를 던집니다. 기본 message는 `'Assertion failed'`입니다.
+- `Error`를 주면 그 객체를 그대로 던집니다.
+- `() => Error` 함수를 주면 실패할 때만 호출해 돌려받은 오류를 던집니다. API 오류 응답처럼 계약된 실패를 던질 때는 이 형태를 써서, 통과할 때마다 오류 객체를 만들지 않게 합니다.
+
+```ts
+const invalidResponse = () => neopleSearchFailure('api')
+assert(Array.isArray(body.rows), invalidResponse)
+```
+
 ## 요청 제한용 IP 키
 
 요청 제한은 같은 접속자의 요청 횟수를 같은 키 아래에 기록해야 합니다. 같은 IP라도 표기가 다르면 별도 접속자로 집계될 수 있습니다. `getIpQuotaKey(peerAddress: string): string`은 이때 사용할 키를 만듭니다. 주소를 해석하는 `ipaddr.js` 의존성과 변환 규칙은 이 함수에서 관리합니다.

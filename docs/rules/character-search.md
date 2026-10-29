@@ -12,7 +12,7 @@ review-after: 네오플 공식 규격 변경 시
 
 # Character Search Contract
 
-이 Rule은 검색 요청, 응답, 오류, deadline과 code point 입력 정책, 호출 제한 및 명시된 한계를 정한다. 이전 인증/session 통합은 아래 공개 검색 정책으로 대체한다. 검색 결과 저장, 캐싱, OCR 보정, 인증은 이 문서의 범위 밖이다. 구현은 현재 요청 범위에서 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
+이 Rule은 검색 요청, 응답, 오류, timeout과 code point 입력 정책, 호출 제한 및 명시된 한계를 정한다. 이전 인증/session 통합은 아래 공개 검색 정책으로 대체한다. 검색 결과 저장, 캐싱, OCR 보정, 인증은 이 문서의 범위 밖이다. 구현은 현재 요청 범위에서 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
 
 ## 요청과 성공 응답
 
@@ -52,7 +52,7 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 2. 명성이 같으면 Neople 응답 순서를 유지한다.
 3. `fame === null`인 후보를 나머지 후보 뒤에 Neople 응답 순서대로 붙인다. 공급자 응답에서 명성이 누락된 경우에도 기존 정제 규칙에 따라 null이다.
 
-검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, 5초 upstream deadline, 자동 retry 없음 정책을 사용한다. 두 검색 경로에는 클라이언트별, 서버 전체 호출 제한이 없다. 후보 API는 상세 서비스와 DB를 쓰지 않는다.
+검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, upstream timeout, 자동 retry 없음 정책을 사용한다. 두 검색 경로에는 클라이언트별, 서버 전체 호출 제한이 없다. 후보 API는 상세 서비스와 DB를 쓰지 않는다.
 
 ### Desktop의 식별 흐름
 
@@ -144,7 +144,7 @@ Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Ups
 | ---------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | Local      | 우리 query 오류                                                                       | 400; upstream 없음.                                    |
 | Local      | 우리 설정, 내부 오류                                                                   | 500; upstream 여부는 오류 발생 지점에 따름.            |
-| Upstream 1 | 호출 deadline 도달                                                                    | 504; 도착이 늦은 response나 code로 결과를 바꾸지 않음. |
+| Upstream 1 | 공급자 응답 timeout                                                                   | 504; 도착이 늦은 response나 code로 결과를 바꾸지 않음. |
 | Upstream 2 | 식별한 `API000`, `API003`, `API004`, `API005`                                         | Upstream HTTP와 관계없이 500.                          |
 | Upstream 3 | 식별한 `API002`, `API008`, `DNF980`                                                   | Upstream HTTP와 관계없이 503.                          |
 | Upstream 4 | 식별한 `API901`, `DNF901`, `DNF000`, `API006`, `API007`, `API900`, `API999`, `DNF999` | Upstream HTTP와 관계없이 502.                          |
@@ -155,13 +155,13 @@ Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Ups
 
 공식 [오류 코드 표](https://developers.neople.co.kr/contents/guide/pages/code)의 Key/IP 사용량 초과는 HTTP 400이다. 이를 우리 입력 400으로 복사하지 않는다. Key 오류의 upstream 401도 우리 로그인 401로 바꾸지 않는다. `API901` + HTTP 503은 알려진 code가 우선하여 502, 미분류 code + HTTP 503은 fallback 503이다.
 
-## Deadline과 adapter
+## Timeout과 adapter
 
-네오플 호출 대기는 최대 5초, timeout은 504, 서버 자동 retry는 0회다. 세부 규칙은 transport 호출 직전부터 headers와 전체 body 수신, 검증 완료까지 하나의 5,000ms deadline을 적용하는 것이다. 완료 판정 시각이 deadline **이상**이면 timeout이다. Headers만 빨리 도착해도 body가 늦으면 성공하지 않는다.
+네오플 응답 대기는 HTTP client(ky)의 기본 timeout을 따른다. Timeout은 504 `NEOPLE_TIMEOUT`, 서버 자동 retry는 0회다. 정확한 대기 시간은 제품 계약으로 고정하지 않는다.
 
-Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 정리한다. Deadline 이전 network/body read 실패는 502, deadline에 따른 abort는 504로 구분한다. Redirect는 따라가지 않는 안이며 3xx는 위 fallback 오류다. 늦게 끝난 작업으로 추가 응답하거나 retry하지 않는다. Event loop 지연 때문에 실제 HTTP write가 정확히 5,000ms 안에 일어난다고 보장하지 않는다.
+Timeout이 나면 transport를 취소하고, 늦게 도착한 response나 code로 결과를 바꾸지 않는다. Timeout 전의 network, body read 실패는 502다. Redirect는 따라가지 않는 안이며 3xx는 위 fallback 오류다. 늦게 끝난 작업으로 추가 응답하거나 retry하지 않는다.
 
-순수 adapter는 **검증된 검색 값 → URL 구성, transport 1회, 전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. Transport, clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding, status, body, 취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v26.x/api/globals.html#fetch)
+순수 adapter는 **검증된 검색 값 → URL 구성, transport 1회, 전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. Transport는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding, status, body를 검증한다. Timeout에 따른 취소는 fake transport로 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v26.x/api/globals.html#fetch)
 
 ## 공개 검색과 호출 제한
 
@@ -198,7 +198,7 @@ Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778]
 | 정상 후보와 `fame: "0"` 후보 혼합                     | 502 / `NEOPLE_API_ERROR`, 부분 rows 없음                  | 1        |
 | 정상 미등록 응답 서버                                 | 200 / ID 유지, `serverName: null`                         | 1        |
 | `API003` + HTTP 401 / `API002` + HTTP 400             | 500 / `INTERNAL_SERVER_ERROR`, 503 / `NEOPLE_UNAVAILABLE` | 각 1     |
-| 5,000ms 도달, body 미완료                             | 504 / `NEOPLE_TIMEOUT`, retry 없음                        | 1        |
+| 공급자 응답 없음                                      | 504 / `NEOPLE_TIMEOUT`, retry 없음                        | 1        |
 | 같은 peer가 60초 안에 보낸 12번째 요청                | upstream 결과                                             | 1        |
 
-상세 acceptance matrix와 실행 evidence는 기존 작업 기록이나 PR에 둔다. Runtime 도구와 실제 실행 계획은 [`api-runtime.md`](api-runtime.md), 변경별 검증은 [검증 명령](../../scripts/README.md#native-validation)를 따른다. 길이, raw decoding, deadline, 호출 제한 정책과 인증 통합의 변경을 후속 구현자의 일반 선택으로 숨기지 않는다.
+상세 acceptance matrix와 실행 evidence는 기존 작업 기록이나 PR에 둔다. Runtime 도구와 실제 실행 계획은 [`api-runtime.md`](api-runtime.md), 변경별 검증은 [검증 명령](../../scripts/README.md#native-validation)를 따른다. 길이, raw decoding, timeout, 호출 제한 정책과 인증 통합의 변경을 후속 구현자의 일반 선택으로 숨기지 않는다.

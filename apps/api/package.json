@@ -24,6 +24,7 @@
     "@nestjs/core": "catalog:",
     "@nestjs/platform-express": "catalog:",
     "@nestjs/swagger": "catalog:",
+    "ky": "catalog:",
     "reflect-metadata": "catalog:",
     "remeda": "catalog:",
     "rxjs": "catalog:"

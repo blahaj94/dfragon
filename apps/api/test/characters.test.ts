@@ -13,21 +13,6 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
-function jsonStreamResponse(body: unknown, beforeRead: () => void): Response {
-  const stream = new ReadableStream<Uint8Array>(
-    {
-      pull(controller) {
-        beforeRead()
-        controller.enqueue(new TextEncoder().encode(JSON.stringify(body)))
-        controller.close()
-      }
-    },
-    { highWaterMark: 0 }
-  )
-
-  return new Response(stream, { headers: { 'content-type': 'application/json' } })
-}
-
 function rawResponse(body: string, status = 200): Response {
   return new Response(body, { status, headers: { 'content-type': 'application/json' } })
 }
@@ -388,181 +373,65 @@ test('JSON 파싱 실패는 HTTP fallback을 적용하고 본문, 통신 실패�
   )
 })
 
-test('본문 수신 완료가 정확히 5,000ms이면 취소하고 정제된 timeout을 반환한다', async () => {
-  let now = 0
-  let cleared = 0
-  let scheduledDelay: number | undefined
-  let signal: AbortSignal | undefined
-  const search = createNeopleCharacterSearchForTest('fake-key', {
-    fetch: async (_url, init) => {
-      assert(init?.signal instanceof AbortSignal)
-      signal = init.signal
+test('공급자가 header나 body를 보내지 않으면 transport를 취소하고 504를 반환하며 재시도하지 않는다', {
+  timeout: 2_000
+}, async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const neverSettles = (signal: AbortSignal) =>
+    new Promise<never>((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+    })
+  for (const stall of ['header', 'body'] as const) {
+    let signal: AbortSignal | undefined
+    let calls = 0
+    let markWaiting!: () => void
+    const waiting = new Promise<void>((resolve) => {
+      markWaiting = resolve
+    })
+    const search = createNeopleCharacterSearchForTest('fake-key', {
+      fetch: async (request) => {
+        calls++
+        signal = request.signal
+        if (stall === 'header') {
+          markWaiting()
 
-      return jsonStreamResponse(
-        {
-          rows: [{ characterId: 'id', characterName: '이름', serverId: 'cain', fame: 1 }]
-        },
-        () => {
-          now = 5_000
+          return neverSettles(request.signal)
         }
-      )
-    },
-    now: () => now,
-    setTimer: (_callback, delay) => {
-      scheduledDelay = delay
+        const pull = () => {
+          markWaiting()
 
-      return Symbol('timer')
-    },
-    clearTimer: () => {
-      cleared++
-    }
-  })
-  await expectFailure(
-    search(input),
-    504,
-    'NEOPLE_TIMEOUT',
-    '캐릭터 검색 응답 시간이 초과됐습니다. 다시 시도해 주세요.'
-  )
-  assert.equal(signal?.aborted, true)
-  assert.equal(scheduledDelay, 5_000)
-  assert.equal(cleared, 1)
-})
-
-test('본문, 응답 검증이 4,999ms에 끝나면 값을 반환하고 timer를 정리한다', async () => {
-  let now = 0
-  let cleared = false
-  let signal: AbortSignal | undefined
-  const search = createNeopleCharacterSearchForTest('fake-key', {
-    fetch: async (_url, init) => {
-      assert(init?.signal instanceof AbortSignal)
-      signal = init.signal
-
-      return jsonStreamResponse(
-        {
-          rows: [{ characterId: 'id', characterName: '이름', serverId: 'cain', fame: 1 }]
-        },
-        () => {
-          now = 4_999
+          return neverSettles(request.signal)
         }
-      )
-    },
-    now: () => now,
-    setTimer: () => Symbol('timer'),
-    clearTimer: () => {
-      cleared = true
-    }
-  })
-  assert.deepEqual(await search(input), {
-    rows: [
-      {
-        characterId: 'id',
-        characterName: '이름',
-        serverId: 'cain',
-        serverName: '카인',
-        fame: 1,
-        jobName: null,
-        jobGrowName: null
+
+        return new Response(new ReadableStream({ pull }, { highWaterMark: 0 }))
       }
-    ]
-  })
-  assert.equal(signal?.aborted, false)
-  assert.equal(cleared, true)
+    })
+    const pending = expectFailure(
+      search(input),
+      504,
+      'NEOPLE_TIMEOUT',
+      '캐릭터 검색 응답 시간이 초과됐습니다. 다시 시도해 주세요.'
+    )
+    // ky는 fetch 호출, body 읽기 직전에 timer를 걸기 때문에 대기가 시작되면 timer가 등록돼 있다.
+    await waiting
+    // ky 기본 timeout 값을 고정하지 않도록 어떤 기본값보다도 넉넉히 진행한다.
+    t.mock.timers.tick(60_000)
+    await pending
+    assert.equal(signal?.aborted, true, stall)
+    assert.equal(calls, 1, stall)
+  }
 })
 
-test('본문 수신 뒤 응답 처리 중 deadline에 도달하면 성공 결과를 거절한다', async () => {
-  const instants = [0, 4_999, 4_999, 5_000]
-  let observed = 0
-  const search = createNeopleCharacterSearchForTest('fake-key', {
-    fetch: async () =>
-      jsonResponse({
-        rows: [{ characterId: 'id', characterName: '이름', serverId: 'cain', fame: 1 }]
-      }),
-    now: () => {
-      const index = Math.min(observed++, instants.length - 1)
-
-      return instants[index]!
-    },
-    setTimer: () => Symbol('timer'),
-    clearTimer: () => undefined
+test('동시 검색은 결과와 취소를 공유하지 않는다', async () => {
+  const signals = new Map<string, AbortSignal>()
+  let respondSlow!: (response: Response) => void
+  const slowResponse = new Promise<Response>((resolve) => {
+    respondSlow = resolve
   })
-  await expectFailure(
-    search(input),
-    504,
-    'NEOPLE_TIMEOUT',
-    '캐릭터 검색 응답 시간이 초과됐습니다. 다시 시도해 주세요.'
-  )
-})
-
-test('5,000ms에 수신된 공급자 오류 code는 이미 도달한 deadline을 덮어쓰지 않는다', async () => {
-  let now = 0
   const search = createNeopleCharacterSearchForTest('fake-key', {
-    fetch: async () =>
-      jsonStreamResponse({ error: { code: 'API003', message: 'private detail' } }, () => {
-        now = 5_000
-      }),
-    now: () => now,
-    setTimer: () => Symbol('timer'),
-    clearTimer: () => undefined
-  })
-  await expectFailure(
-    search(input),
-    504,
-    'NEOPLE_TIMEOUT',
-    '캐릭터 검색 응답 시간이 초과됐습니다. 다시 시도해 주세요.'
-  )
-})
-
-test('deadline timer는 진행 중인 transport를 취소하고 재시도하지 않는다', async () => {
-  let callback: (() => void) | undefined
-  let signal: AbortSignal | undefined
-  let calls = 0
-  let cleared = false
-  const search = createNeopleCharacterSearchForTest('fake-key', {
-    fetch: async (_url, init) => {
-      calls++
-      assert(init?.signal instanceof AbortSignal)
-      signal = init.signal
-
-      return new Promise<Response>((_resolve, reject) => {
-        signal!.addEventListener(
-          'abort',
-          () => reject(new DOMException('요청 취소', 'AbortError')),
-          { once: true }
-        )
-      })
-    },
-    now: () => 0,
-    setTimer: (handler) => {
-      callback = handler
-
-      return Symbol('timer')
-    },
-    clearTimer: () => {
-      cleared = true
-    }
-  })
-  const pending = search(input)
-  assert(callback)
-  assert.equal(signal?.aborted, false)
-  callback()
-  await expectFailure(
-    pending,
-    504,
-    'NEOPLE_TIMEOUT',
-    '캐릭터 검색 응답 시간이 초과됐습니다. 다시 시도해 주세요.'
-  )
-  assert.equal(signal?.aborted, true)
-  assert.equal(cleared, true)
-  assert.equal(calls, 1)
-})
-
-test('동시 검색은 controller, timer, 결과를 공유하지 않는다', async () => {
-  const timers: Array<{ callback: () => void; cleared: boolean }> = []
-  let calls = 0
-  const search = createNeopleCharacterSearchForTest('fake-key', {
-    fetch: async (request, init) => {
-      calls += 1
-      const name = new URL(request).searchParams.get('characterName')
+    fetch: async (request) => {
+      const name = new URL(request.url).searchParams.get('characterName') ?? ''
+      signals.set(name, request.signal)
       const isFastSearch = name === '빠른검색'
       if (isFastSearch) {
         return jsonResponse({
@@ -570,23 +439,7 @@ test('동시 검색은 controller, timer, 결과를 공유하지 않는다', asy
         })
       }
 
-      return new Promise<Response>((_resolve, reject) => {
-        init?.signal?.addEventListener(
-          'abort',
-          () => reject(new DOMException('요청 취소', 'AbortError')),
-          { once: true }
-        )
-      })
-    },
-    now: () => 0,
-    setTimer: (callback) => {
-      const timer = { callback, cleared: false }
-      timers.push(timer)
-
-      return timer
-    },
-    clearTimer: (timer) => {
-      ;(timer as { cleared: boolean }).cleared = true
+      return slowResponse
     }
   })
 
@@ -605,14 +458,26 @@ test('동시 검색은 controller, timer, 결과를 공유하지 않는다', asy
       }
     ]
   })
-  assert.equal(timers[1]?.cleared, true)
-  assert.equal(timers[0]?.cleared, false)
-  timers[0]?.callback()
-  await expectFailure(
-    slow,
-    504,
-    'NEOPLE_TIMEOUT',
-    '캐릭터 검색 응답 시간이 초과됐습니다. 다시 시도해 주세요.'
+  assert.equal(signals.get('느린검색')?.aborted, false)
+
+  respondSlow(
+    jsonResponse({
+      rows: [{ characterId: 'slow', characterName: '느린검색', serverId: 'bakal', fame: 1 }]
+    })
   )
-  assert.equal(calls, 2)
+  assert.deepEqual(await slow, {
+    rows: [
+      {
+        characterId: 'slow',
+        characterName: '느린검색',
+        serverId: 'bakal',
+        serverName: '바칼',
+        fame: 1,
+        jobName: null,
+        jobGrowName: null
+      }
+    ]
+  })
+  assert.equal(signals.get('빠른검색')?.aborted, false)
+  assert.equal(signals.get('느린검색')?.aborted, false)
 })
