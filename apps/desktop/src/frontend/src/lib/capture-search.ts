@@ -76,7 +76,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   }
 
   // 캡처 회차는 수명을 새로 시작해 모든 슬롯을 비우고, 그 뒤의 서버 지정 조회도 회차의 수명을 쓴다. 회차가
-  // 취소되면 그 시작을 버리고 다음 조회가 수명을 다시 시작한다.
+  // 취소되거나 시작에 실패하면 그 시작을 버리고 다음 조회가 수명을 다시 시작한다.
   function begin({ signal }: { signal: AbortSignal }): Promise<string | null> {
     manualSlots = fillSlots(slotCount, false)
     cancelStartAndWaitingLookups()
@@ -93,8 +93,24 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       },
       { once: true }
     )
+    current.captureId.then(
+      (captureId) => {
+        if (captureId === null) {
+          forgetFailedStart(current)
+        }
+      },
+      () => forgetFailedStart(current)
+    )
 
     return current.captureId
+  }
+
+  // 시작을 기다리던 조회가 있으면 그 조회가 연결 실패를 알리고 시작을 버려야 하므로 여기서는 버리지 않는다. 이
+  // 처리는 begin에서 먼저 등록돼 기다리던 조회의 처리보다 먼저 실행된다.
+  function forgetFailedStart(start: LifetimeStart): void {
+    if (reusableLifetimeStart === start && waitingLookups.size === 0) {
+      reusableLifetimeStart = null
+    }
   }
 
   function startLifetime(): LifetimeStart {

@@ -544,7 +544,7 @@ it('직접 조회가 시작한 수명을 기다리는 동안 연결이 준비되
   expect(commands(f.control, 'lookup')).toEqual([])
 })
 
-it('회차 begin이 null로 끝난 뒤의 직접 조회는 수명을 새로 시작하지 않고 연결 실패를 알리며 조회하지 않는다', async () => {
+it('회차 begin이 null로 끝난 뒤의 직접 조회는 수명을 새로 시작해 연결 실패 없이 조회한다', async () => {
   const f = await fixture()
   f.control.mockResolvedValueOnce({
     ok: false,
@@ -553,9 +553,43 @@ it('회차 begin이 null로 끝난 뒤의 직접 조회는 수명을 새로 시�
   })
   expect(await f.search.begin({ signal: new AbortController().signal })).toBeNull()
 
+  f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 3 }) })
   f.search.lookup({ slot: 0, nickname: '직접', serverId: 'cain' })
 
+  await vi.waitFor(() =>
+    expect(commands(f.control, 'lookup')).toEqual([
+      [
+        {
+          action: 'lookup',
+          captureId: CAPTURE_ID,
+          slot: 0,
+          observationRevision: 1,
+          nickname: '직접',
+          serverId: 'cain'
+        }
+      ]
+    ])
+  )
+  expect(commands(f.control, 'begin')).toHaveLength(2)
+  expect(f.changed.mock.calls.some(([view]) => view.connectionFailed)).toBe(false)
+})
+
+it('회차 begin을 기다리던 직접 조회는 그 begin이 null로 끝나면 연결 실패를 알리고 조회하지 않는다', async () => {
+  const f = await fixture()
+  const started = Promise.withResolvers<SearchCommandResult>()
+  f.control.mockReturnValueOnce(started.promise)
+  const round = f.search.begin({ signal: new AbortController().signal })
+  f.search.lookup({ slot: 0, nickname: '직접', serverId: 'cain' })
+
+  started.resolve({
+    ok: false,
+    error: { code: 'STALE_SEARCH' },
+    snapshot: searchSnapshot({ captureId: null, revision: 2 })
+  })
+
+  expect(await round).toBeNull()
   await vi.waitFor(() => expect(f.changed.mock.lastCall?.[0].connectionFailed).toBe(true))
+  expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
   expect(commands(f.control, 'begin')).toHaveLength(1)
   expect(commands(f.control, 'lookup')).toEqual([])
 })
