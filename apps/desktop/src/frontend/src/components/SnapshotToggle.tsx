@@ -20,7 +20,7 @@ export function SnapshotToggle({
 }): React.JSX.Element {
   const cancelRef = useRef<HTMLButtonElement>(null)
   // 켜진 동안 누르면 끄기 확인이 열리고 Alt W는 아무것도 하지 않으므로 단축키 줄을 두지 않는다.
-  const tooltipLabel = active ? '스냅샷 지우기' : '스냅샷 찍기'
+  const tooltipLabel = active ? '모험단 고정 풀기' : '모험단 고정하기'
   const tooltipShortcut = active ? undefined : 'Alt W'
 
   function handleOpenChange(open: boolean, details: Popover.Root.ChangeEventDetails): void {
