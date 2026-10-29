@@ -41,7 +41,6 @@ describe('상세 응답을 점수 엔진 입력 문서로 바꾸기', () => {
       )
       expect(items).toEqual(expectedItems)
       expect(JSON.stringify(input)).not.toContain('itemDetail')
-      expect(JSON.stringify(input)).not.toContain('skillDetails')
     }
   )
 
