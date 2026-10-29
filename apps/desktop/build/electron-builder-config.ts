@@ -31,6 +31,9 @@ export function createBuilderConfig(name: ChannelName): Configuration {
       '!node_modules/onnxruntime-web/**'
     ],
     asarUnpack: ['resources/**'],
+    // The UI is Korean only, so other Chromium locale paks (about 49MB) only translate built-in
+    // strings. Chromium falls back to en-US when the system locale has no pak, so keep it too.
+    electronLanguages: ['ko', 'en-US'],
     win: {
       executableName: packaging.executableName,
       requestedExecutionLevel: 'requireAdministrator',
