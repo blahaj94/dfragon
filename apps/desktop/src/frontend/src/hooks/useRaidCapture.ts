@@ -5,7 +5,7 @@ import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
 import { getRecognizedNicknames } from '../lib/recognized-nicknames'
 import { createSeatOrder, swapSeats as swapSeatOrder, type SeatOrder } from '../lib/raid-seats'
 import { useManualCharacterLookup, type ManualCharacterLookup } from './useManualCharacterLookup'
-import { useRestartShortcut } from './useRestartShortcut'
+import { useDesktopShortcut } from './useDesktopShortcut'
 
 export type RaidCapture = {
   search: ManualCharacterLookup
@@ -74,7 +74,7 @@ export function useRaidCapture({
   }, [send, registeredSourceId])
 
   const startRound = useCallback(() => send({ type: 'START' }), [send])
-  useRestartShortcut(receivesShortcut, startRound)
+  useDesktopShortcut('restart-search', receivesShortcut, startRound)
 
   const phase = getRaidCapturePhase(snapshot)
   const recognizing = phase === 'recognizing'

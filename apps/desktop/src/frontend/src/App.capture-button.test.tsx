@@ -110,7 +110,7 @@ it('캡처 버튼은 상단 바에 그린 파티 헤더에만 있고 대화상�
   expect(button.getAttribute('aria-keyshortcuts')).toBe('Alt+R')
   expect(button.querySelector('kbd')).toBeNull()
   expect(button.querySelector('svg')).not.toBeNull()
-  expect(button.textContent).toBe('Alt R')
+  expect(button.textContent).toBe('')
   await press(f, '캡처 버튼')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(beginCount(f)).toBe(1)
@@ -307,4 +307,80 @@ it('새 회차가 진행되는 동안 이전 완료 시각을 유지하고 다�
   expect(lastCapture()).toBe('0초 전')
   await chooseSource('Next game')
   expect(lastCapture()).toBe('-')
+})
+
+function tooltipLines(): string[] {
+  const tooltip = document.querySelector('[data-side="bottom"]')
+  expect(tooltip).not.toBeNull()
+
+  return [...tooltip!.querySelectorAll('span')].map((line) => line.textContent ?? '')
+}
+
+it.each([
+  ['파티 모험단 순번 스냅샷', 'Alt+W', ['모험단 고정하기', 'Alt W']],
+  ['클립보드로 복사', 'Alt+A', ['복사하기', 'Alt A']],
+  ['파티 캡처, 단축키 Alt R', 'Alt+R', ['캡처하기', 'Alt R']]
+])(
+  '%s 버튼은 %s 단축키를 알리고 포커스가 가면 아래쪽 말풍선에 동작 이름과 단축키를 차례로 보인다',
+  async (label, keys, lines) => {
+    const f = createRendererFixture()
+    f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
+    await mount(f)
+    const button = document.querySelector<HTMLButtonElement>(
+      `main > header button[aria-label="${label}"]`
+    )!
+    expect(button.getAttribute('aria-keyshortcuts')).toBe(keys)
+    expect(document.querySelector('[data-side]')).toBeNull()
+
+    await act(async () => button.focus())
+
+    expect(tooltipLines()).toEqual(lines)
+    await act(async () => button.blur())
+    await vi.waitFor(() => expect(document.querySelector('[data-side="bottom"]')).toBeNull())
+  }
+)
+
+it('Alt+W는 꺼진 스냅샷을 찍고 켜진 스냅샷에는 아무것도 하지 않으며 Alt+A는 보이는 화면을 복사한다', async () => {
+  const f = createRendererFixture()
+  f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
+  await mount(f)
+  const snapshot = document.querySelector<HTMLButtonElement>(
+    '[aria-label="파티 모험단 순번 스냅샷"]'
+  )!
+  expect(snapshot.getAttribute('aria-pressed')).toBe('false')
+
+  await f.shortcut('take-snapshot')
+  expect(snapshot.getAttribute('aria-pressed')).toBe('true')
+  expect(document.querySelector('[aria-label="1번째 파티"]')?.textContent).toBe('#1')
+
+  await press(f, 'Alt+R')
+  await vi.waitFor(() =>
+    expect(document.querySelector('[aria-label="2번째 파티"]')?.textContent).toBe('#2')
+  )
+
+  // 켜진 스냅샷을 다시 찍으면 회차 번호가 #1로 돌아가므로, #2가 남아야 아무것도 하지 않은 것이다.
+  await f.shortcut('take-snapshot')
+  expect(document.querySelector('[role="alertdialog"]')).toBeNull()
+  expect(snapshot.getAttribute('aria-pressed')).toBe('true')
+  expect(document.querySelector('[aria-label="2번째 파티"]')?.textContent).toBe('#2')
+
+  const begins = beginCount(f)
+  await f.shortcut('copy-clipboard')
+  expect(window.desktopClipboard.writeText).toHaveBeenCalledExactlyOnceWith('[], [], [], []')
+  expect(beginCount(f)).toBe(begins)
+})
+
+it('켜진 스냅샷 버튼의 말풍선은 고정을 푸는 동작 이름만 보이고 단축키 줄은 두지 않는다', async () => {
+  const f = createRendererFixture()
+  f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
+  await mount(f)
+  await f.shortcut('take-snapshot')
+  const snapshot = document.querySelector<HTMLButtonElement>(
+    '[aria-label="파티 모험단 순번 스냅샷"]'
+  )!
+  expect(snapshot.getAttribute('aria-pressed')).toBe('true')
+
+  await act(async () => snapshot.focus())
+
+  expect(tooltipLines()).toEqual(['모험단 고정 풀기'])
 })

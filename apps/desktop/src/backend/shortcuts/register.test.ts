@@ -15,7 +15,9 @@ vi.mock('../lib/win32-window-capture', () => ({
 }))
 
 const DOCUMENT_URL = 'file:///dfragon/index.html'
+const VK_A = 0x41
 const VK_R = 0x52
+const VK_W = 0x57
 
 type TestFrame = { url: string; detached: boolean; isDestroyed: () => boolean; send: Mock }
 type TestContents = EventEmitter & { mainFrame: TestFrame; isDestroyed: () => boolean }
@@ -25,7 +27,7 @@ function setup(): {
   window: EventEmitter & { webContents: TestContents; isDestroyed: () => boolean }
   unregister: Mock
   dispose: () => void
-  dispatch: () => void
+  dispatch: (key?: number) => void
   allowed: () => boolean
 } {
   const frame = { url: DOCUMENT_URL, detached: false, isDestroyed: () => false, send: vi.fn() }
@@ -34,7 +36,7 @@ function setup(): {
     webContents: contents,
     isDestroyed: () => false
   })
-  let listener: (() => void) | undefined
+  let listener: ((key: number) => void) | undefined
   let foreground: (() => boolean) | undefined
   const unregister = vi.fn()
   fixtures.create.mockImplementation((options) => {
@@ -60,7 +62,7 @@ function setup(): {
     window,
     unregister,
     dispose,
-    dispatch: () => listener!(),
+    dispatch: (key = VK_R) => listener!(key),
     allowed: () => foreground!()
   }
 }
@@ -71,9 +73,26 @@ beforeEach(() => {
   fixtures.appForeground.mockReturnValue(false)
 })
 
-it('제품의 재검색만 Alt+R로 등록한다', () => {
+it('Alt+R 재검색, Alt+W 스냅샷, Alt+A 클립보드 복사를 한 hook으로 등록한다', () => {
   const fixture = setup()
-  expect(fixtures.create).toHaveBeenCalledWith({ key: VK_R, isForeground: expect.any(Function) })
+  expect(fixtures.create).toHaveBeenCalledExactlyOnceWith({
+    keys: expect.arrayContaining([VK_R, VK_W, VK_A]),
+    isForeground: expect.any(Function)
+  })
+  expect(fixtures.create.mock.calls[0][0].keys).toHaveLength(3)
+  fixture.dispose()
+})
+
+it('눌린 키에 맞는 단축키 이름을 현재 main document에 보낸다', () => {
+  const fixture = setup()
+  fixture.dispatch(VK_W)
+  fixture.dispatch(VK_A)
+  fixture.dispatch(VK_R)
+  expect(fixture.frame.send.mock.calls).toEqual([
+    ['desktopShortcut', 'take-snapshot'],
+    ['desktopShortcut', 'copy-clipboard'],
+    ['desktopShortcut', 'restart-search']
+  ])
   fixture.dispose()
 })
 

@@ -16,11 +16,18 @@ it('허용된 단축키만 전달하고 구독 해제 시 자기 listener만 제
   const unsubscribe = onDesktopShortcut(first)
   onDesktopShortcut(second)
   events.emit('desktopShortcut', {}, 'restart-search')
+  events.emit('desktopShortcut', {}, 'take-snapshot')
+  events.emit('desktopShortcut', {}, 'copy-clipboard')
   unsubscribe()
   events.emit('desktopShortcut', {}, 'restart-search')
   events.emit('desktopShortcut', {}, 'upload-capture')
   events.emit('desktopShortcut', {}, { action: 'restart-search' })
   events.emit('desktopShortcut', {}, 'unknown')
-  expect(first.mock.calls).toEqual([['restart-search']])
-  expect(second.mock.calls).toEqual([['restart-search'], ['restart-search']])
+  expect(first.mock.calls).toEqual([['restart-search'], ['take-snapshot'], ['copy-clipboard']])
+  expect(second.mock.calls).toEqual([
+    ['restart-search'],
+    ['take-snapshot'],
+    ['copy-clipboard'],
+    ['restart-search']
+  ])
 })

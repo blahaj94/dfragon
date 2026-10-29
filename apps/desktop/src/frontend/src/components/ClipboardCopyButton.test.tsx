@@ -54,10 +54,10 @@ function failure(): string | null {
   return message.textContent
 }
 
-it('이름과 title이 클립보드로 복사인 버튼을 누르면 지금 글자를 쓰고 잠깐 체크 아이콘을 보인다', async () => {
+it('클립보드로 복사 버튼을 누르면 지금 글자를 쓰고 잠깐 체크 아이콘을 보인다', async () => {
   vi.useFakeTimers()
   await render('[]')
-  expect(button().title).toBe('클립보드로 복사')
+  expect(button().getAttribute('aria-keyshortcuts')).toBe('Alt+A')
   expect(showsCopyIcon()).toBe(true)
 
   await act(async () => button().click())
