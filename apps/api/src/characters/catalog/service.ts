@@ -1,9 +1,51 @@
-import { chunk } from 'remeda'
+import DataLoader from 'dataloader'
+import { LRUCache } from 'lru-cache'
+import type { CharacterPayload } from '../details/sections.js'
 import { CATALOG_LIMITS, unavailableDetail } from './types.js'
 import type { CatalogDetail } from './types.js'
 import type { FetchCatalog } from './neople.js'
 
-export function createCatalogService(fetchCatalog: FetchCatalog, timeoutMs = 10_000) {
+const CATALOG_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+// One catalog item is about 1KB of JSON, so 10,000 items keep the cache near 10MB.
+const CATALOG_CACHE_MAX_ITEMS = 10_000
+
+interface FetchedCatalogItem {
+  data: CharacterPayload
+  fetchedAt: string
+}
+
+function waitForAbort(signal: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    signal.addEventListener('abort', () => resolve(), { once: true })
+  })
+}
+
+export function createCatalogService(fetchCatalog: FetchCatalog) {
+  const batches = new DataLoader<string, FetchedCatalogItem | undefined>(
+    async (itemIds) => {
+      // A batch can serve several requests, so no single request's disconnect cancels it.
+      const payloads = await fetchCatalog([...itemIds])
+      const fetchedAt = new Date().toISOString()
+
+      return itemIds.map((itemId) => {
+        const data = payloads.get(itemId)
+        if (data === undefined) {
+          return undefined
+        }
+
+        return { data, fetchedAt }
+      })
+    },
+    // The cache below already shares in-flight lookups by item ID.
+    { cache: false, maxBatchSize: CATALOG_LIMITS.maximumBatchKeys }
+  )
+  // A rejected or undefined fetch leaves no entry, so failed and missing items are fetched again.
+  const items = new LRUCache<string, FetchedCatalogItem>({
+    max: CATALOG_CACHE_MAX_ITEMS,
+    ttl: CATALOG_CACHE_TTL_MS,
+    fetchMethod: (itemId) => batches.load(itemId)
+  })
+
   return {
     async load(itemIds: string[], requestSignal: AbortSignal): Promise<Map<string, CatalogDetail>> {
       const unique = [...new Set(itemIds)]
@@ -15,22 +57,21 @@ export function createCatalogService(fetchCatalog: FetchCatalog, timeoutMs = 10_
         return details
       }
       // A malformed upstream character cannot turn a public request into unbounded fan-out.
-      const signal = AbortSignal.any([requestSignal, AbortSignal.timeout(timeoutMs)])
       const bounded = unique.slice(0, CATALOG_LIMITS.maximumReferencesPerLoad)
-      await Promise.all(
-        chunk(bounded, CATALOG_LIMITS.maximumBatchKeys).map(async (group) => {
+      const loading = Promise.all(
+        bounded.map(async (itemId) => {
           try {
-            const payloads = await fetchCatalog(group, signal)
-            signal.throwIfAborted()
-            const fetchedAt = new Date().toISOString()
-            for (const [itemId, data] of payloads) {
-              details.set(itemId, { data, fetchedAt, status: 'fresh' })
+            const item = await items.fetch(itemId)
+            if (item !== undefined) {
+              details.set(itemId, { ...item, status: 'fresh' })
             }
           } catch {
             // A failed lookup leaves the reference unavailable; the character response still succeeds.
           }
         })
       )
+      // A disconnected request stops waiting; its lookups still fill the cache for later requests.
+      await Promise.race([loading, waitForAbort(requestSignal)])
       requestSignal.throwIfAborted()
 
       return details
