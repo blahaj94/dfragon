@@ -16,14 +16,11 @@ export type SlotCard = {
   snapshotMark?: SnapshotMark
   picker?: CandidatePicker
   scorePending?: boolean
-  retryEnabled?: boolean
-  retryPending?: boolean
 }
 
 export type SlotCardActions = {
   lookupSlot?: (slot: number, nickname: string, serverId: string) => void
   pickCandidate?: (slot: number, serverId: string) => void
-  retrySlot?: (slot: number) => void
 }
 
 export function toSlotCards({

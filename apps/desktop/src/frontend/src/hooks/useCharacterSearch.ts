@@ -14,7 +14,6 @@ type CharacterSearch = SearchView & {
   begin: (signal: AbortSignal) => Promise<string | null>
   end: () => void
   observeOcr: (input: OcrCaptureObservation) => void
-  retry: (slot: number) => void
   manualSlots: readonly boolean[]
   lookupSlot: (slot: number, nickname: string, serverId: string) => void
   candidatePickers: readonly (CandidatePicker | null)[]
@@ -31,7 +30,6 @@ const DIRECT_LOOKUP_PICK: CandidatePick = { kind: 'confirmed', requestId: null }
 export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   const {
     view,
-    bridge,
     lookup,
     beginRound,
     observeOcr: observeLookupOcr,
@@ -59,12 +57,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
       observeLookupOcr(input)
     }
   })
-  const retry = useCallback(
-    (slot: number): void => {
-      bridge.current?.retry(slot)
-    },
-    [bridge]
-  )
   const lookupManually = useCallback(
     (slot: number, nickname: string, serverId: string): void => {
       setManualSlots((slots) => slots.map((manual, index) => manual || index === slot))
@@ -119,7 +111,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     begin: beginRound,
     end,
     observeOcr,
-    retry,
     manualSlots,
     lookupSlot,
     candidatePickers,

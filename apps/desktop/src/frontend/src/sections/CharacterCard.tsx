@@ -1,4 +1,4 @@
-import { Button, CardFrame, ProgressCircle, Typo, shapes } from '@dfragon/ui'
+import { CardFrame, ProgressCircle, Typo, shapes } from '@dfragon/ui'
 import {
   getCharacterCardFrameState,
   getCharacterCardStatus,
@@ -30,7 +30,6 @@ export function CharacterCard({
   card,
   slot,
   inputEnabled = false,
-  onRetry,
   onLookup,
   onPickCandidate
 }: {
@@ -38,20 +37,10 @@ export function CharacterCard({
   card: SlotCard
   slot: number
   inputEnabled?: boolean
-  onRetry?: () => void
   onLookup?: (nickname: string, serverId: string) => void
   onPickCandidate?: (serverId: string) => void
 }): React.JSX.Element {
-  const {
-    state,
-    character,
-    notice,
-    picker,
-    snapshotMark,
-    retryEnabled = false,
-    retryPending = false,
-    loading = false
-  } = card
+  const { state, character, notice, picker, snapshotMark, loading = false } = card
   const characterFound = state === 'success' && character != null
   const candidates = useCandidateWindow(cardKey, picker !== undefined)
   const candidateWindowId = useId()
@@ -123,9 +112,6 @@ export function CharacterCard({
               tier={tier}
             />
             {characterFound && <JobLine job={character.job} note={foundNote} />}
-            {state === 'failure' && onRetry != null && (
-              <RetryButton disabled={!retryEnabled} loading={retryPending} onClick={onRetry} />
-            )}
           </div>
         </div>
         {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
@@ -342,31 +328,6 @@ function LineMessage({ children }: { children: string }): React.JSX.Element {
     <Typo.caption as="p" title={children} {...stylex.props(styles.message)}>
       {children}
     </Typo.caption>
-  )
-}
-
-function RetryButton({
-  disabled,
-  loading,
-  onClick
-}: {
-  disabled: boolean
-  loading: boolean
-  onClick: () => void
-}): React.JSX.Element {
-  return (
-    <div {...stylex.props(styles.line)}>
-      <Button
-        variant="primary"
-        size="sm"
-        disabled={disabled}
-        loading={loading}
-        onClick={onClick}
-        {...stylex.props(styles.retry)}
-      >
-        <Typo.caption as="span">다시 시도</Typo.caption>
-      </Button>
-    </div>
   )
 }
 

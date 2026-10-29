@@ -21,7 +21,6 @@ export function useManualCharacterLookup(
   onInvalidated?: () => void
 ): {
   view: SearchView
-  bridge: React.RefObject<CaptureSearch | null>
   lookup: (slot: number, nickname: string, serverId: string) => void
   beginRound: (signal: AbortSignal) => Promise<string | null>
   observeOcr: (input: OcrCaptureObservation) => void
@@ -38,7 +37,6 @@ export function useManualCharacterLookup(
   const [view, setView] = useState<SearchView>(() => ({
     ready: false,
     slots: emptySearchSlots(slotCount),
-    retryPending: Array.from({ length: slotCount }, () => false),
     connectionFailed: false
   }))
 
@@ -165,5 +163,5 @@ export function useManualCharacterLookup(
   })
   const shownView = { ...view, slots }
 
-  return { view: shownView, bridge, lookup, beginRound, observeOcr, reset }
+  return { view: shownView, lookup, beginRound, observeOcr, reset }
 }

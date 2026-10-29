@@ -83,8 +83,6 @@ export function registerManualSearchIpc({
         return lifetime.end(control.captureId)
       case SEARCH_ACTIONS.LOOKUP:
         return lifetime.lookup(control)
-      case SEARCH_ACTIONS.RETRY:
-        return lifetime.retry(control)
       case SEARCH_ACTIONS.BEGIN:
         // An explicit new begin also recovers a session whose reply was lost.
         lifetime.invalidate()

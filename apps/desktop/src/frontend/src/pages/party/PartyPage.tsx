@@ -14,10 +14,9 @@ export function PartyPage({
   inputEnabled?: boolean
   actions?: SlotCardActions
 }): React.JSX.Element {
-  const { lookupSlot, retrySlot, pickCandidate } = actions
+  const { lookupSlot, pickCandidate } = actions
 
   function renderSlot(card: SlotCard, index: number): React.JSX.Element {
-    const handleRetry = retrySlot != null ? () => retrySlot(index) : undefined
     const handleLookup =
       lookupSlot != null
         ? (nickname: string, serverId: string) => lookupSlot(index, nickname, serverId)
@@ -32,7 +31,6 @@ export function PartyPage({
         card={card}
         slot={index + 1}
         inputEnabled={inputEnabled}
-        onRetry={handleRetry}
         onLookup={handleLookup}
         onPickCandidate={handlePickCandidate}
       />
