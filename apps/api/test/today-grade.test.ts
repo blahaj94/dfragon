@@ -169,7 +169,15 @@ test('상점 조회는 아이템마다 /df/items/{itemId}/shop을 부르고 item
   const fetchShopGrade = createNeopleShopGrade('synthetic-shop-key', async (request) => {
     requests.push(request)
 
-    return jsonResponse({ itemId: 'item-a', itemGradeName: '최상급', itemGradeValue: 97 })
+    // 2026-10-30 운영 키로 받은 상점 응답의 최상위 필드 모양이다.
+
+    return jsonResponse({
+      itemId: 'item-a',
+      itemName: '합성 상점 장비',
+      itemGradeName: '최상급',
+      itemGradeValue: 97,
+      itemStatus: []
+    })
   })
 
   assert.equal(await fetchShopGrade('item-a', signal), 97)
@@ -181,6 +189,11 @@ test('상점 조회는 아이템마다 /df/items/{itemId}/shop을 부르고 item
 test('Neople 오류 코드와 잘못된 등급 값을 오늘의 등급 오류로 바꾼다', async () => {
   const cases: [string, Response, number][] = [
     ['점검 오류 코드', jsonResponse({ error: { code: 'API002' } }, 503), 503],
+    [
+      '상점 조회 대상이 아닌 아이템',
+      jsonResponse({ error: { status: 404, code: 'DNF003', message: 'NOT_FOUND_ITEM' } }, 404),
+      502
+    ],
     ['등급 값 없음', jsonResponse({ itemId: 'item-a', itemGradeName: '최상급' }), 502],
     ['문자열 등급 값', jsonResponse({ itemId: 'item-a', itemGradeValue: '97' }), 502],
     ['100을 넘는 등급 값', jsonResponse({ itemId: 'item-a', itemGradeValue: 101 }), 502],
