@@ -19,8 +19,8 @@ export type SlotCard = {
 }
 
 export type SlotCardActions = {
-  lookupSlot?: (slot: number, nickname: string, serverId: string) => void
-  pickCandidate?: (slot: number, serverId: string) => void
+  lookupSlot: (slot: number, nickname: string, serverId: string) => void
+  pickCandidate: (slot: number, serverId: string) => void
 }
 
 export function toSlotCards({

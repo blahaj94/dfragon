@@ -17,7 +17,7 @@ export function CandidateWindow({
   id?: string
   slot: number
   picker: CandidatePicker
-  onPick?: (serverId: string) => void
+  onPick: (serverId: string) => void
   onClose: () => void
 }): React.JSX.Element {
   const renderChoice = (choice: CharacterChoice): React.JSX.Element => {
@@ -27,7 +27,7 @@ export function CandidateWindow({
     const adventure = choice.adventureName ?? '모험단 정보 없음'
     const description = `${server}, ${adventure}`
     const state = previewing ? ', 미리보기 중, 한 번 더 누르면 확정' : ''
-    const handlePick = (): void => onPick?.(choice.serverId)
+    const handlePick = (): void => onPick(choice.serverId)
 
     return (
       <button
@@ -36,7 +36,6 @@ export function CandidateWindow({
         title={description}
         aria-label={`${description}${state}`}
         aria-pressed={shown}
-        disabled={onPick === undefined}
         onClick={handlePick}
         {...stylex.props(styles.portrait, shown && styles.shown, previewing && styles.preview)}
       >

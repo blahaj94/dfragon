@@ -43,7 +43,7 @@ export function reportRendererDiagnostic(code: RendererDiagnosticCode): void {
   }
 }
 
-export function startRendererDiagnostics(api: DiagnosticApi, target: Window = window): () => void {
+export function startRendererDiagnostics(api: DiagnosticApi): void {
   let disposed = false
   let lastSequence = 0
   let historyLoaded = false
@@ -89,24 +89,19 @@ export function startRendererDiagnostics(api: DiagnosticApi, target: Window = wi
 
   const onError = (): void => reportRendererDiagnostic('RENDERER_ERROR')
   const onRejection = (): void => reportRendererDiagnostic('RENDERER_REJECTION')
-  target.addEventListener('error', onError)
-  target.addEventListener('unhandledrejection', onRejection)
+  window.addEventListener('error', onError)
+  window.addEventListener('unhandledrejection', onRejection)
 
   function dispose(): void {
-    if (disposed) {
-      return
-    }
     disposed = true
     if (activeApi === api) {
       activeApi = null
     }
     unsubscribe()
     pending.length = 0
-    target.removeEventListener('error', onError)
-    target.removeEventListener('unhandledrejection', onRejection)
-    target.removeEventListener('pagehide', dispose)
+    window.removeEventListener('error', onError)
+    window.removeEventListener('unhandledrejection', onRejection)
+    window.removeEventListener('pagehide', dispose)
   }
-  target.addEventListener('pagehide', dispose)
-
-  return dispose
+  window.addEventListener('pagehide', dispose)
 }
