@@ -3,19 +3,21 @@ import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger'
 import { CHARACTER_ID_PATTERN_SOURCE } from '../characters/identity.js'
 import { NEOPLE_SERVER_NAMES } from '../constants/neople-character-search.js'
 
-function success(status: number, schema: string, description: string) {
-  return ApiResponse({ status, description, schema: { $ref: `#/components/schemas/${schema}` } })
+function success(schema: string, description: string) {
+  return ApiResponse({
+    status: 200,
+    description,
+    schema: { $ref: `#/components/schemas/${schema}` }
+  })
 }
 
-function errors(definitions: Record<number, string>, html = false) {
+function errors(definitions: Record<number, string>) {
   return applyDecorators(
     ...Object.entries(definitions).map(([status, description]) =>
       ApiResponse({
         status: Number(status),
         description,
-        content: html
-          ? { 'text/html': { schema: { type: 'string' } } }
-          : { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } }
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } }
       })
     )
   )
@@ -52,7 +54,7 @@ export function ApiCharacterSearch() {
       schema: { type: 'integer', minimum: 1, maximum: 200, default: 10 },
       description: 'ASCII 십진 숫자만 허용. 선행 0 허용.'
     }),
-    success(200, 'CharacterSearchResult', '검색 결과 (0건이면 빈 rows)'),
+    success('CharacterSearchResult', '검색 결과 (0건이면 빈 rows)'),
     errors({ 400: 'INVALID_SEARCH_QUERY', ...neopleFailures })
   )
 }
@@ -70,7 +72,7 @@ export function ApiCharacterCandidates() {
       schema: { type: 'string', minLength: 1, maxLength: 12 },
       description: 'Unicode code point 1~12개. 앞뒤 공백 불가, 정규화 없음.'
     }),
-    success(200, 'CharacterCandidatesResult', '비교 순서의 후보와 이미지 URL (0건이면 빈 rows)'),
+    success('CharacterCandidatesResult', '비교 순서의 후보와 이미지 URL (0건이면 빈 rows)'),
     errors({ 400: 'INVALID_SEARCH_QUERY', ...neopleFailures })
   )
 }
@@ -90,7 +92,7 @@ export function ApiCharacterDetails() {
       name: 'characterId',
       schema: { type: 'string', pattern: CHARACTER_ID_PATTERN_SOURCE, minLength: 1, maxLength: 256 }
     }),
-    success(200, 'CharacterDetails', '정제된 상세 정보, 섹션별 조회 시각과 freshness 만료 시각'),
+    success('CharacterDetails', '정제된 상세 정보, 섹션별 조회 시각과 freshness 만료 시각'),
     errors({ 400: 'INVALID_CHARACTER_QUERY', ...neopleFailures })
   )
 }
