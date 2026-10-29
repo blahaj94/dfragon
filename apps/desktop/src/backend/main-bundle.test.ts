@@ -58,6 +58,7 @@ function mainEnvironment(): {
   const electron = {
     app: {
       getPath,
+      getAppPath: () => resolve('synthetic-app'),
       getVersion: () => '1.0.0',
       isPackaged: true,
       setPath: vi.fn(),
@@ -153,6 +154,7 @@ function mainEnvironment(): {
       on: vi.fn(),
       removeListener: vi.fn(),
       platform: process.platform,
+      resourcesPath: resolve('synthetic-resources'),
       argv: ['electron', 'synthetic-main.cjs'],
       env: {}
     },
@@ -254,9 +256,13 @@ it.each([
       }
     }
   }
+  // 점수 worker는 main과 같은 빌드에서 따로 실행할 entry로 나온다.
   const entries = chunks.filter((chunk) => chunk.isEntry)
-  expect(entries).toHaveLength(1)
-  const entry = entries[0]
+  expect(entries.map((chunk) => chunk.fileName).sort()).toEqual([
+    'main.js',
+    expect.stringMatching(/^worker-[\w-]+\.js$/)
+  ])
+  const entry = entries.find((chunk) => chunk.fileName === 'main.js')
   if (!entry) {
     throw new Error('Expected one emitted main entry chunk')
   }
