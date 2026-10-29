@@ -6,17 +6,12 @@ import type { ServerBuildInfo } from '@dfragon/lib'
 export const API_BUILD_INFO = Symbol('API_BUILD_INFO')
 
 export async function readApiBuildInfo(path = '/app/build-info.json'): Promise<ServerBuildInfo> {
-  try {
-    const value: unknown = JSON.parse(await readFile(path, 'utf8'))
-    const info = parseServerBuildInfo(value, 'api')
-    if (info == null) {
-      return { service: 'api', commit: null }
-    }
+  const value: unknown = await readFile(path, 'utf8')
+    .then(JSON.parse)
+    .catch(() => null)
+  const info = parseServerBuildInfo(value, 'api') ?? { service: 'api', commit: null }
 
-    return info
-  } catch {
-    return { service: 'api', commit: null }
-  }
+  return info
 }
 
 @Controller('version')
