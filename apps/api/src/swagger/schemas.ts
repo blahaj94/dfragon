@@ -1,8 +1,7 @@
 import type { SchemaObject } from '@nestjs/swagger'
+import { CHARACTER_ID_PATTERN_SOURCE } from '../characters/identity.js'
 import { characterDetailSections } from '../characters/details/sections.js'
 import { NEOPLE_SERVER_NAMES } from '../constants/neople-character-search.js'
-
-const CHARACTER_CANDIDATE_ID_SCHEMA_PATTERN = '^[a-zA-Z0-9_-]{1,256}$'
 
 const text: SchemaObject = { type: 'string' }
 const timestamp: SchemaObject = { type: 'string', format: 'date-time' }
@@ -135,7 +134,7 @@ export const apiSchemas: Record<string, SchemaObject> = {
       items: object({
         characterId: {
           type: 'string',
-          pattern: CHARACTER_CANDIDATE_ID_SCHEMA_PATTERN,
+          pattern: CHARACTER_ID_PATTERN_SOURCE,
           minLength: 1,
           maxLength: 256
         },
