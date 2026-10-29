@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useMachine } from '@xstate/react'
 import { partyCaptureMachine, getCapturePhase } from '../lib/party-capture-machine'
 import type { CapturePhase } from '../types/capture'
@@ -8,6 +8,7 @@ import { useCharacterSearch } from './useCharacterSearch'
 import { findSingleDnfCaptureSource } from '../lib/capture-presentation'
 import { getRecognizedNicknames } from '../lib/recognized-nicknames'
 import { useDesktopShortcut } from './useDesktopShortcut'
+import { createSharedOcrWorker, type OcrRecognition } from '../lib/ocr-worker-recognition'
 
 export type CaptureSourceSelection = ReturnType<typeof useCaptureSources> & {
   selectedSourceId: string
@@ -26,6 +27,7 @@ export type PartyCapture = {
   startedRounds: number
   status: string
   lastCompletedAt: number | null
+  recognizeWithOcr: OcrRecognition
   startRound: () => void
   stopCapture: () => void
 }
@@ -33,6 +35,7 @@ export type PartyCapture = {
 export function usePartyCapture({ receivesShortcut }: { receivesShortcut: boolean }): PartyCapture {
   const stopRef = useRef<() => void>(() => {})
   const search = useCharacterSearch(() => stopRef.current())
+  const [ocrWorker] = useState(createSharedOcrWorker)
 
   // actor 자체가 멈추기 전에 대기 중인 공개 명령의 완료도 알린다.
   useEffect(() => () => stopRef.current(), [])
@@ -42,7 +45,8 @@ export function usePartyCapture({ receivesShortcut }: { receivesShortcut: boolea
       beginSearch: search.begin,
       readFrame: (captureId) => window.api.readCaptureFrame(captureId),
       endSearch: search.end,
-      observeOcr: search.observeOcr
+      observeOcr: search.observeOcr,
+      recognizeWithOcr: ocrWorker.recognize
     }
   })
   const sources = useCaptureSources()
@@ -84,6 +88,17 @@ export function usePartyCapture({ receivesShortcut }: { receivesShortcut: boolea
     snapshot.matches('selected') ||
     snapshot.matches('capturing') ||
     snapshot.matches('captureFailed')
+
+  // 등록한 창에서 첫 회차가 모델 로드를 기다리지 않도록 미리 띄우고, 창 변경, 중지 때 정리한다.
+  useEffect(() => {
+    if (!sourceReady) {
+      return
+    }
+    ocrWorker.prepare()
+
+    return () => ocrWorker.release()
+  }, [ocrWorker, sourceReady])
+
   const source: CaptureSourceSelection = {
     ...sources,
     selectedSourceId,
@@ -102,6 +117,7 @@ export function usePartyCapture({ receivesShortcut }: { receivesShortcut: boolea
     startedRounds: snapshot.context.startedRounds,
     status: snapshot.context.status,
     lastCompletedAt: snapshot.context.completedAt,
+    recognizeWithOcr: ocrWorker.recognize,
     startRound,
     stopCapture
   }

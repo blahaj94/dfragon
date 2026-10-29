@@ -13,7 +13,7 @@ import {
   getWaitingStatus
 } from './capture-round'
 import type { OcrCaptureObservation } from './capture-search'
-import { recognizeWithOcrWorker } from './ocr-worker-recognition'
+import type { OcrRecognition } from './ocr-worker-recognition'
 import { recognizePartyFrame, type PartySlotRecognition } from './party-recognition'
 import { reportRendererDiagnostic, showRejectedOcrNickname } from './runtime-diagnostics'
 
@@ -26,6 +26,7 @@ type CaptureInput = {
   endSearch: () => void
   readFrame: (captureId: string) => Promise<WindowFrameResult>
   observeOcr: (input: OcrCaptureObservation) => void
+  recognizeWithOcr: OcrRecognition
 }
 
 type CaptureContext = {
@@ -58,10 +59,17 @@ export const partyCaptureMachine = setup({
     readFrame: fromPromise(({ input }: { input: { captureId: string; effects: CaptureInput } }) =>
       input.effects.readFrame(input.captureId)
     ),
-    recognize: fromPromise(({ input, signal }: { input: CharacterImage; signal: AbortSignal }) =>
-      recognizeWithOcrWorker(signal, OCR_FAILED_STATUS, (recognizeText) =>
-        recognizePartyFrame(input, recognizeText)
-      )
+    recognize: fromPromise(
+      ({
+        input,
+        signal
+      }: {
+        input: { frame: CharacterImage; effects: CaptureInput }
+        signal: AbortSignal
+      }) =>
+        input.effects.recognizeWithOcr(signal, OCR_FAILED_STATUS, (recognizeText) =>
+          recognizePartyFrame(input.frame, recognizeText)
+        )
     ),
     lifetime: fromCallback<CaptureEvent, CaptureInput>(({ input }) => () => {
       input.endSearch()
@@ -239,7 +247,7 @@ export const partyCaptureMachine = setup({
           invoke: {
             src: 'recognize',
             // frame 상태의 성공 전이에서 확보한 회차 프레임만 인식한다.
-            input: ({ context }) => context.frame!,
+            input: ({ context }) => ({ frame: context.frame!, effects: context.effects }),
             onDone: [
               {
                 guard: ({ event }) => event.output.some((result) => result.kind === 'failed'),

@@ -57,6 +57,7 @@ const api = {
 const search = { controlCharacterSearch: vi.fn(), onCharacterSearchChanged: vi.fn() }
 let currentSearch = searchSnapshot({ captureId: null, revision: 0 })
 const readCaptureFrame = vi.fn()
+let defaultWorker: ReturnType<typeof captureResources>['worker']
 
 function HookHarness({ onRender }: { onRender: (value: HookValue) => void }): null {
   onRender(usePartyCapture({ receivesShortcut: true }))
@@ -154,6 +155,7 @@ beforeEach(() => {
   moduleMocks.capturePartyRecognitionInputs.mockReturnValue([null, null, null, null])
   const resources = captureResources()
   readCaptureFrame.mockResolvedValue(resources.frame)
+  defaultWorker = resources.worker
   moduleMocks.createPartyOcrWorker.mockResolvedValue(resources.worker)
 })
 
@@ -448,7 +450,7 @@ it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 추�
   expect(hook.getCurrent().nicknames).toEqual(['이름0', '이름1', '이름2', '이름3'])
   expect(hook.getCurrent().phase).toBe('complete')
   expect(hook.getCurrent().status).toBe('인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.')
-  expect(worker.terminate).toHaveBeenCalledOnce()
+  expect(worker.terminate).not.toHaveBeenCalled()
   currentSearch = searchSnapshot({
     revision: currentSearch.revision + 1,
     slots: [
@@ -472,7 +474,10 @@ it('네 슬롯을 첫 프레임으로 한 번 처리하고 완료 뒤에는 추�
   await shortcut()
   expect(readCaptureFrame).toHaveBeenCalledTimes(2)
   expect(endCalls()).toEqual([[{ action: 'end', captureId: CAPTURE_ID }]])
+  expect(worker.recognize).toHaveBeenCalledTimes(8)
+  expect(moduleMocks.createPartyOcrWorker).toHaveBeenCalledOnce()
   await hook.unmount()
+  expect(worker.terminate).toHaveBeenCalledOnce()
 })
 
 it.each([
@@ -493,7 +498,7 @@ it.each([
   expect(hook.getCurrent().phase).toBe('unavailable')
   expect(hook.getCurrent().status).toBe(status)
   expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
-  expect(moduleMocks.createPartyOcrWorker).toHaveBeenCalledTimes(reason === 'missing' ? 1 : 0)
+  expect(defaultWorker.recognize).not.toHaveBeenCalled()
   await act(async () => vi.advanceTimersByTimeAsync(60_000))
   expect(readCaptureFrame).toHaveBeenCalledOnce()
   setSlots(0)
@@ -593,6 +598,12 @@ it.each([
     const { worker } = captureResources()
     moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
     setSlots(0)
+    if (stage === 'worker') {
+      // 창 등록 때 미리 띄우기가 실패하면 회차가 다시 띄우므로 둘 다 실패해야 준비 실패로 끝난다.
+      moduleMocks.createPartyOcrWorker
+        .mockRejectedValueOnce(new Error('internal detail'))
+        .mockRejectedValueOnce(new Error('internal detail'))
+    }
     const hook = await renderPartyCaptureHook()
     await act(async () => hook.getCurrent().source.selectSource('game'))
     if (stage === 'begin') {
@@ -605,10 +616,6 @@ it.each([
 
     if (stage === 'unsupported') {
       readCaptureFrame.mockResolvedValueOnce({ kind: 'unsupported' })
-    }
-
-    if (stage === 'worker') {
-      moduleMocks.createPartyOcrWorker.mockRejectedValueOnce(new Error('internal detail'))
     }
 
     if (stage === 'ocr') {
@@ -633,8 +640,8 @@ it.each([
   }
 )
 
-it.each(['restart', 'stop', 'source', 'unmount'] as const)(
-  '%s 뒤 이전 OCR의 늦은 결과는 검색과 화면을 바꾸지 않는다',
+it.each(['stop', 'source', 'unmount'] as const)(
+  '%s 뒤 이전 OCR의 늦은 결과는 검색과 화면을 바꾸지 않고 worker를 정리한다',
   async (action) => {
     const previous = captureResources().worker
     const next = captureResources().worker
@@ -642,7 +649,6 @@ it.each(['restart', 'stop', 'source', 'unmount'] as const)(
     previous.recognize
       .mockResolvedValueOnce(ocrResult('첫결과'))
       .mockReturnValueOnce(pending.promise)
-    next.recognize.mockResolvedValue(ocrResult('새이름'))
     moduleMocks.createPartyOcrWorker.mockResolvedValueOnce(previous).mockResolvedValue(next)
     setSlots(0, 1, 2, 3)
     const hook = await renderPartyCaptureHook()
@@ -651,10 +657,6 @@ it.each(['restart', 'stop', 'source', 'unmount'] as const)(
     expect(hook.getCurrent().phase).toBe('recognizing')
     expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
     const signal = moduleMocks.createPartyOcrWorker.mock.calls[0][0] as AbortSignal
-    if (action === 'restart') {
-      await shortcut()
-    }
-
     if (action === 'stop') {
       await act(async () => hook.getCurrent().stopCapture())
     }
@@ -667,26 +669,23 @@ it.each(['restart', 'stop', 'source', 'unmount'] as const)(
       await hook.unmount()
     }
     expect(signal.aborted).toBe(true)
+    expect(previous.terminate).toHaveBeenCalledOnce()
     expect(search.controlCharacterSearch).toHaveBeenCalledWith({
       action: 'end',
       captureId: CAPTURE_ID
     })
     const state = hook.getCurrent()
-    const notifications = api.notifyOcrCandidatesDetected.mock.calls.slice()
     await act(async () => pending.resolve(ocrResult('늦은이름')))
-    expect(api.notifyOcrCandidatesDetected.mock.calls).toEqual(notifications)
-    expect(hook.getCurrent().nicknames).toEqual(state.nicknames)
+    expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
+    expect(hook.getCurrent().nicknames).toEqual([null, null, null, null])
     expect(hook.getCurrent().status).toBe(state.status)
-    expect(previous.terminate).toHaveBeenCalledOnce()
-    if (action === 'restart') {
-      expect(state.nicknames).toEqual(['새이름', '새이름', '새이름', '새이름'])
-    } else {
-      expect(state.nicknames).toEqual([null, null, null, null])
-    }
+    expect(previous.recognize).toHaveBeenCalledTimes(2)
 
     if (action === 'source') {
       expect(state.phase).toBe('selected')
       expect(readCaptureFrame).toHaveBeenCalledOnce()
+      expect(moduleMocks.createPartyOcrWorker).toHaveBeenCalledTimes(2)
+      expect(next.terminate).not.toHaveBeenCalled()
     }
 
     if (action !== 'unmount') {
@@ -695,42 +694,84 @@ it.each(['restart', 'stop', 'source', 'unmount'] as const)(
   }
 )
 
-it.each(['frame', 'worker'] as const)(
-  '%s 준비 중 Alt+R은 회차를 교체하고 늦은 준비 결과를 폐기한다',
-  async (stage) => {
-    const old = captureResources()
-    const next = captureResources()
-    const pendingFrame = Promise.withResolvers<WindowFrameResult>()
-    const pendingWorker = Promise.withResolvers<typeof old.worker>()
-    setSlots(0)
-    if (stage === 'frame') {
-      readCaptureFrame.mockReturnValueOnce(pendingFrame.promise)
-    } else {
-      moduleMocks.createPartyOcrWorker.mockReturnValueOnce(pendingWorker.promise)
-    }
-    moduleMocks.createPartyOcrWorker.mockResolvedValue(next.worker)
-    const hook = await renderPartyCaptureHook()
-    await act(async () => hook.getCurrent().source.selectSource('game'))
-    await shortcut()
-    expect(hook.getCurrent().phase).toBe('recognizing')
-    await shortcut()
-    await act(async () => {
-      pendingFrame.resolve(old.frame)
-      pendingWorker.resolve(old.worker)
-    })
-    expect(hook.getCurrent().phase).toBe('complete')
-    expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledOnce()
-    expect(old.worker.recognize).not.toHaveBeenCalled()
-    expect(old.worker.terminate).toHaveBeenCalledTimes(stage === 'worker' ? 1 : 0)
-    expect(next.worker.terminate).toHaveBeenCalledOnce()
-    expect(
-      search.controlCharacterSearch.mock.calls
-        .map(([command]) => command.action)
-        .filter((action) => action === 'begin' || action === 'end')
-    ).toEqual(['begin', 'end', 'begin'])
-    await hook.unmount()
-  }
-)
+it('인식 중 Alt+R은 같은 worker로 진행 중인 슬롯 뒤에 새 회차를 인식하고 이전 회차의 남은 슬롯은 건너뛴다', async () => {
+  const { worker } = captureResources()
+  const pending = Promise.withResolvers<ReturnType<typeof ocrResult>>()
+  worker.recognize
+    .mockResolvedValueOnce(ocrResult('첫결과'))
+    .mockReturnValueOnce(pending.promise)
+    .mockResolvedValue(ocrResult('새이름'))
+  moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+  setSlots(0, 1, 2, 3)
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().source.selectSource('game'))
+  await shortcut()
+  expect(hook.getCurrent().phase).toBe('recognizing')
+
+  await shortcut()
+  expect(hook.getCurrent().phase).toBe('recognizing')
+  expect(worker.recognize).toHaveBeenCalledTimes(2)
+  await act(async () => pending.resolve(ocrResult('늦은이름')))
+
+  expect(hook.getCurrent().phase).toBe('complete')
+  expect(hook.getCurrent().nicknames).toEqual(['새이름', '새이름', '새이름', '새이름'])
+  expect(api.notifyOcrCandidatesDetected.mock.calls.map(([input]) => input.nickname)).toEqual([
+    '새이름',
+    '새이름',
+    '새이름',
+    '새이름'
+  ])
+  expect(worker.recognize).toHaveBeenCalledTimes(6)
+  expect(moduleMocks.createPartyOcrWorker).toHaveBeenCalledOnce()
+  expect(worker.terminate).not.toHaveBeenCalled()
+  await hook.unmount()
+})
+
+it('프레임 준비 중 Alt+R은 회차를 교체하고 늦은 프레임을 폐기한다', async () => {
+  const old = captureResources()
+  const pendingFrame = Promise.withResolvers<WindowFrameResult>()
+  setSlots(0)
+  readCaptureFrame.mockReturnValueOnce(pendingFrame.promise)
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().source.selectSource('game'))
+  await shortcut()
+  expect(hook.getCurrent().phase).toBe('recognizing')
+  await shortcut()
+  await act(async () => pendingFrame.resolve(old.frame))
+  expect(hook.getCurrent().phase).toBe('complete')
+  expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledOnce()
+  expect(defaultWorker.recognize).toHaveBeenCalledOnce()
+  expect(
+    search.controlCharacterSearch.mock.calls
+      .map(([command]) => command.action)
+      .filter((action) => action === 'begin' || action === 'end')
+  ).toEqual(['begin', 'end', 'begin'])
+  await hook.unmount()
+})
+
+it('worker 준비 중 Alt+R은 회차를 교체하고 새 회차가 준비 중인 worker를 이어 쓴다', async () => {
+  const { worker } = captureResources()
+  const pendingWorker = Promise.withResolvers<typeof worker>()
+  setSlots(0)
+  moduleMocks.createPartyOcrWorker.mockReturnValueOnce(pendingWorker.promise)
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().source.selectSource('game'))
+  await shortcut()
+  expect(hook.getCurrent().phase).toBe('recognizing')
+  await shortcut()
+  await act(async () => pendingWorker.resolve(worker))
+  expect(hook.getCurrent().phase).toBe('complete')
+  expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledOnce()
+  expect(worker.recognize).toHaveBeenCalledOnce()
+  expect(moduleMocks.createPartyOcrWorker).toHaveBeenCalledOnce()
+  expect(worker.terminate).not.toHaveBeenCalled()
+  expect(
+    search.controlCharacterSearch.mock.calls
+      .map(([command]) => command.action)
+      .filter((action) => action === 'begin' || action === 'end')
+  ).toEqual(['begin', 'end', 'begin'])
+  await hook.unmount()
+})
 
 it('검색 시작 대기 중 Alt+R은 무시하고 begin 완료 뒤 같은 회차를 이어간다', async () => {
   setSlots(0)
@@ -907,7 +948,7 @@ it.each(['pending', 'failed'] as const)(
     expect(hook.getCurrent().phase).toBe('failed')
     expect(search.controlCharacterSearch).toHaveBeenCalledExactlyOnceWith({ action: 'read' })
     expect(readCaptureFrame).not.toHaveBeenCalled()
-    expect(moduleMocks.createPartyOcrWorker).not.toHaveBeenCalled()
+    expect(defaultWorker.recognize).not.toHaveBeenCalled()
     await hook.unmount()
   }
 )
@@ -934,7 +975,7 @@ it.each(['stop', 'source', 'unmount'] as const)(
     await act(async () => begin.resolve({ ok: true, snapshot: searchSnapshot() }))
     expect(endCalls()).toEqual([[{ action: 'end', captureId: CAPTURE_ID }]])
     expect(readCaptureFrame).not.toHaveBeenCalled()
-    expect(moduleMocks.createPartyOcrWorker).not.toHaveBeenCalled()
+    expect(defaultWorker.recognize).not.toHaveBeenCalled()
     if (action !== 'unmount') {
       await hook.unmount()
     }
@@ -955,7 +996,7 @@ it.each(['ended', 'other capture'] as const)(
       begin.resolve({ ok: true, snapshot: searchSnapshot({ captureId: CAPTURE_ID, revision: 1 }) })
     )
     expect(readCaptureFrame).not.toHaveBeenCalled()
-    expect(moduleMocks.createPartyOcrWorker).not.toHaveBeenCalled()
+    expect(defaultWorker.recognize).not.toHaveBeenCalled()
     expect(endCalls()).toEqual([[{ action: 'end', captureId: CAPTURE_ID }]])
     await hook.unmount()
   }
@@ -1204,7 +1245,7 @@ it('회차 중 main이 파티 수명을 무효화하면 캡처를 멈추고 늦�
   expect(hook.getCurrent().status).toBe('캡처를 중지했습니다.')
   expect(hook.getCurrent().canStartCapture).toBe(false)
   await act(async () => frame.resolve(captureResources().frame))
-  expect(moduleMocks.createPartyOcrWorker).not.toHaveBeenCalled()
+  expect(defaultWorker.recognize).not.toHaveBeenCalled()
   expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
   await hook.unmount()
 })

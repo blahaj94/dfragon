@@ -1,6 +1,7 @@
 import { createActor, waitFor } from 'xstate'
 import { afterEach, expect, it, vi } from 'vitest'
 import { partyCaptureMachine } from './party-capture-machine'
+import { createSharedOcrWorker } from './ocr-worker-recognition'
 import type { WindowFrameResult } from '../../../preload/common/types/capture'
 
 const modules = vi.hoisted(() => ({ diagnostic: vi.fn() }))
@@ -22,7 +23,8 @@ function start() {
         kind: 'unsupported'
       })
     ),
-    observeOcr: vi.fn()
+    observeOcr: vi.fn(),
+    recognizeWithOcr: createSharedOcrWorker().recognize
   }
   const actor = createActor(partyCaptureMachine, { input: effects }).start()
 

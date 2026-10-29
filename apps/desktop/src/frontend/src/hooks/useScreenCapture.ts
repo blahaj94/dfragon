@@ -17,7 +17,8 @@ export function useScreenCapture(): ScreenCapture {
   const raidCapture = useRaidCapture({
     sourceId: partyCapture.source.selectedSourceId,
     sourceReady: partyCapture.source.sourceReady,
-    receivesShortcut: isRaidMode
+    receivesShortcut: isRaidMode,
+    recognizeWithOcr: partyCapture.recognizeWithOcr
   })
   const controls = getTopBarCaptureControls({
     isRaidMode,
