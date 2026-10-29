@@ -223,11 +223,7 @@ it.each(triggers)(
     media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
     const first = Promise.withResolvers<Awaited<ReturnType<typeof f.resources.worker.recognize>>>()
     f.resources.worker.recognize.mockReturnValueOnce(first.promise).mockResolvedValueOnce({
-      data: {
-        text: 'NEW',
-        confidence: 1,
-        candidates: [{ nickname: 'NEW', rank: 1, modelScore: 1 }]
-      }
+      candidates: [{ nickname: 'NEW', rank: 1, modelScore: 1 }]
     })
     await mount(f)
     await f.restart()
@@ -240,11 +236,7 @@ it.each(triggers)(
     expect(f.readCaptureFrame).toHaveBeenCalledTimes(2)
     await act(async () =>
       first.resolve({
-        data: {
-          text: 'OLD',
-          confidence: 1,
-          candidates: [{ nickname: 'OLD', rank: 1, modelScore: 1 }]
-        }
+        candidates: [{ nickname: 'OLD', rank: 1, modelScore: 1 }]
       })
     )
     expect(f.capture.notifyOcrCandidatesDetected).not.toHaveBeenCalledWith(
@@ -273,11 +265,7 @@ it.each(triggers)(
     f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
     media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
     f.resources.worker.recognize.mockResolvedValue({
-      data: {
-        text: 'ALICE',
-        confidence: 1,
-        candidates: [{ nickname: 'ALICE', rank: 1, modelScore: 1 }]
-      }
+      candidates: [{ nickname: 'ALICE', rank: 1, modelScore: 1 }]
     })
     await mount(f)
     expect(lastCapture()).toBe('-')
@@ -304,11 +292,7 @@ it('새 회차가 진행되는 동안 이전 완료 시각을 유지하고 다�
   const second = Promise.withResolvers<Awaited<ReturnType<typeof f.resources.worker.recognize>>>()
   f.resources.worker.recognize
     .mockResolvedValueOnce({
-      data: {
-        text: 'ALICE',
-        confidence: 1,
-        candidates: [{ nickname: 'ALICE', rank: 1, modelScore: 1 }]
-      }
+      candidates: [{ nickname: 'ALICE', rank: 1, modelScore: 1 }]
     })
     .mockReturnValueOnce(second.promise)
   await mount(f)

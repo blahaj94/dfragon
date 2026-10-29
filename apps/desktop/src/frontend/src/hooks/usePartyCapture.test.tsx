@@ -110,7 +110,7 @@ function captureResources(): {
   }
   const worker = {
     recognize: vi.fn().mockResolvedValue(ocrResult('Alice')),
-    terminate: vi.fn().mockResolvedValue(undefined)
+    terminate: vi.fn()
   }
 
   return { frame, worker }
@@ -257,11 +257,7 @@ it('loads sources and registers only the latest selection', async () => {
 
 function ocrResult(...names: string[]) {
   return {
-    data: {
-      text: names[0] ?? '',
-      confidence: 0.1,
-      candidates: names.map((nickname, index) => ({ nickname, rank: index + 1, modelScore: 0.1 }))
-    }
+    candidates: names.map((nickname, index) => ({ nickname, rank: index + 1, modelScore: 0.1 }))
   }
 }
 

@@ -1,9 +1,9 @@
-import type { PartyOcrResult, PartyOcrWorker } from '../types/capture'
+import type { PartyOcrWorker } from '../types/capture'
 import type { RaidFrameRow } from '../../../preload/common/types/capture'
 import type { CharacterImage } from '../../../preload/common/types/character'
 import { MAX_RAID_JOB_TEXT_LENGTH } from '../../../preload/common/types/search'
-import { binarizeNicknamePixels } from './nickname-pixels'
-import { firstCandidate, type FirstCandidate } from './party-recognition'
+import { toBinarizedTextCanvas } from './nickname-pixels'
+import { firstCandidate, type FirstCandidate, recognizeBinarizedText } from './party-recognition'
 
 export type RaidSlotRecognition =
   | { kind: 'missing'; slot: number }
@@ -12,35 +12,6 @@ export type RaidSlotRecognition =
       slot: number
       jobText: string | null
     })
-
-function toNicknameCanvas(image: CharacterImage): HTMLCanvasElement {
-  const canvas = document.createElement('canvas')
-  canvas.width = image.width
-  canvas.height = image.height
-  const context = canvas.getContext('2d')
-  if (context == null) {
-    throw new Error('Could not create a raid nickname canvas.')
-  }
-  const pixels = context.createImageData(image.width, image.height)
-  pixels.data.set(image.rgba)
-  binarizeNicknamePixels(pixels.data)
-  context.putImageData(pixels, 0, 0)
-
-  return canvas
-}
-
-async function recognizeImage(
-  recognize: PartyOcrWorker['recognize'],
-  image: CharacterImage
-): Promise<PartyOcrResult | null> {
-  try {
-    const result = await recognize(toNicknameCanvas(image))
-
-    return result.data
-  } catch {
-    return null
-  }
-}
 
 /**
  * 오프라인 평가에서 원본 색 그대로는 거의 맞지 않았다.
@@ -52,7 +23,7 @@ async function recognizeJob(
   if (image === null) {
     return null
   }
-  const data = await recognizeImage(recognize, image)
+  const data = await recognizeBinarizedText(recognize, toBinarizedTextCanvas(image))
   if (data === null) {
     return null
   }
@@ -74,7 +45,7 @@ export async function recognizeRaidRows(
       results.push({ kind: 'missing', slot })
       continue
     }
-    const data = await recognizeImage(recognize, row.nickname)
+    const data = await recognizeBinarizedText(recognize, toBinarizedTextCanvas(row.nickname))
     if (data === null) {
       results.push({ kind: 'failed', slot })
       continue

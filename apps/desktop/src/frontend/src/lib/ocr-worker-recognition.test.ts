@@ -8,7 +8,6 @@ const terminate = vi.fn()
 
 beforeEach(() => {
   vi.resetAllMocks()
-  terminate.mockResolvedValue(undefined)
   mocks.createPartyOcrWorker.mockResolvedValue({ recognize: vi.fn(), terminate })
 })
 

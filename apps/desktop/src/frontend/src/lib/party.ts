@@ -4,7 +4,7 @@ import {
   PartyFrameGeometryError,
   type PartyFrameGeometry
 } from '@dfragon/lib'
-import { binarizeNicknamePixels } from './nickname-pixels'
+import { toBinarizedTextCanvas } from './nickname-pixels'
 import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
 import type { CharacterImage, CharacterPortrait } from '../../../preload/common/types/character'
 import { cropPartyPortrait } from './party-portrait'
@@ -84,15 +84,11 @@ export function capturePartyRecognitionInputs(
     if (containsExcludedPixels(nicknamePixels.data)) {
       continue
     }
-    binarizeNicknamePixels(nicknamePixels.data)
-    const nickname = document.createElement('canvas')
-    nickname.width = region.width
-    nickname.height = region.height
-    const nicknameContext = nickname.getContext('2d')
-    if (nicknameContext == null) {
-      throw new Error('Could not create a party nickname canvas.')
-    }
-    nicknameContext.putImageData(nicknamePixels, 0, 0)
+    const nickname = toBinarizedTextCanvas({
+      width: region.width,
+      height: region.height,
+      rgba: nicknamePixels.data
+    })
     const slot = region.slot - 1
     const portrait = cropPartyPortrait({
       frame: { width, height, rgba },

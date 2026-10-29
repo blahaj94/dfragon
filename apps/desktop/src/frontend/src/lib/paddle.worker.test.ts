@@ -29,13 +29,9 @@ const postMessage = vi.fn()
 const outputDispose = vi.fn()
 const pixels = { width: 2, height: 1 } as ImageData
 
-async function send(data: {
-  root?: string
-  pixels?: ImageData
-  preprocessing?: 'party' | 'raw'
-}): Promise<void> {
+async function send(data: { root?: string; pixels?: ImageData }): Promise<void> {
   const receive: ((event: MessageEvent) => unknown) | null = globalThis.onmessage
-  await receive?.(new MessageEvent('message', { data: { preprocessing: 'party', ...data } }))
+  await receive?.(new MessageEvent('message', { data }))
 }
 
 beforeEach(async () => {
@@ -83,8 +79,6 @@ it('preserves WASM setup, dictionary normalization and recognition tensor layout
   expect(canvasContext.imageSmoothingEnabled).toBe(true)
   expect(canvasContext.imageSmoothingQuality).toBe('low')
   expect(postMessage).toHaveBeenLastCalledWith({
-    text: '가',
-    confidence: 100,
     candidates: [{ rank: 1, nickname: '가', modelScore: 100 }]
   })
   expect(mocks.dispose).toHaveBeenCalledOnce()
@@ -92,20 +86,17 @@ it('preserves WASM setup, dictionary normalization and recognition tensor layout
 })
 
 it.each([
-  { sourceWidth: 2, sourceHeight: 1, resizedWidth: 96 },
-  { sourceWidth: 320, sourceHeight: 48, resizedWidth: 320 },
-  { sourceWidth: 400, sourceHeight: 20, resizedWidth: 320 },
-  { sourceWidth: 8192, sourceHeight: 1, resizedWidth: 320 }
+  { sourceWidth: 2, sourceHeight: 1, resizedWidth: 96, left: 112 },
+  { sourceWidth: 320, sourceHeight: 48, resizedWidth: 320, left: 0 },
+  { sourceWidth: 400, sourceHeight: 20, resizedWidth: 320, left: 0 },
+  { sourceWidth: 8192, sourceHeight: 1, resizedWidth: 320, left: 0 }
 ])(
-  '원본 모드의 $sourceWidth×$sourceHeight 이미지를 자르지 않고 48×320 텐서에 맞춘다',
-  async ({ sourceWidth, sourceHeight, resizedWidth }) => {
+  '$sourceWidth×$sourceHeight 이미지를 자르지 않고 48×320 텐서 가운데에 맞춘다',
+  async ({ sourceWidth, sourceHeight, resizedWidth, left }) => {
     await send({ root: 'https://fixture.invalid/ocr/' })
-    const data = new Uint8ClampedArray(resizedWidth * 48 * 4).fill(255)
+    const data = new Uint8ClampedArray(resizedWidth * 48 * 4)
     canvasContext.getImageData.mockReturnValueOnce({ data })
-    await send({
-      pixels: { width: sourceWidth, height: sourceHeight } as ImageData,
-      preprocessing: 'raw'
-    })
+    await send({ pixels: { width: sourceWidth, height: sourceHeight } as ImageData })
 
     expect(canvasContext.drawImage).toHaveBeenCalledExactlyOnceWith(
       expect.anything(),
@@ -125,14 +116,15 @@ it.each([
     for (let channel = 0; channel < 3; channel += 1) {
       const firstRow = values.subarray(channel * 48 * 320, channel * 48 * 320 + 320)
       expect([...firstRow]).toEqual([
-        ...Array(resizedWidth).fill(1),
-        ...Array(320 - resizedWidth).fill(0)
+        ...Array(left).fill(1),
+        ...Array(resizedWidth).fill(-1),
+        ...Array(320 - left - resizedWidth).fill(1)
       ])
     }
   }
 )
 
-it('상위 두 후보와 1위의 닉네임, 모델 점수 호환 필드를 전달한다', async () => {
+it('상위 두 후보를 순위, 모델 점수와 함께 전달한다', async () => {
   await send({ root: 'https://fixture.invalid/ocr/' })
   mocks.run.mockResolvedValueOnce({
     output: {
@@ -143,8 +135,6 @@ it('상위 두 후보와 1위의 닉네임, 모델 점수 호환 필드를 전�
   })
   await send({ pixels })
   expect(postMessage).toHaveBeenLastCalledWith({
-    text: '가',
-    confidence: expect.closeTo(40.25, 5),
     candidates: [
       { rank: 1, nickname: '가', modelScore: expect.closeTo(40.25, 5) },
       { rank: 2, nickname: '나', modelScore: expect.closeTo(26.25, 5) }
@@ -165,8 +155,6 @@ it('빈 닉네임 후보도 모델 점수와 함께 보존한다', async () => {
   await send({ pixels })
 
   expect(postMessage).toHaveBeenLastCalledWith({
-    text: '',
-    confidence: 100,
     candidates: [{ rank: 1, nickname: '', modelScore: 100 }]
   })
 })
@@ -183,9 +171,16 @@ it('disposes the input tensor when inference rejects and returns only the public
 })
 
 it.each([
-  { name: '잘못된 배치 크기', dims: [2, 1, 4], data: new Float32Array(4) },
+  { name: '잘못된 배치 크기', dims: [2, 1, 4], data: new Float32Array([0, 1, 0, 0]) },
+  { name: '사전과 다른 class 수', dims: [1, 1, 5], data: new Float32Array([0, 1, 0, 0, 0]) },
+  {
+    name: '배열 길이와 다른 step 수',
+    dims: [1, 1, 4],
+    data: new Float32Array([0, 1, 0, 0, 0, 1, 0, 0])
+  },
+  { name: '음수 step 수', dims: [1, -1, 4], data: new Float32Array() },
   { name: '다른 텐서 자료형', dims: [1, 1, 4], data: new Float64Array([0, 1, 0, 0]) }
-])('$name이면 모든 출력 텐서를 정리하고 실패를 반환한다', async ({ dims, data }) => {
+])('$name: 모든 출력 텐서를 정리하고 실패를 반환한다', async ({ dims, data }) => {
   await send({ root: 'https://fixture.invalid/ocr/' })
   const auxiliaryDispose = vi.fn()
   mocks.run.mockResolvedValueOnce({
@@ -208,28 +203,40 @@ it('does not attempt inference before model initialization', async () => {
   expect(mocks.tensor).not.toHaveBeenCalled()
 })
 
-it.each([
-  { preprocessing: 'party', foregroundX: 159, paddingX: 0, padding: 1 },
-  { preprocessing: 'raw', foregroundX: 0, paddingX: 159, padding: 0 }
-] as const)(
-  'worker의 $preprocessing 입력에 해당 정렬과 여백 값을 적용해 모델에 전달한다',
-  async ({ preprocessing, foregroundX, paddingX, padding }) => {
-    await send({ root: 'https://fixture.invalid/ocr/' })
-    const data = new Uint8ClampedArray(6 * 48 * 4)
-    data.fill(255)
-    data.set([0, 0, 0, 255, 0, 0, 0, 255], 20 * 6 * 4)
-    canvasContext.getImageData.mockReturnValueOnce({ data })
-    await send({ pixels: { width: 6, height: 48 } as ImageData, preprocessing })
+it('닉네임 글자를 가운데로 옮기고 좌우 여백을 흰색으로 채워 모델에 전달한다', async () => {
+  await send({ root: 'https://fixture.invalid/ocr/' })
+  const data = new Uint8ClampedArray(6 * 48 * 4)
+  data.fill(255)
+  data.set([0, 0, 0, 255, 0, 0, 0, 255], 20 * 6 * 4)
+  canvasContext.getImageData.mockReturnValueOnce({ data })
+  await send({ pixels: { width: 6, height: 48 } as ImageData })
 
-    expect(mocks.tensor).toHaveBeenCalledOnce()
-    const tensor = mocks.tensor.mock.calls[0][1] as Float32Array
-    for (let channel = 0; channel < 3; channel += 1) {
-      const row = channel * 320 * 48 + 20 * 320
-      expect(tensor[row + foregroundX]).toBe(-1)
-      expect(tensor[row + foregroundX + 1]).toBe(-1)
-      expect(tensor[row + paddingX]).toBe(padding)
-      expect(tensor[row - 320 + foregroundX]).toBe(1)
-    }
-    expect(postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ text: '가' }))
+  expect(mocks.tensor).toHaveBeenCalledOnce()
+  const tensor = mocks.tensor.mock.calls[0][1] as Float32Array
+  for (let channel = 0; channel < 3; channel += 1) {
+    const row = channel * 320 * 48 + 20 * 320
+    expect(tensor[row + 159]).toBe(-1)
+    expect(tensor[row + 160]).toBe(-1)
+    expect(tensor[row]).toBe(1)
+    expect(tensor[row - 320 + 159]).toBe(1)
   }
-)
+  expect(postMessage).toHaveBeenLastCalledWith({
+    candidates: [{ rank: 1, nickname: '가', modelScore: 100 }]
+  })
+})
+
+it.each([
+  { name: '중복 문자', dictionary: '가\n가\n' },
+  { name: '끝에 붙는 공백과 겹치는 문자', dictionary: '가\n \n' },
+  { name: '여러 문자로 된 label', dictionary: '가나\n' }
+])('사전 오류($name)는 모델을 만들지 않고 초기화 실패로 응답한다', async ({ dictionary }) => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(dictionary))
+  )
+
+  await send({ root: 'https://fixture.invalid/ocr/' })
+
+  expect(postMessage).toHaveBeenCalledExactlyOnceWith({ failed: true })
+  expect(mocks.create).not.toHaveBeenCalled()
+})

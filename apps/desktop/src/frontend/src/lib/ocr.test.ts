@@ -20,11 +20,7 @@ class NativeWorker {
 }
 
 function recognized(nickname: string, modelScore: number): PartyOcrResult {
-  return {
-    text: nickname,
-    confidence: modelScore,
-    candidates: [{ rank: 1, nickname, modelScore }]
-  }
+  return { candidates: [{ rank: 1, nickname, modelScore }] }
 }
 const pixels: ImageData = {
   width: 91,
@@ -49,45 +45,27 @@ afterEach(() => {
 })
 
 describe('PaddleOCR worker 수명', () => {
-  it('원본 평가 모드는 party 가운데 정렬을 요청하지 않는다', async () => {
-    const creating = createPartyOcrWorker(undefined, 'raw')
-    const native = NativeWorker.latest
-    native.reply({ ready: true })
-    const worker = await creating
-    const recognizing = worker.recognize(image)
-    expect(native.postMessage).toHaveBeenLastCalledWith({ pixels, preprocessing: 'raw' })
-    native.reply(recognized('평가', 80))
-    await recognizing
-    await worker.terminate()
-  })
-
-  it('로컬 모델 초기화 후 상위 두 후보와 기존 검색의 1위 호환 필드를 반환한다', async () => {
-    const creating = createPartyOcrWorker()
+  it('로컬 모델 초기화 후 worker가 보낸 상위 두 후보를 그대로 반환한다', async () => {
+    const creating = createPartyOcrWorker(new AbortController().signal)
     const native = NativeWorker.latest
     expect(native.postMessage).toHaveBeenCalledWith({ root: 'file:///app/out/frontend/ocr/' })
     native.reply({ ready: true })
     const worker = await creating
     const recognizing = worker.recognize(image)
     native.reply({
-      text: '합성문자',
-      confidence: 82,
       candidates: [
         { rank: 1, nickname: '합성문자', modelScore: 82 },
         { rank: 2, nickname: '합성문지', modelScore: 12 }
       ]
     })
     expect(await recognizing).toEqual({
-      data: {
-        text: '합성문자',
-        confidence: 82,
-        candidates: [
-          { rank: 1, nickname: '합성문자', modelScore: 82 },
-          { rank: 2, nickname: '합성문지', modelScore: 12 }
-        ]
-      }
+      candidates: [
+        { rank: 1, nickname: '합성문자', modelScore: 82 },
+        { rank: 2, nickname: '합성문지', modelScore: 12 }
+      ]
     })
-    await worker.terminate()
-    await worker.terminate()
+    worker.terminate()
+    worker.terminate()
     expect(native.terminate).toHaveBeenCalledOnce()
   })
   it('초기화 중 Stop도 worker를 종료하고 대기를 해제한다', async () => {
@@ -127,7 +105,7 @@ describe('PaddleOCR worker 수명', () => {
     '%s 응답이 30초 동안 없으면 대기를 거절하고 종료한다',
     async (stage) => {
       vi.useFakeTimers()
-      const creating = createPartyOcrWorker()
+      const creating = createPartyOcrWorker(new AbortController().signal)
       const native = NativeWorker.latest
       let pending: Promise<unknown> = creating
       let worker: Awaited<ReturnType<typeof createPartyOcrWorker>> | undefined
@@ -158,7 +136,7 @@ describe('PaddleOCR worker 수명', () => {
     '%s는 진행 중인 인식을 거절하고 새 worker로 다시 시작할 수 있다',
     async (failure) => {
       vi.useFakeTimers()
-      const creating = createPartyOcrWorker()
+      const creating = createPartyOcrWorker(new AbortController().signal)
       const native = NativeWorker.latest
       native.reply({ ready: true })
       const worker = await creating
@@ -193,15 +171,15 @@ describe('PaddleOCR worker 수명', () => {
       expect(vi.getTimerCount()).toBe(0)
       native.reply(recognized('이전인식', 99))
 
-      const retry = createPartyOcrWorker()
+      const retry = createPartyOcrWorker(new AbortController().signal)
       const nextNative = NativeWorker.latest
       nextNative.reply({ ready: true })
       const nextWorker = await retry
       const nextRecognition = nextWorker.recognize(image)
       nextNative.reply(recognized('재시도', 82))
-      expect(await nextRecognition).toEqual({ data: recognized('재시도', 82) })
+      expect(await nextRecognition).toEqual(recognized('재시도', 82))
       expect(nextNative.terminate).not.toHaveBeenCalled()
-      await nextWorker.terminate()
+      nextWorker.terminate()
       expect(nextNative.terminate).toHaveBeenCalledOnce()
       expect(vi.getTimerCount()).toBe(0)
     }
@@ -219,7 +197,7 @@ describe('PaddleOCR worker 수명', () => {
       message: 'PaddleOCR returned an invalid recognition result.'
     }
   ])(
-    '$name은 닉네임으로 반환하지 않고 대기와 취소 구독을 정리한 채 worker를 종료한다',
+    '$name: 닉네임으로 반환하지 않고 대기와 취소 구독을 정리한 채 worker를 종료한다',
     async ({ value, message }) => {
       vi.useFakeTimers()
       const controller = new AbortController()
@@ -248,7 +226,7 @@ describe('PaddleOCR worker 수명', () => {
 
   it('동시 인식은 거절하되 먼저 시작한 인식과 후속 인식은 유지한다', async () => {
     vi.useFakeTimers()
-    const creating = createPartyOcrWorker()
+    const creating = createPartyOcrWorker(new AbortController().signal)
     const native = NativeWorker.latest
     native.reply({ ready: true })
     const worker = await creating
@@ -261,27 +239,25 @@ describe('PaddleOCR worker 수명', () => {
     expect(native.postMessage).toHaveBeenCalledTimes(2)
     expect(native.terminate).not.toHaveBeenCalled()
     native.reply(recognized('첫인식', 80))
-    expect(await recognizing).toEqual({ data: recognized('첫인식', 80) })
+    expect(await recognizing).toEqual(recognized('첫인식', 80))
     expect(vi.getTimerCount()).toBe(0)
 
     const next = worker.recognize(image)
-    native.reply({ text: '', confidence: 0, candidates: [] })
-    expect(await next).toEqual({ data: { text: '', confidence: 0, candidates: [] } })
-    expect(native.postMessage).toHaveBeenLastCalledWith({ pixels, preprocessing: 'party' })
+    native.reply({ candidates: [] })
+    expect(await next).toEqual({ candidates: [] })
+    expect(native.postMessage).toHaveBeenLastCalledWith({ pixels })
     expect(vi.getTimerCount()).toBe(0)
-    await worker.terminate()
+    worker.terminate()
     expect(native.terminate).toHaveBeenCalledOnce()
   })
 
   it.each([
-    { name: '후보 없음', value: { text: '', confidence: 0, candidates: [] } },
+    { name: '후보 없음', value: { candidates: [] } },
     { name: '빈 닉네임 한 개', value: recognized('', 100) },
     { name: '낮은 점수 한 개', value: recognized('  합성 문자  ', 0.001) },
     {
       name: '동점, 중복 원문',
       value: {
-        text: '  합성 문자  ',
-        confidence: 20,
         candidates: [
           { rank: 1, nickname: '  합성 문자  ', modelScore: 20 },
           { rank: 2, nickname: '  합성 문자  ', modelScore: 20 }
@@ -289,7 +265,7 @@ describe('PaddleOCR worker 수명', () => {
       }
     }
   ])('$name 결과를 정리하거나 점수로 제외하지 않고 보존한다', async ({ value }) => {
-    const creating = createPartyOcrWorker()
+    const creating = createPartyOcrWorker(new AbortController().signal)
     const native = NativeWorker.latest
     native.reply({ ready: true })
     const worker = await creating
@@ -297,17 +273,17 @@ describe('PaddleOCR worker 수명', () => {
     const recognizing = worker.recognize(image)
     native.reply(value)
 
-    expect(await recognizing).toEqual({ data: value })
+    expect(await recognizing).toEqual(value)
     expect(native.terminate).not.toHaveBeenCalled()
-    await worker.terminate()
+    worker.terminate()
   })
 
   it.each([
     { name: '인식 결과', value: recognized('합성문자', 82) },
     { name: '내부 오류 응답', value: { failed: true } }
-  ])('초기화 요청에 $name이 오면 worker를 반환하지 않는다', async ({ value }) => {
+  ])('초기화 요청에 온 $name: worker를 반환하지 않는다', async ({ value }) => {
     vi.useFakeTimers()
-    const creating = createPartyOcrWorker()
+    const creating = createPartyOcrWorker(new AbortController().signal)
     const native = NativeWorker.latest
     const rejected = expect(creating).rejects.toThrow()
 

@@ -12,7 +12,7 @@ export async function recognizeWithOcrWorker<T>(
     throw new Error(PREPARE_FAILED_STATUS)
   })
   if (signal.aborted) {
-    await worker.terminate().catch(() => undefined)
+    worker.terminate()
     throw new Error(PREPARE_FAILED_STATUS)
   }
 
@@ -23,7 +23,7 @@ export async function recognizeWithOcrWorker<T>(
 
       return results
     } finally {
-      await worker.terminate()
+      worker.terminate()
     }
   } catch {
     throw new Error(failedStatus)

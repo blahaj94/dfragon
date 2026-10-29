@@ -37,14 +37,10 @@ it.each([' 검사* ', '가 나', '😀'.repeat(12)])(
   '첫 후보 %j를 한 번 읽고 얼굴을 보존한다',
   async (first) => {
     recognize.mockResolvedValue({
-      data: {
-        text: ' 테-스_트! ABC 123 ',
-        confidence: 1,
-        candidates: [
-          { nickname: first, rank: 1, modelScore: 1 },
-          { nickname: '다른후보', rank: 2, modelScore: 0.5 }
-        ]
-      }
+      candidates: [
+        { nickname: first, rank: 1, modelScore: 1 },
+        { nickname: '다른후보', rank: 2, modelScore: 0.5 }
+      ]
     })
     const results = await recognizePartyFrame(frame, recognize)
     expect(capturePartyRecognitionInputs).toHaveBeenCalledExactlyOnceWith(frame)
@@ -79,7 +75,7 @@ it.each([
           { nickname: text, rank: 1, modelScore: 1 },
           { nickname: '정상후보', rank: 2, modelScore: 0.5 }
         ]
-  recognize.mockResolvedValue({ data: { text: '', confidence: 1, candidates } })
+  recognize.mockResolvedValue({ candidates })
   expect((await recognizePartyFrame(frame, recognize))[0]).toEqual({
     kind: 'rejected',
     slot: 0,

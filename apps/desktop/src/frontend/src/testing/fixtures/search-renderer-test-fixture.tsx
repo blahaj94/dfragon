@@ -77,13 +77,9 @@ export function captureResources(): CaptureResources {
   }
   const worker = {
     recognize: vi.fn<PartyOcrWorker['recognize']>().mockResolvedValue({
-      data: {
-        text: 'ALICE',
-        confidence: 90,
-        candidates: [{ rank: 1, modelScore: 90, nickname: 'ALICE' }]
-      }
+      candidates: [{ rank: 1, modelScore: 90, nickname: 'ALICE' }]
     }),
-    terminate: vi.fn<PartyOcrWorker['terminate']>().mockResolvedValue(undefined)
+    terminate: vi.fn<PartyOcrWorker['terminate']>()
   }
 
   return { frame, worker }

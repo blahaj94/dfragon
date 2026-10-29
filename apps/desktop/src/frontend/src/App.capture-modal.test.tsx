@@ -95,11 +95,7 @@ it('창 선택 뒤 Alt+R로 한 번 인식하고 모달을 닫아도 이름과 �
   expect(topBarText()).toContain('인식 중')
   await act(async () =>
     pending.resolve({
-      data: {
-        text: 'ALICE',
-        confidence: 1,
-        candidates: [{ nickname: 'ALICE', rank: 1, modelScore: 1 }]
-      }
+      candidates: [{ nickname: 'ALICE', rank: 1, modelScore: 1 }]
     })
   )
   expect(f.readCaptureFrame).toHaveBeenCalledOnce()
@@ -152,11 +148,7 @@ it('다른 창 선택은 진행 중 OCR을 취소하고 새 창만 등록한다'
   expect(f.readCaptureFrame).toHaveBeenCalledOnce()
   await act(async () =>
     pending.resolve({
-      data: {
-        text: 'OLD',
-        confidence: 1,
-        candidates: [{ nickname: 'OLD', rank: 1, modelScore: 1 }]
-      }
+      candidates: [{ nickname: 'OLD', rank: 1, modelScore: 1 }]
     })
   )
   expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
