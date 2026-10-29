@@ -4,7 +4,7 @@ import { projectCharacterDetails, projectCharacterFreshness } from './project.js
 import type { CharacterIdentity } from './sections.js'
 import { enrichCharacterDetails } from '../catalog/enrich.js'
 import { SharedCharacterFetches } from './shared-fetches.js'
-import { type NeopleStageTimings, elapsedMs, ignoredNeopleStageTimings } from './neople-stages.js'
+import { type NeopleStageTimings, elapsedMs } from './neople-stages.js'
 import type { CatalogService } from '../catalog/service.js'
 import { projectCharacterCard } from '../card/project.js'
 
@@ -60,11 +60,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
   }
 
   return {
-    get(
-      identity: CharacterIdentity,
-      signal: AbortSignal,
-      timings: NeopleStageTimings = ignoredNeopleStageTimings
-    ) {
+    get(identity: CharacterIdentity, signal: AbortSignal, timings: NeopleStageTimings) {
       const operation = respond(identity, signal, timings)
       active.add(operation)
       operation.finally(() => active.delete(operation)).catch(() => undefined)

@@ -56,7 +56,7 @@ export function validateCharacterPayload(
 export type FetchCharacterDetails = (
   identity: CharacterIdentity,
   signal: AbortSignal,
-  recordStage?: RecordNeopleStage
+  recordStage: RecordNeopleStage
 ) => Promise<CharacterPayloads>
 
 interface TransportDependencies {
@@ -109,11 +109,11 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       // Confirm identity before spending the other ten provider requests.
       const basicStartedAt = performance.now()
       await load('basic')
-      recordStage?.('basic', elapsedMs(basicStartedAt))
+      recordStage('basic', elapsedMs(basicStartedAt))
       const sections = characterDetailSections.filter((section) => section !== 'basic')
       const sectionsStartedAt = performance.now()
       await Promise.all(sections.map(load))
-      recordStage?.('sections', elapsedMs(sectionsStartedAt))
+      recordStage('sections', elapsedMs(sectionsStartedAt))
 
       return results
     } catch (error) {

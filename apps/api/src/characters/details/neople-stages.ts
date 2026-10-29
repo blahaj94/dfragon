@@ -7,11 +7,6 @@ export interface NeopleStageTimings {
   markShared(): void
 }
 
-export const ignoredNeopleStageTimings: NeopleStageTimings = {
-  record: () => undefined,
-  markShared: () => undefined
-}
-
 export function elapsedMs(startedAt: number): number {
   return Math.round(performance.now() - startedAt)
 }
