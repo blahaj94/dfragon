@@ -11,6 +11,7 @@ const identity = { serverId: 'siroco', characterId: 'refresh-fixture' }
 const ignoredTimings: NeopleStageTimings = { record: () => undefined, markShared: () => undefined }
 const signal = new AbortController().signal
 const catalog = createCatalogService(async () => new Map())
+const MINUTE_MS = 60 * 1000
 const common = { ...identity, characterName: '합성 캐릭터', jobId: 'job' }
 const payloads: CharacterPayloads = {
   basic: { ...common },
@@ -26,6 +27,40 @@ const payloads: CharacterPayloads = {
   buff_creature: { ...common, skill: { buff: null } }
 }
 
+function payloadsNamed(characterName: string): CharacterPayloads {
+  return { ...payloads, basic: { ...common, characterName } }
+}
+
+// 호출마다 이름이 바뀌어 응답이 어느 Neople 조회에서 왔는지 구분한다.
+function countingNeople() {
+  const neople = { calls: 0 }
+  const fetchDetails = async () => {
+    neople.calls++
+
+    return payloadsNamed(`조회 ${neople.calls}`)
+  }
+
+  return { neople, fetchDetails }
+}
+
+function collectTimings() {
+  const stages: Record<string, number> = {}
+  let shared = false
+
+  return {
+    stages,
+    isShared: () => shared,
+    timings: {
+      record: (stage, durationMs) => {
+        stages[stage] = durationMs
+      },
+      markShared: () => {
+        shared = true
+      }
+    } satisfies NeopleStageTimings
+  }
+}
+
 function gate() {
   let release!: () => void
   const promise = new Promise<void>((resolve) => {
@@ -35,26 +70,155 @@ function gate() {
   return { promise, release }
 }
 
-test('끝난 요청을 재사용하지 않고 매번 Neople에서 받는다', async (t) => {
+test('1시간 안에 다시 조회하면 Neople을 부르지 않고 1시간이 지나면 다시 받는다', async (t) => {
+  // lru-cache는 performance.now로 유효 기간을 재므로 가짜 Date 시계를 따르게 한다.
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: Date.parse('2026-10-29T00:00:00Z') })
+  t.mock.method(performance, 'now', () => Date.now())
+  const { neople, fetchDetails } = countingNeople()
+  const service = createCharacterDetailService({ catalog, fetchDetails })
+  t.after(() => service.onModuleDestroy())
+
+  const first = await service.get(identity, signal, ignoredTimings)
+  t.mock.timers.tick(59 * MINUTE_MS)
+  const withinHour = await service.get(identity, signal, ignoredTimings)
+  t.mock.timers.tick(2 * MINUTE_MS)
+  const nextHour = await service.get(identity, signal, ignoredTimings)
+
+  assert.equal(neople.calls, 2)
+  assert.deepEqual(withinHour, first)
+  assert.equal(nextHour.character.characterName, '조회 2')
+  assert.deepEqual(nextHour.freshness, {
+    lastSuccessfulFetchAt: '2026-10-29T01:01:00.000Z',
+    expiresAt: '2026-10-29T02:01:00.000Z'
+  })
+})
+
+test('강제 갱신은 캐시를 건너뛰고 다시 받아 캐시를 덮어쓰며 이후 조회는 새 값을 받는다', async (t) => {
+  const { neople, fetchDetails } = countingNeople()
+  const service = createCharacterDetailService({ catalog, fetchDetails })
+  t.after(() => service.onModuleDestroy())
+
+  const cached = await service.get(identity, signal, ignoredTimings)
+  const refreshed = await service.refresh(identity, signal, ignoredTimings)
+  const afterRefresh = await service.get(identity, signal, ignoredTimings)
+
+  assert.equal(cached.character.characterName, '조회 1')
+  assert.equal(refreshed.character.characterName, '조회 2')
+  assert.deepEqual(afterRefresh, refreshed)
+  assert.equal(neople.calls, 2)
+})
+
+test('강제 갱신이 실패하면 상세 조회와 같은 오류를 돌려주고 기존 캐시는 그대로 둔다', async (t) => {
   let calls = 0
   const service = createCharacterDetailService({
     catalog,
     fetchDetails: async () => {
       calls++
+      if (calls === 2) {
+        throw new CharacterDetailFailure('unavailable')
+      }
+
+      return payloadsNamed(`조회 ${calls}`)
+    }
+  })
+  t.after(() => service.onModuleDestroy())
+
+  const cached = await service.get(identity, signal, ignoredTimings)
+  await assert.rejects(service.refresh(identity, signal, ignoredTimings), {
+    status: 503,
+    body: new CharacterDetailFailure('unavailable').body
+  })
+  const afterFailure = await service.get(identity, signal, ignoredTimings)
+
+  assert.deepEqual(afterFailure, cached)
+  assert.equal(calls, 2)
+})
+
+test('연결을 끊고 떠난 강제 갱신의 조회가 나중에 끝나도 기존 캐시를 덮어쓰지 않는다', async (t) => {
+  let calls = 0
+  const late = gate()
+  // 공급자가 취소 신호를 무시하고 요청이 떠난 뒤에 성공하는 경우다.
+  const service = createCharacterDetailService({
+    catalog,
+    fetchDetails: async () => {
+      calls++
+      if (calls === 2) {
+        await late.promise
+      }
+
+      return payloadsNamed(`조회 ${calls}`)
+    }
+  })
+  t.after(() => service.onModuleDestroy())
+
+  const cached = await service.get(identity, signal, ignoredTimings)
+  const leaving = new AbortController()
+  const abandoned = service.refresh(identity, leaving.signal, ignoredTimings)
+  await nextTurn()
+  leaving.abort()
+  await assert.rejects(abandoned)
+  late.release()
+  await nextTurn()
+  const afterAbandon = await service.get(identity, signal, ignoredTimings)
+
+  assert.deepEqual(afterAbandon, cached)
+  assert.equal(calls, 2)
+})
+
+test('같은 캐릭터를 받는 중이면 강제 갱신은 새로 부르지 않고 그 조회를 함께 기다린다', async (t) => {
+  const entered = gate(),
+    finish = gate()
+  let calls = 0
+  const service = createCharacterDetailService({
+    catalog,
+    fetchDetails: async () => {
+      calls++
+      entered.release()
+      await finish.promise
+
+      return payloads
+    }
+  })
+  t.after(async () => {
+    finish.release()
+    await service.onModuleDestroy()
+  })
+  const joiner = collectTimings()
+
+  const fetching = service.get(identity, signal, ignoredTimings)
+  await entered.promise
+  const refreshing = service.refresh(identity, signal, joiner.timings)
+  finish.release()
+  const [fetched, refreshed] = await Promise.all([fetching, refreshing])
+
+  assert.equal(calls, 1)
+  assert.deepEqual(refreshed, fetched)
+  assert.equal(joiner.isShared(), true)
+})
+
+test('캐시가 맞은 요청은 Neople 단계 시간 없이 공용 아이템 시간만 남기고 공유로 표시하지 않는다', async (t) => {
+  const service = createCharacterDetailService({
+    catalog,
+    fetchDetails: async (_identity, _signal, recordStage) => {
+      recordStage('basic', 12)
+      recordStage('sections', 34)
 
       return payloads
     }
   })
   t.after(() => service.onModuleDestroy())
+  const miss = collectTimings(),
+    hit = collectTimings()
 
-  const first = await service.get(identity, signal, ignoredTimings)
-  await service.get(identity, signal, ignoredTimings)
+  await service.get(identity, signal, miss.timings)
+  await service.get(identity, signal, hit.timings)
 
-  assert.equal(calls, 2)
-  assert.equal(first.character.characterName, '합성 캐릭터')
+  assert.deepEqual(Object.keys(miss.stages).sort(), ['basic', 'catalog', 'sections'])
+  assert.deepEqual(Object.keys(hit.stages), ['catalog'])
+  assert.equal(hit.isShared(), false)
 })
 
-test('상세 응답 JSON은 섹션마다 revision 1과 조회 시각을, freshness에 조회 시각과 5분 뒤 만료를 담는다', async (t) => {
+test('상세 응답 JSON은 섹션마다 revision 1과 조회 시각을, freshness에 조회 시각과 1시간 뒤 만료를 담는다', async (t) => {
   const fetchedAt = '2026-10-29T00:00:00.000Z'
   t.mock.timers.enable({ apis: ['Date'], now: Date.parse(fetchedAt) })
   const service = createCharacterDetailService({ catalog, fetchDetails: async () => payloads })
@@ -99,7 +263,7 @@ test('상세 응답 JSON은 섹션마다 revision 1과 조회 시각을, freshne
       buff_avatar: metadata,
       buff_creature: metadata
     },
-    freshness: { lastSuccessfulFetchAt: fetchedAt, expiresAt: '2026-10-29T00:05:00.000Z' },
+    freshness: { lastSuccessfulFetchAt: fetchedAt, expiresAt: '2026-10-29T01:00:00.000Z' },
     card: {
       role: null,
       stats: null,
@@ -215,23 +379,6 @@ test('공유 조회를 기다린 요청들은 늦게 합류해도 같은 Neople 
     finish.release()
     await service.onModuleDestroy()
   })
-  function collectTimings() {
-    const stages: Record<string, number> = {}
-    let shared = false
-
-    return {
-      stages,
-      isShared: () => shared,
-      timings: {
-        record: (stage, durationMs) => {
-          stages[stage] = durationMs
-        },
-        markShared: () => {
-          shared = true
-        }
-      } satisfies NeopleStageTimings
-    }
-  }
   const owner = collectTimings(),
     joiner = collectTimings()
 
@@ -329,6 +476,37 @@ test('공유 조회 실패 뒤 새 요청을 허용하고 서버 종료는 취�
   await start.promise
   let closed = false
   const closing = shutting.onModuleDestroy().then(() => {
+    closed = true
+  })
+  await rejected
+  assert.equal(stopped.signal.aborted, true)
+  assert.equal(closed, false)
+  cleanup.release()
+  await closing
+})
+
+test('서버 종료는 진행 중인 공용 아이템 묶음 호출을 취소하고 정리를 기다린다', async () => {
+  const started = gate(),
+    cleanup = gate(),
+    stopped = new AbortController()
+  const service = createCharacterDetailService({
+    catalog: createCatalogService(async (_itemIds, batchSignal) => {
+      started.release()
+      batchSignal.addEventListener('abort', () => stopped.abort(), { once: true })
+      await cleanup.promise
+
+      return new Map()
+    }),
+    fetchDetails: async () => ({
+      ...payloads,
+      equipment: { ...common, equipment: [{ itemId: 'fixture-item' }], setItemInfo: [] }
+    })
+  })
+  const pending = service.get(identity, signal, ignoredTimings),
+    rejected = assert.rejects(pending)
+  await started.promise
+  let closed = false
+  const closing = service.onModuleDestroy().then(() => {
     closed = true
   })
   await rejected

@@ -5,7 +5,10 @@ import type { FetchTransport } from '../../types/neople-character-search.js'
 import type { CharacterPayload } from '../details/sections.js'
 import { CATALOG_LIMITS, isCatalogId } from './types.js'
 
-export type FetchCatalog = (itemIds: string[]) => Promise<Map<string, CharacterPayload>>
+export type FetchCatalog = (
+  itemIds: string[],
+  signal: AbortSignal
+) => Promise<Map<string, CharacterPayload>>
 
 function selectRequestedRows(body: unknown, itemIds: string[]): Map<string, CharacterPayload> {
   if (!isRecord(body)) {
@@ -44,7 +47,7 @@ export function createNeopleCatalog(apiKey: string, fetchImpl?: FetchTransport):
     retry: 0
   })
 
-  return async (itemIds) => {
+  return async (itemIds, signal) => {
     if (
       itemIds.length === 0 ||
       itemIds.length > CATALOG_LIMITS.maximumBatchKeys ||
@@ -56,6 +59,7 @@ export function createNeopleCatalog(apiKey: string, fetchImpl?: FetchTransport):
     try {
       return await neople
         .get('/df/multi/items', {
+          signal,
           searchParams: { itemIds: itemIds.join(',') },
           parseJson: (rawBody) => selectRequestedRows(JSON.parse(rawBody), itemIds)
         })

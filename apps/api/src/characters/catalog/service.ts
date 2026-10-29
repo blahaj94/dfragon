@@ -21,10 +21,15 @@ function waitForAbort(signal: AbortSignal) {
 }
 
 export function createCatalogService(fetchCatalog: FetchCatalog) {
+  const shutdown = new AbortController()
+  const pendingBatches = new Set<Promise<unknown>>()
   const batches = new DataLoader<string, FetchedCatalogItem | undefined>(
     async (itemIds) => {
-      // A batch can serve several requests, so no single request's disconnect cancels it.
-      const payloads = await fetchCatalog([...itemIds])
+      // A batch can serve several requests, so only shutdown, not one request's disconnect, cancels it.
+      const batch = fetchCatalog([...itemIds], shutdown.signal)
+      pendingBatches.add(batch)
+      batch.finally(() => pendingBatches.delete(batch)).catch(() => undefined)
+      const payloads = await batch
       const fetchedAt = new Date().toISOString()
 
       return itemIds.map((itemId) => {
@@ -75,6 +80,10 @@ export function createCatalogService(fetchCatalog: FetchCatalog) {
       requestSignal.throwIfAborted()
 
       return details
+    },
+    async close() {
+      shutdown.abort()
+      await Promise.allSettled([...pendingBatches])
     }
   }
 }

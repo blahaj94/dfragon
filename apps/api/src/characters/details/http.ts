@@ -1,6 +1,6 @@
 import { ApiTags } from '@nestjs/swagger'
-import { ApiCharacterDetails } from '../../swagger/operations.js'
-import { Controller, Get, Inject, Req, Res } from '@nestjs/common'
+import { ApiCharacterDetails, ApiCharacterRefresh } from '../../swagger/operations.js'
+import { Controller, Get, Inject, Post, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { CharacterDetailFailure } from './errors.js'
 import { parseCharacterIdentity } from '../identity.js'
@@ -22,17 +22,35 @@ export class CharacterDetailController {
     if (request.method !== 'GET') {
       throw new CharacterDetailFailure('query')
     }
-    const identity = parseCharacterIdentity(
-      request.params.serverId,
-      request.params.characterId,
-      request.originalUrl
-    )
-    const timings: NeopleStageTimings = {
-      record: (stage, durationMs) => recordAccessLogNeopleStage(response, stage, durationMs),
-      markShared: () => recordAccessLogSharedNeopleFetch(response)
-    }
+    const identity = readIdentity(request)
+    const timings = accessLogTimings(response)
     await respondWithCancellation(response, (signal) => {
       return this.service.get(identity, signal, timings)
     })
+  }
+
+  @Post(':serverId/:characterId/refresh')
+  @ApiCharacterRefresh()
+  async refresh(@Req() request: Request, @Res() response: Response): Promise<void> {
+    const identity = readIdentity(request)
+    const timings = accessLogTimings(response)
+    await respondWithCancellation(response, (signal) => {
+      return this.service.refresh(identity, signal, timings)
+    })
+  }
+}
+
+function readIdentity(request: Request) {
+  return parseCharacterIdentity(
+    request.params.serverId,
+    request.params.characterId,
+    request.originalUrl
+  )
+}
+
+function accessLogTimings(response: Response): NeopleStageTimings {
+  return {
+    record: (stage, durationMs) => recordAccessLogNeopleStage(response, stage, durationMs),
+    markShared: () => recordAccessLogSharedNeopleFetch(response)
   }
 }

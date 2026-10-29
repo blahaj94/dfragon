@@ -3,9 +3,9 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/api
-last-reviewed: 2026-10-11
+last-reviewed: 2026-10-29
 rationale: 검색 구현이 runtime과 검증 도구를 추측해 추가하지 않도록 승인 경계를 정한다.
-evidence: "2026-09-05 PR #42 runtime 계약 merge; 2026-10-26 #796 인증, DB 제거"
+evidence: "2026-09-05 PR #42 runtime 계약 merge; 2026-10-26 #796 인증, DB 제거; 2026-10-29 #992 메모리 캐시"
 review-after: 지원 Node 또는 Nest major 변경 시
 ---
 
@@ -17,7 +17,7 @@ review-after: 지원 Node 또는 Nest major 변경 시
 
 | 구분 | 내용 |
 | --- | --- |
-| 방향 | `apps/api`의 NestJS 중앙 API, 저장과 캐싱 없음. 캐시를 도입하면 여러 노드가 공유하는 Redis로 한다. |
+| 방향 | `apps/api`의 NestJS 중앙 API, DB 저장 없음. 캐릭터, 공용 아이템 조회 결과만 API 메모리에 캐시하며([캐릭터 상세](character-details.md)), 노드가 늘면 여러 노드가 공유하는 Redis로 옮긴다. |
 | 실행 계약 | Node 26, Nest 12, ESM과 TypeScript build, 아래 build, test 방식 |
 | 남은 미결정 | 운영 배포, 실제 credential과 domain, 전체 서비스 한도 |
 

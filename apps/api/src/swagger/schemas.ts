@@ -177,7 +177,7 @@ export const apiSchemas: Record<string, SchemaObject> = {
       },
       expiresAt: {
         ...timestamp,
-        description: '조회 시각 + 5분. 클라이언트가 다시 조회할 시점의 기준입니다.'
+        description: 'Neople에서 받은 시각 + 1시간. 서버 캐시가 이 시각까지 같은 값을 돌려줍니다.'
       }
     }),
     character: object({

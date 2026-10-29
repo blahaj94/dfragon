@@ -3,7 +3,7 @@ import type { FetchCharacterDetails } from './neople.js'
 import { projectCharacterDetails, projectCharacterFreshness } from './project.js'
 import type { CharacterIdentity } from './sections.js'
 import { enrichCharacterDetails } from '../catalog/enrich.js'
-import { SharedCharacterFetches } from './shared-fetches.js'
+import { type LoadCharacter, createCharacterCache } from './character-cache.js'
 import { type NeopleStageTimings, elapsedMs } from './neople-stages.js'
 import type { CatalogService } from '../catalog/service.js'
 import { projectCharacterCard } from '../card/project.js'
@@ -20,30 +20,25 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
   const shutdown = new AbortController()
   const active = new Set<Promise<unknown>>()
 
-  const fetches = new SharedCharacterFetches()
+  const characters = createCharacterCache(async (identity, fetchSignal, recordStage) => {
+    fetchSignal.throwIfAborted()
+    const payloads = await adapter(identity, fetchSignal, recordStage)
+    const fetchedAt = new Date()
+
+    return { payloads, fetchedAt }
+  })
   const respond = async (
     identity: CharacterIdentity,
     requestSignal: AbortSignal,
-    timings: NeopleStageTimings
+    timings: NeopleStageTimings,
+    loadCharacter: LoadCharacter
   ) => {
     const signal = AbortSignal.any([requestSignal, shutdown.signal])
     try {
       if (signal.aborted) {
         throw new CharacterDetailFailure('internal')
       }
-      const { payloads, fetchedAt } = await fetches.run(
-        identity,
-        signal,
-        timings,
-        async (fetchSignal, recordStage) => {
-          fetchSignal.throwIfAborted()
-          const payloads = await adapter(identity, fetchSignal, recordStage)
-          fetchSignal.throwIfAborted()
-          const fetchedAt = new Date()
-
-          return { payloads, fetchedAt }
-        }
-      )
+      const { payloads, fetchedAt } = await loadCharacter(identity, signal, timings)
       signal.throwIfAborted()
       const projected = projectCharacterDetails(identity, payloads, fetchedAt)
       const freshness = projectCharacterFreshness(fetchedAt)
@@ -58,18 +53,23 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
       throw characterDetailFailure(error)
     }
   }
+  const track = <T>(operation: Promise<T>): Promise<T> => {
+    active.add(operation)
+    operation.finally(() => active.delete(operation)).catch(() => undefined)
+
+    return operation
+  }
 
   return {
     get(identity: CharacterIdentity, signal: AbortSignal, timings: NeopleStageTimings) {
-      const operation = respond(identity, signal, timings)
-      active.add(operation)
-      operation.finally(() => active.delete(operation)).catch(() => undefined)
-
-      return operation
+      return track(respond(identity, signal, timings, characters.get))
+    },
+    refresh(identity: CharacterIdentity, signal: AbortSignal, timings: NeopleStageTimings) {
+      return track(respond(identity, signal, timings, characters.refresh))
     },
     async onModuleDestroy() {
       shutdown.abort()
-      await Promise.allSettled([...active, fetches.close()])
+      await Promise.allSettled([...active, characters.close(), deps.catalog.close()])
     }
   }
 }
