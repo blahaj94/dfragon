@@ -1,7 +1,6 @@
 import { EventEmitter } from 'node:events'
 import type { BrowserWindow } from 'electron'
 import { beforeEach, expect, it, vi, type Mock } from 'vitest'
-import type { DesktopShortcutApi } from '../../preload/common/types/desktop-shortcut'
 import { registerDesktopShortcuts } from './register'
 
 const fixtures = vi.hoisted(() => ({
@@ -9,13 +8,11 @@ const fixtures = vi.hoisted(() => ({
   gameForeground: vi.fn(),
   appForeground: vi.fn()
 }))
-vi.mock('../lib/keyboard-shortcut', () => ({ createKeyboardShortcut: fixtures.create }))
+vi.mock('../lib/keyboard-shortcut', () => ({ createAltKeyShortcut: fixtures.create }))
 vi.mock('../lib/win32-window-capture', () => ({
   isDnfForeground: fixtures.gameForeground,
   isCurrentProcessForeground: fixtures.appForeground
 }))
-
-type DesktopShortcut = Parameters<Parameters<DesktopShortcutApi['onDesktopShortcut']>[0]>[0]
 
 const DOCUMENT_URL = 'file:///dfragon/index.html'
 const VK_R = 0x52
@@ -28,7 +25,7 @@ function setup(): {
   window: EventEmitter & { webContents: TestContents; isDestroyed: () => boolean }
   unregister: Mock
   dispose: () => void
-  dispatch: (action: DesktopShortcut) => void
+  dispatch: () => void
   allowed: () => boolean
 } {
   const frame = { url: DOCUMENT_URL, detached: false, isDestroyed: () => false, send: vi.fn() }
@@ -37,7 +34,7 @@ function setup(): {
     webContents: contents,
     isDestroyed: () => false
   })
-  let listener: ((shortcut: DesktopShortcut) => void) | undefined
+  let listener: (() => void) | undefined
   let foreground: (() => boolean) | undefined
   const unregister = vi.fn()
   fixtures.create.mockImplementation((options) => {
@@ -63,7 +60,7 @@ function setup(): {
     window,
     unregister,
     dispose,
-    dispatch: (action: DesktopShortcut) => listener!(action),
+    dispatch: () => listener!(),
     allowed: () => foreground!()
   }
 }
@@ -76,10 +73,7 @@ beforeEach(() => {
 
 it('제품의 재검색만 Alt+R로 등록한다', () => {
   const fixture = setup()
-  expect(fixtures.create).toHaveBeenCalledWith({
-    bindings: [{ key: VK_R, alt: true, action: 'restart-search' }],
-    isForeground: expect.any(Function)
-  })
+  expect(fixtures.create).toHaveBeenCalledWith({ key: VK_R, isForeground: expect.any(Function) })
   fixture.dispose()
 })
 
@@ -93,7 +87,7 @@ it('허용 앱과 현재 main document가 모두 맞아야 키를 처리한다',
   expect(fixture.allowed()).toBe(true)
   fixture.frame.url = 'https://untrusted.example/'
   expect(fixture.allowed()).toBe(false)
-  fixture.dispatch('restart-search')
+  fixture.dispatch()
   expect(fixture.frame.send).not.toHaveBeenCalled()
   fixture.dispose()
 })
@@ -101,11 +95,11 @@ it('허용 앱과 현재 main document가 모두 맞아야 키를 처리한다',
 it('페이지 이동, renderer 종료와 창 닫기는 늦은 단축키 전달을 막는다', () => {
   const fixture = setup()
   fixtures.appForeground.mockReturnValue(true)
-  fixture.dispatch('restart-search')
+  fixture.dispatch()
   expect(fixture.frame.send).toHaveBeenCalledExactlyOnceWith('desktopShortcut', 'restart-search')
   fixture.contents.emit('did-start-navigation', {}, 'file:///next.html', false, true)
   expect(fixture.allowed()).toBe(false)
-  fixture.dispatch('restart-search')
+  fixture.dispatch()
   expect(fixture.frame.send).toHaveBeenCalledTimes(1)
   fixture.contents.emit('did-navigate')
   expect(fixture.allowed()).toBe(true)
@@ -115,6 +109,6 @@ it('페이지 이동, renderer 종료와 창 닫기는 늦은 단축키 전달�
   fixture.dispose()
   expect(fixture.unregister).toHaveBeenCalledTimes(1)
   expect(fixture.contents.listenerCount('did-start-navigation')).toBe(0)
-  fixture.dispatch('restart-search')
+  fixture.dispatch()
   expect(fixture.frame.send).toHaveBeenCalledTimes(1)
 })

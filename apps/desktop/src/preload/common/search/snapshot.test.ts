@@ -79,25 +79,6 @@ describe('선택된 캐릭터 요약과 대기 snapshot', () => {
     }
   )
 
-  it.each(['waiting-portrait', 'waiting-policy'] as const)(
-    '%s는 현재 요청의 빈 대기 상태만 허용한다',
-    (state) => {
-      const snapshot = withSearchSlot(searchSlot({ state }))
-      expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
-      expect(
-        parseSearchSnapshot(withSearchSlot(searchSlot({ state, rows: [searchRow] })))
-      ).toBeNull()
-      expect(
-        parseSearchSnapshot(
-          withSearchSlot(
-            searchSlot({ state, error: { code: 'NEOPLE_UNAVAILABLE', retryAfterSeconds: null } })
-          )
-        )
-      ).toBeNull()
-      expect(parseSearchSnapshot(withSearchSlot(searchSlot({ state, requestId: null })))).toBeNull()
-    }
-  )
-
   it.each([
     ['임의 이미지 호스트', { ...selected, imageUrl: 'https://example.test/face.png' }],
     [
@@ -139,14 +120,7 @@ describe('선택된 캐릭터 요약과 대기 snapshot', () => {
   })
 
   it('성공 외 상태와 여러 후보에 selected를 붙이지 못한다', () => {
-    for (const state of [
-      'idle',
-      'pending',
-      'empty',
-      'failure',
-      'waiting-portrait',
-      'waiting-policy'
-    ] as const) {
+    for (const state of ['idle', 'pending', 'empty', 'failure'] as const) {
       expect(parseSearchSnapshot(withSearchSlot(searchSlot({ state, selected })))).toBeNull()
     }
     expect(
@@ -296,8 +270,6 @@ describe('슬롯 상태별 판정 경계', () => {
     ['대기 중 요청', searchSlot()],
     ['빈 닉네임 요청', searchSlot({ nickname: '' })],
     ['결과 없음', searchSlot({ state: 'empty' })],
-    ['외형 대기', searchSlot({ state: 'waiting-portrait' })],
-    ['정책 대기', searchSlot({ state: 'waiting-policy' })],
     ['한 행 성공', searchSlot({ state: 'success', rows: [searchRow] })],
     ['오류 실패', searchSlot({ state: 'failure', error: timeout })],
     ['재시도 0초 제한', searchSlot({ state: 'failure', error: rateLimited(0) })],
@@ -325,7 +297,8 @@ describe('슬롯 상태별 판정 경계', () => {
     ['소수 관찰', searchSlot({ observationRevision: 1.5 })],
     ['오류가 붙은 성공', searchSlot({ state: 'success', rows: [searchRow], error: timeout })],
     ['오류가 붙은 결과 없음', searchSlot({ state: 'empty', error: timeout })],
-    ['행이 붙은 정책 대기', searchSlot({ state: 'waiting-policy', rows: [searchRow] })],
+    ['행이 붙은 결과 없음', searchSlot({ state: 'empty', rows: [searchRow] })],
+    ['요청 ID가 없는 결과 없음', searchSlot({ state: 'empty', requestId: null })],
     [
       '재시도 0초 시간 초과',
       searchSlot({ state: 'failure', error: { ...timeout, retryAfterSeconds: 0 } })

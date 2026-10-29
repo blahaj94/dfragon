@@ -159,7 +159,6 @@ function fitsCaptureLifetime(captureId: string | null, slots: readonly SlotField
 function createSchemas(slotCount: SearchSlotCount) {
   const snapshot = z
     .strictObject({
-      runId: uuid,
       revision,
       captureId: uuid.nullable(),
       slots: z.array(slot).length(slotCount)

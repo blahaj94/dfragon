@@ -1,24 +1,17 @@
 import { win32KeyboardHook, type KeyboardEvent } from './win32-keyboard-hook'
 
-export type ShortcutBinding<T extends string> = {
-  key: number
-  alt: boolean
-  action: T
-  releaseOnly?: boolean
-}
-
-export function createKeyboardShortcut<T extends string>({
-  bindings,
+export function createAltKeyShortcut({
+  key,
   isForeground,
   hook = win32KeyboardHook
 }: {
-  bindings: readonly ShortcutBinding<T>[]
+  key: number
   isForeground: () => boolean
   hook?: typeof win32KeyboardHook
-}): { register: (listener: (action: T) => void) => boolean; unregister: () => void } {
-  let listener: ((action: T) => void) | null = null
+}): { register: (listener: () => void) => boolean; unregister: () => void } {
+  let listener: (() => void) | null = null
   let generation = 0
-  const presses = new Map<number, ShortcutBinding<T> | null>()
+  let press: { handled: boolean } | null = null
 
   function foreground(): boolean {
     try {
@@ -28,7 +21,7 @@ export function createKeyboardShortcut<T extends string>({
     }
   }
 
-  function notifyLater(action: T): void {
+  function notifyLater(): void {
     const queuedListener = listener
     const queuedGeneration = generation
     setImmediate(() => {
@@ -38,57 +31,45 @@ export function createKeyboardShortcut<T extends string>({
         generation === queuedGeneration &&
         foreground()
       ) {
-        queuedListener(action)
+        queuedListener()
       }
     })
   }
 
-  function handleKey({ key, down, modifiers }: KeyboardEvent): boolean {
-    if (!listener || !bindings.some((binding) => binding.key === key)) {
+  function handleKey(event: KeyboardEvent): boolean {
+    if (!listener || event.key !== key) {
       return false
     }
     const allowed = foreground()
-    const noOtherModifier = !modifiers.control && !modifiers.shift && !modifiers.windows
-    const binding = bindings.find(
-      (candidate) => candidate.key === key && candidate.alt === modifiers.alt && noOtherModifier
-    )
-    const knownPress = presses.has(key)
-    const handledPress = presses.get(key)
-    if (down) {
-      if (!knownPress) {
-        const accepted = allowed && binding ? binding : null
-        presses.set(key, accepted)
-        if (accepted) {
-          notifyLater(accepted.action)
+    const { alt, control, shift, windows } = event.modifiers
+    const matches = alt && !control && !shift && !windows
+    if (event.down) {
+      if (press == null) {
+        const handled = allowed && matches
+        press = { handled }
+        if (handled) {
+          notifyLater()
         }
 
-        return accepted != null
+        return handled
       }
 
-      return handledPress != null && allowed
+      return press.handled && allowed
     }
-    presses.delete(key)
-    if (knownPress) {
-      return handledPress != null && allowed
-    }
+    const released = press
+    press = null
 
-    if (allowed && binding?.releaseOnly) {
-      notifyLater(binding.action)
-
-      return true
-    }
-
-    return false
+    return released != null && released.handled && allowed
   }
 
   function unregister(): void {
     listener = null
     generation += 1
-    presses.clear()
+    press = null
     hook.unregister(handleKey)
   }
 
-  function register(nextListener: (action: T) => void): boolean {
+  function register(nextListener: () => void): boolean {
     try {
       unregister()
     } catch {

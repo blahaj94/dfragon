@@ -19,7 +19,6 @@ function fixture(): {
   unsubscribes: Mock[]
   onSnapshot: Mock
   onFailure: Mock
-  onRunChanged: Mock
 } {
   const listeners: Array<(snapshot: SearchSnapshot) => void> = []
   const unsubscribes: Mock[] = []
@@ -29,7 +28,6 @@ function fixture(): {
   })
   const onSnapshot = vi.fn()
   const onFailure = vi.fn()
-  const onRunChanged = vi.fn()
   const connection = createSearchConnection({
     slotCount: SEARCH_SLOT_COUNTS.party,
     api: {
@@ -43,12 +41,11 @@ function fixture(): {
       }
     },
     onSnapshot,
-    onFailure,
-    onRunChanged
+    onFailure
   })
   connections.push(connection)
 
-  return { connection, control, listeners, unsubscribes, onSnapshot, onFailure, onRunChanged }
+  return { connection, control, listeners, unsubscribes, onSnapshot, onFailure }
 }
 
 it('초기 조회 전 event 중 최신 revision만 조회 뒤 반영한다', async () => {
@@ -66,27 +63,23 @@ it('초기 조회 전 event 중 최신 revision만 조회 뒤 반영한다', asy
   expect(f.onSnapshot).toHaveBeenLastCalledWith(searchSnapshot({ revision: 5 }))
 })
 
-it('run 변경은 이전 구독을 해제하고 이전 명령 응답을 새 연결에 반영하지 않는다', async () => {
+it('재연결은 이전 구독을 해제하고 이전 명령 응답을 새 연결에 반영하지 않는다', async () => {
   const f = fixture()
   f.connection.connect()
   await vi.waitFor(() => expect(f.connection.isReady()).toBe(true))
   const begin = Promise.withResolvers<SearchCommandResult>()
   f.control.mockReturnValueOnce(begin.promise)
   const command = f.connection.command({ action: 'begin' })
-  const next = searchSnapshot({ runId: '00000000-0000-4000-8000-000000000099', captureId: null })
-  f.control.mockResolvedValueOnce({ ok: true, snapshot: next })
-  f.listeners[0](next)
-  await vi.waitFor(() => expect(f.onSnapshot).toHaveBeenLastCalledWith(next))
-  expect(f.onRunChanged).toHaveBeenCalledOnce()
+  f.connection.connect()
+  await vi.waitFor(() => expect(f.connection.isReady()).toBe(true))
   expect(f.unsubscribes[0]).toHaveBeenCalledOnce()
 
   f.onSnapshot.mockClear()
   f.listeners[0](searchSnapshot({ revision: 99 }))
-  const direct = { ok: true, snapshot: searchSnapshot() } as const
+  const direct = { ok: true, snapshot: searchSnapshot({ revision: 98 }) } as const
   begin.resolve(direct)
   expect(await command).toEqual(direct)
   expect(f.onSnapshot).not.toHaveBeenCalled()
-  expect(f.onRunChanged).toHaveBeenCalledOnce()
 })
 
 it.each(['success', 'failure'] as const)(

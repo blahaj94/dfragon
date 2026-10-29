@@ -1,23 +1,15 @@
-import type { SlotState } from '../types/cards'
 import type { CharacterCardFrameState } from './card-presentation'
 
-export type NameFieldTone = 'default' | 'selected' | 'waiting' | 'failure' | 'vacant'
+export type NameFieldTone = 'default' | 'selected' | 'failure' | 'vacant'
 
-export function toNameFieldTone(
-  frameState: CharacterCardFrameState,
-  state: SlotState
-): NameFieldTone {
+export function toNameFieldTone(frameState: CharacterCardFrameState): NameFieldTone {
   if (frameState === 'selected' || frameState === 'failure') {
     return frameState
   }
 
-  if (frameState !== 'waiting') {
-    return 'default'
-  }
-
-  if (state === 'idle') {
+  if (frameState === 'waiting') {
     return 'vacant'
   }
 
-  return 'waiting'
+  return 'default'
 }

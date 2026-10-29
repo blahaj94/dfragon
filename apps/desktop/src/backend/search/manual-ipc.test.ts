@@ -41,10 +41,9 @@ it('capture source and Stop do not cancel manual requests; each channel rejects 
   const request = new Request(...fixture.fetchSearch.mock.calls[0])
   await fixture.invoke('selectCaptureSource', 'window:search-fixture')
   const captured = (await fixture.invoke('controlCharacterSearch', { action: 'begin' })) as {
-    snapshot: { captureId: string; runId: string }
+    snapshot: { captureId: string }
   }
   expect(captured.snapshot.captureId).not.toBe(fixture.captureId)
-  expect(captured.snapshot.runId).not.toBe((await fixture.read()).runId)
   expect(
     await fixture.invoke('notifyOcrCandidatesDetected', {
       captureId: fixture.captureId,

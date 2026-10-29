@@ -172,7 +172,7 @@ export function Preview(): React.JSX.Element {
     undefined,
     '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
   ]
-  const identificationNicknames = [null, '얼굴대기', '기준대기', '오류예시']
+  const identificationNicknames = [null, '검색예시', '결과없음', '오류예시']
   const identificationRetryEnabled = [false, false, false, true]
   const candidates = scenario === 'candidates'
   const candidatePickers = candidates

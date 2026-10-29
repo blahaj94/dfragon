@@ -127,11 +127,11 @@ it('OCR 후보 순서와 얼굴을 현재 capture ID, 관측 revision과 함께 
   ])
 })
 
-it('얼굴 크롭이 없는 OCR 관측의 waiting-portrait 상태를 표시한다', async () => {
+it('얼굴 크롭이 없는 OCR 관측도 main이 돌려준 검색 중 슬롯을 표시한다', async () => {
   const f = await fixture()
   f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
   await f.search.begin({ signal: new AbortController().signal })
-  const waiting = searchSlot({ state: 'waiting-portrait' })
+  const waiting = searchSlot({ state: 'pending' })
   f.notifyOcr.mockResolvedValueOnce({
     ok: true,
     snapshot: searchSnapshot({ revision: 3, slots: [waiting, ...searchSnapshot().slots.slice(1)] })
@@ -162,7 +162,7 @@ it.each(['이름 변경', 'end'] as const)(
       candidateNicknames: ['가나', '가너'],
       portrait: null
     })
-    const waiting = searchSlot({ state: 'waiting-portrait' })
+    const waiting = searchSlot({ state: 'pending' })
     f.emit(searchSnapshot({ revision: 3, slots: [waiting, ...searchSnapshot().slots.slice(1)] }))
     expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(waiting)
 
@@ -277,29 +277,6 @@ it('main이 끝낸 capture는 즉시 비활성화하고 END를 다시 보내지 
   f.search.end()
   expect(f.notifyOcr).not.toHaveBeenCalled()
   expect(f.control.mock.calls.map(([command]) => command.action)).toEqual(['read', 'begin'])
-})
-
-it('run 변경 중 늦은 begin은 정리하고 재연결 뒤 새 begin은 사용할 수 있다', async () => {
-  const f = await fixture()
-  const delayed = Promise.withResolvers<SearchCommandResult>()
-  f.control.mockReturnValueOnce(delayed.promise)
-  const begin = f.search.begin({ signal: new AbortController().signal })
-  const nextRun = '00000000-0000-4000-8000-000000000088'
-  f.emit(searchSnapshot({ runId: nextRun, captureId: null, revision: 0 }))
-  await vi.waitFor(() => expect(f.changed.mock.lastCall?.[0].ready).toBe(true))
-  delayed.resolve({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
-  expect(await begin).toBeNull()
-  expect(f.control).toHaveBeenCalledWith({ action: 'end', captureId: CAPTURE_ID })
-  expect(f.invalidated).toHaveBeenCalledOnce()
-
-  const nextId = '00000000-0000-4000-8000-000000000099'
-  f.control.mockResolvedValueOnce({
-    ok: true,
-    snapshot: searchSnapshot({ runId: nextRun, captureId: nextId, revision: 1 })
-  })
-  expect(await f.search.begin({ signal: new AbortController().signal })).toBe(nextId)
-  f.search.end()
-  expect(f.control).toHaveBeenLastCalledWith({ action: 'end', captureId: nextId })
 })
 
 it('반환 함수를 분리해서 호출해도 각 검색의 관측 상태와 종료가 격리된다', async () => {

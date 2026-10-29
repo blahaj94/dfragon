@@ -8,7 +8,6 @@ import type {
 
 export const CAPTURE_ID = '00000000-0000-4000-8000-000000000011'
 export const REQUEST_ID = '00000000-0000-4000-8000-000000000012'
-export const SEARCH_RUN = '00000000-0000-4000-8000-000000000013'
 export const searchRow = {
   characterId: 'synthetic-character',
   characterName: '<b>가나</b>',
@@ -50,7 +49,6 @@ export function searchSnapshot(overrides: Partial<SearchSnapshot> = {}): SearchS
   }))
 
   return {
-    runId: SEARCH_RUN,
     revision: 1,
     captureId: CAPTURE_ID,
     slots,

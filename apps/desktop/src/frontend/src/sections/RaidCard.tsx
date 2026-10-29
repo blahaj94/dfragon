@@ -2,7 +2,6 @@ import { CardFrame, ProgressCircle, shapes } from '@dfragon/ui'
 import type { ChangeEvent, HTMLAttributes, KeyboardEvent, ReactNode, Ref } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CardImage } from '../components/CardImage'
-import { HourglassIcon } from '../components/HourglassIcon'
 import { NameField } from '../components/NameField'
 import { ServerSelect } from '../components/ServerSelect'
 import { SnapshotChip } from '../components/SnapshotChip'
@@ -73,13 +72,12 @@ export function RaidCard({
           </PortraitWell>
           <div {...stylex.props(styles.column)}>
             <div {...stylex.props(styles.header)}>
-              <LookupField slot={slot} tone={toNameFieldTone(frameState, state)} draft={draft} />
+              <LookupField slot={slot} tone={toNameFieldTone(frameState)} draft={draft} />
               {tier !== undefined && (
                 <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
               )}
               {frameState === 'selected' && <EditingDots label="이름 수정 중" />}
               {frameState === 'failure' && <FailureMark label={cardStatus} />}
-              {frameState === 'waiting' && cardStatus !== '' && <WaitingMark label={cardStatus} />}
               {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
               <SlotNumber selected={frameState === 'selected'} tier={tier}>
                 {String(slot).padStart(2, '0')}
@@ -248,18 +246,6 @@ function FailureMark({ label }: { label: string }): React.JSX.Element {
       {...stylex.props(styles.mark, shapes.cutTopRight, styles.alert)}
     >
       !
-    </span>
-  )
-}
-
-function WaitingMark({ label }: { label: string }): React.JSX.Element {
-  return (
-    <span
-      role="img"
-      aria-label={label}
-      {...stylex.props(styles.mark, shapes.cutTopRight, styles.waitingMark)}
-    >
-      <HourglassIcon width="12" height="12" />
     </span>
   )
 }

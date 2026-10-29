@@ -110,7 +110,6 @@ export const styles = stylex.create({
     backgroundColor: colors.cardFailureWeak,
     color: colors.cardFailure
   },
-  waitingMark: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
   affiliation: {
     display: 'flex',
     alignItems: 'center',

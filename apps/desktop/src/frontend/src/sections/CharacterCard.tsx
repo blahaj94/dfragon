@@ -88,7 +88,7 @@ export function CharacterCard({
             <div {...stylex.props(styles.header)}>
               <LookupField
                 slot={slot}
-                tone={toNameFieldTone(frameState, state)}
+                tone={toNameFieldTone(frameState)}
                 draft={draft}
                 inputEnabled={inputEnabled}
                 showServer={inputEnabled || characterFound}

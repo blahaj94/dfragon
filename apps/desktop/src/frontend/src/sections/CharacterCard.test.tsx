@@ -243,11 +243,6 @@ it('검색 상태를 꺾쇠 상태와 오른쪽 위 표시로 보이고 상태 �
   expect(card().getAttribute('data-state')).toBe('failure')
   expect(visibleText()).toContain('검색 결과가 없습니다')
 
-  await render({ state: 'waiting-portrait', character: undefined })
-  expect(card().getAttribute('data-state')).toBe('waiting')
-  expect(statusMark()).toBeNull()
-  expect(card().textContent).toContain('얼굴 인식 대기')
-
   await render({ state: 'idle', character: undefined })
   expect(card().getAttribute('data-state')).toBe('waiting')
   expect(statusMark()).toBeNull()
@@ -279,7 +274,7 @@ it('헤더 줄은 서버 선택을 품은 이름 칸, 상태 표시, 스냅샷 �
   expect(card().querySelector('input')!.disabled).toBe(true)
 
   const vacantField = card().querySelector('input')!.parentElement!.className
-  await render({ state: 'waiting-portrait', character: undefined, inputEnabled: false })
+  await render({ state: 'pending', character: undefined, inputEnabled: false })
   expect(card().querySelector('input')!.parentElement!.className).not.toBe(vacantField)
 })
 

@@ -2,14 +2,6 @@ import type { CardFrameState } from '@dfragon/ui'
 import type { CharacterTier, SlotState } from '../types/cards'
 
 export function getCharacterCardStatus(state: SlotState): string {
-  if (state === 'waiting-portrait') {
-    return '얼굴 인식 대기'
-  }
-
-  if (state === 'waiting-policy') {
-    return '자동 식별 준비 중'
-  }
-
   if (state === 'failure') {
     return '검색 실패'
   }
@@ -31,7 +23,7 @@ export type CharacterCardFrameState = Extract<
 >
 
 export function isVacantSlot(state: SlotState): boolean {
-  return state === 'idle' || state === 'waiting-portrait' || state === 'waiting-policy'
+  return state === 'idle'
 }
 
 export function getCharacterCardFrameState({

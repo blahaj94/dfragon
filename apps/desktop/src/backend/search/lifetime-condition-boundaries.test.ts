@@ -143,7 +143,6 @@ it('Stop은 모든 슬롯의 HTTP와 429 대기를 정리하고 새 수명을 �
   await flushCompletion()
 
   expect(ended.snapshot).toEqual({
-    runId: before.runId,
     revision: before.revision + 1,
     captureId: null,
     slots: [0, 1, 2, 3].map((slot) => ({
