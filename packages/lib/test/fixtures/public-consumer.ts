@@ -1,7 +1,5 @@
 import {
   validateDFNickname,
-  detectDNFPartyParticipantWindow,
-  cropDNFPartyParticipantNicknames,
   detectDNFRaidParticipantWindow,
   cropDNFRaidParticipantNicknames,
   readDNFRaidParticipantMetadata,
@@ -15,10 +13,6 @@ import {
   type DFNicknameValidationOptions,
   type DNFRectangle,
   type DNFParticipantFrame,
-  type DNFParticipantSlot,
-  type DNFParticipantRow,
-  type DNFParticipantDetection,
-  type DNFParticipantCropResult,
   type DNFRaidParticipantPosition,
   type DNFRaidParticipantRow,
   type DNFRaidParticipantDetection,
@@ -61,27 +55,6 @@ export function searchInput(nickname: string) {
 
 // 값을 쓰지 않고 타입 검사에서 속성 접근만 확인하려고 인자로 받는다.
 function readOnlyForTypeCheck(_value: unknown): void {}
-
-export function partyRows(frame: DNFParticipantFrame, heading: DNFParticipantFrame) {
-  const detection: DNFParticipantDetection = detectDNFPartyParticipantWindow(frame, heading)
-  const result: DNFParticipantCropResult = cropDNFPartyParticipantNicknames(frame, heading)
-  if (result.status !== 'found') {
-    // @ts-expect-error 실패 결과에서 검출된 행을 읽을 수 없어야 한다.
-    readOnlyForTypeCheck(result.rows)
-
-    return []
-  }
-  const rows: DNFParticipantRow[] = result.rows
-  const samples = result.rows.map((row) => {
-    const slot: DNFParticipantSlot = row.slot
-    const nickname: DNFRectangle = row.nickname
-    const crop: DNFParticipantFrame | null = row.crop
-
-    return { slot, nickname, crop }
-  })
-
-  return { detection, rows, samples }
-}
 
 export function raidRows(frame: DNFParticipantFrame, heading: DNFParticipantFrame) {
   const detection: DNFRaidParticipantDetection = detectDNFRaidParticipantWindow(frame, heading)
