@@ -221,6 +221,9 @@ catalogs:
     '@xstate/react':
       specifier: 6.1.0
       version: 6.1.0
+    dataloader:
+      specifier: 2.2.3
+      version: 2.2.3
     dotenv-cli:
       specifier: 11.0.0
       version: 11.0.0
@@ -248,6 +251,9 @@ catalogs:
     ky:
       specifier: 2.2.0
       version: 2.2.0
+    lru-cache:
+      specifier: 11.5.3
+      version: 11.5.3
     onnxruntime-web:
       specifier: 1.30.0
       version: 1.30.0
@@ -354,9 +360,15 @@ importers:
       '@nestjs/swagger':
         specifier: 'catalog:'
         version: 12.0.2(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.2.0)(reflect-metadata@0.2.2)(typescript@7.0.2)
+      dataloader:
+        specifier: 'catalog:'
+        version: 2.2.3
       ky:
         specifier: 'catalog:'
         version: 2.2.0
+      lru-cache:
+        specifier: 'catalog:'
+        version: 11.5.3
       reflect-metadata:
         specifier: 'catalog:'
         version: 0.2.2
@@ -2285,6 +2297,9 @@ packages:
   data-urls@8.0.0:
     resolution: {integrity: sha512-JQUCCK+/CAGbGGx618PlFZMXH81Jtj7t73CHv9dd/zVWvxgGT2zLFRjnKb+Ng46GIwcy+f7f88qd4duqllK+WQ==}
     engines: {node: ^22.14.0 || >=24.0.0}
+
+  dataloader@2.2.3:
+    resolution: {integrity: sha512-y2krtASINtPFS1rSDjacrFgn1dcUuoREVabwlOGOe4SdxenREqwjwjElAdwvbGM7kgZz9a3KVicWR7vcz8rnzA==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -5365,6 +5380,8 @@ snapshots:
       whatwg-url: 17.2.0(@noble/hashes@1.8.0)
     transitivePeerDependencies:
       - '@noble/hashes'
+
+  dataloader@2.2.3: {}
 
   debug@4.4.3(supports-color@7.2.0):
     dependencies:

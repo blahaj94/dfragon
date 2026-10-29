@@ -230,7 +230,7 @@ async function fetchRequiredSkills(requirements, fetchCatalog) {
     throw new SkillVerificationFailure('CATALOG_LOOKUP_FAILED')
   }
   const controller = new AbortController()
-  const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)])
+  const signal = controller.signal
   const skills = {}
   const requests = ids.map(async (skillId) => {
     signal.throwIfAborted()

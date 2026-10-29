@@ -5,10 +5,7 @@ import type { FetchTransport } from '../../types/neople-character-search.js'
 import type { CharacterPayload } from '../details/sections.js'
 import { CATALOG_LIMITS, isCatalogId } from './types.js'
 
-export type FetchCatalog = (
-  itemIds: string[],
-  signal: AbortSignal
-) => Promise<Map<string, CharacterPayload>>
+export type FetchCatalog = (itemIds: string[]) => Promise<Map<string, CharacterPayload>>
 
 function selectRequestedRows(body: unknown, itemIds: string[]): Map<string, CharacterPayload> {
   if (!isRecord(body)) {
@@ -47,7 +44,7 @@ export function createNeopleCatalog(apiKey: string, fetchImpl?: FetchTransport):
     retry: 0
   })
 
-  return async (itemIds, requestSignal) => {
+  return async (itemIds) => {
     if (
       itemIds.length === 0 ||
       itemIds.length > CATALOG_LIMITS.maximumBatchKeys ||
@@ -56,16 +53,10 @@ export function createNeopleCatalog(apiKey: string, fetchImpl?: FetchTransport):
       throw new Error('Invalid catalog request')
     }
 
-    // ky hands an already aborted request to fetch, so this keeps a cancelled lookup off the transport.
-    if (requestSignal.aborted) {
-      throw new Error('Catalog lookup failed')
-    }
-
     try {
       return await neople
         .get('/df/multi/items', {
           searchParams: { itemIds: itemIds.join(',') },
-          signal: requestSignal,
           parseJson: (rawBody) => selectRequestedRows(JSON.parse(rawBody), itemIds)
         })
         .json<Map<string, CharacterPayload>>()

@@ -36,7 +36,7 @@ scripts/
 
 ## Approved boundary
 
-현재 workspace, app boundary와 API runtime, 검증 기반이 승인됐다. 검색의 입력, 응답, 오류는 [`../rules/character-search.md`](../rules/character-search.md)를 따른다. 회원 인증 서비스와 DB는 두지 않는다(2026-10-26 결정, [Issue #796](https://github.com/blahaj94/dfragon/issues/796)). API는 상태를 저장하지 않으며 여러 노드로 띄울 수 있다. 응답 캐시를 도입하면 노드가 공유하는 저장소(Redis)를 쓴다. 다음 사항은 구체 결정, 확보 또는 검증이 남아 있다.
+현재 workspace, app boundary와 API runtime, 검증 기반이 승인됐다. 검색의 입력, 응답, 오류는 [`../rules/character-search.md`](../rules/character-search.md)를 따른다. 회원 인증 서비스와 DB는 두지 않는다(2026-10-26 결정, [Issue #796](https://github.com/blahaj94/dfragon/issues/796)). API는 DB 없이 동작한다. 공용 아이템 정보만 API 메모리에 24시간 캐시하며, 지금은 서버 한 대, 인스턴스 하나라 메모리로 충분하다(2026-10-29 결정, [Issue #992](https://github.com/blahaj94/dfragon/issues/992)). 여러 노드로 늘리면 캐시를 노드가 공유하는 저장소(Redis)로 옮긴다. 다음 사항은 구체 결정, 확보 또는 검증이 남아 있다.
 
 - Web/mobile client
 - 아래 Shared UI, Shared library boundary 이외의 shared package 종류와 dependency direction

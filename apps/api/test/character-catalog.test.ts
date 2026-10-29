@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { setTimeout as delay } from 'node:timers/promises'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { enrichCharacterDetails } from '../src/characters/catalog/enrich.js'
@@ -44,25 +43,17 @@ test('중복을 제거한 128개까지만 조회하고 15개 이하 배치 9개�
   }
 })
 
-test('처리 기한이 끝나면 진행 중인 아이템 조회를 쓰지 않고 취소된 요청은 전송하지 않는다', async () => {
+test('연결이 이미 끊긴 요청은 공용 아이템을 조회하지 않는다', async () => {
   let calls = 0
-  const controller = new AbortController()
-  const itemIds = Array.from({ length: 10 }, (_, i) => `item-${i}`)
-  const service = createCatalogService(async (group, requestSignal) => {
+  const service = createCatalogService(async (itemIds) => {
     calls++
-    await delay(30, undefined, { signal: requestSignal })
 
-    return catalogPayloads(group)
-  }, 5)
-  const result = await service.load(itemIds, signal)
-  assert.equal(calls, 1)
-  const started = calls
-  for (const detail of result.values()) {
-    assert.deepEqual(detail, { data: null, fetchedAt: null, status: 'unavailable' })
-  }
+    return catalogPayloads(itemIds)
+  })
+  const controller = new AbortController()
   controller.abort()
-  await assert.rejects(service.load(itemIds, controller.signal))
-  assert.equal(calls, started)
+  await assert.rejects(service.load([item], controller.signal), { name: 'AbortError' })
+  assert.equal(calls, 0)
 })
 
 test('공급자 응답을 요청 itemId로 대응하고 옵션을 보존하며 오류 원문을 정제한다', async () => {
@@ -79,21 +70,21 @@ test('공급자 응답을 요청 itemId로 대응하고 옵션을 보존하며 �
       ]
     })
   }
-  const values = await createNeopleCatalog('fixture-key', fetchImpl)([item, 'missing'], signal)
+  const values = await createNeopleCatalog('fixture-key', fetchImpl)([item, 'missing'])
   assert.deepEqual([...values.keys()], [item])
   assert.deepEqual(values.get(item)!.option, { value: '3%' })
   assert(!requestPaths[0]!.includes('fixture-key'))
   const failure = createNeopleCatalog('fixture-key', async () => {
     throw new Error('secret upstream message')
   })
-  await assert.rejects(failure([item], signal), { message: 'Catalog lookup failed' })
+  await assert.rejects(failure([item]), { message: 'Catalog lookup failed' })
   let unavailableCalls = 0
   const unavailable = createNeopleCatalog('fixture-key', async () => {
     unavailableCalls++
 
     return Response.json({ error: { message: 'secret upstream message' } }, { status: 503 })
   })
-  await assert.rejects(unavailable([item], signal), { message: 'Catalog lookup failed' })
+  await assert.rejects(unavailable([item]), { message: 'Catalog lookup failed' })
   // 503은 HTTP client 기본 재시도 대상이지만 공용 상세 조회는 재시도하지 않는다.
   assert.equal(unavailableCalls, 1)
   const service = createCatalogService(async () => {
@@ -162,56 +153,6 @@ test('14개 장비 슬롯, 마법부여 스킬 옵션, 체인 null과 캐릭터 
   assert.equal(Object.hasOwn(result, 'setDetails'), false)
 })
 
-test('연결 종료 뒤 늦은 성공은 반환하지 않고 연결된 요청의 성공만 반환한다', async () => {
-  for (const disconnected of [false, true]) {
-    const controller = new AbortController()
-    let markStarted!: () => void
-    const started = new Promise<void>((resolve) => {
-      markStarted = resolve
-    })
-    let finishFetch!: () => void
-    const release = new Promise<void>((resolve) => {
-      finishFetch = resolve
-    })
-    const service = createCatalogService(async (itemIds, requestSignal) => {
-      markStarted()
-      await release
-      assert.equal(requestSignal.aborted, disconnected)
-
-      return new Map(itemIds.map((itemId) => [itemId, { ...catalogPayload(itemId), late: true }]))
-    })
-    const pending = service.load([item], controller.signal)
-    await started
-    if (disconnected) {
-      controller.abort()
-    }
-    finishFetch()
-    if (disconnected) {
-      await assert.rejects(pending, { name: 'AbortError' })
-    } else {
-      const result = await pending
-      assert.deepEqual(result.get(item)!.data, {
-        itemId: 'fixture-item',
-        itemName: '합성 아이템 fixture-item',
-        late: true
-      })
-    }
-  }
-})
-
-test('이미 취소된 공용 상세 요청은 전송하지 않는다', async () => {
-  let calls = 0
-  const adapter = createNeopleCatalog('fixture-key', async () => {
-    calls++
-
-    return Response.json({ rows: [] })
-  })
-  const controller = new AbortController()
-  controller.abort()
-  await assert.rejects(adapter([item], controller.signal), { message: 'Catalog lookup failed' })
-  assert.equal(calls, 0)
-})
-
 test('아이템 다중 응답의 누락, 중복, 잘못된 이름은 저장 대상에서 제외하고 올바른 이웃만 유지한다', async () => {
   const wanted = ['valid', 'duplicate', 'missing', 'bad-name']
   const valid = {
@@ -234,5 +175,5 @@ test('아이템 다중 응답의 누락, 중복, 잘못된 이름은 저장 대�
     })
   )
 
-  assert.deepEqual(await adapter(wanted, signal), new Map([['valid', valid]]))
+  assert.deepEqual(await adapter(wanted), new Map([['valid', valid]]))
 })

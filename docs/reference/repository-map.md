@@ -3,7 +3,7 @@ type: reference
 status: active
 enforcement: autonomous
 scope: repository
-last-reviewed: 2026-10-19
+last-reviewed: 2026-10-29
 ---
 
 # Repository Map
@@ -69,7 +69,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 ### `apps/api`
 
 - Package: `@dfragon/api`, Node 26, NestJS ESM. `src/http.ts`는 캐릭터 HTTP와 `/health`를 합성한다.
-- DB를 쓰지 않는다. 상세와 공용 아이템 상세를 요청마다 Neople에서 조회하며 저장, 캐시하지 않는다.
+- DB를 쓰지 않는다. 캐릭터 상세는 요청마다 Neople에서 조회하고, 공용 아이템 상세는 API 메모리에 24시간 캐시한다.
 - 필수 입력: `PORT`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정, JWT를 사용하지 않는다.
 - `test`는 build, 타입, 단위, HTTP 검증이다.
 - 개발: [API 개발](api-start-development.md). 이미지 실행, 운영 책임: [제품 안내](api-start-development.md#서버-이미지).
