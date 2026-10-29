@@ -1,5 +1,4 @@
-import type { DNFRectangle } from './dnf-party-geometry.js'
-import type { DNFParticipantFrame } from './dnf-party-participants.js'
+import type { DNFParticipantFrame, DNFRectangle } from './dnf-party-geometry.js'
 
 const evidencePolicy = {
   minBrightness: 100,

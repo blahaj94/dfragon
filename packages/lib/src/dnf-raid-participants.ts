@@ -1,11 +1,10 @@
-import type { DNFRectangle } from './dnf-party-geometry.js'
+import type { DNFParticipantFrame, DNFRectangle } from './dnf-party-geometry.js'
 import { isValidPartyFrameSize } from './dnf-party-frame-geometry.js'
 import { projectParticipantRectangle } from './dnf-participant-regions.js'
 import {
   hasParticipantEvidence,
   participantEvidenceRatio as evidenceRatio
 } from './dnf-participant-evidence.js'
-import type { DNFParticipantFrame } from './dnf-party-participants.js'
 import {
   createParticipantHeadingMatcher,
   findParticipantAnchors,

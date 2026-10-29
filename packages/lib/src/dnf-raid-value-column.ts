@@ -1,6 +1,5 @@
-import type { DNFRectangle } from './dnf-party-geometry.js'
+import type { DNFParticipantFrame, DNFRectangle } from './dnf-party-geometry.js'
 import { participantGrayscale } from './dnf-party-participant-matching.js'
-import type { DNFParticipantFrame } from './dnf-party-participants.js'
 import { normalizedRegion, validateImage, validateRegion } from './dnf-raid-metadata.js'
 
 export type DNFRaidValueColumnKind = 'fame' | 'equipment-score' | 'unknown'
