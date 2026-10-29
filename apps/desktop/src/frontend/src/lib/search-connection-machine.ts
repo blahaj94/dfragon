@@ -1,11 +1,6 @@
 import { assign, enqueueActions, fromCallback, fromPromise, setup } from 'xstate'
 import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
-import type {
-  SearchApi,
-  SearchSlotCount,
-  SearchSnapshot
-} from '../../../preload/common/types/search'
-import { parseSearchResult, parseSearchSnapshot } from '../../../preload/common/search/snapshot'
+import type { SearchApi, SearchSnapshot } from '../../../preload/common/types/search'
 
 type ConnectionEvent =
   | { type: 'SUBSCRIBED' }
@@ -15,23 +10,14 @@ type ConnectionEvent =
   | { type: 'READ_SUCCEEDED'; snapshot: SearchSnapshot }
   | { type: 'READ_FAILED' }
 
-type ConnectionTarget = { api: SearchApi; slotCount: SearchSlotCount }
+type ConnectionTarget = { api: SearchApi }
 type ConnectionContext = ConnectionTarget & {
   snapshot: SearchSnapshot | null
   queued: SearchSnapshot | null
 }
 
-export async function readSearchSnapshot({
-  api,
-  slotCount
-}: ConnectionTarget): Promise<SearchSnapshot> {
-  const result = parseSearchResult(
-    await api.controlCharacterSearch({ action: SEARCH_ACTIONS.READ }),
-    slotCount
-  )
-  if (result == null) {
-    throw new Error('Invalid search bridge response')
-  }
+export async function readSearchSnapshot({ api }: ConnectionTarget): Promise<SearchSnapshot> {
+  const result = await api.controlCharacterSearch({ action: SEARCH_ACTIONS.READ })
 
   return result.snapshot
 }
@@ -47,12 +33,9 @@ export const searchConnectionMachine = setup({
   actors: {
     subscription: fromCallback<ConnectionEvent, ConnectionTarget>(({ input, sendBack }) => {
       try {
-        const unsubscribe = input.api.onCharacterSearchChanged((value) => {
-          const snapshot = parseSearchSnapshot(value, input.slotCount)
-          if (snapshot != null) {
-            sendBack({ type: 'SNAPSHOT', snapshot })
-          }
-        })
+        const unsubscribe = input.api.onCharacterSearchChanged((snapshot) =>
+          sendBack({ type: 'SNAPSHOT', snapshot })
+        )
         sendBack({ type: 'SUBSCRIBED' })
 
         return unsubscribe
@@ -97,7 +80,6 @@ export const searchConnectionMachine = setup({
   id: 'searchConnection',
   context: ({ input }) => ({
     api: input.api,
-    slotCount: input.slotCount,
     snapshot: null,
     queued: null
   }),
@@ -107,7 +89,7 @@ export const searchConnectionMachine = setup({
       type: 'parallel',
       invoke: {
         src: 'subscription',
-        input: ({ context }) => ({ api: context.api, slotCount: context.slotCount })
+        input: ({ context }) => ({ api: context.api })
       },
       on: {
         RESULT: {
@@ -132,7 +114,7 @@ export const searchConnectionMachine = setup({
               on: { SNAPSHOT: { actions: 'queueSnapshot' } },
               invoke: {
                 src: 'read',
-                input: ({ context }) => ({ api: context.api, slotCount: context.slotCount }),
+                input: ({ context }) => ({ api: context.api }),
                 onDone: {
                   target: 'listening',
                   actions: [

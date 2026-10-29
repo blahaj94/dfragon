@@ -118,39 +118,13 @@ const ocrObservationSchemas = {
     .refine((input) => input.nickname === input.candidateNicknames[0])
 }
 
-function parseCommand<T extends object>({
-  args,
-  schema
-}: {
-  args: unknown[]
-  schema: z.ZodType<T>
-}): T | null {
-  const hasOneArgument = args.length === 1
-  const value = args[0]
-  const isObject = value != null && typeof value === 'object' && !Array.isArray(value)
-  const canParse = hasOneArgument && isObject
-  if (!canParse) {
+function parseCommand<T>({ args, schema }: { args: unknown[]; schema: z.ZodType<T> }): T | null {
+  if (args.length !== 1) {
     return null
   }
+  const parsed = schema.safeParse(args[0])
 
-  const parsed = schema.safeParse(value)
   if (!parsed.success) {
-    return null
-  }
-  const keys = Reflect.ownKeys(value)
-  const hasExactKeyCount = keys.length === Object.keys(parsed.data).length
-  const hasOnlyExpectedKeys = keys.every((key) => {
-    const isStringKey = typeof key === 'string'
-    if (!isStringKey) {
-      return false
-    }
-    const isExpectedKey = Object.hasOwn(parsed.data, key)
-
-    return isExpectedKey
-  })
-  const hasExactKeys = hasExactKeyCount && hasOnlyExpectedKeys
-
-  if (!hasExactKeys) {
     return null
   }
 
@@ -168,30 +142,5 @@ export function parseOcrSearchObservation(
   args: unknown[],
   slotCount: SearchSlotCount = SEARCH_SLOT_COUNTS.party
 ): OcrSearchObservation | null {
-  const parsed = parseCommand({ args, schema: ocrObservationSchemas[slotCount] })
-  if (parsed === null || !hasExactOcrShape(args[0], parsed)) {
-    return null
-  }
-
-  return parsed
-}
-
-function hasExactOcrShape(input: unknown, parsed: unknown): boolean {
-  if (parsed === null || typeof parsed !== 'object' || parsed instanceof Uint8Array) {
-    return true
-  }
-
-  if (input === null || typeof input !== 'object') {
-    return false
-  }
-  const keys = Reflect.ownKeys(parsed)
-
-  return (
-    Reflect.ownKeys(input).length === keys.length &&
-    keys.every(
-      (key) =>
-        Object.hasOwn(input, key) &&
-        hasExactOcrShape(Reflect.get(input, key), Reflect.get(parsed, key))
-    )
-  )
+  return parseCommand({ args, schema: ocrObservationSchemas[slotCount] })
 }

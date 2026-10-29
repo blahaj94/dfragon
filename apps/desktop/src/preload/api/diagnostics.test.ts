@@ -24,14 +24,9 @@ it('히스토리와 실시간 이벤트 모두 정제된 항목만 화면에 노
   expect(mocks.remove).toHaveBeenCalledExactlyOnceWith(DIAGNOSTIC_CHANNELS.entry, handler)
 })
 
-it('보고용 preload도 알 수 없는 문자열과 원문 오류를 전송하지 않는다', async () => {
+it('보고 코드를 그대로 main에 보낸다', async () => {
   mocks.invoke.mockResolvedValue(undefined)
   await reportRendererDiagnostic('OCR_FAILED')
-  await expect(
-    Reflect.apply(reportRendererDiagnostic, undefined, ['MAIN_PROCESS_FAILED'])
-  ).rejects.toThrow('INVALID_DIAGNOSTIC_COMMAND')
-  await expect(
-    Reflect.apply(reportRendererDiagnostic, undefined, [new Error('synthetic private payload')])
-  ).rejects.toThrow('INVALID_DIAGNOSTIC_COMMAND')
+
   expect(mocks.invoke).toHaveBeenCalledExactlyOnceWith(DIAGNOSTIC_CHANNELS.report, 'OCR_FAILED')
 })

@@ -4,10 +4,8 @@ import type {
   SearchApi,
   SearchCommandResult,
   SearchControl,
-  SearchSlotCount,
   SearchSnapshot
 } from '../../../preload/common/types/search'
-import { parseSearchResult } from '../../../preload/common/search/snapshot'
 import { readSearchSnapshot, searchConnectionMachine } from './search-connection-machine'
 
 type ConnectionActor = Actor<typeof searchConnectionMachine>
@@ -15,7 +13,6 @@ type ConnectionState = SnapshotFrom<typeof searchConnectionMachine>
 
 type ConnectionOptions = {
   api: SearchApi
-  slotCount: SearchSlotCount
   onSnapshot: (snapshot: SearchSnapshot | null) => void
   onFailure: () => void
 }
@@ -29,7 +26,7 @@ export type SearchConnection = {
 }
 
 export function createSearchConnection(options: ConnectionOptions): SearchConnection {
-  const target = { api: options.api, slotCount: options.slotCount }
+  const target = { api: options.api }
   let currentActor = createActor(searchConnectionMachine, { input: target })
 
   function isReady(): boolean {
@@ -69,11 +66,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
   ): Promise<SearchCommandResult | null> {
     const actor = currentActor
     try {
-      const result = parseSearchResult(await send(), options.slotCount)
-      if (result == null) {
-        throw new Error('Invalid search bridge response')
-      }
-
+      const result = await send()
       sendIfActive(actor, { type: 'RESULT', snapshot: result.snapshot })
       // 종료된 연결의 늦은 begin도 직접 받은 ID로 main capture를 정리해야 한다.
 

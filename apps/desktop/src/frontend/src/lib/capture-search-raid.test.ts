@@ -9,7 +9,7 @@ import {
 import type { SearchApi, SearchSnapshot } from '../../../preload/common/types/search'
 import type { SearchView } from '../types/search'
 
-it('공대 연결은 12자리 snapshot만 받아 12번째 슬롯 결과를 보인다', async () => {
+it('공대 연결은 12자리 snapshot의 12번째 슬롯 결과를 보인다', async () => {
   const raidSlots = (slots: SearchSnapshot['slots'] = []): SearchSnapshot['slots'] =>
     Array.from(
       { length: 12 },
@@ -63,9 +63,6 @@ it('공대 연결은 12자리 snapshot만 받아 12번째 슬롯 결과를 보�
   const success = searchSlot({ slot: 11, state: 'success', rows: [searchRow], selected })
   snapshot = searchSnapshot({ revision: 3, slots: raidSlots([success]) })
   emit(snapshot)
-  expect(view!.slots[11].state).toBe('success')
-  emit(searchSnapshot({ revision: 4 }))
-  expect(view!.slots).toHaveLength(12)
   expect(view!.slots[11].state).toBe('success')
   search.dispose()
 })

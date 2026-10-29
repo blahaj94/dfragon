@@ -1,9 +1,5 @@
 import { ipcRenderer } from 'electron'
-import {
-  isRendererDiagnosticCode,
-  parseDiagnosticEntry,
-  parseDiagnosticHistory
-} from '../common/diagnostics'
+import { parseDiagnosticEntry, parseDiagnosticHistory } from '../common/diagnostics'
 import { DIAGNOSTIC_CHANNELS, type DiagnosticApi } from '../common/types/diagnostics'
 
 export const getDiagnosticHistory: DiagnosticApi['getDiagnosticHistory'] = async () => {
@@ -17,9 +13,6 @@ export const getDiagnosticHistory: DiagnosticApi['getDiagnosticHistory'] = async
 }
 
 export const reportRendererDiagnostic: DiagnosticApi['reportRendererDiagnostic'] = async (code) => {
-  if (!isRendererDiagnosticCode(code)) {
-    throw new Error('INVALID_DIAGNOSTIC_COMMAND')
-  }
   await ipcRenderer.invoke(DIAGNOSTIC_CHANNELS.report, code)
 }
 
