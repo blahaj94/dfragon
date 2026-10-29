@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setImmediate as nextTurn } from 'node:timers/promises'
+import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createCharacterDetailService } from '../src/characters/details/service.js'
 import { CharacterDetailFailure } from '../src/characters/details/errors.js'
 import type { CharacterPayloads } from '../src/characters/details/sections.js'
 
 const identity = { serverId: 'siroco', characterId: 'refresh-fixture' }
 const signal = new AbortController().signal
+const catalog = createCatalogService(async () => new Map())
 const common = { ...identity, characterName: '합성 캐릭터', jobId: 'job' }
 const payloads: CharacterPayloads = {
   basic: { ...common },
@@ -34,6 +36,7 @@ function gate() {
 test('끝난 요청을 재사용하지 않고 매번 Neople에서 받는다', async (t) => {
   let calls = 0
   const service = createCharacterDetailService({
+    catalog,
     fetchDetails: async () => {
       calls++
 
@@ -52,7 +55,7 @@ test('끝난 요청을 재사용하지 않고 매번 Neople에서 받는다', as
 test('상세 응답 JSON은 섹션마다 revision 1과 조회 시각을, freshness에 조회 시각과 5분 뒤 만료를 담는다', async (t) => {
   const fetchedAt = '2026-10-29T00:00:00.000Z'
   t.mock.timers.enable({ apis: ['Date'], now: Date.parse(fetchedAt) })
-  const service = createCharacterDetailService({ fetchDetails: async () => payloads })
+  const service = createCharacterDetailService({ catalog, fetchDetails: async () => payloads })
   t.after(() => service.onModuleDestroy())
 
   const result = await service.get('192.0.2.1', identity, signal)
@@ -113,6 +116,7 @@ test('겹친 요청은 작업을 공유하고 한 대기자의 연결 종료는 
   let calls = 0,
     sharedSignal: AbortSignal | undefined
   const service = createCharacterDetailService({
+    catalog,
     fetchDetails: async (_identity, s) => {
       calls++
       sharedSignal = s
@@ -146,6 +150,7 @@ test('겹친 요청의 대기자들은 같은 조회 시각의 freshness와 sect
     finish = gate()
   let calls = 0
   const service = createCharacterDetailService({
+    catalog,
     fetchDetails: async () => {
       calls++
       entered.release()
@@ -194,6 +199,7 @@ test('마지막 대기자가 취소하면 공유 작업을 취소하고 새 요�
   let calls = 0,
     abortedSignal: AbortSignal | undefined
   const service = createCharacterDetailService({
+    catalog,
     fetchDetails: async (_identity, s) => {
       calls++
       if (calls === 1) {
@@ -225,6 +231,7 @@ test('공유 조회 실패 뒤 새 요청을 허용하고 서버 종료는 취�
     finish = gate()
   let calls = 0
   const service = createCharacterDetailService({
+    catalog,
     fetchDetails: async () => {
       calls++
       entered.release()
@@ -250,6 +257,7 @@ test('공유 조회 실패 뒤 새 요청을 허용하고 서버 종료는 취�
     cleanup = gate(),
     stopped = new AbortController()
   const shutting = createCharacterDetailService({
+    catalog,
     fetchDetails: async (_identity, s) => {
       start.release()
       s.addEventListener('abort', () => stopped.abort(), { once: true })
@@ -273,7 +281,7 @@ test('공유 조회 실패 뒤 새 요청을 허용하고 서버 종료는 취�
 })
 
 test('상세 응답은 기존 필드에 역할만 정한 card를 더하고 지운 카드 칸은 빈 값이다', async (t) => {
-  const service = createCharacterDetailService({ fetchDetails: async () => payloads })
+  const service = createCharacterDetailService({ catalog, fetchDetails: async () => payloads })
   t.after(() => service.onModuleDestroy())
 
   const result = await service.get('192.0.2.1', identity, signal)

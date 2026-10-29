@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { OpenAPIObject } from '@nestjs/swagger'
+import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createApiHttpApp } from '../src/http.js'
 
 test('Swagger는 공개 API 경로만 문서화하고 provider를 호출하지 않는다', async (t) => {
   const unused = t.mock.fn(async (): Promise<never> => {
     throw new Error('documentation must not call services')
   })
-  const app = await createApiHttpApp({ searchCharacters: unused }, { fetchDetails: unused })
+  const app = await createApiHttpApp({
+    search: { searchCharacters: unused },
+    details: { fetchDetails: unused, catalog: createCatalogService(unused) }
+  })
   try {
     await app.listen(0, '127.0.0.1')
     const origin = await app.getUrl()

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import test from 'node:test'
 import type { TestContext } from 'node:test'
+import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createNeopleCharacterSearchForTest } from '../src/characters/neople-character-search.js'
 import { createApiHttpApp } from '../src/http.js'
 import type { NeopleCharacterSearchTestDependencies } from '../src/types/neople-character-search.js'
@@ -30,7 +31,13 @@ async function startApp(
     'synthetic-candidates-key',
     dependencies
   )
-  const app = await createApiHttpApp({ searchCharacters })
+  const unusedProvider = async (): Promise<never> => {
+    throw new Error('candidate search must not call detail providers')
+  }
+  const app = await createApiHttpApp({
+    search: { searchCharacters },
+    details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) }
+  })
   t.after(() => app.close())
   await app.listen(0, '127.0.0.1')
 

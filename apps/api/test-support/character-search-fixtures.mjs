@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { URL } from 'node:url'
 import { createApiHttpApp } from '../dist/http.js'
+import { createCatalogService } from '../dist/characters/catalog/service.js'
 import { createNeopleCharacterSearchForTest } from '../dist/characters/neople-character-search.js'
 
 export async function isolatedNeople() {
@@ -63,6 +64,14 @@ export async function isolatedNeople() {
   }
 }
 
+export function unusedDetailProviders() {
+  const unusedProvider = async () => {
+    throw new Error('검색 테스트가 상세 공급자를 호출함')
+  }
+
+  return { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) }
+}
+
 export async function withSearchApp(operation, overrides = {}) {
   const neople = await isolatedNeople()
   const { calls, upstream } = neople
@@ -79,7 +88,7 @@ export async function withSearchApp(operation, overrides = {}) {
     searchCharacters,
     ...overrides
   }
-  const app = await createApiHttpApp(deps)
+  const app = await createApiHttpApp({ search: deps, details: unusedDetailProviders() })
   try {
     await app.listen(0, '127.0.0.1')
     const result = await operation({ base: await app.getUrl(), calls, upstream, deps, app })

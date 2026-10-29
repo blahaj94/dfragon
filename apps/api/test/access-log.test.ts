@@ -2,8 +2,15 @@ import assert from 'node:assert/strict'
 import { Writable } from 'node:stream'
 import test from 'node:test'
 import { type AccessLogSink, createStreamAccessLogSink } from '../src/access-log.js'
+import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createNeopleCharacterDetailsForTest } from '../src/characters/details/neople.js'
 import { createApiHttpApp } from '../src/http.js'
+
+const unusedProvider = async (): Promise<never> => {
+  throw new Error('access log test must not call this provider')
+}
+const unusedCatalog = createCatalogService(unusedProvider)
+const unusedDetails = { fetchDetails: unusedProvider, catalog: unusedCatalog }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 const ISO_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
@@ -65,15 +72,11 @@ test('접근 로그는 요청마다 allowlist field 한 줄만 남기고 credent
     throw new Error(secrets.errorDetail)
   }
   const logs = collectAccessLogs()
-  const app = await createApiHttpApp(
-    { searchCharacters: failWithDetail },
-    {
-      fetchDetails: failWithDetail
-    },
-    undefined,
-    undefined,
-    logs.sink
-  )
+  const app = await createApiHttpApp({
+    search: { searchCharacters: failWithDetail },
+    details: { fetchDetails: failWithDetail, catalog: unusedCatalog },
+    writeAccessLog: logs.sink
+  })
   t.after(() => app.close())
   await app.listen(0, '127.0.0.1')
   const origin = await app.getUrl()
@@ -173,21 +176,20 @@ test('5xx 응답에는 오류 class 이름, code와 message를 뺀 stack frame�
     { code: '57P01', detail: secrets.characterName }
   )
   const logs = collectAccessLogs()
-  const app = await createApiHttpApp(
-    {
+  const app = await createApiHttpApp({
+    search: {
       searchCharacters: async (): Promise<never> => {
         throw databaseFailure
       }
     },
-    {
+    details: {
       fetchDetails: async (): Promise<never> => {
         throw secrets.token
-      }
+      },
+      catalog: unusedCatalog
     },
-    undefined,
-    undefined,
-    logs.sink
-  )
+    writeAccessLog: logs.sink
+  })
   t.after(() => app.close())
   await app.listen(0, '127.0.0.1')
   const origin = await app.getUrl()
@@ -236,17 +238,16 @@ test('상세의 Neople 실패는 상세 오류와 원래 원인만 chain에 남�
     () => new Response(`not json ${secrets.errorDetail}`, { status: 503 })
   ]
   const logs = collectAccessLogs()
-  const app = await createApiHttpApp(
-    { searchCharacters: async () => ({ rows: [] }) },
-    {
+  const app = await createApiHttpApp({
+    search: { searchCharacters: async () => ({ rows: [] }) },
+    details: {
       fetchDetails: createNeopleCharacterDetailsForTest('fake-key', {
         fetch: async () => responses.shift()!()
-      })
+      }),
+      catalog: unusedCatalog
     },
-    undefined,
-    undefined,
-    logs.sink
-  )
+    writeAccessLog: logs.sink
+  })
   t.after(() => app.close())
   await app.listen(0, '127.0.0.1')
   const origin = await app.getUrl()
@@ -283,17 +284,15 @@ test('Stack을 만든 뒤 message가 바뀌면 frame을 생략하고, 원래 오
   })
   const thrown = [changedMessage, unreadableName]
   const logs = collectAccessLogs()
-  const app = await createApiHttpApp(
-    {
+  const app = await createApiHttpApp({
+    search: {
       searchCharacters: async (): Promise<never> => {
         throw thrown.shift()
       }
     },
-    undefined,
-    undefined,
-    undefined,
-    logs.sink
-  )
+    details: unusedDetails,
+    writeAccessLog: logs.sink
+  })
   t.after(() => app.close())
   await app.listen(0, '127.0.0.1')
   const origin = await app.getUrl()
@@ -328,19 +327,17 @@ test('응답 header를 보내기 전에 연결이 끊기면 status 없이 aborte
     release = resolve
   })
   const logs = collectAccessLogs()
-  const app = await createApiHttpApp(
-    {
+  const app = await createApiHttpApp({
+    search: {
       searchCharacters: async (): Promise<never> => {
         markEntered()
         await gate
         throw new Error(secrets.errorDetail)
       }
     },
-    undefined,
-    undefined,
-    undefined,
-    logs.sink
-  )
+    details: unusedDetails,
+    writeAccessLog: logs.sink
+  })
   t.after(async () => {
     release()
     await app.close()
@@ -372,17 +369,15 @@ test('접근 로그 sink가 예외를 던져도 process를 끝내지 않고 다�
     logs.sink(line)
     throw new Error(secrets.errorDetail)
   }
-  const app = await createApiHttpApp(
-    {
+  const app = await createApiHttpApp({
+    search: {
       searchCharacters: async (): Promise<never> => {
         throw new Error(secrets.errorDetail)
       }
     },
-    undefined,
-    undefined,
-    undefined,
-    throwingSink
-  )
+    details: unusedDetails,
+    writeAccessLog: throwingSink
+  })
   t.after(() => app.close())
   await app.listen(0, '127.0.0.1')
   const origin = await app.getUrl()

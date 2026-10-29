@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { Controller, Get, Injectable } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
+import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createApiHttpApp } from '../src/http.js'
 import type { SearchCharacters } from '../src/types/neople-character-search.js'
 
@@ -35,9 +36,15 @@ const apiRoot = fileURLToPath(new URL('../../', import.meta.url))
 const unusedSearchCharacters: SearchCharacters = async () => {
   throw new Error('app lifecycle test must not search Neople characters')
 }
+const unusedProvider = async (): Promise<never> => {
+  throw new Error('app lifecycle test must not call Neople')
+}
 
 test('createApiHttpApp은 listen 전에는 port를 열지 않고 close 뒤 port를 닫는다', async () => {
-  const app = await createApiHttpApp({ searchCharacters: unusedSearchCharacters })
+  const app = await createApiHttpApp({
+    search: { searchCharacters: unusedSearchCharacters },
+    details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) }
+  })
   const server = app.getHttpServer() as Server
 
   assert.equal(server.listening, false)
@@ -48,6 +55,25 @@ test('createApiHttpApp은 listen 전에는 port를 열지 않고 close 뒤 port�
     await app.close()
   }
   assert.equal(server.listening, false)
+})
+
+test('createApiHttpApp은 앱 설정의 trustedProxyHops를 Express trust proxy로 쓴다', async () => {
+  for (const [trustedProxyHops, expected] of [
+    [1, 1],
+    [undefined, false]
+  ] as const) {
+    const app = await createApiHttpApp({
+      search: { searchCharacters: unusedSearchCharacters },
+      details: { fetchDetails: unusedProvider, catalog: createCatalogService(unusedProvider) },
+      trustedProxyHops
+    })
+
+    try {
+      assert.equal(app.getHttpAdapter().getInstance().get('trust proxy'), expected)
+    } finally {
+      await app.close()
+    }
+  }
 })
 
 test('test module route는 listen 후 생성자로 주입한 provider의 응답을 HTTP로 제공한다', async () => {
