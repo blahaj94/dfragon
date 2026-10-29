@@ -2,44 +2,35 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
-import { catalogKey } from '../src/characters/catalog/types.js'
-import type { CatalogKey } from '../src/characters/catalog/types.js'
 
-function catalogPayload(key: CatalogKey) {
-  return { itemId: key.itemId, itemName: '합성 아이템 ' + key.itemId }
+function catalogPayload(itemId: string) {
+  return { itemId, itemName: '합성 아이템 ' + itemId }
 }
 
 test('중복 참조를 한 번씩 조회하고 아이템은 15개 이내로 제공한다', async () => {
-  const items: CatalogKey[] = Array.from({ length: 17 }, (_, index) => {
-    const itemId = 'item-' + index
+  const items = Array.from({ length: 17 }, (_, index) => 'item-' + index)
+  const calls: string[][] = []
+  const service = createCatalogService(async (itemIds) => {
+    calls.push(itemIds)
 
-    return { kind: 'item', itemId }
-  })
-  const calls: CatalogKey[][] = []
-  const service = createCatalogService(async (keys) => {
-    calls.push(keys)
-
-    return keys.map((key) => {
-      const payload = catalogPayload(key)
-
-      return { key, payload }
-    })
+    return new Map(itemIds.map((itemId) => [itemId, catalogPayload(itemId)]))
   })
   const before = Date.now()
-  const result = await service.load([...items, { ...items[0]! }], new AbortController().signal)
+  const result = await service.load([...items, items[0]!], new AbortController().signal)
 
   for (const group of calls) {
     assert(group.length > 0 && group.length <= 15)
   }
-  assert.deepEqual(calls.flat().map(catalogKey).sort(), items.map(catalogKey).sort())
+  assert.deepEqual(calls.flat().sort(), [...items].sort())
   assert.equal(result.size, 17)
-  for (const key of items) {
-    const fetchedAt = result.get(catalogKey(key))!.detail.fetchedAt
+  for (const itemId of items) {
+    const fetchedAt = result.get(itemId)!.fetchedAt
     const fetchedTime = Date.parse(fetchedAt ?? '')
-    assert.ok(before <= fetchedTime && fetchedTime <= Date.now(), catalogKey(key))
-    assert.deepEqual(result.get(catalogKey(key)), {
-      key,
-      detail: { data: catalogPayload(key), fetchedAt, status: 'fresh' }
+    assert.ok(before <= fetchedTime && fetchedTime <= Date.now(), itemId)
+    assert.deepEqual(result.get(itemId), {
+      data: catalogPayload(itemId),
+      fetchedAt,
+      status: 'fresh'
     })
   }
 })
@@ -55,11 +46,8 @@ test('공급자는 아이템 15개 요청을 받고 16개 요청은 전송 전�
 
     return Response.json({ rows: [] })
   })
-  const keys: CatalogKey[] = Array.from({ length: 16 }, (_, index) => ({
-    kind: 'item',
-    itemId: 'fixture-' + index
-  }))
-  assert.deepEqual(await adapter(keys.slice(0, 15), new AbortController().signal), [])
-  await assert.rejects(adapter(keys, new AbortController().signal), /Invalid catalog request/)
+  const itemIds = Array.from({ length: 16 }, (_, index) => 'fixture-' + index)
+  assert.deepEqual(await adapter(itemIds.slice(0, 15), new AbortController().signal), new Map())
+  await assert.rejects(adapter(itemIds, new AbortController().signal), /Invalid catalog request/)
   assert.equal(calls, 1)
 })
