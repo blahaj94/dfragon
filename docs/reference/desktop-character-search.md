@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: desktop OCR character search implementation and verification
-last-reviewed: 2026-10-29
+last-reviewed: 2026-10-30
 ---
 
 # Desktop 캐릭터 검색
@@ -241,7 +241,7 @@ git diff --check
 
 공대 카드의 서버, 이름 조회는 같은 `registerManualSearchIpc`의 `raid` 수명으로 실행한다. `capture/ipc-handler.ts`가 파티 화면용(`controlCharacterSearch`, 4자리)과 공대 화면용(`controlRaidSearch`, 12자리) 수명을 따로 등록하고, 문서 이동, 종료, renderer 종료 때 두 수명을 함께 무효화한다. `commands.ts`는 수명의 슬롯 수로 슬롯 번호를 검사하고, preload의 snapshot 검사는 채널이 기대하는 슬롯 수와 정확히 같은 snapshot만 받는다. Renderer의 `useRaidCapture.ts`가 `useManualCharacterLookup`을 공대 API와 12자리로 직접 불러 파티 화면과 다른 연결을 만든다.
 
-공대 캡처는 같은 공대 수명을 쓴다. `hooks/useRaidCapture.ts`가 `lib/raid-capture-machine.ts`의 회차를 소유하고, 파티 캡처의 창 등록 상태를 받아 등록이 바뀌면 진행 중 회차를 끝낸다. 회차는 `useManualCharacterLookup`의 `begin`으로 공대 수명을 새로 시작한 뒤 `window.raidSearch.readCaptureFrame`(`readRaidCaptureFrame`)으로 12행의 닉네임, 직업명 크롭과 수치 표기, 수치 열 종류를 받는다. `lib/raid-recognition.ts`는 파티 캡처와 같은 반전 이진화와 OCR worker로 행마다 닉네임 첫 후보를 판정하고, 검색할 이름이면 직업명 칸도 같은 전처리로 읽는다. 직업명 인식 실패는 그 행의 직업명만 null로 둔다. 인식한 이름은 `notifyRaidOcrCandidatesDetected`로 얼굴 없이, 그 행의 `raidRow`(`jobText`, `valueColumn`, `valueText`)와 함께 알린다. `commands.ts`는 공대 관측에만 `raidRow`를 요구하고 파티 관측에는 받지 않는다. 수치 표기는 숫자, 쉼표, 마침표, `K`로 16자까지, 직업명은 32자까지다.
+공대 캡처는 같은 공대 수명을 쓴다. `hooks/useRaidCapture.ts`가 `lib/raid-capture-machine.ts`의 회차를 소유하고, 파티 캡처의 창 등록 상태를 받아 등록이 바뀌면 진행 중 회차를 끝낸다. 회차는 `useManualCharacterLookup`의 `begin`으로 공대 수명을 새로 시작한 뒤 `window.raidSearch.readCaptureFrame`(`readRaidCaptureFrame`)으로 12행의 닉네임, 직업명 크롭과 수치 표기, 수치 열 종류를 받는다. `lib/raid-recognition.ts`는 닉네임 칸을 파티 캡처와 같은 반전 이진화 뒤 `nickname-pixels.ts`의 `removeDetachedRaidNicknamePixels`로 정리하고(`toRaidNicknameCanvas`) OCR worker로 행마다 첫 후보를 판정한다. 이 정리는 검은 픽셀이 있는 열을 빈 열 간격으로 덩어리로 묶고, 간격이 크롭 높이의 4/17(UI 0%에서 4px) 이상이면 다른 덩어리로 본다. 검은 픽셀이 가장 많은 덩어리만 남기고 나머지는 배경으로 지운다. 검색할 이름이면 직업명 칸은 이 정리 없이 반전 이진화만 해 읽는다. 직업명 인식 실패는 그 행의 직업명만 null로 둔다. 인식한 이름은 `notifyRaidOcrCandidatesDetected`로 얼굴 없이, 그 행의 `raidRow`(`jobText`, `valueColumn`, `valueText`)와 함께 알린다. `commands.ts`는 공대 관측에만 `raidRow`를 요구하고 파티 관측에는 받지 않는다. 수치 표기는 숫자, 쉼표, 마침표, `K`로 16자까지, 직업명은 32자까지다.
 
 Main의 공대 수명은 `SearchRuntime.ocrIdentification`을 `raid`로 두어 `identify.ts`의 `createRaidCharacterIdentifier`를 쓴다. `raid-candidate.ts`는 직업명 그룹을 만들고 `job`, `fame`, `highest-fame` 중 선택한다. 명성 비교에는 후보 검색 응답을 쓰며 장비 점수 열은 최고 명성 선택으로 처리한다. 그룹 후보는 얼굴 창 없는 `choices`로 전달한다. 정책값은 [공대 식별 흐름](../rules/character-search.md#desktop의-공대-식별-흐름)과 같다.
 

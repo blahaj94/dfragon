@@ -75,6 +75,17 @@ it('파티 캡처와 같은 반전 이진화를 거친 canvas를 인식에 넘�
   expect([...drawn.get(canvas)!]).toEqual([255, 255, 255, 255, 0, 0, 0, 255])
 })
 
+it('닉네임 칸에서만 본문과 떨어진 점을 지우고 직업명 칸은 그대로 이진화한다', async () => {
+  recognize.mockResolvedValueOnce(result('공대원')).mockResolvedValueOnce(result('크루세이더'))
+  const detached = crop([230, 20, 230, 230])
+
+  await recognizeRaidRows([{ nickname: detached, job: detached, valueText: '12,345' }], recognize)
+
+  const [nicknameCanvas, jobCanvas] = recognize.mock.calls.map(([canvas]) => drawn.get(canvas)!)
+  expect([...nicknameCanvas].filter((_, index) => index % 4 === 0)).toEqual([255, 255, 0, 0])
+  expect([...jobCanvas].filter((_, index) => index % 4 === 0)).toEqual([0, 255, 0, 0])
+})
+
 it.each([
   ['', 'empty'],
   ['가'.repeat(13), 'too-long']

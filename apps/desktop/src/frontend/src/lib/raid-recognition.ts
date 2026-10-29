@@ -2,7 +2,7 @@ import type { PartyOcrWorker } from '../types/capture'
 import type { RaidFrameRow } from '../../../preload/common/types/capture'
 import type { CharacterImage } from '../../../preload/common/types/character'
 import { MAX_RAID_JOB_TEXT_LENGTH } from '../../../preload/common/types/search'
-import { toBinarizedTextCanvas } from './nickname-pixels'
+import { toBinarizedTextCanvas, toRaidNicknameCanvas } from './nickname-pixels'
 import { firstCandidate, type FirstCandidate, recognizeBinarizedText } from './party-recognition'
 
 export type RaidSlotRecognition =
@@ -45,7 +45,7 @@ export async function recognizeRaidRows(
       results.push({ kind: 'missing', slot })
       continue
     }
-    const data = await recognizeBinarizedText(recognize, toBinarizedTextCanvas(row.nickname))
+    const data = await recognizeBinarizedText(recognize, toRaidNicknameCanvas(row.nickname))
     if (data === null) {
       results.push({ kind: 'failed', slot })
       continue
