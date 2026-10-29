@@ -309,13 +309,20 @@ it('새 회차가 진행되는 동안 이전 완료 시각을 유지하고 다�
   expect(lastCapture()).toBe('-')
 })
 
+function tooltipLines(): string[] {
+  const tooltip = document.querySelector('[data-side="bottom"]')
+  expect(tooltip).not.toBeNull()
+
+  return [...tooltip!.querySelectorAll('span')].map((line) => line.textContent ?? '')
+}
+
 it.each([
-  ['파티 모험단 순번 스냅샷', 'Alt+W', 'Alt W'],
-  ['클립보드로 복사', 'Alt+A', 'Alt A'],
-  ['파티 캡처, 단축키 Alt R', 'Alt+R', 'Alt R']
+  ['파티 모험단 순번 스냅샷', 'Alt+W', ['스냅샷 찍기', 'Alt W']],
+  ['클립보드로 복사', 'Alt+A', ['복사하기', 'Alt A']],
+  ['파티 캡처, 단축키 Alt R', 'Alt+R', ['캡처하기', 'Alt R']]
 ])(
-  '%s 버튼은 %s 단축키를 알리고 포커스가 가면 아래쪽 말풍선에 단축키를 보인다',
-  async (label, keys, text) => {
+  '%s 버튼은 %s 단축키를 알리고 포커스가 가면 아래쪽 말풍선에 동작 이름과 단축키를 두 줄로 보인다',
+  async (label, keys, lines) => {
     const f = createRendererFixture()
     f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
     await mount(f)
@@ -327,8 +334,7 @@ it.each([
 
     await act(async () => button.focus())
 
-    const tooltip = document.querySelector('[data-side="bottom"]')
-    expect(tooltip?.textContent).toBe(text)
+    expect(tooltipLines()).toEqual(lines)
     await act(async () => button.blur())
     await vi.waitFor(() => expect(document.querySelector('[data-side="bottom"]')).toBeNull())
   }
@@ -362,4 +368,20 @@ it('Alt+W는 꺼진 스냅샷을 찍고 켜진 스냅샷에는 아무것도 하�
   await f.shortcut('copy-clipboard')
   expect(window.desktopClipboard.writeText).toHaveBeenCalledExactlyOnceWith('[], [], [], []')
   expect(beginCount(f)).toBe(begins)
+})
+
+it('켜진 스냅샷 버튼의 말풍선은 끄기 동작 이름만 보이고 단축키 줄은 두지 않는다', async () => {
+  const f = createRendererFixture()
+  f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
+  await mount(f)
+  await f.shortcut('take-snapshot')
+  const snapshot = document.querySelector<HTMLButtonElement>(
+    '[aria-label="파티 모험단 순번 스냅샷"]'
+  )!
+  expect(snapshot.getAttribute('aria-pressed')).toBe('true')
+
+  await act(async () => snapshot.focus())
+
+  expect(tooltipLines()).toEqual(['스냅샷 지우기'])
+  expect(snapshot.getAttribute('aria-keyshortcuts')).toBe('Alt+W')
 })
