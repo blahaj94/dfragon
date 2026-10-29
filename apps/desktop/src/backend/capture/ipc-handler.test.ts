@@ -267,6 +267,26 @@ describe('capture main document and source boundary', () => {
     expect(electron.getSources).not.toHaveBeenCalled()
   })
 
+  it('서버 지정 조회는 캡처 검색 채널에서 거부하고 capture를 시작하지 않는다', async () => {
+    const fixture = await setup()
+    await fixture.invoke('selectCaptureSource', sources[0].id)
+
+    const result = await fixture.invoke('controlCharacterSearch', {
+      action: 'lookup',
+      captureId: '00000000-0000-4000-8000-000000000011',
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나',
+      serverId: 'cain'
+    })
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: 'INVALID_SEARCH_COMMAND' },
+      snapshot: { captureId: null }
+    })
+  })
+
   it('선택 source로 begin하고 이전 end가 새 capture를 끝내지 않는다', async () => {
     const fixture = await setup()
     await fixture.invoke('selectCaptureSource', sources[0].id)
