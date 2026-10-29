@@ -2,6 +2,16 @@ import { assign, fromPromise, setup, type SnapshotFrom } from 'xstate'
 import type { CapturePhase } from '../types/capture'
 import type { RaidFrameResult, RaidFrameRow } from '../../../preload/common/types/capture'
 import type { RaidValueColumn } from '../../../preload/common/types/search'
+import {
+  beginCaptureSearch,
+  CAPTURE_COMPLETE_STATUS,
+  CAPTURE_DISCONNECTED_STATUS,
+  CAPTURE_UNSUPPORTED_STATUS,
+  getCapturingPhase,
+  getObservedNickname,
+  getRecognizeErrorStatus,
+  getWaitingStatus
+} from './capture-round'
 import type { OcrCaptureObservation } from './capture-search'
 import { recognizeWithOcrWorker } from './ocr-worker-recognition'
 import { recognizeRaidRows, type RaidSlotRecognition } from './raid-recognition'
@@ -45,17 +55,7 @@ export const raidCaptureMachine = setup({
     events: {} as RaidCaptureEvent
   },
   actors: {
-    beginSearch: fromPromise(
-      async ({ input, signal }: { input: RaidCaptureInput; signal: AbortSignal }) => {
-        const captureId = await input.beginSearch(signal)
-        signal.throwIfAborted()
-        if (captureId === null) {
-          throw new Error('Search lifetime unavailable.')
-        }
-
-        return captureId
-      }
-    ),
+    beginSearch: beginCaptureSearch,
     readFrame: fromPromise(
       ({ input }: { input: { captureId: string; effects: RaidCaptureInput } }) =>
         input.effects.readFrame(input.captureId)
@@ -102,23 +102,15 @@ export const raidCaptureMachine = setup({
         }
         if (result.kind === 'rejected') {
           showRejectedOcrNickname(result)
-          context.effects.observeOcr({
-            slot,
-            nickname: '',
-            candidateNicknames: [''],
-            portrait: null,
-            raidRow
-          })
-        } else {
-          const { nickname } = result
-          context.effects.observeOcr({
-            slot,
-            nickname,
-            candidateNicknames: [nickname],
-            portrait: null,
-            raidRow
-          })
         }
+        const nickname = getObservedNickname(result)
+        context.effects.observeOcr({
+          slot,
+          nickname,
+          candidateNicknames: [nickname],
+          portrait: null,
+          raidRow
+        })
       }
     }
   }
@@ -210,21 +202,13 @@ export const raidCaptureMachine = setup({
               {
                 guard: ({ event }) => event.output.kind === 'waiting',
                 target: 'unavailable',
-                actions: assign({
-                  status: ({ event }) => {
-                    if (event.output.kind === 'waiting' && event.output.reason === 'covered') {
-                      return '게임 창이 가려져 있습니다. 게임 창을 앞으로 가져온 뒤 Alt+R을 누르세요.'
-                    }
-
-                    return '게임 화면을 읽지 못했습니다. 창이 최소화되지 않았는지 확인한 뒤 Alt+R을 누르세요.'
-                  }
-                })
+                actions: assign({ status: ({ event }) => getWaitingStatus(event.output) })
               },
               {
                 target: '#raidCapture.failed',
                 actions: [
                   () => reportRendererDiagnostic('CAPTURE_READ_FAILED'),
-                  assign({ status: '화면 캡처는 Windows에서 사용할 수 있습니다.' })
+                  assign({ status: CAPTURE_UNSUPPORTED_STATUS })
                 ]
               }
             ],
@@ -232,7 +216,7 @@ export const raidCaptureMachine = setup({
               target: '#raidCapture.failed',
               actions: [
                 () => reportRendererDiagnostic('CAPTURE_READ_FAILED'),
-                assign({ status: '캡처 연결이 종료되었습니다. 창을 다시 선택해 주세요.' })
+                assign({ status: CAPTURE_DISCONNECTED_STATUS })
               ]
             }
           }
@@ -273,13 +257,7 @@ export const raidCaptureMachine = setup({
               actions: [
                 () => reportRendererDiagnostic('OCR_FAILED'),
                 assign({
-                  status: ({ event }) => {
-                    if (event.error instanceof Error) {
-                      return event.error.message
-                    }
-
-                    return OCR_FAILED_STATUS
-                  }
+                  status: ({ event }) => getRecognizeErrorStatus(event.error, OCR_FAILED_STATUS)
                 })
               ]
             }
@@ -287,7 +265,7 @@ export const raidCaptureMachine = setup({
         },
         complete: {
           entry: assign({
-            status: '인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.',
+            status: CAPTURE_COMPLETE_STATUS,
             completedAt: () => Date.now()
           })
         },
@@ -303,16 +281,8 @@ export const raidCaptureMachine = setup({
 export function getRaidCapturePhase(
   snapshot: SnapshotFrom<typeof raidCaptureMachine>
 ): Extract<CapturePhase, 'idle' | 'recognizing' | 'complete' | 'unavailable' | 'failed'> {
-  if (snapshot.matches({ capturing: 'complete' })) {
-    return 'complete'
-  }
-
-  if (snapshot.matches({ capturing: 'unavailable' })) {
-    return 'unavailable'
-  }
-
   if (snapshot.matches('capturing')) {
-    return 'recognizing'
+    return getCapturingPhase(snapshot)
   }
 
   if (snapshot.matches('failed')) {
