@@ -57,7 +57,7 @@ function selected(serverId: string) {
 }
 
 function viewWithSlot(slot: SearchSlot): SearchView {
-  const slots = emptySearchSlots().map((current) => (current.slot === slot.slot ? slot : current))
+  const slots = emptySearchSlots(4).map((current) => (current.slot === slot.slot ? slot : current))
 
   return { ready: true, slots, connectionFailed: false }
 }

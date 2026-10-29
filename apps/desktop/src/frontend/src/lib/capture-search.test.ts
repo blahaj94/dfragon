@@ -56,7 +56,8 @@ async function fixture(): Promise<{
     },
     notifyOcr,
     onChange: changed,
-    onInvalidated: invalidated
+    onInvalidated: invalidated,
+    slotCount: 4
   })
   searches.push(search)
   search.connect()
