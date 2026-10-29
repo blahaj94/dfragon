@@ -41,7 +41,10 @@ const choices: CandidatePicker['choices'] = [
 
 async function render(
   picker: CandidatePicker,
-  { onPick, onClose = vi.fn() }: { onPick?: (serverId: string) => void; onClose?: () => void } = {}
+  {
+    onPick = vi.fn(),
+    onClose = vi.fn()
+  }: { onPick?: (serverId: string) => void; onClose?: () => void } = {}
 ): Promise<void> {
   await act(async () =>
     root.render(<CandidateWindow slot={2} picker={picker} onPick={onPick} onClose={onClose} />)
@@ -104,10 +107,4 @@ it('초상화를 누르면 그 서버로 고르고 닫기 X는 창을 닫는다'
   )
   expect(close).toHaveBeenCalledOnce()
   expect(pick).toHaveBeenCalledOnce()
-})
-
-it('고를 수 없는 화면에서는 초상화를 잠근다', async () => {
-  await render({ choices, shownServerId: 'cain', previewServerId: null })
-  expect(portrait('카인').disabled).toBe(true)
-  expect(portrait('시로코').disabled).toBe(true)
 })

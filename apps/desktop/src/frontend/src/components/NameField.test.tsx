@@ -26,10 +26,6 @@ let root: Root
 let container: HTMLElement
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn(() => ({ matches: false }))
-  )
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -72,19 +68,15 @@ it('일반 input props를 안쪽 input에 그대로 넘기고 placeholder를 두
   expect(onBlur).toHaveBeenCalledOnce()
 })
 
-it('disabled를 입력에 전달한다', async () => {
-  await render({ disabled: true })
-  expect(input().disabled).toBe(true)
-})
-
 it('end를 입력 뒤 같은 칸 안에 그린다', async () => {
   await render({
     end: (
       <ServerSelect
-        variant="field"
         label="2번 서버"
         value="siroco"
         options={[{ id: 'siroco', label: '시로코' }]}
+        open={false}
+        onOpenChange={vi.fn()}
         onValueChange={vi.fn()}
       />
     )

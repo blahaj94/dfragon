@@ -1,21 +1,18 @@
 // @vitest-environment jsdom
 import * as stylex from '@stylexjs/stylex'
-import { act } from 'react'
+import { act, type ComponentProps } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { CharacterCard } from '../sections/CharacterCard'
 import { RaidCard } from '../sections/RaidCard'
 import { previewCharacter } from '../fixture/mvp/fixture'
 import { serverNames } from '../constants/servers'
+import { useServerMenu } from '../hooks/useServerMenu'
 import { ServerSelect } from './ServerSelect'
 
 let root: ReturnType<typeof createRoot>
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn(() => ({ matches: false }))
-  )
   const container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
@@ -26,8 +23,17 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
+function ServerMenuSelect(
+  props: Omit<ComponentProps<typeof ServerSelect>, 'open' | 'onOpenChange'>
+): React.JSX.Element {
+  const menu = useServerMenu()
+
+  return <ServerSelect {...props} open={menu.open} onOpenChange={menu.setOpen} />
+}
+
 it('서버 변경은 해당 카드만 조회한다', async () => {
   const onLookup = vi.fn()
+  const otherLookup = vi.fn()
   await act(async () =>
     root.render(
       <>
@@ -35,14 +41,15 @@ it('서버 변경은 해당 카드만 조회한다', async () => {
           cardKey={{ id: 'party-0', resetKey: '0' }}
           card={{ state: 'success', character: previewCharacter }}
           slot={1}
-          inputEnabled
           onLookup={onLookup}
+          onPickCandidate={vi.fn()}
         />
         <CharacterCard
           cardKey={{ id: 'party-1', resetKey: '0' }}
           card={{ state: 'success', character: previewCharacter }}
           slot={2}
-          inputEnabled
+          onLookup={otherLookup}
+          onPickCandidate={vi.fn()}
         />
       </>
     )
@@ -56,6 +63,7 @@ it('서버 변경은 해당 카드만 조회한다', async () => {
   )!
   await act(async () => option.click())
   expect(onLookup).toHaveBeenCalledExactlyOnceWith(previewCharacter.name, 'cain')
+  expect(otherLookup).not.toHaveBeenCalled()
   expect(trigger.textContent).toContain('카인')
   expect(trigger.getAttribute('aria-expanded')).toBe('false')
   const cards = document.querySelectorAll('article')
@@ -69,7 +77,7 @@ it('전달된 서버만 제공하고 Escape로 선택 변경 없이 닫는다', 
   const onValueChange = vi.fn()
   await act(async () =>
     root.render(
-      <ServerSelect
+      <ServerMenuSelect
         label="서버"
         value="cain"
         options={[
@@ -102,7 +110,7 @@ it('전달된 서버만 제공하고 Escape로 선택 변경 없이 닫는다', 
 it('서버를 고르지 않으면 트리거에 서버를 표시하고 선택된 항목을 두지 않는다', async () => {
   await act(async () =>
     root.render(
-      <ServerSelect
+      <ServerMenuSelect
         label="1번 서버"
         value=""
         options={[
@@ -126,7 +134,7 @@ it('카드 위 칩과 목록을 카드 면으로 그리고 키보드로 열어 �
   const onValueChange = vi.fn()
   await act(async () =>
     root.render(
-      <ServerSelect
+      <ServerMenuSelect
         label="1번 서버"
         value="siroco"
         options={[
@@ -173,22 +181,6 @@ it('카드 위 칩과 목록을 카드 면으로 그리고 키보드로 열어 �
   await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
 })
 
-it('제품의 입력 미연결 상태에서는 서버 선택도 비활성으로 유지한다', async () => {
-  await act(async () =>
-    root.render(
-      <CharacterCard
-        cardKey={{ id: 'party-0', resetKey: '0' }}
-        card={{ state: 'success', character: previewCharacter }}
-        slot={1}
-      />
-    )
-  )
-  const trigger = document.querySelector<HTMLButtonElement>('[aria-label="1번 서버"]')!
-  expect(trigger.disabled).toBe(true)
-  await act(async () => trigger.click())
-  expect(trigger.getAttribute('aria-expanded')).toBe('false')
-})
-
 it('파티 카드의 서버 목록은 카인, 디레지에, 시로코, 프레이, 카시야스, 힐더, 안톤, 바칼 순서다', async () => {
   await act(async () =>
     root.render(
@@ -196,7 +188,8 @@ it('파티 카드의 서버 목록은 카인, 디레지에, 시로코, 프레이
         cardKey={{ id: 'party-0', resetKey: '0' }}
         card={{ state: 'success', character: previewCharacter }}
         slot={1}
-        inputEnabled
+        onLookup={vi.fn()}
+        onPickCandidate={vi.fn()}
       />
     )
   )
@@ -218,7 +211,7 @@ it('파티 카드의 서버 목록은 카인, 디레지에, 시로코, 프레이
   ])
 })
 
-it('이름 칸 안 칩은 서버 8개를 4열 목록으로 열고, 카드 헤더 칩은 한 줄 목록으로 연다', async () => {
+it('서버 8개를 4열 목록으로 연다', async () => {
   const options = [
     { id: 'anton', label: '안톤' },
     { id: 'bakal', label: '바칼' },
@@ -231,16 +224,12 @@ it('이름 칸 안 칩은 서버 8개를 4열 목록으로 열고, 카드 헤더
   ]
   await act(async () =>
     root.render(
-      <>
-        <ServerSelect
-          variant="field"
-          label="칸 안 서버"
-          value="siroco"
-          options={options}
-          onValueChange={vi.fn()}
-        />
-        <ServerSelect label="헤더 서버" value="siroco" options={options} onValueChange={vi.fn()} />
-      </>
+      <ServerMenuSelect
+        label="칸 안 서버"
+        value="siroco"
+        options={options}
+        onValueChange={vi.fn()}
+      />
     )
   )
   const field = document.querySelector<HTMLButtonElement>('[aria-label="칸 안 서버"]')!
@@ -248,16 +237,6 @@ it('이름 칸 안 칩은 서버 8개를 4열 목록으로 열고, 카드 헤더
   const fieldList = document.querySelector('[role="listbox"][aria-label="칸 안 서버"]')!
   expect(fieldList.getAttribute('style')).toContain('repeat(4, auto)')
   expect(fieldList.querySelectorAll('[role="option"]')).toHaveLength(8)
-  await act(async () =>
-    document.activeElement!.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
-    )
-  )
-
-  const chip = document.querySelector<HTMLButtonElement>('[aria-label="헤더 서버"]')!
-  await act(async () => chip.click())
-  const chipList = document.querySelector('[role="listbox"][aria-label="헤더 서버"]')!
-  expect(chipList.getAttribute('style') ?? '').not.toContain('repeat(')
 })
 
 function keydown(target: Element, key: string, init: KeyboardEventInit = {}): KeyboardEvent {
@@ -274,8 +253,8 @@ async function renderCard(onLookup: (nickname: string, serverId: string) => void
         cardKey={{ id: 'party-0', resetKey: '0' }}
         card={{ state: 'success', character: previewCharacter }}
         slot={1}
-        inputEnabled
         onLookup={onLookup}
+        onPickCandidate={vi.fn()}
       />
     )
   )

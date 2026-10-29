@@ -3,9 +3,8 @@ import { afterEach, expect, it, vi, type Mock, type MockInstance } from 'vitest'
 import { reportRendererDiagnostic, startRendererDiagnostics } from './runtime-diagnostics'
 import type { DiagnosticApi, DiagnosticEntry } from '../../../preload/common/types/diagnostics'
 
-let dispose: (() => void) | undefined
 afterEach(() => {
-  dispose?.()
+  window.dispatchEvent(new Event('pagehide'))
   vi.restoreAllMocks()
 })
 
@@ -34,7 +33,7 @@ function fixture(): {
     }
   }
   const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-  dispose = startRendererDiagnostics(api)
+  startRendererDiagnostics(api)
 
   return { send, resolveHistory, history, unsubscribe, report, warn }
 }
@@ -73,7 +72,7 @@ it('화면 원문 오류와 거부 이유를 읽지 않고 분류된 코드만 �
 it('종료 시 구독과 화면 오류 관찰을 정리하고 늦은 히스토리를 표시하지 않는다', async () => {
   const f = fixture()
   window.dispatchEvent(new Event('pagehide'))
-  dispose?.()
+  window.dispatchEvent(new Event('pagehide'))
   f.resolveHistory([{ sequence: 1, timestamp: 1_000, code: 'OCR_FAILED' }])
   await f.history
   window.dispatchEvent(new Event('error'))

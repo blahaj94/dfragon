@@ -10,17 +10,10 @@ import type { SlotCard } from '../lib/slot-cards'
 import type { CardCharacter, CharacterCard as CardValues } from '../types/cards'
 
 vi.mock('../components/ServerSelect', () => ({
-  ServerSelect: ({
-    value,
-    onValueChange,
-    label,
-    disabled,
-    options
-  }: ComponentProps<typeof ServerSelect>) => (
+  ServerSelect: ({ value, onValueChange, label, options }: ComponentProps<typeof ServerSelect>) => (
     <select
       aria-label={label}
       value={value}
-      disabled={disabled}
       onChange={(event) => onValueChange(event.target.value)}
     >
       <option value="">서버 선택</option>
@@ -58,6 +51,8 @@ async function render({
   loading,
   snapshotMark,
   picker,
+  onLookup = vi.fn(),
+  onPickCandidate = vi.fn(),
   ...props
 }: RenderProps = {}): Promise<void> {
   const card = {
@@ -70,7 +65,16 @@ async function render({
     picker
   }
   await act(async () =>
-    root.render(<CharacterCard cardKey={cardKey} slot={1} inputEnabled {...props} card={card} />)
+    root.render(
+      <CharacterCard
+        cardKey={cardKey}
+        slot={1}
+        onLookup={onLookup}
+        onPickCandidate={onPickCandidate}
+        {...props}
+        card={card}
+      />
+    )
   )
 }
 
@@ -89,8 +93,6 @@ it('결과가 없어도 이름과 서버를 수정하고 서버 변경 또는 En
   await render({ onLookup: lookup })
   const input = await enterName('수동이름')
   const select = container.querySelector('select')!
-  expect(input.disabled).toBe(false)
-  expect(select.disabled).toBe(false)
   await act(async () => {
     select.value = 'cain'
     select.dispatchEvent(new Event('change', { bubbles: true }))
@@ -179,8 +181,8 @@ it('제출한 수동 이름은 검색 대기와 실패 중 이전 OCR이나 캐�
         cardKey={{ ...cardKey, resetKey: 'new-round' }}
         card={{ state: 'pending', nickname: '다음OCR' }}
         slot={1}
-        inputEnabled
         onLookup={lookup}
+        onPickCandidate={vi.fn()}
       />
     )
   )
@@ -265,12 +267,9 @@ it('헤더 줄은 서버 선택을 품은 이름 칸, 상태 표시, 스냅샷 �
   expect(mark.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
   expect(visibleText()).not.toMatch(/0[1-4]/)
 
-  await render({ state: 'idle', character: undefined, inputEnabled: false })
-  expect(card().querySelector('select')).toBeNull()
-  expect(card().querySelector('input')!.disabled).toBe(true)
-
+  await render({ state: 'idle', character: undefined })
   const vacantField = card().querySelector('input')!.parentElement!.className
-  await render({ state: 'pending', character: undefined, inputEnabled: false })
+  await render({ state: 'pending', character: undefined })
   expect(card().querySelector('input')!.parentElement!.className).not.toBe(vacantField)
 })
 
@@ -671,6 +670,8 @@ it('다음 회차에 새로 그린 카드는 닫았던 후보 창을 다시 연 
         cardKey={{ ...cardKey, resetKey: 'round-1' }}
         card={card}
         slot={1}
+        onLookup={vi.fn()}
+        onPickCandidate={vi.fn()}
       />
     )
   )
@@ -686,6 +687,8 @@ it('다음 회차에 새로 그린 카드는 닫았던 후보 창을 다시 연 
         cardKey={{ ...cardKey, resetKey: 'round-2' }}
         card={card}
         slot={1}
+        onLookup={vi.fn()}
+        onPickCandidate={vi.fn()}
       />
     )
   )

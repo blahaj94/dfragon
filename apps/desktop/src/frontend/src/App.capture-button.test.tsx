@@ -4,15 +4,10 @@ import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { createRendererFixture, media } from './testing/fixtures/search-renderer-test-fixture'
 import App from './App'
 import { stubIdleDesktopBridges } from './testing/fixtures/idle-desktop-bridges'
-import { ColorThemeProvider } from './components/ColorThemeProvider'
 import type { SearchCommandResult } from '../../preload/common/types/search'
 
 beforeEach(() => {
   stubIdleDesktopBridges()
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn(() => ({ matches: false }))
-  )
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -59,10 +54,14 @@ function captureState(): string | null {
     .getAttribute('aria-label')
 }
 
-function partyNotice(): string | null {
+function partyHeaderStart(): string | null {
   const heading = [...document.querySelectorAll('h1')].find((h1) => h1.textContent === '파티')!
 
-  return heading.parentElement!.querySelector('[role="status"]')!.textContent
+  return heading.parentElement!.textContent
+}
+
+function captureAnnouncement(): string | null {
+  return document.querySelector('main > header [data-capture-announcer]')!.textContent
 }
 
 function lastCapture(): string | null {
@@ -95,11 +94,7 @@ function beginCount(f: Fixture): number {
 }
 
 async function mount(f: Fixture): Promise<void> {
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
 }
 
 it('캡처 버튼은 상단 바에 그린 파티 헤더에만 있고 대화상자를 열지 않는다', async () => {
@@ -174,7 +169,10 @@ it.each(triggers)(
     expect(beginCount(f)).toBe(1)
     expect(f.readCaptureFrame).toHaveBeenCalledOnce()
     expect(captureState()).toBe('화면 캡처, 확인 필요')
-    expect(partyNotice()).toBe('')
+    const announcement = captureAnnouncement()
+    expect(announcement).not.toBe('')
+    expect(partyHeaderStart()).not.toContain(announcement)
+    expect(partyHeaderStart()).not.toContain('확인 필요')
     expect(captureButton().disabled).toBe(false)
   }
 )
