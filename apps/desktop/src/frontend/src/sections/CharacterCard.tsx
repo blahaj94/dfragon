@@ -7,7 +7,6 @@ import {
 import * as stylex from '@stylexjs/stylex'
 import { useId } from 'react'
 import { CardAnnouncer } from '../components/CardAnnouncer'
-import { EditingDots } from '../components/EditingDots'
 import { FailureMark } from '../components/FailureMark'
 import { LookupField } from '../components/LookupField'
 import { LookupProgress } from '../components/LookupProgress'
@@ -82,12 +81,6 @@ export function CharacterCard({
               />
               {tier !== undefined && (
                 <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
-              )}
-              {frameState === 'selected' && (
-                <EditingDots
-                  label={previewing ? '후보 미리보기 중' : '이름 수정 중'}
-                  size="party"
-                />
               )}
               {frameState === 'failure' && <FailureMark label={cardStatus} size="party" />}
               {picker !== undefined && (
