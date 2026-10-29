@@ -52,7 +52,7 @@ it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은
   expect(toCharacterCard({ ...summary, serverId: 'unknown' })).toBeUndefined()
 })
 
-it('서버 제한과 중복 요청을 지키고 정제된 오류만 표시한다', () => {
+it('요청 제한은 기다리지 않고 재시도할 수 있게 두고 중복 요청과 정제된 오류만 표시한다', () => {
   const slot: SearchSlot = {
     slot: 0,
     observationRevision: 1,
@@ -60,26 +60,20 @@ it('서버 제한과 중복 요청을 지키고 정제된 오류만 표시한다
     nickname: '이름',
     state: 'failure',
     rows: [],
-    error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 12 }
+    error: { code: 'SEARCH_RATE_LIMITED' }
   }
-  expect(canRetryCharacterSlot(slot, false)).toBe(false)
-  expect(searchSlotNotice(slot, nextStep)).toBe('12초 후 다시 시도할 수 있습니다. 다음 안내')
-  const ready: SearchSlot = {
-    ...slot,
-    error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
-  }
-  expect(canRetryCharacterSlot(ready, false)).toBe(true)
-  expect(canRetryCharacterSlot(ready, true)).toBe(false)
+  expect(canRetryCharacterSlot(slot, false)).toBe(true)
+  expect(canRetryCharacterSlot(slot, true)).toBe(false)
+  expect(searchSlotNotice(slot, nextStep)).toBe(
+    '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요. 다음 안내'
+  )
   expect(canRetryCharacterSlot({ ...slot, state: 'pending', error: null }, false)).toBe(false)
   expect(searchSlotNotice({ ...slot, error: null }, nextStep)).toBe(
     '검색 결과가 없습니다. 다음 안내'
   )
-  expect(
-    canRetryCharacterSlot(
-      { ...slot, error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null } },
-      false
-    )
-  ).toBe(false)
+  expect(canRetryCharacterSlot({ ...slot, error: { code: 'INVALID_SEARCH_QUERY' } }, false)).toBe(
+    false
+  )
 })
 
 it('외형을 확인하지 못한 최고 명성 후보임을 명시한다', () => {
@@ -182,7 +176,7 @@ describe('공대 카드의 선택 근거 안내', () => {
       ...base,
       state: 'failure',
       selected: undefined,
-      error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
+      error: { code: 'SEARCH_TIMEOUT' }
     }
 
     expect(searchSlotNotice(failed, nextStep, 'raid')).toBe(
@@ -205,10 +199,7 @@ it('실패와 결과 0건 안내에만 화면별 다음 조회 방법을 덧붙�
     '검색 결과가 없습니다. 서버와 이름을 다시 조회해 주세요.'
   )
   expect(
-    searchSlotNotice(
-      { ...slot, state: 'failure', error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null } },
-      '다음 안내'
-    )
+    searchSlotNotice({ ...slot, state: 'failure', error: { code: 'SEARCH_TIMEOUT' } }, '다음 안내')
   ).toBe('검색 시간이 초과됐습니다. 다시 시도해 주세요. 다음 안내')
   expect(searchSlotNotice({ ...slot, state: 'pending' }, '다음 안내')).toBeUndefined()
 })

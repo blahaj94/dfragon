@@ -1,5 +1,4 @@
 import { isFiniteNumber } from '@dfragon/lib/utils/shape-check'
-import type { MonotonicClock } from '../lib/monotonic-clock'
 import type {
   CharacterChoice,
   CharacterSearchRow,
@@ -41,7 +40,6 @@ export type IdentificationAdapters = {
 }
 
 export type SearchRuntime = {
-  clock: MonotonicClock
   identification: IdentificationAdapters
   ocrIdentification?: 'portrait' | 'raid'
   score: ScoreEngine
@@ -63,7 +61,6 @@ export type SearchOutcome =
 type RequestInput = {
   runtime: SearchRuntime
   nickname: string
-  startedAt: number
   signal: AbortSignal
   isCurrent: () => boolean
   ocrInput?: OcrSearchInput
@@ -89,12 +86,7 @@ function displayNumber(value: CharacterJsonValue | undefined): number | null {
 export async function runSearchRequest(input: RequestInput): Promise<SearchOutcome> {
   const adapters = input.runtime.identification
   const outcome = await runSearchOperation(
-    {
-      clock: input.runtime.clock,
-      startedAt: input.startedAt,
-      signal: input.signal,
-      isCurrent: input.isCurrent
-    },
+    { signal: input.signal, isCurrent: input.isCurrent },
     async (execution) => {
       const services = bindIdentificationServices(adapters, execution)
       const identified = await identifyCharacter(input, services, adapters.selection)
@@ -113,11 +105,7 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
   const { identified, summary } = outcome.value
 
   if (identified.kind === 'invalid-input') {
-    return {
-      kind: 'failure',
-      error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null },
-      retryAfterReceivedAt: null
-    }
+    return { kind: 'failure', error: { code: 'INVALID_SEARCH_QUERY' } }
   }
 
   if (identified.kind !== 'matched') {
@@ -146,18 +134,12 @@ export type DetailsOutcome =
 export async function runDetailsRequest(input: {
   runtime: SearchRuntime
   summary: SelectedCharacterSummary
-  startedAt: number
   signal: AbortSignal
   isCurrent: () => boolean
 }): Promise<DetailsOutcome> {
   const adapters = input.runtime.identification
   const outcome = await runSearchOperation(
-    {
-      clock: input.runtime.clock,
-      startedAt: input.startedAt,
-      signal: input.signal,
-      isCurrent: input.isCurrent
-    },
+    { signal: input.signal, isCurrent: input.isCurrent },
     (execution) => loadDetailsSummary(input.summary, adapters, execution, input.runtime.score)
   )
   if (outcome === null || outcome.kind === 'failure') {
@@ -193,7 +175,7 @@ async function loadDetailsSummary(
 ): Promise<SelectedCharacterSummary> {
   const identity = { serverId: base.serverId, characterId: base.characterId }
   const details = await execution.run((signal) => adapters.details({ ...identity, signal }))
-  // 엔진 호출도 같은 예산과 취소 판정 안에서 실행해 늦은 결과를 버린다.
+  // 엔진 호출도 같은 취소, 현재 요청 판정 안에서 실행해 늦은 결과를 버린다.
   const card = await execution.run(async () => buildCharacterCard(details, score))
   const character = details.character
   const adventureName = displayText(character.adventureName)
@@ -259,7 +241,7 @@ function bindIdentificationServices(
           if (error instanceof SearchHttpFailure && error.code === 'SEARCH_RATE_LIMITED') {
             throw error
           }
-          // 이미지 실패는 명성 대체 표시로 이어지되 취소와 만료는 실행 계층이 판정한다.
+          // 이미지 실패는 명성 대체 표시로 이어지되 취소와 현재 요청 여부는 실행 계층이 판정한다.
 
           return null
         }

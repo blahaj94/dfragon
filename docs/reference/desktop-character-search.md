@@ -16,13 +16,12 @@ Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-�
 | 위치                                                                                                                                                           | 책임                                                                                                                                                                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                                                              | 현재 source/document와 capture를 결합하고 검색 IPC를 같은 수명에서 검사한다. Navigation, destruction, renderer process 종료, source 변경 때 요청을 무효화한다.        |
-| `apps/desktop/src/backend/search/capture-lifetime.ts`, `slot-lifetime-machine.ts`                                                                              | 함수 factory가 슬롯 DTO, 관측 revision을 관리하고 XState actor가 슬롯별 HTTP 취소와 429 대기를 소유한다.                                                              |
-| `apps/desktop/src/backend/search/request.ts`                                                                                                                   | 입력 접수부터 HTTP, body 검증까지 하나의 검색 예산과 취소 판정을 수행한다.                                                                                            |
+| `apps/desktop/src/backend/search/capture-lifetime.ts`, `slot-lifetime-machine.ts`                                                                              | 함수 factory가 슬롯 DTO, 관측 revision을 관리하고 XState actor가 슬롯별 HTTP 취소를 소유한다.                                                                      |
+| `apps/desktop/src/backend/search/request.ts`                                                                                                                   | 입력 접수부터 HTTP, body 검증까지 하나의 취소 신호와 현재 요청 판정을 적용한다.                                                                                         |
 | `apps/desktop/src/backend/search/card-assembler.ts`                                                                                                            | 상세 응답의 `card`에서 역할만 읽고 그 역할로 계산기를 골라 점수 엔진 결과를 채운다.                                                                          |
 | `apps/desktop/src/backend/score/input.ts`, `engine.ts`                                                                                                         | 상세 응답을 엔진 입력 문서로 되돌리고, koffi로 연 라이브러리의 호출, 해제, 결과 검증과 실패 정제를 맡는다.                                                           |
 | `apps/desktop/scripts/prepare-score-engine.mjs`, `apps/desktop/score-engine.config.mjs`                                                                        | `@dfragon/models`의 score-engine submodule에서 플랫폼별 엔진을 `resources/score/`로 복사한다. submodule을 받지 않았으면 건너뛴다.                                     |
 | `apps/desktop/src/backend/search/http.ts` | 검색 HTTP 클라이언트가 함께 쓰는 실패 타입 `SearchHttpFailure`를 둔다. |
-| `apps/desktop/src/backend/search/retry-after.ts`                                                                                                               | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
 | `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                                 | Shared DTO, 오류 문구, feature API와 strict schema, 상태 조합 검증을 정의한다.                                                                                          |
 | `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                                    | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
 | `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                                       | XState actor가 구독 후 read, event 동기화와 revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                             |
@@ -33,7 +32,7 @@ Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-�
 
 Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. 응답이 유실되면 read로 상태를 확인하지만 그 결과의 ID를 늦은 Start의 소유로 추정해 end하지 않는다. 해당 시작은 창을 다시 선택하도록 안내하며 같은 begin을 자동 재전송하지 않는다. 새 source 선택은 기존 main 선택/capture 무효화 경로를 사용한다.
 
-`createCaptureSearchLifetime`은 각 슬롯에 XState actor를 만든다. 요청을 준비한 뒤 pending snapshot을 동기 발행하고, 해당 요청이 여전히 유효할 때만 HTTP를 시작한다. 새 OCR 관측이나 조회, end는 이전 요청과 429 timer를 취소한다. 같은 OCR 입력의 새 관측은 기존 요청의 observation revision만 올리며, 15초 예산을 재시작하지 않는다. 429 대기가 끝나면 retry 가능 상태만 발행하고 GET을 자동 재전송하지 않는다.
+`createCaptureSearchLifetime`은 각 슬롯에 XState actor를 만든다. 요청을 준비한 뒤 pending snapshot을 동기 발행하고, 해당 요청이 여전히 유효할 때만 HTTP를 시작한다. 새 OCR 관측이나 조회, end는 이전 요청을 취소한다. 같은 OCR 입력의 새 관측은 기존 요청의 observation revision만 올리고 요청을 다시 시작하지 않는다. 429로 실패한 슬롯은 기다리지 않고 바로 retry할 수 있으며 GET을 자동 재전송하지 않는다.
 
 `createSearchConnection`은 연결마다 별도 XState actor를 클로저에 보관한다. `isReady()`는 호출 시점의 동기화 상태를 읽고, 명령은 호출 당시 actor를 참조해 재연결 후 늦은 응답을 격리한다. 구독의 초기 기준과 마지막 조회의 성공 여부를 병렬 상태로 표현한다. 이미 초기 기준을 세운 연결은 복구 조회에 실패해도 후속 event를 표시할 수 있지만, 다시 조회에 성공하기 전까지 새 begin은 차단한다. 초기 조회 성공 전 event는 최신 revision만 보류하며, 재연결, dispose는 이전 actor와 구독을 종료한다. 슬롯별 명령은 직렬화하지 않고 직접 응답을 각각 돌려준다. 종료된 actor에는 명령, 복구 조회 결과를 반영하지 않지만, 늦은 begin의 직접 응답과 그 ID의 end 전송은 캡처 정리를 위해 유지한다.
 
@@ -55,7 +54,7 @@ Main은 검색 수명을 앱 실행 동안 채널마다 한 번 만들고, rende
 - `createCharacterImageHttp`: 검증한 서버와 캐릭터 ID로 네오플의 `zoom=1` 이미지 URL을 직접 구성한다. 임의 URL을 받지 않으며 PNG 다운로드와 디코딩의 크기를 제한한다. 결과는 전체 캐릭터 이미지의 원본 RGBA이며 얼굴 비교 결과가 아니다.
 - `createCharacterDetailsHttp`: 고정 상세 경로를 호출하고 요청한 서버, 캐릭터 ID와 응답의 식별자가 일치하는지 검사한다. 기본 정보와 섹션 JSON을 전달하며 장비 점수를 계산하지 않는다.
 
-각 클라이언트는 호출자의 AbortSignal을 사용하고 자동 재시도나 새로운 전체 검색 시간 예산을 만들지 않는다. 호출 제한은 헤더를 받은 시점을 함께 전달하며, 상세 조회의 오류도 기존 검색 오류 형태로 정제한다. 원격 오류 원문은 화면으로 전달하지 않는다.
+각 클라이언트는 호출자의 AbortSignal을 사용하고 자동 재시도하지 않는다. 응답 header와 body는 각각 ky 기본 timeout까지만 기다리고, timeout은 `SEARCH_TIMEOUT`으로 정제한다. ky는 `request.arrayBuffer()` 같은 body 메서드로 읽을 때만 본문 대기에 timeout을 걸므로, await한 `Response`의 본문을 직접 읽지 않는다. 호출 제한은 `Retry-After`를 읽지 않고 `SEARCH_RATE_LIMITED`로만 전달하며, 상세 조회의 오류도 기존 검색 오류 형태로 정제한다. 원격 오류 원문은 화면으로 전달하지 않는다.
 
 제품의 OCR 전용 관측은 아래 IPC 경로로 식별 함수를 사용한다. 카드의 수동 서버 조회는 지정한 서버와 이름에 맞는 실제 캐릭터 상세를 선택한다. 앱은 `/characters`의 일반 검색을 호출하지 않는다. API origin이 설정된 제품은 후보 이미지 다운로드와 색 비교를 연결한다. 얼굴 크롭을 사용할 수 없어도 이름 검색 결과가 있으면 최고 명성 후보를 대체 표시한다. HTTP 클라이언트 테스트와 실제 게임의 식별 성공을 구분한다.
 
@@ -112,16 +111,16 @@ Main은 검색 수명을 앱 실행 동안 채널마다 한 번 만들고, rende
 - **취소**: 각 요청은 자기 신호만 쓴다. 대기 중에 취소하면 요청을 시작하지 않고 큐에서 빠지며, 한 슬롯의 취소가 다른 슬롯의 요청을 중단하지 않는다.
 - **캐시**: `completed-cache.ts`의 메모리 LRU로 최대 64개, 16MiB, 5분이다. 캐시 hit는 대기열을 건너뛰며, 대기하는 동안 앞 요청이 같은 캐릭터를 받았으면 그 값을 쓴다. 완료값만 공유한다.
 - **요청 주소**: 이미지는 검증한 서버와 캐릭터 ID로 구성한 `img-api.neople.co.kr/df/servers/{serverId}/characters/{characterId}?zoom=1`에서 받는다. API key와 로그인 cookie를 보내지 않는다.
-- **429**: 이미지 응답의 429는 `SEARCH_RATE_LIMITED`와 `retryAfterSeconds`로 바뀌어 점수 없음으로 처리하지 않는다.
+- **429**: 이미지 응답의 429는 `SEARCH_RATE_LIMITED`로 바뀌어 점수 없음으로 처리하지 않는다.
 - **정책 등록**: 비교 정책은 main이 코드 상수 `INITIAL_PORTRAIT_COLOR_POLICY`로 `registerCaptureIpc`에 넘기며 runtime에 다시 검증하지 않는다. renderer는 정책을 보낼 수 없다.
 
-이미지를 받지 못하거나 점수가 없는 후보는 거리 없이 남고, 나머지 후보의 비교는 계속한다. 그 후보를 얼굴 일치로 표시하거나 다음 OCR 이름으로 넘어가지 않는다. 후보 검색과 상세 조회의 HTTP 실패, 429는 기존 오류로 전달하며 실행 취소, 만료와 늦은 결과 차단을 유지한다. 명성이 같은 후보는 기존 순서, null 명성은 마지막 순서를 유지한다.
+이미지를 받지 못하거나 점수가 없는 후보는 거리 없이 남고, 나머지 후보의 비교는 계속한다. 그 후보를 얼굴 일치로 표시하거나 다음 OCR 이름으로 넘어가지 않는다. 후보 검색과 상세 조회의 HTTP 실패, 429는 기존 오류로 전달하며 실행 취소와 늦은 결과 차단을 유지한다. 명성이 같은 후보는 기존 순서, null 명성은 마지막 순서를 유지한다.
 
 후보 검색과 상세도 같은 main runtime의 메모리 LRU를 일반 캡처, 공대, 수동 조회가 공유한다. 이름별 후보는 최대 256개, JSON 크기 합계 8MiB, 서버와 캐릭터 ID별 상세는 최대 128개, 64MiB로 제한한다. 상세 한 응답의 HTTP 상한은 8MiB이며 여러 캐릭터를 담도록 총량을 정했다. 둘 다 성공 완료 후 5분 동안 보관하고 실패, 취소와 진행 중 요청은 공유하지 않는다. 반환값을 복제해 호출자의 변경이 캐시에 영향을 주지 않는다.
 
 ## 크롭 결과 이후의 식별 처리
 
-`backend/search/identify.ts`의 `createCharacterIdentifier`는 후보 검색, 후보 이미지 한 장 확보, 얼굴 거리 계산이라는 업무 연산과 선택 기준(`maxDistance`, `minMargin`, `maxCandidates`)을 받는다. 전달된 OCR 이름 중 첫 번째만 사용하고 첫 이름이 비어 있거나 잘못돼도 두 번째를 승격하지 않는다. 식별 규칙은 HTTP 구현, clock, 취소 신호, 현재 요청 여부와 실행 제어에 의존하지 않는다.
+`backend/search/identify.ts`의 `createCharacterIdentifier`는 후보 검색, 후보 이미지 한 장 확보, 얼굴 거리 계산이라는 업무 연산과 선택 기준(`maxDistance`, `minMargin`, `maxCandidates`)을 받는다. 전달된 OCR 이름 중 첫 번째만 사용하고 첫 이름이 비어 있거나 잘못돼도 두 번째를 승격하지 않는다. 식별 규칙은 HTTP 구현, 취소 신호, 현재 요청 여부와 실행 제어에 의존하지 않는다.
 
 `backend/search/request.ts`는 지정 서버 수동 조회와 OCR 식별의 요청 경계다. 요청마다 업무 연산을 `operation.ts`의 실행 범위에 연결하고, 후보 이미지 다운로드와 거리 계산을 식별기에 이어 준다. 선택된 상세는 슬롯 요약으로 투영하며 `selectionMethod`의 `portrait`, `job`, `fame`, `highest-fame`, `manual`로 선택 근거를 전달한다. `job`, `fame`은 공대 식별에서만 나온다. 선택을 확정하지 못했으면 사용자가 고를 후보를 `choices`로 함께 전달한다. HTTP 클라이언트와 이미지 큐, 캐시는 요청마다 다시 생성하지 않는다.
 
@@ -134,13 +133,13 @@ Main은 검색 수명을 앱 실행 동안 채널마다 한 번 만들고, rende
 
 식별기는 후보를 고르는 데까지만 하고 상세를 조회하지 않는다. `request.ts`는 OCR 식별의 결과를 후보 검색 응답으로 만든 요약(레벨, 길드, 카드 null)과 `details: 'pending'`으로 돌려준다. 지정 서버 수동 조회는 같은 요청에서 `runDetailsRequest`와 같은 상세 조회, 점수 계산을 이어 상세까지 채운다.
 
-`capture-lifetime.ts`는 `details: 'pending'`인 슬롯의 상세를 수명마다 한 번에 하나씩 `runDetailsRequest`로 받는다. 어느 슬롯이든 `pending` 상태면 시작하지 않아 회차의 모든 슬롯이 이름과 서버를 먼저 정한다. 다음 상세는 슬롯 번호 순서로 고르고, snapshot을 발행할 때마다 시작할 수 있는지 다시 본다. 상세 요청은 그 요청을 접수한 때부터 15초 예산을 쓰며, 같은 캡처, 같은 요청 ID이고 아직 `pending`일 때만 결과를 반영한다. 성공하면 상세로 만든 요약으로 바꾸고 `details`를 지운다. 실패와 시간 초과는 그 슬롯만 `details: 'failed'`로 두고 고른 이름과 서버를 유지한 채 다음 슬롯으로 넘어간다. 상세나 후보 검색의 429는 남은 `pending` 슬롯까지 모두 `failed`로 바꿔 제한 중에 요청을 더 보내지 않는다. 게임 창 변경의 `cancelOcrRequests`도 OCR로 시작한 슬롯의 받는 중인 상세를 취소하고 남은 상세를 `failed`로 둔다. 슬롯 취소와 수명 무효화는 받는 중인 상세의 신호를 취소한다. OCR 관측이 IPC로 따로 도착하므로, 앞 슬롯의 후보 검색이 캐시로 바로 끝나면 뒤 슬롯을 관측하기 전에 상세가 먼저 시작될 수 있다. 이때는 같은 회차의 다른 슬롯도 같은 캐시로 바로 끝나 이름과 서버 표시가 늦어지지 않고, 상세 동시 요청은 여전히 하나다. 회차의 관측이 모두 도착했다는 신호는 renderer가 보내지 않는다.
+`capture-lifetime.ts`는 `details: 'pending'`인 슬롯의 상세를 수명마다 한 번에 하나씩 `runDetailsRequest`로 받는다. 어느 슬롯이든 `pending` 상태면 시작하지 않아 회차의 모든 슬롯이 이름과 서버를 먼저 정한다. 다음 상세는 슬롯 번호 순서로 고르고, snapshot을 발행할 때마다 시작할 수 있는지 다시 본다. 상세 요청은 같은 캡처, 같은 요청 ID이고 아직 `pending`일 때만 결과를 반영한다. 성공하면 상세로 만든 요약으로 바꾸고 `details`를 지운다. 실패와 시간 초과는 그 슬롯만 `details: 'failed'`로 두고 고른 이름과 서버를 유지한 채 다음 슬롯으로 넘어간다. 상세나 후보 검색의 429는 남은 `pending` 슬롯까지 모두 `failed`로 바꿔 제한 중에 요청을 더 보내지 않는다. 게임 창 변경의 `cancelOcrRequests`도 OCR로 시작한 슬롯의 받는 중인 상세를 취소하고 남은 상세를 `failed`로 둔다. 슬롯 취소와 수명 무효화는 받는 중인 상세의 신호를 취소한다. OCR 관측이 IPC로 따로 도착하므로, 앞 슬롯의 후보 검색이 캐시로 바로 끝나면 뒤 슬롯을 관측하기 전에 상세가 먼저 시작될 수 있다. 이때는 같은 회차의 다른 슬롯도 같은 캐시로 바로 끝나 이름과 서버 표시가 늦어지지 않고, 상세 동시 요청은 여전히 하나다. 회차의 관측이 모두 도착했다는 신호는 renderer가 보내지 않는다.
 
-거리를 하나도 구하지 못한 최고 명성 선택은 얼굴 일치와 구분해 진단 코드 `SEARCH_APPEARANCE_FALLBACK`을 남기고, 공대 수명의 최고 명성 선택은 `SEARCH_RAID_ROW_FALLBACK`을 남긴다. 실행 계층은 취소와 만료를 우선하므로 중단된 요청이 대체 선택을 발행하지 않는다. 후보나 상세 조회 실패는 기존 정제된 오류로 남고 상세의 호출 제한도 원래 헤더 수신 시각을 보존한다.
+거리를 하나도 구하지 못한 최고 명성 선택은 얼굴 일치와 구분해 진단 코드 `SEARCH_APPEARANCE_FALLBACK`을 남기고, 공대 수명의 최고 명성 선택은 `SEARCH_RAID_ROW_FALLBACK`을 남긴다. 실행 계층은 취소를 우선하므로 중단된 요청이 대체 선택을 발행하지 않는다. 후보나 상세 조회 실패는 기존 정제된 오류로 남는다.
 
-`backend/search/operation.ts`는 식별과 상세 조회 흐름에 처음 접수부터 15초인 공통 시간 예산을 적용한다. 요청 경계에 제공하는 `run`이 각 연산의 호출 전, 성공 후, 실패 후에 현재 요청과 남은 예산을 확인하며 전체 결과 전달 전에도 다시 확인한다. 같은 취소 신호를 HTTP와 이미지 연산에 연결하지만 식별 서비스에 검사 콜백을 전달하지 않는다. 캡처가 끝나거나 요청이 오래된 상태이면 늦은 결과를 버리고 시간 초과 후 대체 후보의 상세를 새로 조회하지 않는다. 취소, 만료와 429는 최고 명성 대체 표시보다 우선한다. 이미지 다운로드가 전체 예산을 소모하면 최고 명성 대신 시간 초과가 표시되는 한계가 있다.
+`backend/search/operation.ts`는 식별과 상세 조회 흐름의 실행 계층이다. 요청 경계에 제공하는 `run`이 각 연산의 호출 전, 성공 후, 실패 후에 취소와 현재 요청 여부를 확인하며 전체 결과 전달 전에도 다시 확인한다. 같은 취소 신호를 HTTP와 이미지 연산에 연결하지만 식별 서비스에 검사 콜백을 전달하지 않는다. 캡처가 끝나거나 요청이 오래된 상태이면 취소를 무시한 의존성이 늦게 끝나도 다음 단계를 시작하지 않고 늦은 결과와 실패를 버린다. 검색 한 번 전체의 시간 예산은 없고 각 HTTP 요청이 ky 기본 timeout을 따르므로, 후보 이미지를 여러 장 받거나 상세가 이어지면 기다리는 시간이 요청 하나의 timeout보다 길어질 수 있다. 이미지 timeout은 그 후보의 거리만 비우고 나머지 비교를 계속한다. 취소와 429는 최고 명성 대체 표시보다 우선한다.
 
-`identify.test.ts`는 실행 환경 없이 첫 이름만 사용, 후보 순서, 후보 전원 비교, 거리 상한과 margin의 확정 경계, 점수 없는 후보가 섞인 1위 선택, 최고 명성 선택과 `choices`의 내용을 검증한다. `request.test.ts`는 실제 식별기와 요청 경계를 연결해 공통 취소 신호, 15초 예산, 늦은 응답 차단, 실패 우선순위와 공개 결과 변환을 검증한다. 슬롯과 IPC 수명은 기존 통합 테스트를 유지한다.
+`identify.test.ts`는 실행 환경 없이 첫 이름만 사용, 후보 순서, 후보 전원 비교, 거리 상한과 margin의 확정 경계, 점수 없는 후보가 섞인 1위 선택, 최고 명성 선택과 `choices`의 내용을 검증한다. `request.test.ts`는 실제 식별기와 요청 경계를 연결해 공통 취소 신호, 늦은 응답 차단, 실패 우선순위와 공개 결과 변환을 검증한다. 슬롯과 IPC 수명은 기존 통합 테스트를 유지한다.
 
 ### 후보 고르기
 
@@ -172,11 +171,11 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 `backend/score/engine.ts`는 라이브러리를 `koffi`로 열어 `dnfscore_version`, `dnfscore_score`, `dnfscore_free`를 묶는다. 패키지는 `app.asar.unpacked/resources/score/`의 플랫폼별 파일만 열고, 개발 실행만 `DFRAGON_SCORE_LIBRARY`의 절대 경로를 읽는다. 라이브러리는 첫 점수 계산 때 한 번 열며 열지 못한 결과도 기억해 다시 시도하지 않는다. 엔진이 출력으로 할당한 문자열은 반환값과 관계없이 같은 엔진의 `dnfscore_free`로 해제한다. 결과는 Desktop이 쓰는 `calculator`, `score`, `skipped`, `approximate_score`, `approximate_source`, `warning`, `versions`, `display`만 검사하고, 요청한 계산기와 다르거나 점수와 사유가 함께 있거나 둘 다 없으면 버린다. 규칙 rev14 엔진은 건너뛴 결과에 근사값(`approximate_score`), 출처(`approximate_source`), 경고(`warning`)를 더할 수 있고, `native-v0.3.1`부터는 장비 점수(`equipment`)와 버프 점수(`buff`) 모두에 더한다. 근사값과 출처는 함께 있거나 함께 없어야 하고, 있으면 경고도 있으며 `score`가 null인 결과에만 있을 수 있다. 근사값 없이 경고만 있는 결과는 정확한 점수에 붙은 알림(예: 버프 효과에 닿지 않는 부위의 아바타가 번들에 없음)이라 `score`가 있는 결과에만 받는다. 이를 어기면 결과 전체를 버린다. 근사값 칸을 보내지 않는 rev14 이전 엔진의 결과는 근사값 없이 받는다. 출처는 엔진 문서에 네 값이 있지만 새 값이 와도 결과를 버리지 않도록 비어 있지 않은 문자열로 받는다. 파일이 없거나 열기, 호출, 결과 검증이 실패하면 점수만 null이고, 원문 오류는 경로를 담을 수 있어 진단 코드 `SCORE_ENGINE_UNAVAILABLE`, `SCORE_ENGINE_FAILED`만 남긴다.
 
-엔진 호출은 main에서 동기로 실행하며 상세 조회를 마친 같은 상세 operation의 `run` 안에서 한다. 호출 전후에 취소, 상세 요청 접수부터 15초인 예산, 현재 요청 여부를 확인하므로 계산 중 캡처가 끝나거나 예산을 넘긴 카드는 발행하지 않는다. 동기 호출은 중간에 멈출 수 없어 걸린 시간이 50ms를 넘으면 `SCORE_ENGINE_SLOW`를 남긴다. Release `native-v0.3.0`(규칙 rev14)을 macOS arm64 host Node에서 golden 벡터 두 건으로 부른 로컬 측정에서는 첫 호출이 엔진 준비로 약 1.1초, 이후 딜러는 약 1.5ms, 버퍼는 약 30ms였다. Windows와 Electron 안의 시간은 측정하지 않았으며, 첫 호출 준비를 worker로 옮길지는 따로 검토한다. Renderer와 preload는 엔진을 부르지 못하고 main이 검증해 넘긴 카드만 받는다.
+엔진 호출은 main에서 동기로 실행하며 상세 조회를 마친 같은 상세 operation의 `run` 안에서 한다. 호출 전후에 취소와 현재 요청 여부를 확인하므로 계산 중 캡처가 끝나거나 새 요청으로 바뀐 카드는 발행하지 않는다. 동기 호출은 중간에 멈출 수 없어 걸린 시간이 50ms를 넘으면 `SCORE_ENGINE_SLOW`를 남긴다. Release `native-v0.3.0`(규칙 rev14)을 macOS arm64 host Node에서 golden 벡터 두 건으로 부른 로컬 측정에서는 첫 호출이 엔진 준비로 약 1.1초, 이후 딜러는 약 1.5ms, 버퍼는 약 30ms였다. Windows와 Electron 안의 시간은 측정하지 않았으며, 첫 호출 준비를 worker로 옮길지는 따로 검토한다. Renderer와 preload는 엔진을 부르지 못하고 main이 검증해 넘긴 카드만 받는다.
 
 엔진 바이너리는 OCR 모델과 같이 `@dfragon/models`의 `packages/models/score-engine` submodule이 고정한 커밋에 있다(규칙 rev14, 번들 `phase32-rev14b`의 Windows x64 `native-v0.3.2`, macOS arm64 `native-v0.3.1` 파일). 바이너리 저장소가 비공개라 `.gitmodules`의 `update = none`으로 기본 checkout에서 빠지고, 읽기 권한이 있는 로컬과 토큰 secret이 있는 CI만 따로 받는다. `apps/desktop/scripts/prepare-score-engine.mjs`가 플랫폼별 파일을 `resources/score/`에 복사하며, electron-builder의 `asarUnpack: resources/**`가 이를 asar 밖에 둔다. submodule을 받지 않았으면 엔진 없이 빌드하고, 패키지는 Windows만 만든다. 입수와 개발 설정은 [Desktop 안내](../../apps/desktop/README.md#장비-점수-엔진)에 있다.
 
-`input.test.ts`는 엔진 저장소 golden 벡터의 입력 원문(가명 처리한 딜러 1명, 버퍼 1명)을 API 투영과 `itemDetail` 보강 규칙대로 상세 응답 모양으로 만든 뒤 엔진 입력으로 되돌려 원문과 대조한다. `engine.test.ts`는 koffi 대신 같은 모양의 라이브러리 더블로 로드 실패 정제, 출력 해제, 결과 검증과 느린 호출 진단을 확인하고, `request.test.ts`는 엔진 호출 중 만료, 취소와 이전 요청의 카드를 버리는지 확인한다. 위 로컬 측정에서 실제 엔진은 두 벡터 모두 원문 입력과 상세 응답을 거친 입력에 같은 점수(딜러 1741, 버퍼 136617)를 냈다. Windows DLL과 Electron 안의 koffi 로드는 Windows 실기에서 확인할 대상이다.
+`input.test.ts`는 엔진 저장소 golden 벡터의 입력 원문(가명 처리한 딜러 1명, 버퍼 1명)을 API 투영과 `itemDetail` 보강 규칙대로 상세 응답 모양으로 만든 뒤 엔진 입력으로 되돌려 원문과 대조한다. `engine.test.ts`는 koffi 대신 같은 모양의 라이브러리 더블로 로드 실패 정제, 출력 해제, 결과 검증과 느린 호출 진단을 확인하고, `request.test.ts`는 엔진 호출 중 취소와 이전 요청의 카드를 버리는지 확인한다. 위 로컬 측정에서 실제 엔진은 두 벡터 모두 원문 입력과 상세 응답을 거친 입력에 같은 점수(딜러 1741, 버퍼 136617)를 냈다. Windows DLL과 Electron 안의 koffi 로드는 Windows 실기에서 확인할 대상이다.
 
 ## PaddleOCR와 실제 게임 인식 영역
 

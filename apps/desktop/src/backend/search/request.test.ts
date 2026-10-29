@@ -8,7 +8,6 @@ import type {
   SelectedCharacterSummary
 } from '../../preload/common/types/character'
 import { deferred } from '../lib/async-test-fixture'
-import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { runDetailsRequest, runSearchRequest, type IdentificationAdapters } from './request'
 import type { CharacterIdentificationInput } from './identify'
 import type { SearchOperationContext } from './operation'
@@ -83,9 +82,8 @@ function details(characterId: string): CharacterDetails {
 function requestWith(adapters: IdentificationAdapters) {
   return (input: CharacterIdentificationInput & SearchOperationContext) =>
     runSearchRequest({
-      runtime: { clock: input.clock, identification: adapters, score: () => null },
+      runtime: { identification: adapters, score: () => null },
       nickname: input.nicknames[0] ?? '',
-      startedAt: input.startedAt,
       signal: input.signal,
       isCurrent: input.isCurrent,
       ocrInput: { candidateNicknames: [...input.nicknames], portrait: input.portrait }
@@ -93,7 +91,6 @@ function requestWith(adapters: IdentificationAdapters) {
 }
 
 function fixture(shifts: Record<string, number> = { high: 20, low: 10, null: 30 }): {
-  clock: FakeMonotonicClock
   controller: AbortController
   calls: string[]
   candidates: MockedFunction<CharacterCandidatesHttp>
@@ -103,7 +100,6 @@ function fixture(shifts: Record<string, number> = { high: 20, low: 10, null: 30 
   identify: ReturnType<typeof requestWith>
   input: CharacterIdentificationInput & SearchOperationContext
 } {
-  const clock = new FakeMonotonicClock()
   const controller = new AbortController()
   const calls: string[] = []
   const candidates = vi.fn<CharacterCandidatesHttp>(async ({ nickname }) => {
@@ -136,8 +132,6 @@ function fixture(shifts: Record<string, number> = { high: 20, low: 10, null: 30 
     selection: INITIAL_PORTRAIT_COLOR_POLICY
   })
   const input: CharacterIdentificationInput & SearchOperationContext = {
-    clock,
-    startedAt: clock.monotonicMs,
     signal: controller.signal,
     isCurrent: () => true,
     nicknames: ['첫이름', '둘째이름'],
@@ -145,7 +139,6 @@ function fixture(shifts: Record<string, number> = { high: 20, low: 10, null: 30 
   }
 
   return {
-    clock,
     controller,
     calls,
     candidates,
@@ -250,13 +243,10 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
   })
 
   it.each(['후보', '이미지'] as const)(
-    '%s 호출 제한은 원래 수신 시각을 유지하고 명성 대체로 바꾸지 않는다',
+    '%s 호출 제한은 명성 대체로 바꾸지 않고 호출 제한 실패로 끝낸다',
     async (stage) => {
       const f = fixture()
-      const error = new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 30,
-        retryAfterReceivedAt: 1000
-      })
+      const error = new SearchHttpFailure('SEARCH_RATE_LIMITED')
       if (stage === '후보') {
         f.candidates.mockRejectedValueOnce(error)
       } else {
@@ -271,8 +261,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
 
       expect(await f.identify(f.input)).toEqual({
         kind: 'failure',
-        error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 30 },
-        retryAfterReceivedAt: 1000
+        error: { code: 'SEARCH_RATE_LIMITED' }
       })
       expect(f.candidates).toHaveBeenCalledOnce()
       if (stage === '이미지') {
@@ -284,6 +273,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
 
   it('이미지 대기 중 캡처가 끝나면 늦게 온 이미지로 비교와 상세 조회를 시작하지 않는다', async () => {
     const f = fixture()
+    // 취소를 무시하고 늦게 끝나는 의존성이다.
     const pendingImage = deferred<CharacterImage>()
     f.image.mockReturnValueOnce(pendingImage.promise)
     const pending = f.identify(f.input)
@@ -291,16 +281,16 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     const signal = f.image.mock.calls[0][0].signal
 
     f.controller.abort()
+    pendingImage.resolve(shadedImage())
+
     expect(await pending).toBeNull()
     expect(signal.aborted).toBe(true)
-    pendingImage.resolve(shadedImage())
-    await new Promise<void>((resolve) => setImmediate(resolve))
     expect(f.image).toHaveBeenCalledOnce()
     expect(f.scorePortrait).not.toHaveBeenCalled()
     expect(f.getDetails).not.toHaveBeenCalled()
   })
 
-  it('이전 관측이 된 후보 응답은 이미지 조회를 시작하지 않는다', async () => {
+  it('후보 응답을 기다리는 동안 이전 관측이 되면 이미지 조회를 시작하지 않는다', async () => {
     const f = fixture()
     let current = true
     f.candidates.mockImplementationOnce(async () => {
@@ -313,98 +303,40 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(f.image).not.toHaveBeenCalled()
   })
 
-  it('앞 단계에서 쓴 시간을 유지하고 15초 경계에서 다음 이미지나 상세 요청을 시작하지 않는다', async () => {
+  it('비교 중 취소되면 비교 오류를 명성 대체로 바꾸지 않고 요청 수명 판정을 우선한다', async () => {
     const f = fixture()
-    f.image.mockImplementationOnce(async () => {
-      f.clock.elapseWithoutTimers(14_999)
-
-      return shadedImage()
-    })
     f.scorePortrait.mockImplementationOnce(async () => {
-      f.clock.elapseWithoutTimers(1)
-
-      return {
-        distance: 0,
-        coverage: 1,
-        comparedCells: 64,
-        alignment: { x: 0, y: 0, width: 8, height: 8 }
-      }
+      f.controller.abort()
+      throw new PortraitComparisonBudgetExceededError()
     })
 
-    expect(await f.identify(f.input)).toMatchObject({
-      kind: 'failure',
-      error: { code: 'SEARCH_TIMEOUT' }
-    })
+    expect(await f.identify(f.input)).toBeNull()
     expect(f.image).toHaveBeenCalledOnce()
     expect(f.getDetails).not.toHaveBeenCalled()
+    expect(f.scorePortrait.mock.calls[0][0].signal.aborted).toBe(true)
   })
 
-  it('응답 없는 이미지도 처음 접수한 시각의 15초에 종료한다', async () => {
-    const f = fixture()
-    f.image.mockReturnValueOnce(new Promise(() => undefined))
-    const pending = f.identify(f.input)
-    await vi.waitFor(() => expect(f.image).toHaveBeenCalledOnce())
-
-    f.clock.advance(15_000)
-
-    expect(await pending).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
-    expect(f.image.mock.calls[0][0].signal.aborted).toBe(true)
-    expect(f.getDetails).not.toHaveBeenCalled()
-  })
-
-  it.each(['취소', '만료'] as const)(
-    '비교 중 %s되면 비교 오류를 명성 대체로 바꾸지 않고 요청 수명 판정을 우선한다',
-    async (reason) => {
-      const f = fixture()
-      f.scorePortrait.mockImplementationOnce(async () => {
-        if (reason === '취소') {
-          f.controller.abort()
-        } else {
-          f.clock.elapseWithoutTimers(15_000)
-        }
-        throw new PortraitComparisonBudgetExceededError()
-      })
-
-      const outcome = await f.identify(f.input)
-      if (reason === '취소') {
-        expect(outcome).toBeNull()
-      } else {
-        expect(outcome).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
-      }
-      expect(f.image).toHaveBeenCalledOnce()
-      expect(f.getDetails).not.toHaveBeenCalled()
-      expect(f.scorePortrait.mock.calls[0][0].signal.aborted).toBe(true)
-    }
-  )
-
-  it.each(['취소', '만료', '이전 요청'] as const)(
-    '이미지 오류를 복구하더라도 %s 판정 뒤에는 명성 후보의 상세를 요청하지 않는다',
+  it.each(['취소', '이전 요청'] as const)(
+    '이미지 오류를 복구하더라도 %s 판정 뒤에는 다음 후보 비교나 명성 후보의 상세를 요청하지 않는다',
     async (reason) => {
       const f = fixture()
       let current = true
       f.image.mockImplementationOnce(async () => {
         if (reason === '취소') {
           f.controller.abort()
-        } else if (reason === '만료') {
-          f.clock.elapseWithoutTimers(15_000)
         } else {
           current = false
         }
         throw new SearchHttpFailure('NEOPLE_API_ERROR')
       })
-      const outcome = await f.identify({ ...f.input, isCurrent: () => current })
-      if (reason === '만료') {
-        expect(outcome).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
-      } else {
-        expect(outcome).toBeNull()
-      }
+
+      expect(await f.identify({ ...f.input, isCurrent: () => current })).toBeNull()
       expect(f.getDetails).not.toHaveBeenCalled()
       expect(f.scorePortrait).not.toHaveBeenCalled()
     }
   )
 
   it('공유 직렬 큐에서 대기하던 슬롯의 캡처가 끝나면 그 슬롯의 이미지 요청을 시작하지 않는다', async () => {
-    const clock = new FakeMonotonicClock()
     const started: { characterId: string; resolve: (image: CharacterImage) => void }[] = []
     const http = vi.fn<CharacterImageHttp>(
       ({ characterId }) =>
@@ -432,8 +364,6 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
         selection: INITIAL_PORTRAIT_COLOR_POLICY
       })
       const outcome = request({
-        clock,
-        startedAt: clock.monotonicMs,
         signal: controller.signal,
         isCurrent: () => true,
         nicknames: ['첫이름'],
@@ -503,7 +433,6 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
     return (isCurrent: () => boolean = () => true) =>
       runDetailsRequest({
         runtime: {
-          clock: f.clock,
           identification: {
             candidates: f.candidates,
             image: f.image,
@@ -514,7 +443,6 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
           score
         },
         summary: identified,
-        startedAt: f.input.startedAt,
         signal: f.controller.signal,
         isCurrent
       })
@@ -557,34 +485,26 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
     expect(score).not.toHaveBeenCalled()
   })
 
-  it('상세 호출 제한은 원래 수신 시각을 유지해 전달한다', async () => {
+  it('상세 호출 제한은 호출 제한 실패로 전달하고 엔진을 부르지 않는다', async () => {
     const f = fixture()
     const score = vi.fn<ScoreEngine>(() => engineResult)
     const request = cardRequest(f, score)
-    f.getDetails.mockRejectedValueOnce(
-      new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 30,
-        retryAfterReceivedAt: 1000
-      })
-    )
+    f.getDetails.mockRejectedValueOnce(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
 
     expect(await request()).toEqual({
       kind: 'failure',
-      error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 30 },
-      retryAfterReceivedAt: 1000
+      error: { code: 'SEARCH_RATE_LIMITED' }
     })
     expect(score).not.toHaveBeenCalled()
   })
 
-  it.each(['만료', '이전 요청', '취소'] as const)(
+  it.each(['이전 요청', '취소'] as const)(
     '엔진 계산 중 %s 판정이 나면 늦은 카드 결과를 발행하지 않는다',
     async (reason) => {
       const f = fixture()
       let current = true
       const score = vi.fn<ScoreEngine>(() => {
-        if (reason === '만료') {
-          f.clock.elapseWithoutTimers(15_000)
-        } else if (reason === '이전 요청') {
+        if (reason === '이전 요청') {
           current = false
         } else {
           f.controller.abort()
@@ -596,25 +516,7 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
       const outcome = await cardRequest(f, score)(() => current)
 
       expect(score).toHaveBeenCalledOnce()
-      if (reason === '만료') {
-        expect(outcome).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
-      } else {
-        expect(outcome).toBeNull()
-      }
+      expect(outcome).toBeNull()
     }
   )
-
-  it('상세 조회 뒤 15초 경계에 닿으면 엔진을 부르지 않는다', async () => {
-    const f = fixture()
-    const score = vi.fn<ScoreEngine>(() => engineResult)
-    const request = cardRequest(f, score)
-    f.getDetails.mockImplementationOnce(async ({ characterId }) => {
-      f.clock.elapseWithoutTimers(15_000)
-
-      return { ...details(characterId), card: dealerCard as CharacterDetails['card'] }
-    })
-
-    expect(await request()).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
-    expect(score).not.toHaveBeenCalled()
-  })
 })

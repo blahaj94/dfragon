@@ -7,7 +7,6 @@ import { validateDevRendererUrl } from './renderer-document'
 import { registerCaptureIpc, registerCaptureWindow } from './capture/ipc-handler'
 import { registerCapturePermissions } from './capture/permission-policy'
 import { readAppApiOrigin, readAppChannelName, readAppIdentity } from './lib/app-channel'
-import { createMonotonicClock } from './lib/monotonic-clock'
 import { fetchApi } from './api-fetch'
 import { readReleaseFeed } from './update-notice/http'
 import { createUpdateNotices } from './update-notice/notices'
@@ -170,7 +169,6 @@ app.whenReady().then(() => {
     apiOrigin != null
       ? {
           apiOrigin,
-          clock: createMonotonicClock(),
           portraitColorPolicy: INITIAL_PORTRAIT_COLOR_POLICY,
           score: createLazyScoreEngine(() =>
             loadScoreEngine({

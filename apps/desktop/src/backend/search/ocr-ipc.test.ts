@@ -264,7 +264,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     expect((await fixture.read()).slots[0].requestId).not.toBe(selected.requestId)
   })
 
-  it('같은 후보와 보이는 얼굴의 revision은 요청을 유지하고 15초를 연장하지 않는다', async () => {
+  it('같은 후보와 보이는 얼굴의 revision은 진행 중 요청을 유지한다', async () => {
     const fixture = await createSearchFixture('capture', policy)
     const response = deferred<Response>()
     fixture.fetchSearch.mockReturnValueOnce(response.promise)
@@ -272,19 +272,17 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     const masked = { ...input, portrait: { ...input.portrait, validMask: new Uint8Array([1, 0]) } }
     await fixture.invoke('notifyOcrCandidatesDetected', masked)
     await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledOnce())
+    const request = new Request(...fixture.fetchSearch.mock.calls[0])
     const before = await fixture.read()
-    fixture.clock.advance(10_000)
     const next = structuredClone(masked)
     next.observationRevision = 2
     next.portrait.image.rgba[4] = 200
     await fixture.invoke('notifyOcrCandidatesDetected', next)
     expect((await fixture.read()).slots[0]).toEqual({ ...before.slots[0], observationRevision: 2 })
-    fixture.clock.advance(5_000)
-    await vi.waitFor(async () =>
-      expect((await fixture.read()).slots[0].error?.code).toBe('SEARCH_TIMEOUT')
-    )
-    expect(fixture.fetchSearch).toHaveBeenCalledOnce()
+    expect(request.signal.aborted).toBe(false)
     response.resolve(jsonResponse({ body: { rows: [] } }))
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
+    expect(fixture.fetchSearch).toHaveBeenCalledOnce()
   })
 
   it.each(['첫 후보', '얼굴 픽셀'] as const)(
@@ -335,11 +333,6 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       slot: 0,
       requestId: failed.slots[0].requestId
     }
-    expect(await fixture.invoke('controlCharacterSearch', retry)).toMatchObject({
-      ok: false,
-      error: { code: 'SEARCH_RETRY_NOT_READY' }
-    })
-    fixture.clock.advance(2_000)
     expect(fixture.fetchSearch).toHaveBeenCalledOnce()
     fixture.fetchSearch.mockReset()
     resolveMatch(fixture)
@@ -351,7 +344,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     expect((await fixture.read()).slots[0].selected?.characterName).toBe('가나')
   })
 
-  it('두 번째 후보만 바뀌면 현재 요청과 시간 예산을 유지한다', async () => {
+  it('두 번째 후보만 바뀌면 현재 요청을 유지한다', async () => {
     const fixture = await createSearchFixture('capture', policy)
     const response = deferred<Response>()
     fixture.fetchSearch.mockReturnValueOnce(response.promise)

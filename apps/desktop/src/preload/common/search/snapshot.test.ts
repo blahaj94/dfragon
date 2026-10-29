@@ -252,9 +252,7 @@ describe('검색 수명별 슬롯 수', () => {
 })
 
 describe('슬롯 상태별 판정 경계', () => {
-  const timeout = { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null } as const
-  const rateLimited = (retryAfterSeconds: unknown) =>
-    ({ code: 'SEARCH_RATE_LIMITED', retryAfterSeconds }) as SearchSlot['error']
+  const timeout = { code: 'SEARCH_TIMEOUT' } as const
   const withoutField = (field: keyof SearchSlot) => {
     const { [field]: _removed, ...rest } = searchSlot()
 
@@ -267,8 +265,7 @@ describe('슬롯 상태별 판정 경계', () => {
     ['결과 없음', searchSlot({ state: 'empty' })],
     ['한 행 성공', searchSlot({ state: 'success', rows: [searchRow] })],
     ['오류 실패', searchSlot({ state: 'failure', error: timeout })],
-    ['재시도 0초 제한', searchSlot({ state: 'failure', error: rateLimited(0) })],
-    ['재시도 시간 없는 제한', searchSlot({ state: 'failure', error: rateLimited(null) })],
+    ['호출 제한 실패', searchSlot({ state: 'failure', error: { code: 'SEARCH_RATE_LIMITED' } })],
     ['관찰이 남은 빈 idle', searchSlot({ state: 'idle', requestId: null, nickname: null })]
   ])('%s 슬롯을 전달한다', (_name, slot) => {
     const snapshot = withSearchSlot(slot)
@@ -294,11 +291,6 @@ describe('슬롯 상태별 판정 경계', () => {
     ['오류가 붙은 결과 없음', searchSlot({ state: 'empty', error: timeout })],
     ['행이 붙은 결과 없음', searchSlot({ state: 'empty', rows: [searchRow] })],
     ['요청 ID가 없는 결과 없음', searchSlot({ state: 'empty', requestId: null })],
-    [
-      '재시도 0초 시간 초과',
-      searchSlot({ state: 'failure', error: { ...timeout, retryAfterSeconds: 0 } })
-    ],
-    ['소수 재시도 제한', searchSlot({ state: 'failure', error: rateLimited(1.5) })],
     [
       '공백 캐릭터명 행',
       searchSlot({ state: 'success', rows: [{ ...searchRow, characterName: ' ' }] })

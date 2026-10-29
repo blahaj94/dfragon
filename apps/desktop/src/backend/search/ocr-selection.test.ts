@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CharacterDetails } from '../../preload/common/types/character'
 import type { IdentificationAdapters } from './request'
 import { createCaptureSearchLifetime } from './capture-lifetime'
-import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
 const details: CharacterDetails = {
@@ -68,7 +67,7 @@ describe('OCR로 고른 캐릭터의 카드 요약', () => {
     const lifetime = createCaptureSearchLifetime({
       publish: vi.fn(),
       isCurrent: () => true,
-      runtime: { clock: new FakeMonotonicClock(), identification, score: () => null }
+      runtime: { identification, score: () => null }
     })
     const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot
       .captureId!

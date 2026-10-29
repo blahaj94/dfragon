@@ -127,7 +127,7 @@ describe('main 검색 관측과 slot 수명', () => {
       nickname: '',
       requestId: expect.any(String),
       rows: [],
-      error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null }
+      error: { code: 'INVALID_SEARCH_QUERY' }
     })
     expect(fixture.fetchSearch).not.toHaveBeenCalled()
     const retry = await fixture.invoke('controlCharacterSearch', {
@@ -170,7 +170,7 @@ describe('main 검색 관측과 slot 수명', () => {
         nickname,
         requestId: expect.any(String),
         rows: [],
-        error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null }
+        error: { code: 'INVALID_SEARCH_QUERY' }
       })
       expect(fixture.fetchSearch).not.toHaveBeenCalled()
       const retry = await fixture.invoke('controlManualSearch', {

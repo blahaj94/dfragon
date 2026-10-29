@@ -1,6 +1,5 @@
 import { assign, fromCallback, setup } from 'xstate'
 import { runSearchRequest, type SearchOutcome, type SearchRuntime } from './request'
-import { waitForRetryAfter, type RetryAfter } from './retry-after'
 import { reportSearchOutcome } from './diagnostics'
 import type { OcrSearchInput } from '../../preload/common/types/search'
 
@@ -10,27 +9,22 @@ export type SearchRequest = {
   requestId: string
   observationRevision: number
   nickname: string
-  startedAt: number
   runtime: SearchRuntime
   ocrInput?: OcrSearchInput
   manualServerId?: string
 }
 export type RequestIdentity = Pick<SearchRequest, 'slot' | 'captureId' | 'requestId'>
-export type RateWait = RequestIdentity & RetryAfter
 
 type Effects = {
   canComplete: (request: SearchRequest) => boolean
   complete: (request: SearchRequest, outcome: SearchOutcome) => void
-  ready: (wait: RateWait) => void
 }
-type Context = Effects & { request: SearchRequest | null; wait: RateWait | null }
+type Context = Effects & { request: SearchRequest | null }
 type Event =
   | { type: 'PREPARE'; request: SearchRequest }
   | { type: 'EXECUTE'; request: SearchRequest }
   | { type: 'FINISH'; request: SearchRequest }
   | { type: 'PROMOTE'; observationRevision: number }
-  | { type: 'WAIT'; wait: RateWait }
-  | { type: 'FINISH_WAIT'; wait: RateWait }
   | { type: 'CANCEL' }
 
 export const slotLifetimeMachine = setup({
@@ -50,18 +44,13 @@ export const slotLifetimeMachine = setup({
           outcome = await runSearchRequest({
             runtime: request.runtime,
             nickname: request.nickname,
-            startedAt: request.startedAt,
             signal: controller.signal,
             isCurrent: () => input.canComplete(request),
             ocrInput: request.ocrInput,
             manualServerId: request.manualServerId
           })
         } catch {
-          outcome = {
-            kind: 'failure',
-            error: { code: 'SEARCH_NETWORK_ERROR', retryAfterSeconds: null },
-            retryAfterReceivedAt: null
-          }
+          outcome = { kind: 'failure', error: { code: 'SEARCH_NETWORK_ERROR' } }
         }
         if (!stopped) {
           reportSearchOutcome(outcome, request.runtime.ocrIdentification)
@@ -74,35 +63,28 @@ export const slotLifetimeMachine = setup({
         stopped = true
         controller.abort()
       }
-    }),
-    retryAfter: fromCallback<Event, { wait: RateWait; ready: Effects['ready'] }>(({ input }) =>
-      waitForRetryAfter({ ...input.wait, onReady: () => input.ready(input.wait) })
-    )
+    })
   }
 }).createMachine({
   id: 'searchSlotLifetime',
-  context: ({ input }) => ({ ...input, request: null, wait: null }),
+  context: ({ input }) => ({ ...input, request: null }),
   initial: 'idle',
   on: {
     CANCEL: {
       target: '.idle',
-      actions: assign({ request: null, wait: null })
+      actions: assign({ request: null })
     },
     PREPARE: {
       target: '.prepared',
-      actions: assign({ request: ({ event }) => event.request, wait: null })
+      actions: assign({ request: ({ event }) => event.request })
     },
     PROMOTE: {
       actions: ({ context, event }) => {
-        // The running invocation shares this accepted revision; its budget stays fixed.
+        // The running invocation shares this accepted revision.
         if (context.request != null) {
           context.request.observationRevision = event.observationRevision
         }
       }
-    },
-    WAIT: {
-      target: '.rateLimited',
-      actions: assign({ request: null, wait: ({ event }) => event.wait })
     }
   },
   states: {
@@ -130,19 +112,6 @@ export const slotLifetimeMachine = setup({
         }
       }
     },
-    settled: {},
-    rateLimited: {
-      invoke: {
-        src: 'retryAfter',
-        input: ({ context }) => ({ wait: context.wait!, ready: context.ready })
-      },
-      on: {
-        FINISH_WAIT: {
-          guard: ({ context, event }) => context.wait === event.wait,
-          target: 'settled',
-          actions: assign({ wait: null })
-        }
-      }
-    }
+    settled: {}
   }
 })

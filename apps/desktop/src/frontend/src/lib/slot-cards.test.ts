@@ -83,10 +83,7 @@ describe('toSlotCards', () => {
 
   it('실패한 슬롯의 안내에 다음 조회 방법을 덧붙인다', () => {
     const [failed, pending] = toSlotCards(
-      input([
-        slot('failure', { error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null } }),
-        slot('pending')
-      ])
+      input([slot('failure', { error: { code: 'SEARCH_TIMEOUT' } }), slot('pending')])
     )
 
     expect(failed.notice?.endsWith(` ${NEXT_STEP}`)).toBe(true)

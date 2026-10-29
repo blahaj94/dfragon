@@ -2,8 +2,7 @@ import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { crc32, deflateSync } from 'node:zlib'
 import { PNG } from 'pngjs'
-import { describe, expect, it, vi } from 'vitest'
-import type { MonotonicClock } from '../lib/monotonic-clock'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CharacterCandidate, CharacterDetails } from '../../preload/common/types/character'
 import {
   CHARACTER_HTTP_LIMITS,
@@ -14,6 +13,10 @@ import {
 import { SearchHttpFailure } from './http'
 
 vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 const API_ORIGIN = 'https://api.example.test'
 const IMAGE_URL = 'https://img-api.neople.co.kr/df/servers/cain/characters/character-1?zoom=1'
@@ -348,19 +351,14 @@ describe('캐릭터 PNG HTTP', () => {
     expect(fetch).toHaveBeenCalledOnce()
   })
 
-  it('이미지 429는 수신 시각과 Retry-After를 보존한 호출 제한으로 알리고 재시도하지 않는다', async () => {
+  it('이미지 429는 호출 제한으로 알리고 재시도하지 않는다', async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValue(new Response(null, { status: 429, headers: { 'Retry-After': '7' } }))
-    const clock: Pick<MonotonicClock, 'read'> = {
-      read: () => ({ monotonicMs: 1234 })
-    }
-    const read = createCharacterImageHttp({ fetch, clock })
+    const read = createCharacterImageHttp({ fetch })
 
     await expect(read({ ...identity, signal: signal() })).rejects.toMatchObject({
-      code: 'SEARCH_RATE_LIMITED',
-      retryAfterSeconds: 7,
-      retryAfterReceivedAt: 1234
+      code: 'SEARCH_RATE_LIMITED'
     })
     expect(fetch).toHaveBeenCalledOnce()
   })
@@ -404,26 +402,19 @@ describe('캐릭터 PNG HTTP', () => {
 
 describe('캐릭터 통신 실패와 호출자 취소', () => {
   it.each(['candidates', 'details'] as const)(
-    '%s의 호출 제한은 수신 시각과 Retry-After를 보존하고 재시도하지 않는다',
+    '%s의 호출 제한은 Retry-After와 관계없이 호출 제한으로 알리고 재시도하지 않는다',
     async (kind) => {
       const code = kind === 'details' ? 'CHARACTER_RATE_LIMITED' : 'SEARCH_RATE_LIMITED'
       const fetch = vi
         .fn<typeof globalThis.fetch>()
         .mockResolvedValue(json({ error: { code } }, 429, { 'Retry-After': '7' }))
-      const clock: Pick<MonotonicClock, 'read'> = {
-        read: () => ({ monotonicMs: 1234 })
-      }
-      const options = { apiOrigin: API_ORIGIN, fetch, clock }
+      const options = { apiOrigin: API_ORIGIN, fetch }
       const request =
         kind === 'details'
           ? createCharacterDetailsHttp(options)({ ...identity, signal: signal() })
           : createCharacterCandidatesHttp(options)({ nickname: '가나', signal: signal() })
 
-      await expect(request).rejects.toMatchObject({
-        code: 'SEARCH_RATE_LIMITED',
-        retryAfterSeconds: 7,
-        retryAfterReceivedAt: 1234
-      })
+      await expect(request).rejects.toMatchObject({ code: 'SEARCH_RATE_LIMITED' })
       expect(fetch).toHaveBeenCalledOnce()
     }
   )
@@ -551,6 +542,69 @@ describe('캐릭터 통신 실패와 호출자 취소', () => {
       } finally {
         await server.close()
       }
+    }
+  )
+
+  it.each([
+    ['candidates', 'header'],
+    ['candidates', 'body'],
+    ['image', 'header'],
+    ['image', 'body'],
+    ['details', 'header'],
+    ['details', 'body']
+  ] as const)(
+    '%s의 %s가 오지 않으면 HTTP client timeout 뒤 검색 시간 초과로 끝내고 요청을 중단한다',
+    async (kind, stall) => {
+      vi.useFakeTimers()
+      const neverSettles = (abort: AbortSignal): Promise<never> =>
+        new Promise((_resolve, reject) => {
+          abort.addEventListener('abort', () => reject(abort.reason), { once: true })
+        })
+      let transportSignal: AbortSignal | undefined
+      let markWaiting!: () => void
+      const waiting = new Promise<void>((resolve) => {
+        markWaiting = resolve
+      })
+      const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+        const requestSignal = new Request(input, init).signal
+        transportSignal = requestSignal
+        if (stall === 'header') {
+          markWaiting()
+
+          return neverSettles(requestSignal)
+        }
+        const pull = (): Promise<never> => {
+          markWaiting()
+
+          return neverSettles(requestSignal)
+        }
+
+        return new Response(new ReadableStream({ pull }, { highWaterMark: 0 }), {
+          headers: { 'Content-Type': kind === 'image' ? 'image/png' : 'application/json' }
+        })
+      })
+      let request: Promise<unknown>
+      if (kind === 'candidates') {
+        request = createCharacterCandidatesHttp({ apiOrigin: API_ORIGIN, fetch })({
+          nickname: '가나',
+          signal: signal()
+        })
+      } else if (kind === 'image') {
+        request = createCharacterImageHttp({ fetch })({ ...identity, signal: signal() })
+      } else {
+        request = createCharacterDetailsHttp({ apiOrigin: API_ORIGIN, fetch })({
+          ...identity,
+          signal: signal()
+        })
+      }
+
+      const failure = expect(request).rejects.toMatchObject({ code: 'SEARCH_TIMEOUT' })
+      await waiting
+      // ky 기본 timeout 값을 고정하지 않도록 어떤 기본값보다도 넉넉히 진행한다.
+      await vi.advanceTimersByTimeAsync(60_000)
+      await failure
+      expect(transportSignal?.aborted).toBe(true)
+      expect(fetch).toHaveBeenCalledOnce()
     }
   )
 

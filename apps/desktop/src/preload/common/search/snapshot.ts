@@ -38,11 +38,9 @@ const choice = row.extend({
   adventureName: z.string().nullable(),
   face: faceWindow.nullable()
 })
-const errorFields = z.strictObject({
-  code: z.enum(Object.keys(SEARCH_ERRORS) as Array<keyof typeof SEARCH_ERRORS>),
-  retryAfterSeconds: revision.nullable()
+const error = z.strictObject({
+  code: z.enum(Object.keys(SEARCH_ERRORS) as Array<keyof typeof SEARCH_ERRORS>)
 })
-const error = errorFields.refine(hasAllowedRetryDelay)
 const slotFields = z.strictObject({
   slot: z
     .int()
@@ -62,14 +60,6 @@ const slotFields = z.strictObject({
 type SlotFields = z.infer<typeof slotFields>
 const SELECTION_FIELDS = ['selected', 'selectionMethod', 'choices', 'details'] as const
 const slot = slotFields.refine(hasValidSelection).refine(hasResultForState)
-
-function hasAllowedRetryDelay(value: z.infer<typeof errorFields>): boolean {
-  if (value.code === 'SEARCH_RATE_LIMITED') {
-    return true
-  }
-
-  return value.retryAfterSeconds === null
-}
 
 function isSameCharacter(left: CharacterIdentity, right: CharacterIdentity): boolean {
   return left.serverId === right.serverId && left.characterId === right.characterId

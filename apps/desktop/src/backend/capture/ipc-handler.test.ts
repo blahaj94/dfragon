@@ -462,7 +462,7 @@ describe('capture main document and source boundary', () => {
           expect.objectContaining({
             nickname: '가나',
             state: 'failure',
-            error: { code: 'NEOPLE_UNAVAILABLE', retryAfterSeconds: null }
+            error: { code: 'NEOPLE_UNAVAILABLE' }
           }),
           expect.any(Object),
           expect.any(Object),

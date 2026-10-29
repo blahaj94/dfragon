@@ -5,7 +5,6 @@ import { SEARCH_ACTIONS, SEARCH_SLOT_COUNTS } from '../../../preload/common/type
 import {
   SEARCH_ERRORS,
   type SearchApi,
-  type SearchError,
   type OcrSearchInput,
   type OcrSearchObservation,
   type SearchCommandResult,
@@ -136,7 +135,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       slot.state !== 'failure' ||
       error == null ||
       pending.has(slotIndex) ||
-      !canRetryError(error)
+      !SEARCH_ERRORS[error.code].retryable
     ) {
       return
     }
@@ -222,18 +221,6 @@ function getVisibleSearchSlots({
 
     return empty[slot.slot]
   })
-}
-
-function canRetryError(error: SearchError): boolean {
-  if (!SEARCH_ERRORS[error.code].retryable) {
-    return false
-  }
-  const isWaitingForRateLimit =
-    error.code === 'SEARCH_RATE_LIMITED' &&
-    error.retryAfterSeconds != null &&
-    error.retryAfterSeconds > 0
-
-  return !isWaitingForRateLimit
 }
 
 function canShowSlot(slot: SearchSlot, observedRevision: number): boolean {

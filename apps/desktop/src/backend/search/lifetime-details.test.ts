@@ -4,7 +4,6 @@ import type { CharacterCandidate, CharacterDetails } from '../../preload/common/
 import type { CharacterCandidatesHttp, CharacterDetailsHttp } from './character-http'
 import { createCaptureSearchLifetime } from './capture-lifetime'
 import { deferred } from '../lib/async-test-fixture'
-import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { SearchHttpFailure } from './http'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
@@ -68,7 +67,6 @@ function fixture() {
     publish: vi.fn(),
     isCurrent: () => true,
     runtime: {
-      clock: new FakeMonotonicClock(),
       identification: {
         candidates,
         image: vi.fn(),
@@ -164,12 +162,7 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
 
   it('상세가 호출 제한을 받으면 남은 상세도 실패로 두고 더 요청하지 않는다', async () => {
     const f = fixture()
-    f.getDetails.mockRejectedValueOnce(
-      new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 30,
-        retryAfterReceivedAt: 0
-      })
-    )
+    f.getDetails.mockRejectedValueOnce(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
     await f.identify(0)
     await f.identify(1)
     await f.identify(2)
@@ -192,13 +185,7 @@ describe('이름과 서버를 정한 뒤 상세를 채우는 순서', () => {
     await f.identify(0)
     await f.identify(1)
 
-    f.rejectSearch(
-      2,
-      new SearchHttpFailure('SEARCH_RATE_LIMITED', {
-        retryAfterSeconds: 30,
-        retryAfterReceivedAt: 0
-      })
-    )
+    f.rejectSearch(2, new SearchHttpFailure('SEARCH_RATE_LIMITED'))
 
     await vi.waitFor(() => expect(f.lifetime.snapshot().slots[2].state).toBe('failure'))
     expect(

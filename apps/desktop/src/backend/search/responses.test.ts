@@ -44,7 +44,7 @@ describe('검색 전체 응답과 정제 실패', () => {
     const slot = await searchResponse(response)
 
     expect(slot).toMatchObject({ state: 'failure', rows: [] })
-    expect(slot.error).toEqual({ code, retryAfterSeconds: null })
+    expect(slot.error).toEqual({ code })
     expect(JSON.stringify(slot)).not.toContain('SYNTHETIC_RESPONSE_DETAIL')
   })
 
@@ -62,7 +62,7 @@ describe('검색 전체 응답과 정제 실패', () => {
     expect(slot).toMatchObject({
       state: 'failure',
       rows: [],
-      error: { code: 'SEARCH_RESPONSE_INVALID', retryAfterSeconds: null }
+      error: { code: 'SEARCH_RESPONSE_INVALID' }
     })
   })
 
@@ -80,7 +80,7 @@ describe('검색 전체 응답과 정제 실패', () => {
     expect(slot).toMatchObject({
       state: 'failure',
       rows: [],
-      error: { code: 'SEARCH_RESPONSE_INVALID', retryAfterSeconds: null }
+      error: { code: 'SEARCH_RESPONSE_INVALID' }
     })
   })
 
@@ -92,12 +92,12 @@ describe('검색 전체 응답과 정제 실패', () => {
       expect(slot).toMatchObject({
         state: 'failure',
         rows: [],
-        error: { code: 'SEARCH_RESPONSE_INVALID', retryAfterSeconds: null }
+        error: { code: 'SEARCH_RESPONSE_INVALID' }
       })
     }
   )
 
-  it('deadline 전 body stream의 transport 오류는 JSON 오류와 구분한다', async () => {
+  it('body stream의 transport 오류는 JSON 오류와 구분한다', async () => {
     const body = new ReadableStream<Uint8Array>(
       {
         pull(controller) {
@@ -112,7 +112,7 @@ describe('검색 전체 응답과 정제 실패', () => {
     expect(slot).toMatchObject({
       state: 'failure',
       rows: [],
-      error: { code: 'SEARCH_NETWORK_ERROR', retryAfterSeconds: null }
+      error: { code: 'SEARCH_NETWORK_ERROR' }
     })
   })
 
@@ -125,7 +125,7 @@ describe('검색 전체 응답과 정제 실패', () => {
     expect(await completedSlot(fixture)).toMatchObject({
       state: 'failure',
       rows: [],
-      error: { code: 'SEARCH_NETWORK_ERROR', retryAfterSeconds: null }
+      error: { code: 'SEARCH_NETWORK_ERROR' }
     })
   })
 
@@ -190,7 +190,7 @@ describe('검색 입력의 Unicode와 URI 원문', () => {
       expect(await completedSlot(fixture)).toMatchObject({
         state: 'failure',
         nickname,
-        error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null }
+        error: { code: 'INVALID_SEARCH_QUERY' }
       })
       expect(fixture.fetchSearch).not.toHaveBeenCalled()
     }

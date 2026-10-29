@@ -8,7 +8,6 @@ import {
   type WebFrameMain
 } from 'electron'
 import { addHandler } from '../ipc'
-import type { MonotonicClock } from '../lib/monotonic-clock'
 import {
   createCaptureSearchLifetime,
   type CaptureSearchLifetime,
@@ -162,7 +161,6 @@ async function readBoundCaptureFrame(
 type SearchConfiguration = {
   apiOrigin: string
   fetch?: typeof fetch
-  clock: MonotonicClock
   portraitColorPolicy: PortraitColorPolicy & CharacterSelectionPolicy
   score: ScoreEngine
 }
@@ -180,7 +178,6 @@ function createSearchRuntime(
   const details = createCachedCharacterDetails(createCharacterDetailsHttp(configuration))
 
   return {
-    clock: configuration.clock,
     score: configuration.score,
     identification: { candidates, image, details, scorePortrait, selection: policy }
   }

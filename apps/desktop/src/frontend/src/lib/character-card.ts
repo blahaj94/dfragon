@@ -38,15 +38,7 @@ export function canRetryCharacterSlot(slot: SearchSlot, retryPending: boolean): 
     return false
   }
 
-  if (!SEARCH_ERRORS[slot.error.code].retryable) {
-    return false
-  }
-
-  if (slot.error.code === 'SEARCH_RATE_LIMITED' && (slot.error.retryAfterSeconds ?? 0) > 0) {
-    return false
-  }
-
-  return true
+  return SEARCH_ERRORS[slot.error.code].retryable
 }
 
 function raidSelectionNotice(slot: SearchSlot): string | undefined {
@@ -93,13 +85,9 @@ function characterSlotNotice(slot: SearchSlot, screen: SearchMode): string | und
   if (slot.error == null) {
     return undefined
   }
-  const { code, retryAfterSeconds } = slot.error
+  const { code } = slot.error
   if (code === 'INVALID_SEARCH_QUERY' && slot.nickname === '') {
     return '닉네임을 읽지 못했습니다. 서버와 이름을 직접 입력해 주세요.'
-  }
-
-  if (code === 'SEARCH_RATE_LIMITED' && retryAfterSeconds != null && retryAfterSeconds > 0) {
-    return `${retryAfterSeconds}초 후 다시 시도할 수 있습니다.`
   }
 
   return SEARCH_ERRORS[code].message

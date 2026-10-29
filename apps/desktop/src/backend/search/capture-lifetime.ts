@@ -11,11 +11,9 @@ import {
 import {
   slotLifetimeMachine,
   type SearchRequest,
-  type RequestIdentity,
-  type RateWait
+  type RequestIdentity
 } from './slot-lifetime-machine'
 import { sameOcrSearchInput } from '../../preload/common/search/ocr-input'
-import { remainingRetryAfter, type RetryAfter } from './retry-after'
 import { SEARCH_ERRORS, SEARCH_SLOT_COUNTS } from '../../preload/common/types/search'
 import type {
   SearchCommandError,
@@ -65,31 +63,6 @@ function idleSlot({
   }
 }
 
-function retryAfterForFailure(
-  result: Extract<SearchOutcome, { kind: 'failure' }>
-): Pick<RetryAfter, 'seconds' | 'receivedAt'> | null {
-  const isRateLimited = result.error.code === 'SEARCH_RATE_LIMITED'
-  if (!isRateLimited) {
-    return null
-  }
-  const seconds = result.error.retryAfterSeconds
-  const hasRetryAfter = seconds != null
-  if (!hasRetryAfter) {
-    return null
-  }
-  const hasPositiveRetryAfter = seconds > 0
-  if (!hasPositiveRetryAfter) {
-    return null
-  }
-  const receivedAt = result.retryAfterReceivedAt
-  const hasReceivedAt = receivedAt != null
-  if (!hasReceivedAt) {
-    return null
-  }
-
-  return { seconds, receivedAt }
-}
-
 /** 이름과 서버를 정한 슬롯 하나의 상세 조회. 수명마다 한 번에 하나만 실행한다. */
 type DetailsJob = RequestIdentity & { controller: AbortController }
 
@@ -121,7 +94,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   const manualServers: Array<string | null> = slotIndexes.map(() => null)
   const actors = slotIndexes.map(() =>
     createActor(slotLifetimeMachine, {
-      input: { canComplete, complete, ready: finishRateWait }
+      input: { canComplete, complete }
     }).start()
   )
   let detailsJob: DetailsJob | null = null
@@ -296,7 +269,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       nickname: input.nickname,
       state: 'failure',
       rows: [],
-      error: { code, retryAfterSeconds: null }
+      error: { code }
     }
     emit()
 
@@ -312,17 +285,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     }
     const error = slot.error
     if (slot.state !== 'failure' || error == null || !SEARCH_ERRORS[error.code].retryable) {
-      return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
-    }
-    const wait = actors[input.slot].getSnapshot().context.wait
-    const hasWait = wait != null
-    let isWaiting = false
-    if (hasWait) {
-      const remaining = remainingRetryAfter(wait)
-      isWaiting = remaining > 0
-    }
-
-    if (isWaiting) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     const nickname = slot.nickname
@@ -362,7 +324,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     input: OcrSearchObservation | ManualCharacterLookup
     runtime: SearchRuntime
   }): SearchCommandResult {
-    const startedAt = runtime.clock.read().monotonicMs
     const ocrInput = 'candidateNicknames' in input ? cloneOcrInput(input) : null
     const manualServerId = 'serverId' in input ? input.serverId : undefined
     // 이전 창으로 시작한 OCR 입력은 슬롯을 지우기 전에 거절해 OCR에서 시작했다는 사실을 잃은 채 다시 시도되지 않게 한다.
@@ -385,7 +346,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       nickname: input.nickname,
       state: isValidInput ? 'pending' : 'failure',
       rows: [],
-      error: isValidInput ? null : { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null }
+      error: isValidInput ? null : { code: 'INVALID_SEARCH_QUERY' }
     }
     const request: SearchRequest = {
       captureId: input.captureId,
@@ -393,7 +354,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       nickname: input.nickname,
       observationRevision: input.observationRevision,
       requestId,
-      startedAt,
       runtime,
       ocrInput: ocrInput ?? undefined,
       manualServerId
@@ -482,41 +442,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       failPendingDetails(() => true)
     }
     emit()
-    if (!isSuccess) {
-      const retryAfter = retryAfterForFailure(result)
-      if (retryAfter == null) {
-        return
-      }
-      const currentSlotMatches = isCurrentSlot(request)
-      if (!currentSlotMatches) {
-        return
-      }
-      startRateWait(request, { clock: request.runtime.clock, ...retryAfter })
-    }
-  }
-
-  function startRateWait(request: RequestIdentity, retryAfter: RetryAfter): void {
-    const wait: RateWait = {
-      slot: request.slot,
-      captureId: request.captureId,
-      requestId: request.requestId,
-      ...retryAfter
-    }
-    actors[request.slot].send({ type: 'WAIT', wait })
-  }
-
-  function finishRateWait(wait: RateWait): void {
-    const isCurrentWait = actors[wait.slot].getSnapshot().context.wait === wait
-    const canPublish = isCurrentWait && isCurrentSlot(wait)
-    if (!canPublish) {
-      return
-    }
-    actors[wait.slot].send({ type: 'FINISH_WAIT', wait })
-    slots[wait.slot] = {
-      ...slots[wait.slot],
-      error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
-    }
-    emit()
   }
 
   /**
@@ -546,17 +471,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     runDetailsRequest({
       runtime,
       summary: next.selected,
-      startedAt: runtime.clock.read().monotonicMs,
       signal: job.controller.signal,
       isCurrent: () => isCurrentDetails(job)
     })
-      .catch(
-        (): DetailsOutcome => ({
-          kind: 'failure',
-          error: { code: 'SEARCH_NETWORK_ERROR', retryAfterSeconds: null },
-          retryAfterReceivedAt: null
-        })
-      )
+      .catch((): DetailsOutcome => ({ kind: 'failure', error: { code: 'SEARCH_NETWORK_ERROR' } }))
       .then((outcome) => finishDetails(job, outcome))
   }
 
