@@ -17,7 +17,6 @@ export const styles = stylex.create({
   },
   fieldSelected: { borderColor: colors.cardSignal, backgroundColor: colors.bgWell },
   fieldFailure: { borderColor: colors.cardFailure },
-  fieldWaiting: { borderColor: colors.cardBorder, backgroundColor: colors.bgWell },
   fieldVacant: {
     borderStyle: 'dashed',
     borderColor: colors.cardBorder,

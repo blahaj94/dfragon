@@ -4,7 +4,7 @@ export const scenarios: Record<string, SlotState[]> = {
   states: ['success', 'success', 'failure', 'idle'],
   pending: ['pending', 'empty', 'failure', 'idle'],
   missing: ['success', 'success', 'success', 'success'],
-  identification: ['success', 'waiting-portrait', 'waiting-policy', 'failure'],
+  identification: ['success', 'pending', 'empty', 'failure'],
   tiers: ['success', 'success', 'success', 'idle'],
   roles: ['success', 'success', 'success', 'success'],
   snapshot: ['success', 'success', 'success', 'success'],

@@ -19,7 +19,6 @@ export function NameField({
       {...stylex.props(
         styles.field,
         tone === 'selected' && styles.fieldSelected,
-        tone === 'waiting' && styles.fieldWaiting,
         tone === 'failure' && styles.fieldFailure,
         tone === 'vacant' && styles.fieldVacant
       )}
