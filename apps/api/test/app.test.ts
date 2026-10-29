@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
-import { execFile } from 'node:child_process'
-import type { Server } from 'node:http'
+import { execFile, spawn } from 'node:child_process'
+import { once } from 'node:events'
+import { createServer, type Server } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import test from 'node:test'
+import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { Controller, Get, Injectable } from '@nestjs/common'
@@ -25,6 +28,9 @@ class TestController {
     return this.greetingService.message()
   }
 }
+
+const compiledMainPath = fileURLToPath(new URL('../../dist/main.js', import.meta.url))
+const apiRoot = fileURLToPath(new URL('../../', import.meta.url))
 
 const unusedSearchCharacters: SearchCharacters = async () => {
   throw new Error('app lifecycle test must not search Neople characters')
@@ -100,20 +106,12 @@ test('compiled main은 잘못된 필수 설정을 거절하고 정제된 문구�
   for (const { name, change } of cases) {
     await t.test(name, async () => {
       await assert.rejects(
-        promisify(execFile)(
-          process.execPath,
-          [
-            '--import',
-            'reflect-metadata',
-            fileURLToPath(new URL('../../dist/main.js', import.meta.url))
-          ],
-          {
-            cwd: fileURLToPath(new URL('../../', import.meta.url)),
-            env: { ...environment, ...change },
-            timeout: 5000,
-            killSignal: 'SIGKILL'
-          }
-        ),
+        promisify(execFile)(process.execPath, ['--import', 'reflect-metadata', compiledMainPath], {
+          cwd: apiRoot,
+          env: { ...environment, ...change },
+          timeout: 5000,
+          killSignal: 'SIGKILL'
+        }),
         {
           code: 1,
           signal: null,
@@ -124,3 +122,49 @@ test('compiled main은 잘못된 필수 설정을 거절하고 정제된 문구�
     })
   }
 })
+
+async function findFreePort(): Promise<number> {
+  const server = createServer().listen(0, '127.0.0.1')
+  await once(server, 'listening')
+  const { port } = server.address() as AddressInfo
+  server.close()
+  await once(server, 'close')
+
+  return port
+}
+
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  const title = `compiled main은 listen 뒤 ${signal}를 받으면 앱을 닫고 exit code 0으로 끝난다`
+  test(title, { timeout: 10_000 }, async (t) => {
+    const port = await findFreePort()
+    const child = spawn(process.execPath, ['--import', 'reflect-metadata', compiledMainPath], {
+      cwd: apiRoot,
+      // 실제 환경, credential은 상속하지 않고 합성 입력만 전달한다.
+      env: { PORT: String(port), NEOPLE_API_KEY: 'synthetic-private-api-key' },
+      stdio: ['ignore', 'ignore', 'pipe']
+    })
+    t.after(() => child.kill('SIGKILL'))
+    let stderr = ''
+    child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
+      stderr += chunk
+    })
+    const exited = once(child, 'close')
+    const healthUrl = `http://127.0.0.1:${port}/health`
+    const isListening = (): Promise<boolean> =>
+      fetch(healthUrl, { signal: t.signal }).then(
+        (response) => response.ok,
+        () => false
+      )
+    while (!(await isListening())) {
+      const isRunning = child.exitCode === null && child.signalCode === null
+      assert(isRunning, 'compiled main must keep running until it listens')
+      await delay(50, undefined, { signal: t.signal })
+    }
+
+    child.kill(signal)
+
+    assert.deepEqual(await exited, [0, null])
+    assert.equal(stderr, '')
+    await assert.rejects(fetch(healthUrl))
+  })
+}
