@@ -3,6 +3,7 @@ import { Button, IconButton, shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import { useRef } from 'react'
 import { windowChromeStyles } from '../constants/window-chrome.style'
+import { ShortcutTooltip } from './ShortcutTooltip'
 import { SnapshotIcon } from './SnapshotIcon'
 import { styles } from './SnapshotToggle.style'
 
@@ -28,19 +29,22 @@ export function SnapshotToggle({
 
   return (
     <Popover.Root onOpenChange={handleOpenChange}>
-      <span {...stylex.props(windowChromeStyles.noDrag)}>
-        <Popover.Trigger
-          render={
-            <IconButton
-              size="lg"
-              aria-label={label}
-              pressed={active}
-              icon={<SnapshotIcon width={16} height={16} {...stylex.props(styles.icon)} />}
-              {...stylex.props(styles.trigger)}
-            />
-          }
-        />
-      </span>
+      <ShortcutTooltip shortcut="Alt W">
+        <span {...stylex.props(windowChromeStyles.noDrag)}>
+          <Popover.Trigger
+            render={
+              <IconButton
+                size="lg"
+                aria-label={label}
+                aria-keyshortcuts="Alt+W"
+                pressed={active}
+                icon={<SnapshotIcon width={16} height={16} {...stylex.props(styles.icon)} />}
+                {...stylex.props(styles.trigger)}
+              />
+            }
+          />
+        </span>
+      </ShortcutTooltip>
       <Popover.Portal>
         <Popover.Positioner
           side="bottom"
