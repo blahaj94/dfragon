@@ -3,6 +3,7 @@ import test from 'node:test'
 import { createNeopleCharacterSearchForTest } from '../src/characters/neople-character-search.js'
 import { createNeopleCharacterDetailsForTest } from '../src/characters/details/neople.js'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
+import type { FetchTransport } from '../src/types/neople-character-search.js'
 
 // 2026-10-20 #778 결정으로 프로세스 전체 Neople 예산(최근 60초 600회, 동시 12회)을 없앴다.
 // 예전 상한보다 많이 보내 거절 없이 실제 transport 수가 맞는지 확인한다.
@@ -64,7 +65,7 @@ test('body를 받는 중인 검색이 13개여도 새 검색을 거절하지 않
 })
 
 async function expectThirteenOpenTransports(
-  start: (transport: typeof fetch) => Promise<unknown>[],
+  start: (transport: FetchTransport) => Promise<unknown>[],
   expectedFailure: object
 ) {
   let release!: () => void
@@ -76,8 +77,8 @@ async function expectThirteenOpenTransports(
   const thirteenOpened = new Promise<void>((resolve) => {
     markThirteen = resolve
   })
-  const transport: typeof fetch = async (request) => {
-    const url = new URL(String(request))
+  const transport: FetchTransport = async (request) => {
+    const url = new URL(request.url)
     if (url.pathname === '/df/servers/siroco/characters/fixture-character') {
       return Response.json({
         serverId: 'siroco',

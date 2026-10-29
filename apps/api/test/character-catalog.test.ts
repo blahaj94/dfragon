@@ -82,10 +82,10 @@ test('처리 기한이 끝나면 진행 중인 아이템 조회를 쓰지 않고
 
 test('공급자 응답을 요청 itemId로 대응하고 옵션을 보존하며 오류 원문을 정제한다', async () => {
   const requestPaths: string[] = []
-  const fetchImpl: typeof fetch = async (url, options) => {
-    requestPaths.push(String(url))
-    assert.equal(options?.redirect, 'error')
-    assert.equal((options?.headers as Record<string, string> | undefined)?.apikey, 'fixture-key')
+  const fetchImpl = async (request: Request) => {
+    requestPaths.push(request.url)
+    assert.equal(request.redirect, 'error')
+    assert.equal(request.headers.get('apikey'), 'fixture-key')
 
     return Response.json({
       rows: [
@@ -105,6 +105,15 @@ test('공급자 응답을 요청 itemId로 대응하고 옵션을 보존하며 �
     throw new Error('secret upstream message')
   })
   await assert.rejects(failure([item], signal), { message: 'Catalog lookup failed' })
+  let unavailableCalls = 0
+  const unavailable = createNeopleCatalog('fixture-key', async () => {
+    unavailableCalls++
+
+    return Response.json({ error: { message: 'secret upstream message' } }, { status: 503 })
+  })
+  await assert.rejects(unavailable([item], signal), { message: 'Catalog lookup failed' })
+  // 503은 HTTP client 기본 재시도 대상이지만 공용 상세 조회는 재시도하지 않는다.
+  assert.equal(unavailableCalls, 1)
   const service = createCatalogService(async () => {
     throw new Error('secret upstream message')
   })
