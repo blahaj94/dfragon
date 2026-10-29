@@ -19,6 +19,7 @@ import createScoreWorker from './score/worker?nodeWorker'
 import { registerDesktopShortcuts } from './shortcuts/register'
 import { registerDiagnosticsWindow } from './diagnostics/ipc-handler'
 import { registerWindowChromeWindow } from './window-chrome/ipc-handler'
+import { registerClipboardWindow } from './clipboard/ipc-handler'
 import { MAIN_WINDOW_SIZE, WINDOW_CHROME_COLORS } from '../preload/common/window-chrome'
 import { getTitleBarOverlay } from './window-chrome/title-bar-overlay'
 import { registerMainDiagnosticErrors, reportDiagnostic } from './diagnostics/log'
@@ -85,6 +86,7 @@ function createWindow(): void {
   let disposeDiagnostics: (() => void) | undefined
   let disposeWindowChrome: (() => void) | undefined
   let disposeTodayGrade: (() => void) | undefined
+  let disposeClipboard: (() => void) | undefined
   try {
     registerCapturePermissions(session.defaultSession)
     registerCaptureWindow(window, rendererDocumentUrl)
@@ -124,6 +126,11 @@ function createWindow(): void {
     } catch {
       // 창 색상 동기화는 캡처 시작을 막지 않는다.
     }
+    try {
+      disposeClipboard = registerClipboardWindow({ window, documentUrl: rendererDocumentUrl })
+    } catch {
+      // 클립보드 복사는 캡처 시작을 막지 않는다.
+    }
 
     window.on('ready-to-show', () => {
       window.show()
@@ -141,6 +148,7 @@ function createWindow(): void {
     disposeShortcuts?.()
     disposeDiagnostics?.()
     disposeWindowChrome?.()
+    disposeClipboard?.()
     disposeUpdateNotice?.()
     disposeTodayGrade?.()
     window.destroy()

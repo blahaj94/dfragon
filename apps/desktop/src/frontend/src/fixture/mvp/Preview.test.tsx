@@ -52,7 +52,11 @@ it.each([
   const header = container.querySelector('header')!
   expect(header.querySelector(`[data-tone="${tone}"]`)?.textContent).toBe(label)
   expect(header.querySelector('[data-tone][role="status"]')).toBeNull()
-  expect(header.querySelectorAll('[role="status"]:not([data-capture-announcer])')).toHaveLength(0)
+  expect(
+    header.querySelectorAll(
+      '[role="status"]:not([data-capture-announcer], [data-clipboard-announcer])'
+    )
+  ).toHaveLength(0)
   await act(async () =>
     header.querySelector<HTMLButtonElement>('[aria-label^="화면 캡처"]')!.click()
   )
@@ -145,5 +149,5 @@ it('후보 고르기 미리보기에서 후보를 누르면 미리보기 중이 
 
   await act(async () => candidateTile('카인').click())
   expect(candidateWindow()).toBeNull()
-  expect(firstCard().querySelector('[aria-label="후보 미리보기 중"]')).toBeNull()
+  expect(firstCard().getAttribute('data-state')).toBe('default')
 })

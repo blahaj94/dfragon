@@ -2,7 +2,6 @@ import { CardFrame, shapes } from '@dfragon/ui'
 import type { HTMLAttributes, ReactNode, Ref } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CardAnnouncer } from '../components/CardAnnouncer'
-import { EditingDots } from '../components/EditingDots'
 import { FailureMark } from '../components/FailureMark'
 import { LookupField } from '../components/LookupField'
 import { LookupProgress } from '../components/LookupProgress'
@@ -83,7 +82,6 @@ export function RaidCard({
               {tier !== undefined && (
                 <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
               )}
-              {frameState === 'selected' && <EditingDots label="이름 수정 중" size="raid" />}
               {frameState === 'failure' && <FailureMark label={cardStatus} size="raid" />}
               {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
               <SlotNumber selected={frameState === 'selected'} tier={tier}>

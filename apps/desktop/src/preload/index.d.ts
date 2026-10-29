@@ -8,6 +8,7 @@ declare global {
     updateNotice: typeof import('./api/update-notice')
     todayGrade: typeof import('./api/today-grade')
     windowChrome: typeof import('./api/window-chrome')
+    desktopClipboard: typeof import('./api/clipboard')
   }
 }
 

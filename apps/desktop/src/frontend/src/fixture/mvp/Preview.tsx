@@ -7,6 +7,7 @@ import { BoardHeaderSlot } from '../../components/BoardHeaderSlot'
 import { BoardNotice } from '../../components/BoardNotice'
 import { BoardTitle } from '../../components/BoardTitle'
 import { CaptureButton } from '../../components/CaptureButton'
+import { ClipboardCopyButton } from '../../components/ClipboardCopyButton'
 import { LastCaptureTime } from '../../components/LastCaptureTime'
 import { SnapshotToggle } from '../../components/SnapshotToggle'
 import { TopBar } from '../../components/TopBar'
@@ -286,6 +287,7 @@ export function Preview(): React.JSX.Element {
                         onTake={partySnapshot.take}
                         onClear={partySnapshot.clear}
                       />
+                      <ClipboardCopyButton status="idle" onCopy={() => undefined} />
                       <CaptureButton
                         target="파티"
                         disabled={!capture.canCapture}
@@ -326,6 +328,7 @@ export function Preview(): React.JSX.Element {
                         onTake={raidSnapshot.take}
                         onClear={raidSnapshot.clear}
                       />
+                      <ClipboardCopyButton status="idle" onCopy={() => undefined} />
                       <CaptureButton
                         target="공대"
                         disabled={!capture.canCapture}

@@ -74,7 +74,8 @@ it('electron.vite.config.ts의 실제 preload 산출물은 외부 package requir
     'diagnostics',
     'updateNotice',
     'todayGrade',
-    'windowChrome'
+    'windowChrome',
+    'desktopClipboard'
   ]
   expect(() =>
     runInNewContext(chunks.get('index.js')!, { require: requireModule, exports: {} })

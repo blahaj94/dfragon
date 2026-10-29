@@ -2,9 +2,11 @@ import { BoardHeader } from '../../components/BoardHeader'
 import { BoardNotice } from '../../components/BoardNotice'
 import { BoardTitle } from '../../components/BoardTitle'
 import { CaptureButton } from '../../components/CaptureButton'
+import { ClipboardCopyButton } from '../../components/ClipboardCopyButton'
 import { LastCaptureTime } from '../../components/LastCaptureTime'
 import { SnapshotToggle } from '../../components/SnapshotToggle'
 import { useBoardHeaderPortal } from '../../hooks/useBoardHeaderPortal'
+import { useClipboardCopy } from '../../hooks/useClipboardCopy'
 import { useRaidSlotCards } from '../../hooks/useRaidSlotCards'
 import { useScreenCaptureContext } from '../../hooks/useScreenCaptureContext'
 import { filledSlotCount } from '../../lib/slot-cards'
@@ -12,11 +14,12 @@ import { RaidPage } from './RaidPage'
 
 export function RaidScreen(): React.JSX.Element {
   const { raidCapture: capture } = useScreenCaptureContext()
-  const { cards, snapshot } = useRaidSlotCards(capture)
+  const { cards, snapshot, clipboardText } = useRaidSlotCards(capture)
   const notice = capture.search.connectionFailed
     ? '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
     : ''
   const { renderBoardHeader } = useBoardHeaderPortal()
+  const clipboard = useClipboardCopy(clipboardText)
 
   return (
     <>
@@ -42,6 +45,7 @@ export function RaidScreen(): React.JSX.Element {
                 onTake={snapshot.take}
                 onClear={snapshot.clear}
               />
+              <ClipboardCopyButton status={clipboard.status} onCopy={clipboard.copy} />
               <CaptureButton
                 target="공대"
                 disabled={!capture.canStartCapture}

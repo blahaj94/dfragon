@@ -21,6 +21,9 @@ const mocks = vi.hoisted(() => {
   const registerTodayGradeWindow = vi.fn<
     typeof import('./today-grade/ipc-handler').registerTodayGradeWindow
   >(() => vi.fn())
+  const registerClipboardWindow = vi.fn<
+    typeof import('./clipboard/ipc-handler').registerClipboardWindow
+  >(() => vi.fn())
   const disposeMainDiagnostics = vi.fn()
   const registerMainDiagnosticErrors = vi.fn(() => disposeMainDiagnostics)
   const reportDiagnostic = vi.fn()
@@ -64,6 +67,7 @@ const mocks = vi.hoisted(() => {
     registerDiagnosticsWindow,
     registerWindowChromeWindow,
     registerTodayGradeWindow,
+    registerClipboardWindow,
     registerMainDiagnosticErrors,
     disposeMainDiagnostics,
     reportDiagnostic,
@@ -169,6 +173,9 @@ vi.mock('./window-chrome/ipc-handler', () => ({
 }))
 vi.mock('./today-grade/ipc-handler', () => ({
   registerTodayGradeWindow: mocks.registerTodayGradeWindow
+}))
+vi.mock('./clipboard/ipc-handler', () => ({
+  registerClipboardWindow: mocks.registerClipboardWindow
 }))
 vi.mock('./score/worker?nodeWorker', () => ({ default: mocks.createScoreWorker }))
 vi.mock('./diagnostics/log', () => ({
@@ -470,6 +477,41 @@ it('API 주소가 있는 채널만 메인 창 문서 URL로 오늘의 등급 IPC
   })
 })
 
+it.each([undefined, 'http://localhost:5173'])(
+  '메인 창과 정확한 문서 URL로 클립보드 IPC를 등록한다: %s',
+  async (devUrl) => {
+    vi.stubEnv('ELECTRON_RENDERER_URL', devUrl)
+    await import('./main')
+    await mocks.bootstrap
+    const documentUrl =
+      devUrl == null
+        ? pathToFileURL(mocks.loadFile.mock.calls[0][0]).href
+        : 'http://localhost:5173/'
+
+    expect(mocks.registerClipboardWindow).toHaveBeenCalledExactlyOnceWith({
+      window: mocks.windows[0],
+      documentUrl
+    })
+  }
+)
+
+it('클립보드 IPC 등록 실패에도 캡처를 시작하고 창을 연다', async () => {
+  mocks.registerClipboardWindow.mockImplementationOnce(() => {
+    throw new Error('Synthetic clipboard registration failure')
+  })
+  await import('./main')
+  await mocks.bootstrap
+  const window = mocks.windows[0] as TestWindow
+  const showWindow = window.on.mock.calls.find(
+    ([event]) => event === 'ready-to-show'
+  )![1] as () => void
+  showWindow()
+
+  expect(window.show).toHaveBeenCalledOnce()
+  expect(mocks.registerCapture).toHaveBeenCalledOnce()
+  expect(mocks.loadFile).toHaveBeenCalledOnce()
+})
+
 it('창 색상 IPC 등록 실패에도 캡처를 시작하고 창을 연다', async () => {
   mocks.registerWindowChromeWindow.mockImplementationOnce(() => {
     throw new Error('Synthetic window chrome registration failure')
@@ -508,12 +550,14 @@ it('창 구성 후반이 실패하면 등록한 IPC와 만든 창을 폐기하�
   mocks.windows = []
 
   const disposeWindowChrome = vi.fn()
+  const disposeClipboard = vi.fn()
   const disposeShortcuts = vi.fn()
   const disposeDiagnostics = vi.fn()
   const disposeUpdateNotice = vi.fn()
   const disposeTodayGrade = vi.fn()
   mocks.registerWindowChromeWindow.mockReturnValueOnce(disposeWindowChrome)
   mocks.registerTodayGradeWindow.mockReturnValueOnce(disposeTodayGrade)
+  mocks.registerClipboardWindow.mockReturnValueOnce(disposeClipboard)
   mocks.registerDesktopShortcuts.mockReturnValueOnce(disposeShortcuts)
   mocks.registerDiagnosticsWindow.mockReturnValueOnce(disposeDiagnostics)
   mocks.registerUpdateNoticeWindow.mockReturnValueOnce(disposeUpdateNotice)
@@ -528,6 +572,7 @@ it('창 구성 후반이 실패하면 등록한 IPC와 만든 창을 폐기하�
   expect(partialWindow.show).not.toHaveBeenCalled()
   for (const dispose of [
     disposeWindowChrome,
+    disposeClipboard,
     disposeShortcuts,
     disposeDiagnostics,
     disposeUpdateNotice,
