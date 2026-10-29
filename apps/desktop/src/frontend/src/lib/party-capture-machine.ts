@@ -2,6 +2,16 @@ import { assign, fromCallback, fromPromise, setup, type SnapshotFrom } from 'xst
 import type { CapturePhase } from '../types/capture'
 import type { WindowFrameResult } from '../../../preload/common/types/capture'
 import type { CharacterImage } from '../../../preload/common/types/character'
+import {
+  beginCaptureSearch,
+  CAPTURE_COMPLETE_STATUS,
+  CAPTURE_DISCONNECTED_STATUS,
+  CAPTURE_UNSUPPORTED_STATUS,
+  getCapturingPhase,
+  getObservedNickname,
+  getRecognizeErrorStatus,
+  getWaitingStatus
+} from './capture-round'
 import type { OcrCaptureObservation } from './capture-search'
 import { recognizeWithOcrWorker } from './ocr-worker-recognition'
 import { recognizePartyFrame, type PartySlotRecognition } from './party-recognition'
@@ -44,17 +54,7 @@ export const partyCaptureMachine = setup({
         await input.effects.selectSource(input.sourceId)
       }
     ),
-    beginSearch: fromPromise(
-      async ({ input, signal }: { input: CaptureInput; signal: AbortSignal }) => {
-        const captureId = await input.beginSearch(signal)
-        signal.throwIfAborted()
-        if (captureId === null) {
-          throw new Error('Search lifetime unavailable.')
-        }
-
-        return captureId
-      }
-    ),
+    beginSearch: beginCaptureSearch,
     readFrame: fromPromise(({ input }: { input: { captureId: string; effects: CaptureInput } }) =>
       input.effects.readFrame(input.captureId)
     ),
@@ -101,11 +101,9 @@ export const partyCaptureMachine = setup({
         const { slot, portrait } = result
         if (result.kind === 'rejected') {
           showRejectedOcrNickname(result)
-          effects.observeOcr({ slot, nickname: '', candidateNicknames: [''], portrait })
-        } else {
-          const { nickname } = result
-          effects.observeOcr({ slot, nickname, candidateNicknames: [nickname], portrait })
         }
+        const nickname = getObservedNickname(result)
+        effects.observeOcr({ slot, nickname, candidateNicknames: [nickname], portrait })
       }
     }
   }
@@ -218,21 +216,13 @@ export const partyCaptureMachine = setup({
               {
                 guard: ({ event }) => event.output.kind === 'waiting',
                 target: 'unavailable',
-                actions: assign({
-                  status: ({ event }) => {
-                    if (event.output.kind === 'waiting' && event.output.reason === 'covered') {
-                      return '게임 창이 가려져 있습니다. 게임 창을 앞으로 가져온 뒤 Alt+R을 누르세요.'
-                    }
-
-                    return '게임 화면을 읽지 못했습니다. 창이 최소화되지 않았는지 확인한 뒤 Alt+R을 누르세요.'
-                  }
-                })
+                actions: assign({ status: ({ event }) => getWaitingStatus(event.output) })
               },
               {
                 target: '#partyCapture.captureFailed',
                 actions: [
                   () => reportRendererDiagnostic('CAPTURE_READ_FAILED'),
-                  assign({ status: '화면 캡처는 Windows에서 사용할 수 있습니다.' })
+                  assign({ status: CAPTURE_UNSUPPORTED_STATUS })
                 ]
               }
             ],
@@ -240,7 +230,7 @@ export const partyCaptureMachine = setup({
               target: '#partyCapture.captureFailed',
               actions: [
                 () => reportRendererDiagnostic('CAPTURE_READ_FAILED'),
-                assign({ status: '캡처 연결이 종료되었습니다. 창을 다시 선택해 주세요.' })
+                assign({ status: CAPTURE_DISCONNECTED_STATUS })
               ]
             }
           }
@@ -278,13 +268,7 @@ export const partyCaptureMachine = setup({
               actions: [
                 () => reportRendererDiagnostic('OCR_FAILED'),
                 assign({
-                  status: ({ event }) => {
-                    if (event.error instanceof Error) {
-                      return event.error.message
-                    }
-
-                    return OCR_FAILED_STATUS
-                  }
+                  status: ({ event }) => getRecognizeErrorStatus(event.error, OCR_FAILED_STATUS)
                 })
               ]
             }
@@ -292,7 +276,7 @@ export const partyCaptureMachine = setup({
         },
         complete: {
           entry: assign({
-            status: '인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.',
+            status: CAPTURE_COMPLETE_STATUS,
             completedAt: () => Date.now()
           })
         },
@@ -308,16 +292,8 @@ export const partyCaptureMachine = setup({
 })
 
 export function getCapturePhase(snapshot: SnapshotFrom<typeof partyCaptureMachine>): CapturePhase {
-  if (snapshot.matches({ capturing: 'complete' })) {
-    return 'complete'
-  }
-
-  if (snapshot.matches({ capturing: 'unavailable' })) {
-    return 'unavailable'
-  }
-
   if (snapshot.matches('capturing')) {
-    return 'recognizing'
+    return getCapturingPhase(snapshot)
   }
 
   if (snapshot.matches('selecting')) {
