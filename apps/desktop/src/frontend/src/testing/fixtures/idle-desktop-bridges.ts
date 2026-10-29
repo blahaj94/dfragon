@@ -41,4 +41,7 @@ export function stubIdleDesktopBridges(): void {
   vi.stubGlobal('windowChrome', {
     setContentHeight: vi.fn(async () => {})
   } satisfies Window['windowChrome'])
+  vi.stubGlobal('desktopClipboard', {
+    writeText: vi.fn(async () => {})
+  } satisfies Window['desktopClipboard'])
 }

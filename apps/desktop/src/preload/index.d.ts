@@ -7,6 +7,7 @@ declare global {
     diagnostics: typeof import('./api/diagnostics')
     updateNotice: typeof import('./api/update-notice')
     windowChrome: typeof import('./api/window-chrome')
+    desktopClipboard: typeof import('./api/clipboard')
   }
 }
 

@@ -6,6 +6,7 @@ import * as desktopShortcut from './api/desktop-shortcut'
 import * as diagnostics from './api/diagnostics'
 import * as updateNotice from './api/update-notice'
 import * as windowChrome from './api/window-chrome'
+import * as clipboard from './api/clipboard'
 
 contextBridge.exposeInMainWorld('api', capture)
 
@@ -17,3 +18,4 @@ contextBridge.exposeInMainWorld('desktopShortcut', desktopShortcut)
 contextBridge.exposeInMainWorld('diagnostics', diagnostics)
 contextBridge.exposeInMainWorld('updateNotice', updateNotice)
 contextBridge.exposeInMainWorld('windowChrome', windowChrome)
+contextBridge.exposeInMainWorld('desktopClipboard', clipboard)
