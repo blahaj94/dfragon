@@ -17,7 +17,7 @@ review-after: 지원 Node 또는 Nest major 변경 시
 
 | 구분 | 내용 |
 | --- | --- |
-| 방향 | `apps/api`의 NestJS 중앙 API, DB 저장 없음. 캐릭터, 공용 아이템 조회 결과만 API 메모리에 캐시하며([캐릭터 상세](character-details.md)), 노드가 늘면 여러 노드가 공유하는 Redis로 옮긴다. |
+| 방향 | `apps/api`의 NestJS 중앙 API, DB 저장 없음. 캐릭터, 공용 아이템, 오늘의 등급 조회 결과만 API 메모리에 캐시하며([캐릭터 상세](character-details.md), [오늘의 등급](today-grade.md)), 노드가 늘면 여러 노드가 공유하는 Redis로 옮긴다. |
 | 실행 계약 | Node 26, Nest 12, ESM과 TypeScript build, 아래 build, test 방식 |
 | 남은 미결정 | 운영 배포, 실제 credential과 domain, 전체 서비스 한도 |
 
