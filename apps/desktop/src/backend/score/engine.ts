@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { CharacterScoreCalculator } from '../../preload/common/types/character'
 import type { DiagnosticCode } from '../../preload/common/types/diagnostics'
 import type { ScoreEngineInput } from './input'
+import type { ScoreWorkerData, ScoreWorkerMessage, ScoreWorkerRequest } from './worker-protocol'
 
 export const SCORE_LIBRARY_FILE_NAMES: Readonly<Partial<Record<NodeJS.Platform, string>>> = {
   win32: 'dnfscore.dll',
@@ -56,19 +57,8 @@ export type ScoreEngine = Readonly<{
     calculator: CharacterScoreCalculator,
     signal: AbortSignal
   ) => Promise<ScoreEngineResult | null>
-  /** 캡처를 시작할 때 부른다. 점수 worker를 띄워 첫 계산 초기화를 미리 끝낸다. */
   prepare: () => void
 }>
-
-export type ScoreWorkerData = Readonly<{ path: string }>
-export type ScoreWorkerRequest = Readonly<{
-  id: number
-  input: ScoreEngineInput
-  calculator: CharacterScoreCalculator
-}>
-export type ScoreWorkerMessage =
-  | Readonly<{ kind: 'unavailable' }>
-  | Readonly<{ kind: 'result'; id: number; text: string | null; elapsedMs: number }>
 
 export type ScoreWorker = {
   postMessage: (request: ScoreWorkerRequest) => void
@@ -92,7 +82,6 @@ type RunningWorker = Readonly<{
 type WorkerState =
   | Readonly<{ kind: 'idle' }>
   | Readonly<{ kind: 'running'; running: RunningWorker }>
-  /** worker가 죽었거나 응답하지 않았다. 다음 캡처 시작에서 다시 띄운다. */
   | Readonly<{ kind: 'stopped' }>
   | Readonly<{ kind: 'unavailable' }>
 

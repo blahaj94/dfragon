@@ -14,6 +14,7 @@ import { parseCharacterIdentity } from '../src/characters/details/service.js'
 import { NeopleSearchFailure } from '../src/errors/neople-search.js'
 
 const identity = { serverId: 'siroco', characterId: 'fixture-character' }
+const ignoreStage = () => undefined
 const basic = { ...identity, characterName: '테스트 캐릭터' }
 
 test('상세 입력은 지원 서버, 안전한 ID만 허용하고 query와 경로 주입을 거절한다', () => {
@@ -101,14 +102,17 @@ test('공급자 알려진 code를 우선 분류하고 기본 조회 실패는 �
         return new Response(typeof body === 'string' ? body : JSON.stringify(body), { status })
       }
     })
-    await assert.rejects(adapter(identity, new AbortController().signal), (error: unknown) => {
-      assert(error instanceof CharacterDetailFailure)
-      assert.equal(error.status, expected, `${status} ${JSON.stringify(body)}`)
-      assert.equal(error.body.error.code, code)
-      assert.equal(JSON.stringify(error.body).includes('sensitive'), false)
+    await assert.rejects(
+      adapter(identity, new AbortController().signal, ignoreStage),
+      (error: unknown) => {
+        assert(error instanceof CharacterDetailFailure)
+        assert.equal(error.status, expected, `${status} ${JSON.stringify(body)}`)
+        assert.equal(error.body.error.code, code)
+        assert.equal(JSON.stringify(error.body).includes('sensitive'), false)
 
-      return true
-    })
+        return true
+      }
+    )
     assert.equal(calls, 1)
   }
 })
@@ -122,13 +126,16 @@ test('연결 오류는 재시도하지 않고 원문 없이 공급자 오류로 
       throw new TypeError('fetch failed', { cause: new Error('sensitive socket detail') })
     }
   })
-  await assert.rejects(adapter(identity, new AbortController().signal), (error: unknown) => {
-    assert(error instanceof CharacterDetailFailure)
-    assert.equal(error.status, 502)
-    assert.equal(JSON.stringify(error.body).includes('sensitive'), false)
+  await assert.rejects(
+    adapter(identity, new AbortController().signal, ignoreStage),
+    (error: unknown) => {
+      assert(error instanceof CharacterDetailFailure)
+      assert.equal(error.status, 502)
+      assert.equal(JSON.stringify(error.body).includes('sensitive'), false)
 
-    return true
-  })
+      return true
+    }
+  )
   assert.equal(calls, 1)
 })
 
@@ -164,7 +171,7 @@ test('공급자가 header나 body를 보내지 않으면 HTTP client timeout 뒤
       }
     })
     const pending = assert.rejects(
-      adapter(identity, new AbortController().signal),
+      adapter(identity, new AbortController().signal, ignoreStage),
       (error: unknown) => error instanceof CharacterDetailFailure && error.status === 504,
       stall
     )
@@ -191,7 +198,7 @@ test('실제 HTTP transport는 redirect를 따라가지 않고 공급자 오류�
       origin: `http://127.0.0.1:${address.port}`
     })
     await assert.rejects(
-      adapter(identity, new AbortController().signal),
+      adapter(identity, new AbortController().signal, ignoreStage),
       (error: unknown) => error instanceof CharacterDetailFailure && error.status === 502
     )
     assert.equal(requests, 1)
@@ -221,7 +228,7 @@ test('기본 응답 뒤 취소되면 남은 섹션은 전송하지 않는다', a
       return Response.json(basic)
     }
   })
-  const pending = adapter(identity, controller.signal)
+  const pending = adapter(identity, controller.signal, ignoreStage)
   const rejected = assert.rejects(pending, { status: 500 })
   await entered
   controller.abort()
@@ -241,7 +248,7 @@ test('이미 취소된 요청은 기본 조회도 전송하지 않는다', async
       return Response.json(basic)
     }
   })
-  await assert.rejects(adapter(identity, controller.signal), { status: 500 })
+  await assert.rejects(adapter(identity, controller.signal, ignoreStage), { status: 500 })
   assert.equal(calls, 0)
 })
 
@@ -366,7 +373,7 @@ test('기본 식별 응답을 확인한 뒤 나머지 10개를 동시에 시작�
       return Response.json(completePayloads[section])
     }
   })
-  const pending = adapter(identity, new AbortController().signal)
+  const pending = adapter(identity, new AbortController().signal, ignoreStage)
   await enteredBasic
   assert.deepEqual(requested, [''])
   finishBasic()
@@ -433,15 +440,18 @@ test('기본 응답 뒤 한 섹션이 실패하면 부분 성공을 반환하지
     }
   })
 
-  await assert.rejects(adapter(identity, new AbortController().signal), (error: unknown) => {
-    assert(error instanceof CharacterDetailFailure)
-    assert.equal(error.status, 502)
-    assert.deepEqual(error.body, {
-      error: { code: 'NEOPLE_API_ERROR', message: '캐릭터 정보 조회 중 오류가 발생했습니다.' }
-    })
+  await assert.rejects(
+    adapter(identity, new AbortController().signal, ignoreStage),
+    (error: unknown) => {
+      assert(error instanceof CharacterDetailFailure)
+      assert.equal(error.status, 502)
+      assert.deepEqual(error.body, {
+        error: { code: 'NEOPLE_API_ERROR', message: '캐릭터 정보 조회 중 오류가 발생했습니다.' }
+      })
 
-    return true
-  })
+      return true
+    }
+  )
   assert.equal(paths.length, 11)
   assert.equal(new Set(paths).size, paths.length)
 })
@@ -473,7 +483,9 @@ test('기본 응답 뒤 한 섹션이 실패하면 아직 진행 중인 다른 �
     }
   })
 
-  await assert.rejects(adapter(identity, new AbortController().signal), { status: 502 })
+  await assert.rejects(adapter(identity, new AbortController().signal, ignoreStage), {
+    status: 502
+  })
   // 실패보다 늦게 시작하는 섹션은 transport를 열지 않으므로 진행 중이던 요청 수는 실행 순서에 따라 다르다.
   assert(pendingSignals.length > 0)
   assert(pendingSignals.every((signal) => signal.aborted))

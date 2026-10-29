@@ -109,7 +109,9 @@ test('상세 5건은 응답 전에 섹션 transport 13개 이상을 함께 연�
     (transport) => {
       const details = createNeopleCharacterDetailsForTest('fixture', { fetch: transport })
 
-      return Array.from({ length: 5 }, () => details(identity, new AbortController().signal))
+      return Array.from({ length: 5 }, () =>
+        details(identity, new AbortController().signal, () => undefined)
+      )
     },
     { status: 502 }
   )

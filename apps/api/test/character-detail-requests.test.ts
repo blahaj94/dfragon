@@ -8,6 +8,7 @@ import type { NeopleStageTimings } from '../src/characters/details/neople-stages
 import type { CharacterPayloads } from '../src/characters/details/sections.js'
 
 const identity = { serverId: 'siroco', characterId: 'refresh-fixture' }
+const ignoredTimings: NeopleStageTimings = { record: () => undefined, markShared: () => undefined }
 const signal = new AbortController().signal
 const catalog = createCatalogService(async () => new Map())
 const common = { ...identity, characterName: '합성 캐릭터', jobId: 'job' }
@@ -46,8 +47,8 @@ test('끝난 요청을 재사용하지 않고 매번 Neople에서 받는다', as
   })
   t.after(() => service.onModuleDestroy())
 
-  const first = await service.get(identity, signal)
-  await service.get(identity, signal)
+  const first = await service.get(identity, signal, ignoredTimings)
+  await service.get(identity, signal, ignoredTimings)
 
   assert.equal(calls, 2)
   assert.equal(first.character.characterName, '합성 캐릭터')
@@ -59,7 +60,7 @@ test('상세 응답 JSON은 섹션마다 revision 1과 조회 시각을, freshne
   const service = createCharacterDetailService({ catalog, fetchDetails: async () => payloads })
   t.after(() => service.onModuleDestroy())
 
-  const result = await service.get(identity, signal)
+  const result = await service.get(identity, signal, ignoredTimings)
 
   const metadata = { revision: 1, contentUpdatedAt: fetchedAt, lastSuccessfulFetchAt: fetchedAt }
   assert.deepEqual(JSON.parse(JSON.stringify(result)), {
@@ -132,10 +133,10 @@ test('겹친 요청은 작업을 공유하고 한 대기자의 연결 종료는 
     await service.onModuleDestroy()
   })
   const disconnected = new AbortController()
-  const first = service.get(identity, disconnected.signal)
+  const first = service.get(identity, disconnected.signal, ignoredTimings)
   const rejection = assert.rejects(first)
   await entered.promise
-  const second = service.get(identity, signal)
+  const second = service.get(identity, signal, ignoredTimings)
   second.catch(() => undefined)
   await nextTurn()
   disconnected.abort()
@@ -179,9 +180,9 @@ test('겹친 요청의 대기자들은 같은 조회 시각의 freshness와 sect
   }
   globalThis.Date = SteppingDate as DateConstructor
   try {
-    const first = service.get(identity, signal)
+    const first = service.get(identity, signal, ignoredTimings)
     await entered.promise
-    const second = service.get(identity, signal)
+    const second = service.get(identity, signal, ignoredTimings)
     await nextTurn()
     finish.release()
     const [a, b] = await Promise.all([first, second])
@@ -202,10 +203,10 @@ test('공유 조회를 기다린 요청들은 늦게 합류해도 같은 Neople 
     catalog,
     fetchDetails: async (_identity, _signal, recordStage) => {
       calls++
-      recordStage?.('basic', 12)
+      recordStage('basic', 12)
       basicDone.release()
       await finish.promise
-      recordStage?.('sections', 34)
+      recordStage('sections', 34)
 
       return payloads
     }
@@ -273,13 +274,13 @@ test('마지막 대기자가 취소하면 공유 작업을 취소하고 새 요�
     await service.onModuleDestroy()
   })
   const controller = new AbortController(),
-    first = service.get(identity, controller.signal),
+    first = service.get(identity, controller.signal, ignoredTimings),
     rejected = assert.rejects(first)
   await entered.promise
   controller.abort()
   await rejected
   assert.equal(abortedSignal!.aborted, true)
-  await service.get(identity, signal)
+  await service.get(identity, signal, ignoredTimings)
   assert.equal(calls, 2)
 })
 
@@ -297,8 +298,8 @@ test('공유 조회 실패 뒤 새 요청을 허용하고 서버 종료는 취�
     }
   })
   t.after(() => service.onModuleDestroy())
-  const first = service.get(identity, signal),
-    second = service.get(identity, signal)
+  const first = service.get(identity, signal, ignoredTimings),
+    second = service.get(identity, signal, ignoredTimings)
   const failures = Promise.all([
     assert.rejects(first, { status: 503 }),
     assert.rejects(second, { status: 503 })
@@ -307,7 +308,7 @@ test('공유 조회 실패 뒤 새 요청을 허용하고 서버 종료는 취�
   finish.release()
   await failures
   assert.equal(calls, 1)
-  await assert.rejects(service.get(identity, signal), { status: 503 })
+  await assert.rejects(service.get(identity, signal, ignoredTimings), { status: 503 })
   assert.equal(calls, 2)
 
   const start = gate(),
@@ -323,7 +324,7 @@ test('공유 조회 실패 뒤 새 요청을 허용하고 서버 종료는 취�
       return payloads
     }
   })
-  const pending = shutting.get(identity, signal),
+  const pending = shutting.get(identity, signal, ignoredTimings),
     rejected = assert.rejects(pending)
   await start.promise
   let closed = false
@@ -341,7 +342,7 @@ test('상세 응답은 기존 필드에 역할만 정한 card를 더하고 지�
   const service = createCharacterDetailService({ catalog, fetchDetails: async () => payloads })
   t.after(() => service.onModuleDestroy())
 
-  const result = await service.get(identity, signal)
+  const result = await service.get(identity, signal, ignoredTimings)
 
   assert.deepEqual(result.card, {
     role: null,

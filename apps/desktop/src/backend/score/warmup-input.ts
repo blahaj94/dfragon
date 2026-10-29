@@ -12,7 +12,6 @@ const header = {
   jobGrowName: '眞 뮤즈'
 }
 
-/** 점수 worker가 장비, 버프 계산기를 미리 한 번씩 부를 때 쓰는 합성 입력이다. 결과는 쓰지 않는다. */
 export const SCORE_WARMUP_INPUT: ScoreEngineInput = {
   status: header,
   equipment: header,
