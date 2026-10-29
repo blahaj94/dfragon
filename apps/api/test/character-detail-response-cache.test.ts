@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict'
 import { type IncomingHttpHeaders, request as sendHttpRequest } from 'node:http'
 import test, { type TestContext } from 'node:test'
-import { setTimeout as delay } from 'node:timers/promises'
-import { brotliDecompressSync } from 'node:zlib'
 import { type CatalogService, createCatalogService } from '../src/characters/catalog/service.js'
 import type { FetchCatalog } from '../src/characters/catalog/neople.js'
 import type { NeopleStageTimings } from '../src/characters/details/neople-stages.js'
@@ -78,25 +76,6 @@ function sendRaw(method: string, url: string, headers: Record<string, string>) {
   })
 }
 
-function decodedBody(response: RawResponse): Buffer {
-  if (response.headers['content-encoding'] === 'br') {
-    return brotliDecompressSync(response.body)
-  }
-
-  return response.body
-}
-
-// Compression finishes on the thread pool at an unknown time, so poll until a br response comes back.
-async function waitForBrotli(url: string): Promise<RawResponse> {
-  for (;;) {
-    const response = await sendRaw('GET', url, { 'Accept-Encoding': 'br' })
-    if (response.headers['content-encoding'] === 'br') {
-      return response
-    }
-    await delay(5)
-  }
-}
-
 async function startApp(
   t: TestContext,
   fetchDetails: () => Promise<CharacterPayloads>,
@@ -131,7 +110,7 @@ test('캐릭터 캐시가 맞은 GET은 공용 아이템을 다시 붙이지 않
   assert.equal(counter.loads, 1)
   assert.equal(built.reused, false)
   assert.equal(reused.reused, true)
-  assert.deepEqual(reused.body.json, built.body.json)
+  assert.deepEqual(reused.body, built.body)
 })
 
 test('공용 아이템이 unavailable인 응답은 저장하지 않아 다음 요청이 그 아이템을 다시 조회한다', async (t) => {
@@ -161,27 +140,24 @@ test('공용 아이템이 unavailable인 응답은 저장하지 않아 다음 �
   const retried = await service.get(identity, signal, ignoredTimings)
   const reused = await service.get(identity, signal, ignoredTimings)
 
-  assert.equal(itemStatus(unavailable.body.json), 'unavailable')
-  assert.equal(itemStatus(retried.body.json), 'fresh')
+  assert.equal(itemStatus(unavailable.body), 'unavailable')
+  assert.equal(itemStatus(retried.body), 'fresh')
   assert.deepEqual([unavailable.reused, retried.reused, reused.reused], [false, false, true])
   assert.equal(catalogCalls, 2)
   assert.equal(counter.loads, 2)
 })
 
-test('저장한 본문은 Express json과 같은 바이트, Content-Type으로 나가고 brotli 압축을 기다리지 않는다', {
-  timeout: 5000
-}, async (t) => {
+test('저장한 본문은 Express json과 같은 바이트, Content-Type으로 압축 없이 나간다', async (t) => {
   // Express `json` escapes <, > and & only when the app turns on `json escape`, so the name checks it stays off.
   const url = await startApp(t, async () => payloadsNamed('합성 <캐릭터> & 이름'), foundItems)
 
-  const built = await sendRaw('GET', url, { 'Accept-Encoding': 'br' })
-  const reused = await sendRaw('GET', url, {})
+  const built = await sendRaw('GET', url, { 'Accept-Encoding': 'br, gzip' })
+  const reused = await sendRaw('GET', url, { 'Accept-Encoding': 'br, gzip' })
 
   for (const response of [built, reused]) {
     assert.equal(response.status, 200)
     assert.equal(response.headers['content-type'], JSON_CONTENT_TYPE)
     assert.equal(response.headers['content-encoding'], undefined)
-    assert.equal(response.headers.vary, 'Accept-Encoding')
   }
   const text = built.body.toString()
   assert.equal(text, JSON.stringify(JSON.parse(text)))
@@ -189,39 +165,7 @@ test('저장한 본문은 Express json과 같은 바이트, Content-Type으로 �
   assert.deepEqual(reused.body, built.body)
 })
 
-test('brotli가 준비되면 br을 받는 요청에만 Content-Encoding br로 보내고 풀면 같은 본문이다', {
-  timeout: 5000
-}, async (t) => {
-  const url = await startApp(t, async () => payloadsNamed('합성 캐릭터'), foundItems)
-  const identityBody = (await sendRaw('GET', url, {})).body
-
-  const compressed = await waitForBrotli(url)
-
-  assert.equal(compressed.headers['content-type'], JSON_CONTENT_TYPE)
-  assert.equal(compressed.headers.vary, 'Accept-Encoding')
-  assert(compressed.body.length < identityBody.length)
-  assert.deepEqual(brotliDecompressSync(compressed.body), identityBody)
-  for (const acceptEncoding of ['gzip, br', '*']) {
-    const response = await sendRaw('GET', url, { 'Accept-Encoding': acceptEncoding })
-    assert.equal(response.headers['content-encoding'], 'br', acceptEncoding)
-  }
-  const identityRequests: Record<string, string>[] = [
-    {},
-    { 'Accept-Encoding': 'gzip' },
-    { 'Accept-Encoding': 'br;q=0, gzip' }
-  ]
-  for (const headers of identityRequests) {
-    const response = await sendRaw('GET', url, headers)
-    const label = JSON.stringify(headers)
-    assert.equal(response.headers['content-encoding'], undefined, label)
-    assert.equal(response.headers.vary, 'Accept-Encoding', label)
-    assert.deepEqual(response.body, identityBody, label)
-  }
-})
-
-test('강제 갱신 뒤에는 이전 본문과 그 brotli 대신 새로 만든 본문을 보낸다', {
-  timeout: 5000
-}, async (t) => {
+test('강제 갱신 뒤에는 이전 본문 대신 새로 만든 본문을 보낸다', async (t) => {
   let fetches = 0
   const url = await startApp(
     t,
@@ -233,23 +177,21 @@ test('강제 갱신 뒤에는 이전 본문과 그 brotli 대신 새로 만든 �
     foundItems
   )
   const characterName = (response: RawResponse) => {
-    const detail = JSON.parse(decodedBody(response).toString()) as {
+    const detail = JSON.parse(response.body.toString()) as {
       character: { characterName: string }
     }
 
     return detail.character.characterName
   }
   await sendRaw('GET', url, {})
-  await waitForBrotli(url)
+  await sendRaw('GET', url, {})
 
-  const refreshed = await sendRaw('POST', `${url}/refresh`, { 'Accept-Encoding': 'br' })
-  const afterRefresh = await sendRaw('GET', url, { 'Accept-Encoding': 'br' })
-  const compressedAfterRefresh = await waitForBrotli(url)
+  const refreshed = await sendRaw('POST', `${url}/refresh`, {})
+  const afterRefresh = await sendRaw('GET', url, {})
 
   assert.equal(refreshed.status, 200)
   assert.equal(characterName(refreshed), '조회 2')
   assert.equal(characterName(afterRefresh), '조회 2')
-  assert.equal(characterName(compressedAfterRefresh), '조회 2')
-  assert.deepEqual(decodedBody(afterRefresh), refreshed.body)
+  assert.deepEqual(afterRefresh.body, refreshed.body)
   assert.equal(fetches, 2)
 })
