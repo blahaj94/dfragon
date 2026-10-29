@@ -119,6 +119,7 @@ export async function createSearchFixture(
   published: ReturnType<typeof vi.fn>
   documentEvents: EventEmitter
   replaceDocument: () => void
+  prepareScore: ReturnType<typeof vi.fn>
 }> {
   electron.handle.mockClear()
   electron.getSources.mockClear()
@@ -143,13 +144,14 @@ export async function createSearchFixture(
     session: { setDisplayMediaRequestHandler: vi.fn() }
   }
   const window = { webContents: contents, isDestroyed: () => false, on: vi.fn() }
+  const prepareScore = vi.fn()
   // Main 설정과 외부 fetch만 제어하며 실제 core와 capture handler를 사용한다.
   const dispose = registerCaptureIpc({
     apiOrigin: API_ORIGIN,
     fetch: fetchSearch,
     portraitColorPolicy,
     // 점수 엔진 submodule이 없는 빌드처럼 엔진이 점수를 내지 않는다.
-    score: () => null
+    scoreEngine: { calculate: async () => null, prepare: prepareScore }
   })
   disposeFixtures.push(dispose)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
@@ -217,7 +219,8 @@ export async function createSearchFixture(
     read,
     published,
     documentEvents,
-    replaceDocument
+    replaceDocument,
+    prepareScore
   }
 }
 

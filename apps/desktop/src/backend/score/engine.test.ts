@@ -1,16 +1,16 @@
+import { EventEmitter } from 'node:events'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { DiagnosticCode } from '../../preload/common/types/diagnostics'
 import { readEngineInput } from './details-test-fixture'
 import {
-  createLazyScoreEngine,
-  loadScoreEngine,
+  createScoreEngine,
   resolveScoreLibraryPath,
-  type ScoreLibrary
+  type ScoreWorkerMessage,
+  type ScoreWorkerRequest
 } from './engine'
 
 const LIBRARY_PATH = '/synthetic/libdnfscore.dylib'
-const NATIVE_OUTPUT = { native: 'output' }
 const engineResult = {
   calculator: 'equipment',
   score: 1741,
@@ -32,80 +32,49 @@ const approximateResult = {
   approximate_source: 'legacy_fusion_policy_a',
   warning: '근사값, 1% 밖일 가능성 높음: 판정 불가'
 }
+const input = readEngineInput('dealer-blade')
 
-type NativeBehavior = {
-  version?: unknown
-  status?: number
-  output?: string | null
-  throwOnScore?: boolean
-  missing?: string
+/** Node worker의 메시지, 오류, 종료 이벤트만 흉내 낸다. 응답은 테스트가 정한다. */
+class FakeWorker extends EventEmitter {
+  readonly requests: ScoreWorkerRequest[] = []
+  terminated = false
+
+  postMessage(request: ScoreWorkerRequest): void {
+    this.requests.push(request)
+  }
+
+  terminate(): void {
+    this.terminated = true
+  }
+
+  send(message: ScoreWorkerMessage): void {
+    this.emit('message', message)
+  }
+
+  reply(text: string | null, elapsedMs = 2, request = this.requests.at(-1)!): void {
+    this.send({ kind: 'result', id: request.id, text, elapsedMs })
+  }
 }
 
-function nativeEngine(behavior: NativeBehavior = {}) {
-  const { version = '0.1.0', status = 0, throwOnScore = false } = behavior
-  const output =
-    behavior.output === undefined
-      ? JSON.stringify({ ...engineResult, breakdown: { D18: 1 } })
-      : behavior.output
-  const scoreCalls: unknown[][] = []
-  const freed: unknown[] = []
-  const loaded: string[] = []
-  const library: ScoreLibrary = {
-    func(definition) {
-      if (behavior.missing !== undefined && definition.includes(behavior.missing)) {
-        throw new Error(`symbol not found in ${LIBRARY_PATH}`)
-      }
-
-      if (definition.includes('dnfscore_version')) {
-        return () => version
-      }
-
-      if (definition.includes('dnfscore_score')) {
-        return (...args) => {
-          scoreCalls.push(args)
-          // koffi는 인자 변환에 실패하면 C 함수를 부르기 전에 던지므로 출력이 할당되지 않는다.
-          if (throwOnScore) {
-            throw new TypeError('native argument conversion failed')
-          }
-          const out = args[3] as unknown[]
-          out[0] = output === null ? null : NATIVE_OUTPUT
-
-          return status
-        }
-      }
-
-      return (pointer) => {
-        freed.push(pointer)
-      }
-    }
-  }
-  const decode = (pointer: unknown): string => {
-    expect(pointer).toBe(NATIVE_OUTPUT)
-    if (output === null) {
-      throw new Error('decode called without native output')
-    }
-
-    return output
-  }
+function scoreEngine(path: string | null = LIBRARY_PATH) {
+  const workers: FakeWorker[] = []
   const reports: DiagnosticCode[] = []
-  const load = (path: string): ScoreLibrary => {
-    loaded.push(path)
+  const spawn = vi.fn((_data: { path: string }) => {
+    const worker = new FakeWorker()
+    workers.push(worker)
 
-    return library
-  }
+    return worker
+  })
+  const engine = createScoreEngine({ path, spawn, report: (code) => reports.push(code) })
 
-  return {
-    scoreCalls,
-    freed,
-    loaded,
-    reports,
-    options: {
-      path: LIBRARY_PATH,
-      load,
-      decode,
-      report: (code: DiagnosticCode) => reports.push(code)
-    }
-  }
+  return { engine, workers, reports, spawn }
+}
+
+function calculate(
+  engine: ReturnType<typeof scoreEngine>['engine'],
+  signal = new AbortController().signal
+) {
+  return engine.calculate(input, 'equipment', signal)
 }
 
 describe('점수 엔진 라이브러리 위치', () => {
@@ -151,223 +120,248 @@ describe('점수 엔진 라이브러리 위치', () => {
   })
 })
 
-describe('점수 엔진 로드 실패 정제', () => {
-  it('경로가 없으면 라이브러리를 열지 않고 진단만 남긴다', () => {
-    const native = nativeEngine()
+describe('점수 worker 준비와 계산 요청', () => {
+  it('캡처 준비는 라이브러리 경로로 worker 하나를 띄우고 이후 계산을 모두 그 worker에 보낸다', async () => {
+    const { engine, workers, reports, spawn } = scoreEngine()
 
-    expect(loadScoreEngine({ ...native.options, path: null })).toBeNull()
-    expect(native.loaded).toEqual([])
-    expect(native.reports).toEqual(['SCORE_ENGINE_UNAVAILABLE'])
+    engine.prepare()
+    engine.prepare()
+    const first = calculate(engine)
+    workers[0].reply(JSON.stringify({ ...engineResult, breakdown: { D18: 1 } }))
+    const second = engine.calculate(input, 'buff', new AbortController().signal)
+    workers[0].reply(JSON.stringify({ ...engineResult, calculator: 'buff' }))
+
+    expect(await first).toEqual(engineResult)
+    expect(await second).toEqual({ ...engineResult, calculator: 'buff' })
+    expect(spawn).toHaveBeenCalledExactlyOnceWith({ path: LIBRARY_PATH })
+    expect(workers[0].requests).toMatchObject([
+      { input, calculator: 'equipment' },
+      { input, calculator: 'buff' }
+    ])
+    expect(reports).toEqual([])
   })
 
-  it.each([
-    [
-      '파일을 열 수 없음',
-      {
-        load: () => {
-          throw new Error(`cannot open ${LIBRARY_PATH}`)
-        }
-      }
-    ],
-    ['함수 누락', { missing: 'dnfscore_free' }],
-    ['빈 버전', { version: ' ' }],
-    ['문자열이 아닌 버전', { version: null }]
-  ] as const)('%s이면 null과 고정 진단 코드만 돌려준다', (_name, behavior) => {
-    const native = nativeEngine('missing' in behavior || 'version' in behavior ? behavior : {})
-    const load = 'load' in behavior ? behavior.load : native.options.load
+  it('준비 전에 점수를 계산하면 그때 worker를 띄운다', async () => {
+    const { engine, workers, spawn } = scoreEngine()
 
-    expect(loadScoreEngine({ ...native.options, load })).toBeNull()
-    expect(native.reports).toEqual(['SCORE_ENGINE_UNAVAILABLE'])
+    const result = calculate(engine)
+    workers[0].reply(JSON.stringify(engineResult))
+
+    expect(await result).toEqual(engineResult)
+    expect(spawn).toHaveBeenCalledOnce()
+  })
+
+  it('라이브러리 경로가 없으면 worker를 띄우지 않고 진단을 한 번만 남긴다', async () => {
+    const { engine, reports, spawn } = scoreEngine(null)
+
+    engine.prepare()
+
+    expect(await calculate(engine)).toBeNull()
+    expect(await calculate(engine)).toBeNull()
+    expect(spawn).not.toHaveBeenCalled()
+    expect(reports).toEqual(['SCORE_ENGINE_UNAVAILABLE'])
+  })
+
+  it('worker가 라이브러리를 열지 못하면 기다리던 계산을 비우고 다시 띄우지 않는다', async () => {
+    const { engine, workers, reports, spawn } = scoreEngine()
+    engine.prepare()
+    const pending = calculate(engine)
+
+    workers[0].send({ kind: 'unavailable' })
+    engine.prepare()
+
+    expect(await pending).toBeNull()
+    expect(await calculate(engine)).toBeNull()
+    expect(workers[0].terminated).toBe(true)
+    expect(spawn).toHaveBeenCalledOnce()
+    expect(reports).toEqual(['SCORE_ENGINE_UNAVAILABLE'])
   })
 })
 
-describe('점수 엔진 호출과 결과 검증', () => {
-  const input = readEngineInput('dealer-blade')
-  // 실제 계산 시간이 느린 호출 진단 기준(50ms)에 닿아 결과가 흔들리지 않게 시계를 멈춘다.
-  beforeEach(() => {
-    vi.useFakeTimers({ toFake: ['performance'] })
-  })
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
-  it('입력 문서를 UTF-8 길이와 함께 넘기고 쓰는 결과만 검증해 돌려준 뒤 출력을 엔진으로 해제한다', () => {
-    const native = nativeEngine()
-    const engine = loadScoreEngine(native.options)!
-
-    const result = engine(input, 'equipment')
-
-    expect(result).toEqual(engineResult)
-    const [json, length, calculator] = native.scoreCalls[0]
-    expect(JSON.parse(json as string)).toEqual(input)
-    expect(length).toBe(Buffer.byteLength(json as string, 'utf8'))
-    expect(calculator).toBe('equipment')
-    expect(native.freed).toEqual([NATIVE_OUTPUT])
-    expect(native.reports).toEqual([])
-  })
-
+describe('점수 worker 결과 검증', () => {
   it.each([
-    ['0이 아닌 반환값', { status: 2, output: JSON.stringify(engineResult) }, true],
-    ['출력 없음', { output: null }, false],
-    ['JSON이 아닌 출력', { output: 'not json' }, true],
-    ['다른 계산기 결과', { output: JSON.stringify({ ...engineResult, calculator: 'buff' }) }, true],
+    ['계산하지 못함', null],
+    ['JSON이 아닌 출력', 'not json'],
+    ['다른 계산기 결과', JSON.stringify({ ...engineResult, calculator: 'buff' })],
     [
       '점수와 건너뛰기 사유가 함께 있음',
-      { output: JSON.stringify({ ...engineResult, skipped: { kind: 'x', message: 'y' } }) },
-      true
+      JSON.stringify({ ...engineResult, skipped: { kind: 'x', message: 'y' } })
     ],
-    ['점수도 사유도 없음', { output: JSON.stringify({ ...engineResult, score: null }) }, true],
-    ['소수 점수', { output: JSON.stringify({ ...engineResult, score: 1741.5 }) }, true],
+    ['점수도 사유도 없음', JSON.stringify({ ...engineResult, score: null })],
+    ['소수 점수', JSON.stringify({ ...engineResult, score: 1741.5 })],
     [
       '점수와 근사값이 함께 있음',
-      {
-        output: JSON.stringify({
-          ...approximateResult,
-          score: 1741,
-          skipped: null
-        })
-      },
-      true
+      JSON.stringify({ ...approximateResult, score: 1741, skipped: null })
     ],
     [
       '근사값만 있고 출처와 경고가 없음',
-      { output: JSON.stringify({ ...skippedResult, approximate_score: 1650 }) },
-      true
+      JSON.stringify({ ...skippedResult, approximate_score: 1650 })
     ],
     [
       '출처만 있고 근사값이 없음',
-      { output: JSON.stringify({ ...approximateResult, approximate_score: null }) },
-      true
+      JSON.stringify({ ...approximateResult, approximate_score: null })
     ],
-    [
-      '근사값과 출처만 있고 경고가 없음',
-      { output: JSON.stringify({ ...approximateResult, warning: null }) },
-      true
-    ],
+    ['근사값과 출처만 있고 경고가 없음', JSON.stringify({ ...approximateResult, warning: null })],
     [
       '건너뛴 결과에 근사값 없이 경고만 있음',
-      { output: JSON.stringify({ ...skippedResult, warning: '아바타 레코드 없음' }) },
-      true
+      JSON.stringify({ ...skippedResult, warning: '아바타 레코드 없음' })
     ],
-    [
-      '소수 근사값',
-      { output: JSON.stringify({ ...approximateResult, approximate_score: 1650.5 }) },
-      true
-    ],
+    ['소수 근사값', JSON.stringify({ ...approximateResult, approximate_score: 1650.5 })],
     [
       '빈 버전 칸',
-      {
-        output: JSON.stringify({
-          ...engineResult,
-          versions: { ...engineResult.versions, rules_rev: '' }
-        })
-      },
-      true
+      JSON.stringify({ ...engineResult, versions: { ...engineResult.versions, rules_rev: '' } })
     ],
     [
       '알 수 없는 표시 역할',
-      {
-        output: JSON.stringify({ ...engineResult, display: { ...engineResult.display, role: 'x' } })
-      },
-      true
-    ],
-    ['네이티브 호출 예외', { throwOnScore: true }, false]
-  ] as const)(
-    '%s이면 점수 없이 진단을 남기고 받은 출력은 해제한다',
-    (_name, behavior, allocated) => {
-      const native = nativeEngine(behavior)
-      const engine = loadScoreEngine(native.options)!
+      JSON.stringify({ ...engineResult, display: { ...engineResult.display, role: 'x' } })
+    ]
+  ] as const)('%s이면 점수 없이 계산 실패 진단을 남긴다', async (_name, text) => {
+    const { engine, workers, reports } = scoreEngine()
 
-      expect(engine(input, 'equipment')).toBeNull()
-      expect(native.reports).toEqual(['SCORE_ENGINE_FAILED'])
-      expect(native.freed).toEqual(allocated ? [NATIVE_OUTPUT] : [])
-    }
-  )
+    const result = calculate(engine)
+    workers[0].reply(text)
 
-  it('근사값이 없는 건너뛴 결과는 사유와 함께 정상 결과로 돌려준다', () => {
-    const native = nativeEngine({ output: JSON.stringify(skippedResult) })
-
-    expect(loadScoreEngine(native.options)!(input, 'equipment')).toEqual(skippedResult)
-    expect(native.reports).toEqual([])
+    expect(await result).toBeNull()
+    expect(reports).toEqual(['SCORE_ENGINE_FAILED'])
   })
 
-  it('건너뛴 결과에 엔진이 더한 근사값, 출처, 경고는 점수와 따로 돌려준다', () => {
-    const native = nativeEngine({ output: JSON.stringify(approximateResult) })
+  it.each([
+    ['근사값이 없는 건너뛴 결과', skippedResult],
+    ['건너뛴 결과에 엔진이 더한 근사값, 출처, 경고', approximateResult],
+    [
+      '정확한 점수에 붙은 경고',
+      { ...engineResult, warning: '버프 효과에 닿지 않는 부위의 아바타가 번들에 없음' }
+    ]
+  ])('%s는 그대로 돌려준다', async (_name, expected) => {
+    const { engine, workers, reports } = scoreEngine()
 
-    const result = loadScoreEngine(native.options)!(input, 'equipment')
+    const result = calculate(engine)
+    workers[0].reply(JSON.stringify(expected))
 
-    expect(result).toEqual(approximateResult)
-    expect(native.reports).toEqual([])
+    expect(await result).toEqual(expected)
+    expect(reports).toEqual([])
   })
 
-  it('건너뛴 버프 점수 결과의 근사값, 출처, 경고도 점수와 따로 돌려준다', () => {
+  it('건너뛴 버프 점수 결과의 근사값, 출처, 경고도 점수와 따로 돌려준다', async () => {
     const buffApproximate = {
       ...approximateResult,
       calculator: 'buff',
       approximate_source: 'missing_avatar_record',
       display: { role: 'buffer', switchingLevel: 3, buff30: 1, buff50: 2 }
     }
-    const native = nativeEngine({ output: JSON.stringify(buffApproximate) })
+    const { engine, workers } = scoreEngine()
 
-    expect(loadScoreEngine(native.options)!(input, 'buff')).toEqual(buffApproximate)
-    expect(native.reports).toEqual([])
+    const result = engine.calculate(input, 'buff', new AbortController().signal)
+    workers[0].reply(JSON.stringify(buffApproximate))
+
+    expect(await result).toEqual(buffApproximate)
   })
 
-  it('정확한 점수에 붙은 경고는 근사값 없이 점수와 함께 받는다', () => {
-    const exactWithWarning = {
-      ...engineResult,
-      warning: '버프 효과에 닿지 않는 부위의 아바타가 번들에 없음'
-    }
-    const native = nativeEngine({ output: JSON.stringify(exactWithWarning) })
-
-    expect(loadScoreEngine(native.options)!(input, 'equipment')).toEqual(exactWithWarning)
-    expect(native.reports).toEqual([])
-  })
-
-  it('근사값 칸을 보내지 않는 rev14 이전 엔진의 결과는 근사값 없이 받는다', () => {
+  it('근사값 칸을 보내지 않는 rev14 이전 엔진의 결과는 근사값 없이 받는다', async () => {
     const { approximate_score, approximate_source, warning, ...rev12 } = {
       ...skippedResult,
       versions: { package: '0.1.0', rules_rev: 'rev12', bundle_id: 'phase31-rev12' }
     }
-    const native = nativeEngine({ output: JSON.stringify(rev12) })
+    const { engine, workers } = scoreEngine()
 
-    expect(loadScoreEngine(native.options)!(input, 'equipment')).toEqual({
+    const result = calculate(engine)
+    workers[0].reply(JSON.stringify(rev12))
+
+    expect(await result).toEqual({
       ...rev12,
       approximate_score: null,
       approximate_source: null,
       warning: null
     })
-    expect(native.reports).toEqual([])
   })
 
-  it('계산이 50ms를 넘으면 결과는 그대로 쓰고 느린 호출 진단을 남긴다', () => {
-    const native = nativeEngine()
-    const durations = [50, 51]
-    const engine = loadScoreEngine({
-      ...native.options,
-      decode: (pointer) => {
-        vi.advanceTimersByTime(durations.shift()!)
+  it('worker가 잰 계산 시간이 50ms를 넘으면 결과는 그대로 쓰고 느린 호출 진단을 남긴다', async () => {
+    const { engine, workers, reports } = scoreEngine()
 
-        return native.options.decode(pointer)
-      }
-    })!
+    const atLimit = calculate(engine)
+    workers[0].reply(JSON.stringify(engineResult), 50)
+    expect(await atLimit).toEqual(engineResult)
+    expect(reports).toEqual([])
+    const slow = calculate(engine)
+    workers[0].reply(JSON.stringify(engineResult), 51)
 
-    expect(engine(input, 'equipment')).toEqual(engineResult)
-    expect(native.reports).toEqual([])
-    expect(engine(input, 'equipment')).toEqual(engineResult)
-    expect(native.reports).toEqual(['SCORE_ENGINE_SLOW'])
+    expect(await slow).toEqual(engineResult)
+    expect(reports).toEqual(['SCORE_ENGINE_SLOW'])
   })
 })
 
-describe('첫 점수 계산 때 엔진 열기', () => {
-  it('처음 호출할 때 한 번만 열고 열지 못한 결과도 다시 시도하지 않는다', () => {
-    const load = vi.fn(() => null)
-    const engine = createLazyScoreEngine(load)
-    const input = readEngineInput('dealer-blade')
+describe('점수 worker 실패와 정리', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
 
-    expect(load).not.toHaveBeenCalled()
-    expect(engine(input, 'equipment')).toBeNull()
-    expect(engine(input, 'buff')).toBeNull()
-    expect(load).toHaveBeenCalledOnce()
+  it.each([
+    ['오류로 끝남', (worker: FakeWorker) => worker.emit('error', new Error('worker failed'))],
+    ['예고 없이 종료됨', (worker: FakeWorker) => worker.emit('exit', 1)]
+  ])(
+    'worker가 %s이면 기다리던 점수만 비우고 다음 캡처 준비 때 새 worker를 띄운다',
+    async (_name, stop) => {
+      const { engine, workers, reports, spawn } = scoreEngine()
+      engine.prepare()
+      const pending = calculate(engine)
+
+      stop(workers[0])
+
+      expect(await pending).toBeNull()
+      expect(workers[0].terminated).toBe(true)
+      expect(await calculate(engine)).toBeNull()
+      expect(spawn).toHaveBeenCalledOnce()
+      expect(reports).toEqual(['SCORE_ENGINE_FAILED', 'SCORE_ENGINE_FAILED'])
+      engine.prepare()
+      const next = calculate(engine)
+      workers[1].reply(JSON.stringify(engineResult))
+      expect(await next).toEqual(engineResult)
+    }
+  )
+
+  it('worker가 응답하지 않으면 점수를 비우고 worker를 정리하며 늦은 응답은 버린다', async () => {
+    vi.useFakeTimers()
+    const { engine, workers, reports } = scoreEngine()
+    const pending = calculate(engine)
+
+    await vi.advanceTimersByTimeAsync(60_000)
+
+    expect(await pending).toBeNull()
+    expect(workers[0].terminated).toBe(true)
+    expect(reports).toEqual(['SCORE_ENGINE_FAILED'])
+    workers[0].reply(JSON.stringify(engineResult))
+    expect(reports).toEqual(['SCORE_ENGINE_FAILED'])
+  })
+
+  it('취소된 계산은 응답을 기다리지 않고 취소 이유로 끝나며 늦은 응답은 버린다', async () => {
+    const { engine, workers, reports } = scoreEngine()
+    const controller = new AbortController()
+    const cancelled = calculate(engine, controller.signal)
+    const request = workers[0].requests[0]
+
+    controller.abort(new Error('cancelled'))
+
+    await expect(cancelled).rejects.toThrow('cancelled')
+    workers[0].reply('not json', 2, request)
+    const next = calculate(engine)
+    workers[0].reply(JSON.stringify(engineResult))
+    expect(await next).toEqual(engineResult)
+    expect(workers[0].terminated).toBe(false)
+    expect(reports).toEqual([])
+  })
+
+  it('앱을 끝내면 worker를 정리하고 기다리던 점수를 비운 뒤 다시 띄우지 않는다', async () => {
+    const { engine, workers, reports, spawn } = scoreEngine()
+    engine.prepare()
+    const pending = calculate(engine)
+
+    engine.dispose()
+    engine.prepare()
+
+    expect(await pending).toBeNull()
+    expect(await calculate(engine)).toBeNull()
+    expect(workers[0].terminated).toBe(true)
+    expect(spawn).toHaveBeenCalledOnce()
+    expect(reports).toEqual([])
   })
 })

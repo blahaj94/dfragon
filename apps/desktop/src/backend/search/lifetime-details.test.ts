@@ -82,7 +82,7 @@ function fixture() {
         scorePortrait: vi.fn(),
         selection: INITIAL_PORTRAIT_COLOR_POLICY
       },
-      score: () => null
+      scoreEngine: { calculate: async () => null, prepare: vi.fn() }
     }
   })
   const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot.captureId!

@@ -12,7 +12,8 @@ import { readReleaseFeed } from './update-notice/http'
 import { createUpdateNotices } from './update-notice/notices'
 import { registerUpdateNoticeWindow } from './update-notice/ipc-handler'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './search/portrait-policy'
-import { createLazyScoreEngine, loadScoreEngine, resolveScoreLibraryPath } from './score/engine'
+import { createScoreEngine, resolveScoreLibraryPath } from './score/engine'
+import createScoreWorker from './score/worker?nodeWorker'
 import { registerDesktopShortcuts } from './shortcuts/register'
 import { registerDiagnosticsWindow } from './diagnostics/ipc-handler'
 import { registerWindowChromeWindow } from './window-chrome/ipc-handler'
@@ -165,27 +166,26 @@ app.whenReady().then(() => {
   })
 
   const apiOrigin = readAppApiOrigin()
+  // 점수 worker는 캡처를 시작하거나 점수를 처음 계산할 때 띄운다.
+  const scoreEngine = createScoreEngine({
+    path: resolveScoreLibraryPath({
+      isPackaged: app.isPackaged,
+      platform: process.platform,
+      resourcesPath: process.resourcesPath,
+      appPath: app.getAppPath(),
+      env: process.env
+    }),
+    spawn: (workerData) => createScoreWorker({ workerData }),
+    report: reportDiagnostic
+  })
   const searchConfiguration =
     apiOrigin != null
-      ? {
-          apiOrigin,
-          portraitColorPolicy: INITIAL_PORTRAIT_COLOR_POLICY,
-          score: createLazyScoreEngine(() =>
-            loadScoreEngine({
-              path: resolveScoreLibraryPath({
-                isPackaged: app.isPackaged,
-                platform: process.platform,
-                resourcesPath: process.resourcesPath,
-                appPath: app.getAppPath(),
-                env: process.env
-              })
-            })
-          )
-        }
+      ? { apiOrigin, portraitColorPolicy: INITIAL_PORTRAIT_COLOR_POLICY, scoreEngine }
       : undefined
   const disposeCapture = registerCaptureIpc(searchConfiguration)
   app.on('quit', () => {
     disposeCapture()
+    scoreEngine.dispose()
   })
   if (readAppChannelName() === 'distribution') {
     updateNotices.start()

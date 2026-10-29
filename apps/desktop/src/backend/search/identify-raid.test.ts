@@ -86,7 +86,7 @@ function fixture(engineScores: Record<string, number | null>) {
 
     return details(characterId)
   })
-  const score: MockedFunction<ScoreEngine> = vi.fn((input) => {
+  const score: MockedFunction<ScoreEngine['calculate']> = vi.fn(async (input) => {
     const id = String(input.status.characterId)
 
     return engineResult(engineScores[id] ?? null)
@@ -100,7 +100,7 @@ function fixture(engineScores: Record<string, number | null>) {
       selection: INITIAL_PORTRAIT_COLOR_POLICY
     },
     ocrIdentification: 'raid' as const,
-    score
+    scoreEngine: { calculate: score, prepare: vi.fn() }
   })
   const request = (
     raidRow: RaidRowObservation = SCORE_ROW,
@@ -253,7 +253,7 @@ it.each([[['']], [[' 공대원']], [['가', '나', '다']]])(
           selection: INITIAL_PORTRAIT_COLOR_POLICY
         },
         ocrIdentification: 'raid',
-        score: f.score
+        scoreEngine: { calculate: f.score, prepare: vi.fn() }
       },
       nickname: nicknames[0],
       signal: f.controller.signal,

@@ -82,7 +82,10 @@ function details(characterId: string): CharacterDetails {
 function requestWith(adapters: IdentificationAdapters) {
   return (input: CharacterIdentificationInput & SearchOperationContext) =>
     runSearchRequest({
-      runtime: { identification: adapters, score: () => null },
+      runtime: {
+        identification: adapters,
+        scoreEngine: { calculate: async () => null, prepare: vi.fn() }
+      },
       nickname: input.nicknames[0] ?? '',
       signal: input.signal,
       isCurrent: input.isCurrent,
@@ -422,7 +425,7 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
 
   function cardRequest(
     f: ReturnType<typeof fixture>,
-    score: ScoreEngine,
+    calculate: ScoreEngine['calculate'],
     card: unknown = dealerCard
   ) {
     f.getDetails.mockImplementation(async ({ characterId }) => ({
@@ -440,7 +443,7 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
             scorePortrait: f.scorePortrait,
             selection: INITIAL_PORTRAIT_COLOR_POLICY
           },
-          score
+          scoreEngine: { calculate, prepare: vi.fn() }
         },
         summary: identified,
         signal: f.controller.signal,
@@ -450,7 +453,7 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
 
   it('카드 역할에 엔진 점수를 채우고 요약의 장비 점수로 옮긴다', async () => {
     const f = fixture()
-    const score = vi.fn<ScoreEngine>(() => engineResult)
+    const score = vi.fn<ScoreEngine['calculate']>(async () => engineResult)
 
     const outcome = await cardRequest(f, score)()
 
@@ -474,7 +477,7 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
 
   it('카드 역할을 읽지 못하면 엔진을 부르지 않고 카드만 null로 두어 나머지 요약은 전달한다', async () => {
     const f = fixture()
-    const score = vi.fn<ScoreEngine>(() => engineResult)
+    const score = vi.fn<ScoreEngine['calculate']>(async () => engineResult)
 
     const outcome = await cardRequest(f, score, { ...dealerCard, role: 'tank' })()
 
@@ -487,7 +490,7 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
 
   it('상세 호출 제한은 호출 제한 실패로 전달하고 엔진을 부르지 않는다', async () => {
     const f = fixture()
-    const score = vi.fn<ScoreEngine>(() => engineResult)
+    const score = vi.fn<ScoreEngine['calculate']>(async () => engineResult)
     const request = cardRequest(f, score)
     f.getDetails.mockRejectedValueOnce(new SearchHttpFailure('SEARCH_RATE_LIMITED'))
 
@@ -503,7 +506,7 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
     async (reason) => {
       const f = fixture()
       let current = true
-      const score = vi.fn<ScoreEngine>(() => {
+      const score = vi.fn<ScoreEngine['calculate']>(async () => {
         if (reason === '이전 요청') {
           current = false
         } else {
@@ -519,4 +522,20 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
       expect(outcome).toBeNull()
     }
   )
+
+  it('점수 계산을 기다리는 중 취소하면 계산에 넘긴 신호도 취소되어 응답을 기다리지 않는다', async () => {
+    const f = fixture()
+    const calculate = vi.fn<ScoreEngine['calculate']>(
+      (_input, _calculator, signal) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener('abort', () => reject(signal.reason))
+        })
+    )
+    const outcome = cardRequest(f, calculate)()
+
+    await vi.waitFor(() => expect(calculate).toHaveBeenCalledOnce())
+    f.controller.abort()
+
+    expect(await outcome).toBeNull()
+  })
 })

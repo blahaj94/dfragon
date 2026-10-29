@@ -201,6 +201,15 @@ it('직접 조회도 명령 검증과 관측 revision 순서를 지키고 실패
   ])
 })
 
+it.each(['manual', 'raid'] as const)(
+  '%s 수명을 시작하면 점수 계산을 준비한다',
+  async (searchKind) => {
+    const fixture = await createSearchFixture(searchKind)
+
+    expect(fixture.prepareScore).toHaveBeenCalled()
+  }
+)
+
 it('새 begin은 응답을 잃은 이전 수명을 끝내고 그 수명의 늦은 응답, end, 프레임 읽기를 받지 않는다', async () => {
   const fixture = await createSearchFixture('capture')
   const response = deferred<Response>()
