@@ -15,7 +15,6 @@ interface AsyncIPCFunctions
   selectCaptureSource: (sourceId: string) => Promise<CaptureSource | null>
   readCaptureFrame: (captureId: string) => Promise<WindowFrameResult>
   notifyOcrCandidatesDetected: OcrCandidatesNotification
-  controlManualSearch: SearchControlCommand
   controlRaidSearch: SearchControlCommand
   readRaidCaptureFrame: (captureId: string) => Promise<RaidFrameResult>
   notifyRaidOcrCandidatesDetected: OcrCandidatesNotification

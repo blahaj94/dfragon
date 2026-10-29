@@ -12,8 +12,10 @@ import {
 } from '../../../preload/api/search-test-fixture'
 import type { WindowFrameResult } from '../../../preload/common/types/capture'
 import type {
+  CharacterChoice,
   SearchCommandResult,
   SearchControl,
+  SearchSlot,
   SearchSnapshot
 } from '../../../preload/common/types/search'
 import * as diagnostics from '../lib/runtime-diagnostics'
@@ -131,9 +133,6 @@ beforeEach(() => {
   search.onCharacterSearchChanged.mockReturnValue(() => {})
   search.controlCharacterSearch.mockImplementation(async (control: SearchControl) => {
     const isBegin = control.action === 'begin'
-    if (isBegin && currentSearch.captureId !== null) {
-      return { ok: false, error: { code: 'SEARCH_BUSY' }, snapshot: currentSearch }
-    }
     const isCurrentEnd = control.action === 'end' && control.captureId === currentSearch.captureId
     const shouldChangeCapture = isBegin || isCurrentEnd
     if (shouldChangeCapture) {
@@ -314,6 +313,74 @@ function beginNextCapture(captureId: string) {
 }
 
 const NEXT_CAPTURE_ID = '00000000-0000-4000-8000-000000000099'
+
+function selectedSummary(serverId: string): NonNullable<SearchSlot['selected']> {
+  return {
+    ...searchRow,
+    serverId,
+    adventureName: null,
+    jobName: null,
+    jobGrowName: null,
+    level: null,
+    imageUrl: `https://img-api.neople.co.kr/df/servers/${serverId}/characters/synthetic-character?zoom=1`,
+    guildName: null,
+    equipmentScore: null,
+    card: null
+  }
+}
+
+function choice(serverId: string): CharacterChoice {
+  return { ...searchRow, serverId, adventureName: null, face: null }
+}
+
+function withSlot(slot: SearchSlot): SearchSnapshot {
+  const slots = currentSearch.slots.map((current) => (current.slot === slot.slot ? slot : current))
+
+  return { ...currentSearch, revision: currentSearch.revision + 1, slots }
+}
+
+// Main은 서버 지정 조회를 받으면 그 슬롯을 새 요청으로 덮는다. 테스트는 결과까지 한 번에 돌려준다.
+function acceptLookups(): void {
+  const base = search.controlCharacterSearch.getMockImplementation()!
+  search.controlCharacterSearch.mockImplementation(async (control: SearchControl) => {
+    if (control.action !== 'lookup') {
+      return base(control)
+    }
+    currentSearch = withSlot(
+      searchSlot({
+        slot: control.slot,
+        observationRevision: control.observationRevision,
+        requestId: `00000000-0000-4000-8000-00000000020${control.slot}`,
+        nickname: control.nickname,
+        state: 'success',
+        rows: [{ ...searchRow, serverId: control.serverId }],
+        selected: selectedSummary(control.serverId),
+        selectionMethod: 'manual'
+      })
+    )
+
+    return { ok: true, snapshot: currentSearch }
+  })
+}
+
+function ocrSlotWithChoices(slot: number): SearchSlot {
+  return searchSlot({
+    slot,
+    state: 'success',
+    rows: [searchRow],
+    selected: selectedSummary('cain'),
+    selectionMethod: 'portrait',
+    choices: [choice('cain'), choice('siroco')]
+  })
+}
+
+function expectClearedSearch(value: HookValue): void {
+  expect(value.search.slots.map(({ state, selected }) => ({ state, selected }))).toEqual(
+    Array.from({ length: 4 }, () => ({ state: 'idle', selected: undefined }))
+  )
+  expect(value.search.manualSlots).toEqual([false, false, false, false])
+  expect(value.search.candidatePickers).toEqual([null, null, null, null])
+}
 
 it.each(['선택', '자동 감지', '나중에 자동 감지'] as const)(
   '%s는 창만 등록하고 Alt+R 뒤에 검색과 프레임 읽기를 시작한다',
@@ -996,5 +1063,160 @@ it('OCR 통지 응답이 유실되면 read로만 확인하고 같은 통지를 �
   expect(search.controlCharacterSearch.mock.calls.slice(before)).toEqual([[{ action: 'read' }]])
   expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledOnce()
   expect(hook.getCurrent().search.slots[0]).toEqual(completed.slots[0])
+  await hook.unmount()
+})
+
+it.each(['새 회차', '중지', '창 변경'] as const)(
+  '회차를 마친 뒤 %s는 직접 조회한 카드와 누른 후보까지 파티 네 카드를 비운다',
+  async (action) => {
+    acceptLookups()
+    setSlots(0)
+    const hook = await renderPartyCaptureHook()
+    await act(async () => hook.getCurrent().source.selectSource('game'))
+    await shortcut()
+    await emit(withSlot(ocrSlotWithChoices(0)))
+    await act(async () => hook.getCurrent().search.pickCandidate(0, 'siroco'))
+    await act(async () => hook.getCurrent().search.lookupSlot(1, '직접이름', 'cain'))
+    const before = hook.getCurrent().search
+    expect(before.slots.map((slot) => slot.selected?.serverId ?? null)).toEqual([
+      'siroco',
+      'cain',
+      null,
+      null
+    ])
+    expect(before.manualSlots).toEqual([true, true, false, false])
+    expect(before.candidatePickers[0]?.previewServerId).toBe('siroco')
+
+    if (action === '새 회차') {
+      readCaptureFrame.mockReturnValueOnce(new Promise(() => {}))
+      await shortcut()
+      expect(hook.getCurrent().phase).toBe('recognizing')
+    } else if (action === '중지') {
+      await act(async () => hook.getCurrent().stopCapture())
+    } else {
+      await act(async () => hook.getCurrent().source.selectSource('other'))
+    }
+
+    expectClearedSearch(hook.getCurrent())
+    await hook.unmount()
+  }
+)
+
+it('게임 창이 자동으로 등록되면 그 전에 창 없이 직접 조회한 카드를 비운다', async () => {
+  acceptLookups()
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().search.lookupSlot(1, '직접이름', 'cain'))
+  expect(hook.getCurrent().search.slots[1]).toMatchObject({
+    state: 'success',
+    selectionMethod: 'manual'
+  })
+  expect(api.selectCaptureSource).not.toHaveBeenCalled()
+
+  api.listCaptureSources.mockResolvedValue([{ id: 'dnf', name: '던전앤파이터' }])
+  await act(async () => hook.getCurrent().source.refreshSources())
+
+  expect(api.selectCaptureSource).toHaveBeenCalledWith('dnf')
+  expectClearedSearch(hook.getCurrent())
+  await hook.unmount()
+})
+
+it('회차가 실패하면 그 회차 중 직접 조회한 카드를 비운다', async () => {
+  acceptLookups()
+  setSlots(0)
+  const frame = Promise.withResolvers<WindowFrameResult>()
+  readCaptureFrame.mockReturnValueOnce(frame.promise)
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().source.selectSource('game'))
+  await shortcut()
+  await act(async () => hook.getCurrent().search.lookupSlot(1, '직접이름', 'cain'))
+  expect(hook.getCurrent().search.slots[1].state).toBe('success')
+  expect(hook.getCurrent().search.manualSlots).toEqual([false, true, false, false])
+
+  await act(async () => frame.reject(new Error('Synthetic frame failure')))
+
+  expect(hook.getCurrent().phase).toBe('failed')
+  expectClearedSearch(hook.getCurrent())
+  await hook.unmount()
+})
+
+it('회차 중 직접 조회한 슬롯은 그 회차의 OCR 결과를 통지하지 않고 직접 조회 결과를 둔다', async () => {
+  acceptLookups()
+  setSlots(0, 1)
+  const frame = Promise.withResolvers<WindowFrameResult>()
+  readCaptureFrame.mockReturnValueOnce(frame.promise)
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().source.selectSource('game'))
+  await shortcut()
+  await act(async () => hook.getCurrent().search.lookupSlot(0, '직접이름', 'siroco'))
+
+  await act(async () => frame.resolve(captureResources().frame))
+
+  expect(hook.getCurrent().phase).toBe('complete')
+  expect(api.notifyOcrCandidatesDetected.mock.calls.map(([input]) => input.slot)).toEqual([1])
+  expect(hook.getCurrent().search.slots[0]).toMatchObject({
+    state: 'success',
+    selectionMethod: 'manual',
+    selected: { serverId: 'siroco' }
+  })
+  await hook.unmount()
+})
+
+it.each([
+  [
+    '거절',
+    (begin: PromiseWithResolvers<SearchCommandResult>) =>
+      begin.reject(new Error('Synthetic begin failure'))
+  ],
+  [
+    '실패 응답',
+    (begin: PromiseWithResolvers<SearchCommandResult>) =>
+      begin.resolve({
+        ok: false,
+        error: { code: 'STALE_SEARCH' },
+        snapshot: searchSnapshot({ captureId: null, revision: currentSearch.revision + 1 })
+      })
+  ]
+] as const)(
+  '회차 begin을 기다리는 동안 직접 조회한 뒤 begin이 %s로 끝나면 연결 실패 없이 회차 실패와 빈 카드를 보인다',
+  async (_outcome, fail) => {
+    acceptLookups()
+    const begin = Promise.withResolvers<SearchCommandResult>()
+    const hook = await renderPartyCaptureHook()
+    await act(async () => hook.getCurrent().source.selectSource('game'))
+    search.controlCharacterSearch.mockReturnValueOnce(begin.promise)
+    await shortcut()
+    await act(async () => hook.getCurrent().search.lookupSlot(1, '직접이름', 'cain'))
+    expect(hook.getCurrent().search.slots[1].state).toBe('pending')
+
+    await act(async () => fail(begin))
+    await flushPromises()
+
+    expect(hook.getCurrent().phase).toBe('failed')
+    expect(hook.getCurrent().status).toBe('검색을 시작하지 못했습니다. 창을 다시 선택해 주세요.')
+    expect(hook.getCurrent().search.connectionFailed).toBe(false)
+    expectClearedSearch(hook.getCurrent())
+    expect(
+      search.controlCharacterSearch.mock.calls.map(([command]) => command.action)
+    ).not.toContain('lookup')
+    await hook.unmount()
+  }
+)
+
+it('회차 중 main이 파티 수명을 무효화하면 캡처를 멈추고 늦은 프레임으로 인식하지 않는다', async () => {
+  setSlots(0)
+  const frame = Promise.withResolvers<WindowFrameResult>()
+  readCaptureFrame.mockReturnValueOnce(frame.promise)
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().source.selectSource('game'))
+  await shortcut()
+  expect(hook.getCurrent().phase).toBe('recognizing')
+
+  await emit(searchSnapshot({ captureId: null, revision: currentSearch.revision + 1 }))
+
+  expect(hook.getCurrent().status).toBe('캡처를 중지했습니다.')
+  expect(hook.getCurrent().canStartCapture).toBe(false)
+  await act(async () => frame.resolve(captureResources().frame))
+  expect(moduleMocks.createPartyOcrWorker).not.toHaveBeenCalled()
+  expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
   await hook.unmount()
 })

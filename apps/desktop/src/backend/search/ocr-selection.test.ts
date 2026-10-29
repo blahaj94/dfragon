@@ -67,6 +67,7 @@ describe('OCR로 고른 캐릭터의 카드 요약', () => {
     const lifetime = createCaptureSearchLifetime({
       publish: vi.fn(),
       isCurrent: () => true,
+      isCurrentOcr: () => true,
       runtime: { identification, score: () => null }
     })
     const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot

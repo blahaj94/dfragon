@@ -168,11 +168,7 @@ export async function createSearchFixture(
 
     return handler(event, ...args)
   }
-  const controlChannel = {
-    capture: 'controlCharacterSearch',
-    manual: 'controlManualSearch',
-    raid: 'controlRaidSearch'
-  }[searchKind]
+  const controlChannel = searchKind === 'raid' ? 'controlRaidSearch' : 'controlCharacterSearch'
   const read = async (): Promise<SearchSnapshot> => {
     const result = await invoke(controlChannel, { action: 'read' })
     expect(result).toMatchObject({ ok: true, snapshot: expect.any(Object) })

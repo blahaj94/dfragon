@@ -6,20 +6,30 @@ import { useManualCharacterLookup } from './useManualCharacterLookup'
 import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
 import {
   SEARCH_SLOT_COUNTS,
+  type OcrSearchObservation,
   type SearchApi,
-  type SearchCommandResult
+  type SearchCommandResult,
+  type SearchSnapshot
 } from '../../../preload/common/types/search'
 
 let current: ReturnType<typeof useManualCharacterLookup>
 let root: ReturnType<typeof createRoot>
+let emit: (snapshot: SearchSnapshot) => void = () => {}
+let snapshot = searchSnapshot({ captureId: null, revision: 0 })
 const control = vi.fn<SearchApi['controlCharacterSearch']>()
+const notifyOcr = vi.fn<(observation: OcrSearchObservation) => Promise<SearchCommandResult>>()
+const invalidated = vi.fn()
 const api: SearchApi = {
   controlCharacterSearch: control,
-  onCharacterSearchChanged: () => () => {}
+  onCharacterSearchChanged: (listener) => {
+    emit = listener
+
+    return () => {}
+  }
 }
 
 function Harness(): null {
-  const value = useManualCharacterLookup(api, SEARCH_SLOT_COUNTS.party)
+  const value = useManualCharacterLookup(api, SEARCH_SLOT_COUNTS.party, notifyOcr, invalidated)
   useLayoutEffect(() => {
     current = value
   })
@@ -29,8 +39,8 @@ function Harness(): null {
 
 beforeEach(async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
-  vi.stubGlobal('manualSearch', api)
-  let snapshot = searchSnapshot({ captureId: null, revision: 0 })
+  invalidated.mockReset()
+  snapshot = searchSnapshot({ captureId: null, revision: 0 })
   control.mockReset().mockImplementation(async (command) => {
     if (command.action === 'begin') {
       snapshot = searchSnapshot({ captureId: CAPTURE_ID, revision: snapshot.revision + 1 })
@@ -46,7 +56,6 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await act(async () => root.unmount())
-  vi.unstubAllGlobals()
 })
 
 it('게임 캡처 없이 서버 지정 조회를 시작하고 같은 수명에서 다음 입력을 처리한다', async () => {
@@ -106,4 +115,17 @@ it('전체 재검색으로 초기화한 뒤 이전 시작 응답이 도착해도
   )
   expect(control.mock.calls.filter(([command]) => command.action === 'lookup')).toEqual([])
   expect(control).toHaveBeenCalledWith({ action: 'end', captureId: CAPTURE_ID })
+})
+
+it('main이 수명을 끝내면 연결을 비우고 알린 뒤 다음 조회는 수명을 다시 시작한다', async () => {
+  await act(async () => current.lookup(0, '이전', 'cain'))
+  snapshot = searchSnapshot({ captureId: null, revision: snapshot.revision + 1 })
+  await act(async () => emit(snapshot))
+
+  expect(invalidated).toHaveBeenCalledOnce()
+  await act(async () => current.lookup(0, '다음', 'cain'))
+  expect(control.mock.calls.filter(([command]) => command.action === 'begin')).toHaveLength(2)
+  expect(control).toHaveBeenLastCalledWith(
+    expect.objectContaining({ action: 'lookup', nickname: '다음', observationRevision: 1 })
+  )
 })

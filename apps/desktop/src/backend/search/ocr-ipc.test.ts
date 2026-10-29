@@ -364,7 +364,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
   })
 
   it.each(['종료', 'source', 'navigation', 'destroyed', 'render-process-gone'] as const)(
-    '%s 뒤 늦은 결과는 선택이나 캡처를 복원하지 않는다',
+    '%s 뒤 늦은 결과는 선택을 복원하지 않는다',
     async (cause) => {
       const fixture = await createSearchFixture('capture', policy)
       const response = deferred<Response>()
@@ -386,7 +386,8 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       }
       expect(request.signal.aborted).toBe(true)
       response.resolve(jsonResponse({ body: { rows: [matchedCandidate] } }))
-      expect((await fixture.read()).captureId).toBeNull()
+      // 창 변경은 진행 중인 OCR 요청만 끝내고, 수명은 renderer가 보내는 end가 끝낸다.
+      expect((await fixture.read()).captureId).toBe(cause === 'source' ? fixture.captureId : null)
       expect(
         (await fixture.read()).slots.every(
           (slot) => slot.state === 'idle' && slot.selected === undefined
@@ -456,7 +457,7 @@ describe('수동 서버 지정 검색', () => {
     fixture.fetchSearch
       .mockResolvedValueOnce(jsonResponse({ body: { rows: [other, matchedCandidate] } }))
       .mockResolvedValueOnce(jsonResponse({ body: details() }))
-    await fixture.invoke('controlManualSearch', {
+    await fixture.invoke('controlCharacterSearch', {
       action: 'lookup',
       captureId: fixture.captureId,
       slot: 0,
@@ -488,9 +489,13 @@ describe('수동 서버 지정 검색', () => {
       nickname: '가나',
       serverId: 'siroco'
     }
-    await fixture.invoke('controlManualSearch', lookup)
+    await fixture.invoke('controlCharacterSearch', lookup)
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-    await fixture.invoke('controlManualSearch', { ...lookup, nickname: '', observationRevision: 2 })
+    await fixture.invoke('controlCharacterSearch', {
+      ...lookup,
+      nickname: '',
+      observationRevision: 2
+    })
     expect((await fixture.read()).slots[0]).toMatchObject({
       state: 'failure',
       error: { code: 'INVALID_SEARCH_QUERY' }
@@ -510,10 +515,10 @@ describe('수동 서버 지정 검색', () => {
       nickname: '가나',
       serverId: 'cain'
     }
-    await fixture.invoke('controlManualSearch', lookup)
+    await fixture.invoke('controlCharacterSearch', lookup)
     await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledOnce())
     const request = new Request(...fixture.fetchSearch.mock.calls[0])
-    await fixture.invoke('controlManualSearch', {
+    await fixture.invoke('controlCharacterSearch', {
       ...lookup,
       serverId: 'siroco',
       observationRevision: 2
@@ -532,7 +537,7 @@ describe('수동 서버 지정 검색', () => {
     fixture.fetchSearch.mockResolvedValueOnce(
       jsonResponse({ status: 500, body: { error: { code: 'INTERNAL_SERVER_ERROR' } } })
     )
-    await fixture.invoke('controlManualSearch', {
+    await fixture.invoke('controlCharacterSearch', {
       action: 'lookup',
       captureId: fixture.captureId,
       slot: 0,
@@ -543,7 +548,7 @@ describe('수동 서버 지정 검색', () => {
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('failure'))
     const requestId = (await fixture.read()).slots[0].requestId
     fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: { rows: [matchedCandidate] } }))
-    await fixture.invoke('controlManualSearch', {
+    await fixture.invoke('controlCharacterSearch', {
       action: 'retry',
       captureId: fixture.captureId,
       slot: 0,
@@ -558,7 +563,7 @@ describe('수동 서버 지정 검색', () => {
     async (serverId) => {
       const fixture = await createSearchFixture('manual', policy)
       expect(
-        await fixture.invoke('controlManualSearch', {
+        await fixture.invoke('controlCharacterSearch', {
           action: 'lookup',
           captureId: fixture.captureId,
           slot: 0,

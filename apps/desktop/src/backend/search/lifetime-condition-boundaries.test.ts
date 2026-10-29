@@ -61,6 +61,7 @@ it('검색 불가 닉네임의 새 관측은 이전 HTTP를 취소하고 입력 
   const lifetime = createCaptureSearchLifetime({
     publish,
     isCurrent: () => true,
+    isCurrentOcr: () => true,
     runtime: runtime(http)
   })
   const captureId = lifetime.begin(binding()).snapshot.captureId!
@@ -110,6 +111,7 @@ it('Stop은 모든 슬롯의 HTTP와 실패를 정리하고 새 수명을 늦은
   const lifetime = createCaptureSearchLifetime({
     publish,
     isCurrent: () => true,
+    isCurrentOcr: () => true,
     runtime: runtime(http)
   })
   const oldCaptureId = lifetime.begin(binding()).snapshot.captureId!
@@ -173,6 +175,7 @@ it('pending 발행 중 새 관측이 요청을 대체하면 이전 요청의 HTT
   const lifetime = createCaptureSearchLifetime({
     runtime: runtime(http),
     isCurrent: () => true,
+    isCurrentOcr: () => true,
     publish: (snapshot) => {
       if (snapshot.slots[0].state === 'pending') {
         lifetime.observeOcr(
@@ -209,11 +212,13 @@ it('한 검색 수명의 종료는 다른 수명의 HTTP, 결과를 건드리지
   const first = createCaptureSearchLifetime({
     runtime: runtime(firstHttp),
     isCurrent: () => true,
+    isCurrentOcr: () => true,
     publish: vi.fn()
   })
   const second = createCaptureSearchLifetime({
     runtime: runtime(secondHttp),
     isCurrent: () => true,
+    isCurrentOcr: () => true,
     publish: vi.fn()
   })
   const firstId = first.begin(binding()).snapshot.captureId!
@@ -253,6 +258,7 @@ it.each(['성공', '실패'])(
     const lifetime = createCaptureSearchLifetime({
       runtime: runtime(http),
       isCurrent: () => current,
+      isCurrentOcr: () => true,
       publish
     })
     const captureId = lifetime.begin(binding()).snapshot.captureId!

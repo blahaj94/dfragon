@@ -112,7 +112,7 @@ describe('검색 IPC 명령 입력 경계', () => {
 
   it.each([
     ['캡처', 'capture', 'controlCharacterSearch'],
-    ['직접 검색', 'manual', 'controlManualSearch']
+    ['직접 검색', 'manual', 'controlCharacterSearch']
   ] as const)(
     '%s의 잘못된 명령은 현재 요청을 취소하거나 상태를 발행하지 않는다',
     async (_name, kind, controlChannel) => {

@@ -6,7 +6,6 @@ import { parseSearchResult } from '../common/search/snapshot'
 type SearchChannel =
   | 'controlCharacterSearch'
   | 'notifyOcrCandidatesDetected'
-  | 'controlManualSearch'
   | 'controlRaidSearch'
   | 'notifyRaidOcrCandidatesDetected'
 
