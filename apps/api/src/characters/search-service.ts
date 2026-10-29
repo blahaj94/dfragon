@@ -1,3 +1,4 @@
+import { pick, sortBy } from 'remeda'
 import { NeopleSearchFailure, neopleSearchFailure } from '../errors/neople-search.js'
 import type {
   CharacterCandidate,
@@ -12,8 +13,7 @@ import type { CharacterSearchDependencies, CharacterSearchHttpService } from './
 export function createCharacterSearchService(
   dependencies: CharacterSearchDependencies
 ): CharacterSearchHttpService {
-  const deps = Object.freeze({ ...dependencies })
-  const adapter = deps.searchCharacters
+  const { searchCharacters } = dependencies
   let closed = false
 
   const search = async (
@@ -26,7 +26,7 @@ export function createCharacterSearchService(
     }
 
     try {
-      return await adapter(input)
+      return await searchCharacters(input)
     } catch (error) {
       if (error instanceof NeopleSearchFailure) {
         throw error
@@ -41,13 +41,8 @@ export function createCharacterSearchService(
 
       const result = await search(peerAddress, input, requestSignal)
       const rows = result.rows.map(
-        ({ characterId, characterName, serverId, serverName, fame }): CharacterCandidate => ({
-          characterId,
-          characterName,
-          serverId,
-          serverName,
-          fame
-        })
+        (row): CharacterCandidate =>
+          pick(row, ['characterId', 'characterName', 'serverId', 'serverName', 'fame'])
       )
 
       return { rows } satisfies CharacterSearchResult
@@ -55,7 +50,7 @@ export function createCharacterSearchService(
     async candidates(peerAddress, originalUrl, requestSignal) {
       const input = parseCharacterCandidatesQuery(originalUrl)
       const result = await search(peerAddress, input, requestSignal)
-      const rows = result.rows.map((candidate): CharacterImageCandidate => {
+      const candidates = result.rows.map((candidate): CharacterImageCandidate => {
         const serverId = encodeURIComponent(candidate.serverId)
         const characterId = encodeURIComponent(candidate.characterId)
         const imageUrl = `https://img-api.neople.co.kr/df/servers/${serverId}/characters/${characterId}?zoom=1`
@@ -63,21 +58,11 @@ export function createCharacterSearchService(
 
         return { ...candidate, imageUrl, adventureName: null }
       })
-      rows.sort((left, right) => {
-        if (left.fame === null && right.fame === null) {
-          return 0
-        }
-
-        if (left.fame === null) {
-          return 1
-        }
-
-        if (right.fame === null) {
-          return -1
-        }
-
-        return right.fame - left.fame
-      })
+      const rows = sortBy(
+        candidates,
+        [(row) => row.fame === null, 'asc'],
+        [(row) => row.fame ?? 0, 'desc']
+      )
 
       return { rows }
     },
