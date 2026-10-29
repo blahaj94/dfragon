@@ -6,6 +6,9 @@ const NICKNAME_BACKGROUND = 255
 // 관측한 HUD 닉네임의 위아래 여백 안에 걸친 프레임 장식만 경계 계산에서 제외한다.
 const HUD_EDGE_MARGIN_RATIO = 1 / 5
 const HUD_FRAME_LINE_WIDTH_RATIO = 3 / 4
+// 게임 닉네임에는 공백이 없다. UI 0% 높이 17px 공대 닉네임 칸에서 공백 한 칸 폭(4px) 이상
+// 떨어진 덩어리는 레이드 보상 테두리에서 튄 점 같은 이름 밖의 픽셀로 본다(2026-10-30 결정).
+const RAID_DETACHED_GAP_RATIO = 4 / 17
 
 function excludeNicknameFrameLines(
   rgba: Uint8ClampedArray,
@@ -157,8 +160,53 @@ export function binarizeNicknamePixels(data: Uint8ClampedArray): void {
   }
 }
 
-export function toBinarizedTextCanvas(
-  image: Readonly<{ width: number; height: number; rgba: ArrayLike<number> }>
+export function removeDetachedRaidNicknamePixels(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): void {
+  const minGap = Math.max(1, Math.round(height * RAID_DETACHED_GAP_RATIO))
+  const clusters: { left: number; right: number; count: number }[] = []
+  for (let x = 0; x < width; x += 1) {
+    let count = 0
+    for (let y = 0; y < height; y += 1) {
+      if (data[(y * width + x) * RGBA_CHANNELS] < NICKNAME_BACKGROUND) {
+        count += 1
+      }
+    }
+    if (count === 0) {
+      continue
+    }
+    const last = clusters.at(-1)
+    if (last !== undefined && x - last.right - 1 < minGap) {
+      last.right = x
+      last.count += count
+    } else {
+      clusters.push({ left: x, right: x, count })
+    }
+  }
+  let main: (typeof clusters)[number] | undefined
+  for (const cluster of clusters) {
+    if (main === undefined || cluster.count > main.count) {
+      main = cluster
+    }
+  }
+  for (const cluster of clusters) {
+    if (cluster === main) {
+      continue
+    }
+    for (let y = 0; y < height; y += 1) {
+      for (let x = cluster.left; x <= cluster.right; x += 1) {
+        const index = (y * width + x) * RGBA_CHANNELS
+        data.fill(NICKNAME_BACKGROUND, index, index + 3)
+      }
+    }
+  }
+}
+
+function toTextCanvas(
+  image: Readonly<{ width: number; height: number; rgba: ArrayLike<number> }>,
+  prepare: (pixels: ImageData) => void
 ): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
   canvas.width = image.width
@@ -169,10 +217,25 @@ export function toBinarizedTextCanvas(
   }
   const pixels = context.createImageData(image.width, image.height)
   pixels.data.set(image.rgba)
-  binarizeNicknamePixels(pixels.data)
+  prepare(pixels)
   context.putImageData(pixels, 0, 0)
 
   return canvas
+}
+
+export function toBinarizedTextCanvas(
+  image: Readonly<{ width: number; height: number; rgba: ArrayLike<number> }>
+): HTMLCanvasElement {
+  return toTextCanvas(image, (pixels) => binarizeNicknamePixels(pixels.data))
+}
+
+export function toRaidNicknameCanvas(
+  image: Readonly<{ width: number; height: number; rgba: ArrayLike<number> }>
+): HTMLCanvasElement {
+  return toTextCanvas(image, (pixels) => {
+    binarizeNicknamePixels(pixels.data)
+    removeDetachedRaidNicknamePixels(pixels.data, pixels.width, pixels.height)
+  })
 }
 
 /** 두 밝기 집단의 분산이 가장 커지는 임계값을 OpenCV의 확률, 평균 계산 순서로 찾는다. */
