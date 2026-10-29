@@ -246,5 +246,14 @@ export const apiSchemas: Record<string, SchemaObject> = {
       ...characterCard,
       description: '카드의 역할. 직업을 모르면 null이며 점수는 Desktop이 채웁니다.'
     }
+  }),
+  TodayGrade: object({
+    percent: {
+      type: 'integer',
+      minimum: 0,
+      maximum: 100,
+      description: '11부위 대표 아이템 오늘의 등급(itemGradeValue)의 평균을 반올림한 값'
+    },
+    expiresAt: { ...timestamp, description: '등급이 바뀌는 다음 0시(KST)' }
   })
 }
