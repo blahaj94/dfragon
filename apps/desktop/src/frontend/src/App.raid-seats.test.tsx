@@ -4,7 +4,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createRendererFixture } from './testing/fixtures/search-renderer-test-fixture'
 import App from './App'
 import { stubIdleDesktopBridges } from './testing/fixtures/idle-desktop-bridges'
-import { ColorThemeProvider } from './components/ColorThemeProvider'
 import { emptySearchSlots } from './lib/slots'
 import { searchRow, searchSlot, searchSnapshot } from '../../preload/api/search-test-fixture'
 import { characterImageUrl } from '../../preload/common/search/character-summary'
@@ -34,10 +33,6 @@ const recognized: RaidSlotRecognition[] = [
 
 beforeEach(() => {
   stubIdleDesktopBridges()
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn(() => ({ matches: false }))
-  )
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -188,11 +183,7 @@ async function moveRight(seat: HTMLElement): Promise<void> {
 
 async function mount(f: Fixture): Promise<void> {
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
 }
 
 it('맞바꾸면 진행 중 조회의 늦은 응답은 옮겨 간 카드에 들어가고 빈 자리의 새 조회는 그 자리의 슬롯으로 간다', async () => {

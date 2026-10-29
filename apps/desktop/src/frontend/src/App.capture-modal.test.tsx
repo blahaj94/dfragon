@@ -8,14 +8,9 @@ import {
 } from './testing/fixtures/search-renderer-test-fixture'
 import App from './App'
 import { stubIdleDesktopBridges } from './testing/fixtures/idle-desktop-bridges'
-import { ColorThemeProvider } from './components/ColorThemeProvider'
 
 beforeEach(() => {
   stubIdleDesktopBridges()
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn(() => ({ matches: false }))
-  )
   vi.stubGlobal(
     'ResizeObserver',
     class {
@@ -74,11 +69,7 @@ function topBarText(): string | null {
 it('앱 시작 때 던파가 하나면 등록만 하고 Alt+R 전까지 기다린다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
   expect(f.capture.selectCaptureSource).toHaveBeenCalledWith('game')
   expect(f.readCaptureFrame).not.toHaveBeenCalled()
   expect(media.worker).not.toHaveBeenCalled()
@@ -96,11 +87,7 @@ it('창 선택 뒤 Alt+R로 한 번 인식하고 모달을 닫아도 이름과 �
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
   const pending = Promise.withResolvers<Awaited<ReturnType<typeof f.resources.worker.recognize>>>()
   f.resources.worker.recognize.mockReturnValueOnce(pending.promise)
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
   await openCaptureDialog()
   await select('game')
   expect(f.readCaptureFrame).not.toHaveBeenCalled()
@@ -154,11 +141,7 @@ it('다른 창 선택은 진행 중 OCR을 취소하고 새 창만 등록한다'
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
   f.resources.worker.recognize.mockReturnValueOnce(pending.promise)
   media.worker.mockResolvedValueOnce(f.resources.worker).mockResolvedValueOnce(next.worker)
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
   await openCaptureDialog()
   await select('game')
   await f.restart()
@@ -192,11 +175,7 @@ it('연속 창 선택에서 이전 등록의 늦은 응답은 현재 선택을 �
   const f = createRendererFixture()
   const firstSelection = Promise.withResolvers<{ id: string; name: string }>()
   f.capture.selectCaptureSource.mockReturnValueOnce(firstSelection.promise)
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
   await openCaptureDialog()
   await select('game')
   await select('next')
@@ -213,11 +192,7 @@ it('창 등록 중 화면을 해제하면 늦은 완료가 캡처나 OCR을 시�
   const f = createRendererFixture()
   const selection = Promise.withResolvers<{ id: string; name: string }>()
   f.capture.selectCaptureSource.mockReturnValueOnce(selection.promise)
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
   await openCaptureDialog()
   await select('game')
   await f.unmount()
@@ -233,11 +208,7 @@ it('창 등록 중 화면을 해제하면 늦은 완료가 캡처나 OCR을 시�
 it('빈 목록과 조회 실패를 표시하고 새로고침으로 복구한다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockRejectedValue(new Error('List failed'))
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
   await openCaptureDialog()
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('조회 실패')
   expect(topBarText()).toContain('조회 실패')
@@ -252,11 +223,7 @@ it('창 등록 대기 중에도 중지할 수 있고 늦은 완료가 중지 상
   const f = createRendererFixture()
   const selection = Promise.withResolvers<{ id: string; name: string }>()
   f.capture.selectCaptureSource.mockReturnValueOnce(selection.promise)
-  await f.mount(
-    <ColorThemeProvider>
-      <App />
-    </ColorThemeProvider>
-  )
+  await f.mount(<App />)
   await openCaptureDialog()
   await select('game')
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('준비 중')

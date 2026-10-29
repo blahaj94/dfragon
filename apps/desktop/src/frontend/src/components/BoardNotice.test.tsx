@@ -21,7 +21,7 @@ afterEach(async () => {
 })
 
 it('안내가 바뀌어도 같은 status 영역에 보이고 전체 문구를 title로 둔다', async () => {
-  await act(async () => root.render(<BoardNotice />))
+  await act(async () => root.render(<BoardNotice>{''}</BoardNotice>))
   const status = container.querySelector('[role="status"]')!
   expect(status.textContent).toBe('')
   const text = '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'

@@ -1,6 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
 import { BoardHeader } from '../../components/BoardHeader'
-import { BoardNotice } from '../../components/BoardNotice'
 import { BoardTitle } from '../../components/BoardTitle'
 import { CaptureButton } from '../../components/CaptureButton'
 import { LastCaptureTime } from '../../components/LastCaptureTime'
@@ -29,7 +28,6 @@ export function PartyScreen(): React.JSX.Element {
                 total={cards.length}
                 round={snapshot.round}
               />
-              <BoardNotice />
             </>
           }
           end={
@@ -53,7 +51,6 @@ export function PartyScreen(): React.JSX.Element {
       <PartyPage
         resetKey={String(capture.round)}
         slots={cards}
-        inputEnabled
         actions={{
           lookupSlot: capture.search.lookupSlot,
           pickCandidate: capture.search.pickCandidate

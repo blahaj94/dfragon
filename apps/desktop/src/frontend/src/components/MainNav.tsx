@@ -6,23 +6,24 @@ import { ChevronDownIcon } from './ChevronDownIcon'
 import type { SearchMode } from '../types/search-mode'
 import { styles } from './MainNav.style'
 
-const SEARCH_MODES: readonly { value: SearchMode; label: string }[] = [
-  { value: 'party', label: '파티' },
-  { value: 'raid', label: '공대' }
-]
+const SEARCH_MODES: readonly SearchMode[] = ['party', 'raid']
+
+const SEARCH_MODE_LABELS: Record<SearchMode, string> = {
+  party: '파티',
+  raid: '공대'
+}
 
 function isSearchMode(value: unknown): value is SearchMode {
-  return SEARCH_MODES.some((mode) => mode.value === value)
+  return SEARCH_MODES.some((mode) => mode === value)
 }
 
 export function MainNav(): React.JSX.Element {
   const searchMode = useSearchModeStore((state) => state.searchMode)
-  const current = SEARCH_MODES.find((mode) => mode.value === searchMode)
 
   return (
     <nav aria-label="주 메뉴" {...stylex.props(windowChromeStyles.noDrag, styles.nav)}>
       <Menu.Root>
-        <SearchMenuTrigger modeLabel={current?.label} />
+        <SearchMenuTrigger modeLabel={SEARCH_MODE_LABELS[searchMode]} />
         <Menu.Popup aria-label="검색">
           <SearchModeRadioGroup />
         </Menu.Popup>
@@ -31,7 +32,7 @@ export function MainNav(): React.JSX.Element {
   )
 }
 
-function SearchMenuTrigger({ modeLabel }: { modeLabel: string | undefined }): React.JSX.Element {
+function SearchMenuTrigger({ modeLabel }: { modeLabel: string }): React.JSX.Element {
   return (
     <Menu.Trigger
       aria-current="page"
@@ -68,8 +69,8 @@ function SearchModeRadioGroup(): React.JSX.Element {
   return (
     <Menu.RadioGroup value={searchMode} onValueChange={handleValueChange}>
       {SEARCH_MODES.map((mode) => (
-        <Menu.RadioItem key={mode.value} value={mode.value} closeOnClick>
-          {mode.label}
+        <Menu.RadioItem key={mode} value={mode} closeOnClick>
+          {SEARCH_MODE_LABELS[mode]}
         </Menu.RadioItem>
       ))}
     </Menu.RadioGroup>

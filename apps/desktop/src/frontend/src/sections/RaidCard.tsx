@@ -43,7 +43,7 @@ export function RaidCard({
   cardKey: SlotCardKey
   card: SlotCard
   slot: number
-  onLookup?: (nickname: string, serverId: string) => void
+  onLookup: (nickname: string, serverId: string) => void
   move: RaidCardMove
 }): React.JSX.Element {
   const { state, character, notice, snapshotMark, loading = false } = card
@@ -166,7 +166,7 @@ function PortraitWell({
 function Portrait({ src }: { src: string | undefined }): React.JSX.Element {
   return (
     <div {...stylex.props(styles.portrait)}>
-      <CardImage src={src} label="캐릭터" />
+      <CardImage src={src} />
     </div>
   )
 }
@@ -214,7 +214,6 @@ function LookupField({
         onKeyDown={handleNameKeyDown}
         end={
           <ServerSelect
-            variant="field"
             label={`${slot}번 서버`}
             value={draft.serverId}
             options={serverOptions}

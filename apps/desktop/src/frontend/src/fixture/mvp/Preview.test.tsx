@@ -2,7 +2,6 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { ColorThemeProvider } from '../../components/ColorThemeProvider'
 import { Preview } from './Preview'
 
 let root: Root
@@ -13,13 +12,7 @@ beforeEach(async () => {
   container = document.createElement('div')
   document.body.append(container)
   root = createRoot(container)
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider>
-        <Preview />
-      </ColorThemeProvider>
-    )
-  )
+  await act(async () => root.render(<Preview />))
 })
 
 afterEach(async () => {
@@ -59,7 +52,7 @@ it.each([
   const header = container.querySelector('header')!
   expect(header.querySelector(`[data-tone="${tone}"]`)?.textContent).toBe(label)
   expect(header.querySelector('[data-tone][role="status"]')).toBeNull()
-  expect(header.querySelectorAll('[role="status"]:not([data-capture-announcer])')).toHaveLength(1)
+  expect(header.querySelectorAll('[role="status"]:not([data-capture-announcer])')).toHaveLength(0)
   await act(async () =>
     header.querySelector<HTMLButtonElement>('[aria-label^="화면 캡처"]')!.click()
   )

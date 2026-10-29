@@ -28,18 +28,18 @@ const seatKeys: Readonly<Record<string, SeatDirection>> = {
 
 export function RaidPage({
   slots,
-  resetKey = 'raid',
+  resetKey,
   seats,
-  actions = {}
+  actions
 }: {
   slots: readonly SlotCard[]
-  resetKey?: string
+  resetKey: string
   seats: {
     seatOrder: SeatOrder
     canMoveSeats: boolean
     swapSeats: (from: number, to: number) => boolean
   }
-  actions?: Pick<SlotCardActions, 'lookupSlot'>
+  actions: Pick<SlotCardActions, 'lookupSlot'>
 }): React.JSX.Element {
   const { seatOrder, canMoveSeats, swapSeats } = seats
   const { lookupSlot } = actions
@@ -88,10 +88,8 @@ export function RaidPage({
     const card = slots[slot]
     const drag = getSeatDrag(slot, dragging, dropTarget)
     const describedBy = canMoveSeats ? `${partyLabelId} ${hintId}` : partyLabelId
-    const handleLookup =
-      lookupSlot != null
-        ? (nickname: string, serverId: string) => lookupSlot(slot, nickname, serverId)
-        : undefined
+    const handleLookup = (nickname: string, serverId: string): void =>
+      lookupSlot(slot, nickname, serverId)
     const seatRef: RefCallback<HTMLDivElement> = (element) => {
       if (element === null) {
         return

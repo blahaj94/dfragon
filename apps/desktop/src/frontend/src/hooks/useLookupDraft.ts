@@ -38,7 +38,7 @@ export function useLookupDraft({
   cardKey: SlotCardKey
   character?: LookupCharacter
   nickname?: string
-  onLookup?: (nickname: string, serverId: string) => void
+  onLookup: (nickname: string, serverId: string) => void
 }): LookupDraft {
   const stored = useSlotCardState(cardKey).lookupDraft
   const updateSlotCard = useSlotCardStore((state) => state.updateSlotCard)
@@ -81,7 +81,7 @@ export function useLookupDraft({
       submitted: { name: trimmed, serverId },
       inputNotice: ''
     })
-    onLookup?.(trimmed, serverId)
+    onLookup(trimmed, serverId)
   }
 
   const editing = character != null && !isSameTarget(draft, character)
