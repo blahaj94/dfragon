@@ -33,7 +33,7 @@ export class CharacterDetailController {
     await sendWithCancellation(
       response,
       (signal) => this.service.get(identity, signal, timings),
-      (detail) => sendDetail(request, response, detail)
+      (detail) => sendDetail(response, detail)
     )
   }
 
@@ -45,30 +45,18 @@ export class CharacterDetailController {
     await sendWithCancellation(
       response,
       (signal) => this.service.refresh(identity, signal, timings),
-      (detail) => sendDetail(request, response, detail)
+      (detail) => sendDetail(response, detail)
     )
   }
 }
 
-// Caddy compresses an unencoded body itself and passes an already encoded one through.
-function sendDetail(
-  request: Request,
-  response: Response,
-  { body, reused }: CharacterDetailResponse
-) {
+// Compression stays with Caddy, so the stored body always goes out unencoded.
+function sendDetail(response: Response, { body, reused }: CharacterDetailResponse) {
   if (reused) {
     recordAccessLogCachedResponse(response)
   }
-  response.vary('Accept-Encoding')
   response.setHeader('Content-Type', JSON_CONTENT_TYPE)
-  const brotli = body.brotli
-  if (brotli !== undefined && request.acceptsEncodings('br') === 'br') {
-    response.setHeader('Content-Encoding', 'br')
-    response.status(200).send(brotli)
-
-    return
-  }
-  response.status(200).send(body.json)
+  response.status(200).send(body)
 }
 
 function readIdentity(request: Request) {

@@ -7,14 +7,9 @@ import { type LoadCharacter, createCharacterCache } from './character-cache.js'
 import { type NeopleStageTimings, elapsedMs } from './neople-stages.js'
 import type { CatalogService } from '../catalog/service.js'
 import { projectCharacterCard } from '../card/project.js'
-import {
-  type CharacterDetailBody,
-  prepareBrotli,
-  serializeCharacterDetail
-} from './response-body.js'
 
 export interface CharacterDetailResponse {
-  body: CharacterDetailBody
+  body: Buffer
   reused: boolean
 }
 
@@ -38,8 +33,8 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
     return { payloads, fetchedAt }
   })
   // Keyed by the cached character object, a body lives exactly as long as that cache entry: an expired,
-  // evicted or refreshed entry takes its body and any brotli finished after the swap with it.
-  const bodies = new WeakMap<FetchedCharacterPayloads, CharacterDetailBody>()
+  // evicted or refreshed entry takes its body with it.
+  const bodies = new WeakMap<FetchedCharacterPayloads, Buffer>()
   const respond = async (
     identity: CharacterIdentity,
     requestSignal: AbortSignal,
@@ -65,11 +60,12 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
       const details = await enrichCharacterDetails(projected, deps.catalog, signal)
       timings.record('catalog', elapsedMs(catalogStartedAt))
       signal.throwIfAborted()
-      const body = serializeCharacterDetail({ ...details, freshness, card })
+      // Express `json` serializes with plain JSON.stringify unless the app sets a replacer, spaces or escape, and
+      // this app sets none, so the stored bytes match what `json` sent before.
+      const body = Buffer.from(JSON.stringify({ ...details, freshness, card }))
       // An unavailable item stays out of the stored body so the next request looks it up again.
       if (!bodies.has(character) && !hasUnavailableItemDetail(details)) {
         bodies.set(character, body)
-        prepareBrotli(body)
       }
 
       return { body, reused: false }
