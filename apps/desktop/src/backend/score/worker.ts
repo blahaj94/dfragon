@@ -1,5 +1,5 @@
 import { parentPort, workerData } from 'node:worker_threads'
-import type { ScoreWorkerData, ScoreWorkerMessage, ScoreWorkerRequest } from './engine'
+import type { ScoreWorkerData, ScoreWorkerMessage, ScoreWorkerRequest } from './worker-protocol'
 import { openNativeScore } from './native'
 import { SCORE_WARMUP_INPUT } from './warmup-input'
 
