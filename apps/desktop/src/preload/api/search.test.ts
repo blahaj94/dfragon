@@ -157,7 +157,7 @@ it.each([
   { ok: false, error: { code: 'UNKNOWN' }, snapshot: searchSnapshot() },
   { ok: false, error: { code: 'SEARCH_BUSY', message: 'private' }, snapshot: searchSnapshot() },
   { ok: true, snapshot: searchSnapshot(), private: true }
-])('명령 결과의 exact shape도 검사한다: %j', async (invalid) => {
+])('명령 결과의 strict schema도 검사한다: %j', async (invalid) => {
   const { search } = await exposedSearch()
   renderer.invoke.mockResolvedValue(invalid)
   await expect(search.controlCharacterSearch({ action: 'read' })).rejects.toThrow()

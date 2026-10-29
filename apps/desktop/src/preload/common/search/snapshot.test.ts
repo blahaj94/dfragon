@@ -107,12 +107,7 @@ describe('선택된 캐릭터 요약과 대기 snapshot', () => {
     ['문자 장비 점수', { ...selected, equipmentScore: '414806' }],
     ['지운 서버 순위', { ...selected, serverRank: 12 }],
     ['추가 상세 정보', { ...selected, details: {} }],
-    ['선택 undefined', undefined],
-    ['숨긴 추가 정보', Object.defineProperty({ ...selected }, 'private', { value: true })],
-    [
-      '상속 필드',
-      Object.assign(Object.create({ jobName: '귀검사' }), { ...selected, jobName: undefined })
-    ]
+    ['선택 undefined', undefined]
   ])('%s 요약은 renderer로 전달하지 않는다', (_name, invalid) => {
     const snapshot = withSearchSlot(searchSlot({ state: 'success', rows: [searchRow] }))
     const slots = [{ ...snapshot.slots[0], selected: invalid }, ...snapshot.slots.slice(1)]

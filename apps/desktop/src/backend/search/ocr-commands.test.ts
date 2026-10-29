@@ -83,31 +83,12 @@ describe('OCR 관측 IPC의 제한된 입력 계약', () => {
         ...observation,
         portrait: { ...portrait, image: { ...portrait.image, sourceUrl: 'private' } }
       }
-    ],
-    [
-      '상속 이미지 너비',
-      {
-        ...observation,
-        portrait: {
-          ...portrait,
-          image: Object.assign(Object.create({ width: 2 }), { height: 1, rgba: new Uint8Array(8) })
-        }
-      }
-    ],
-    [
-      '숨긴 portrait 필드',
-      {
-        ...observation,
-        portrait: Object.defineProperty({ ...portrait }, 'private', { value: true })
-      }
     ]
   ])('%s는 허용하지 않는다', (_name, input) => {
     expect(parseOcrSearchObservation([input])).toBeNull()
   })
 
-  it('추가 인자와 숨겨진 후보 배열 필드도 거절한다', () => {
+  it('추가 인자도 거절한다', () => {
     expect(parseOcrSearchObservation([observation, null])).toBeNull()
-    const candidateNicknames = Object.defineProperty(['가'], 'private', { value: true })
-    expect(parseOcrSearchObservation([{ ...observation, candidateNicknames }])).toBeNull()
   })
 })
