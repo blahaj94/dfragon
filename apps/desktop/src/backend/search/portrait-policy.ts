@@ -11,6 +11,6 @@ export const INITIAL_PORTRAIT_COLOR_POLICY = {
   anchorRadius: 2,
   maxDistance: 40,
   minMargin: 3,
-  // 평가 표본에서 정답은 명성 4위 안이었다. 4슬롯이 직렬 큐를 공유해도 15초 예산에 들도록 서버 8곳 중 6명까지 비교한다.
+  // 평가 표본에서 정답은 명성 4위 안이었다. 4슬롯이 직렬 큐를 공유해도 이미지 대기가 길어지지 않도록 서버 8곳 중 6명까지 비교한다.
   maxCandidates: 6
 } as const satisfies PortraitColorPolicy & CharacterSelectionPolicy

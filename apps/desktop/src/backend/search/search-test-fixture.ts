@@ -1,7 +1,6 @@
 import { EventEmitter } from 'node:events'
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import { afterEach, expect, vi } from 'vitest'
-import { FakeMonotonicClock } from '../lib/fake-monotonic-clock'
 import { registerCaptureIpc, registerCaptureWindow } from '../capture/ipc-handler'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 import type { CharacterDetails } from '../../preload/common/types/character'
@@ -108,7 +107,6 @@ export async function createSearchFixture(
 ): Promise<{
   event: IpcMainInvokeEvent
   getSources: typeof electron.getSources
-  clock: FakeMonotonicClock
   fetchSearch: ReturnType<typeof vi.fn<typeof fetch>>
   captureId: string
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
@@ -125,7 +123,6 @@ export async function createSearchFixture(
   electron.handle.mockClear()
   electron.getSources.mockClear()
   electron.getSources.mockResolvedValue([source])
-  const clock = new FakeMonotonicClock()
   // 따로 정하지 않은 요청은 후보 0명으로 답하고, 고정 후보의 상세 조회에는 그 상세를 돌려준다.
   const fetchSearch = vi.fn<typeof fetch>().mockImplementation(async (...args) => {
     const path = new URL(new Request(...args).url).pathname
@@ -150,7 +147,6 @@ export async function createSearchFixture(
   const dispose = registerCaptureIpc({
     apiOrigin: API_ORIGIN,
     fetch: fetchSearch,
-    clock,
     portraitColorPolicy,
     // 점수 엔진 submodule이 없는 빌드처럼 엔진이 점수를 내지 않는다.
     score: () => null
@@ -218,7 +214,6 @@ export async function createSearchFixture(
   return {
     event,
     getSources: electron.getSources,
-    clock,
     fetchSearch,
     captureId,
     invoke,

@@ -9,7 +9,6 @@ export type SearchRequest = {
   requestId: string
   observationRevision: number
   nickname: string
-  startedAt: number
   runtime: SearchRuntime
   ocrInput?: OcrSearchInput
   manualServerId?: string
@@ -45,7 +44,6 @@ export const slotLifetimeMachine = setup({
           outcome = await runSearchRequest({
             runtime: request.runtime,
             nickname: request.nickname,
-            startedAt: request.startedAt,
             signal: controller.signal,
             isCurrent: () => input.canComplete(request),
             ocrInput: request.ocrInput,
@@ -82,7 +80,7 @@ export const slotLifetimeMachine = setup({
     },
     PROMOTE: {
       actions: ({ context, event }) => {
-        // The running invocation shares this accepted revision; its budget stays fixed.
+        // The running invocation shares this accepted revision.
         if (context.request != null) {
           context.request.observationRevision = event.observationRevision
         }

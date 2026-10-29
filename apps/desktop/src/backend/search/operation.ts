@@ -1,8 +1,5 @@
-import type { MonotonicClock } from '../lib/monotonic-clock'
 import type { SearchError, SearchErrorCode } from '../../preload/common/types/search'
 import { SearchHttpFailure } from './http'
-
-const SEARCH_OPERATION_TIMEOUT_MS = 15_000
 
 export type SearchOperationFailure = {
   kind: 'failure'
@@ -13,15 +10,12 @@ export type SearchOperationOutcome<T> =
   | SearchOperationFailure
   | null
 export type SearchOperationContext = {
-  clock: MonotonicClock
-  startedAt: number
   signal: AbortSignal
   isCurrent: () => boolean
 }
 export type SearchOperation = {
   run: <T>(step: (signal: AbortSignal) => Promise<T>) => Promise<T>
 }
-type Check = { active: true } | { active: false; result: SearchOperationFailure | null }
 
 function failure(code: SearchErrorCode): SearchOperationFailure {
   return { kind: 'failure', error: { code } }
@@ -31,37 +25,19 @@ export async function runSearchOperation<T>(
   input: SearchOperationContext,
   operation: (execution: SearchOperation) => Promise<T>
 ): Promise<SearchOperationOutcome<T>> {
-  const { clock, signal } = input
-  const deadline = input.startedAt + SEARCH_OPERATION_TIMEOUT_MS
+  const { signal } = input
   const transport = new AbortController()
-  let finishInterrupted!: (result: SearchOperationFailure | null) => void
-  const interrupted = new Promise<SearchOperationFailure | null>((resolve) => {
-    finishInterrupted = resolve
-  })
-  let cancelDeadline = (): void => undefined
-  let finished = false
 
-  function check(): Check {
-    if (signal.aborted || !input.isCurrent()) {
-      return { active: false, result: null }
-    }
-
-    if (clock.read().monotonicMs >= deadline) {
-      const result = failure('SEARCH_TIMEOUT')
-
-      return { active: false, result }
-    }
-
-    return { active: true }
+  function isActive(): boolean {
+    return !signal.aborted && input.isCurrent()
   }
 
   function cancel(): void {
     transport.abort()
-    finishInterrupted(null)
   }
 
   function assertActive(): void {
-    if (!check().active) {
+    if (!isActive()) {
       transport.abort()
       transport.signal.throwIfAborted()
     }
@@ -75,67 +51,35 @@ export async function runSearchOperation<T>(
 
       return value
     } catch (error) {
-      // 취소를 무시한 의존성이나 늦게 실행된 타이머도 다음 업무 단계로 진행하지 못하게 한다.
+      // 취소를 무시한 의존성도 다음 업무 단계로 진행하지 못하게 한다.
       assertActive()
       throw error
     }
   }
 
-  function expire(): void {
-    if (finished) {
-      return
-    }
-    const current = check()
-    if (current.active) {
-      const remaining = deadline - clock.read().monotonicMs
-      cancelDeadline = clock.schedule(Math.max(1, remaining), expire)
-
-      return
-    }
-    transport.abort()
-    finishInterrupted(current.result)
-  }
-
-  async function perform(): Promise<SearchOperationOutcome<T>> {
-    const before = check()
-    if (!before.active) {
-      return before.result
-    }
-
-    try {
-      const value = await operation({ run: runStep })
-      const completed = check()
-      if (completed.active) {
-        return { kind: 'success', value }
-      }
-
-      return completed.result
-    } catch (error) {
-      const completed = check()
-      if (!completed.active) {
-        return completed.result
-      }
-
-      if (!(error instanceof SearchHttpFailure)) {
-        return failure('SEARCH_NETWORK_ERROR')
-      }
-
-      return failure(error.code)
-    }
-  }
-
-  const initial = check()
-  if (!initial.active) {
-    return initial.result
+  if (!isActive()) {
+    return null
   }
   signal.addEventListener('abort', cancel, { once: true })
-  const remaining = deadline - clock.read().monotonicMs
-  cancelDeadline = clock.schedule(Math.max(0, remaining), expire)
   try {
-    return await Promise.race([perform(), interrupted])
+    const value = await operation({ run: runStep })
+    // 취소나 새 요청 뒤에 끝난 결과는 성공이든 실패든 발행하지 않는다.
+    if (!isActive()) {
+      return null
+    }
+
+    return { kind: 'success', value }
+  } catch (error) {
+    if (!isActive()) {
+      return null
+    }
+
+    if (!(error instanceof SearchHttpFailure)) {
+      return failure('SEARCH_NETWORK_ERROR')
+    }
+
+    return failure(error.code)
   } finally {
-    finished = true
-    cancelDeadline()
     signal.removeEventListener('abort', cancel)
   }
 }

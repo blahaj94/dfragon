@@ -157,12 +157,14 @@ export function createCharacterCandidatesHttp({
     validateNickname(nickname)
     try {
       signal.throwIfAborted()
-      const response = await client.get(`${apiOrigin}/characters/candidates`, {
+      const request = client.get(`${apiOrigin}/characters/candidates`, {
         searchParams: { characterName: nickname },
         headers: { Accept: 'application/json' },
         signal
       })
-      const body = parseCharacterJson(await response.arrayBuffer())
+      const response = await request
+      // ky의 body 메서드만 본문 읽기에도 timeout을 건다. await한 Response의 본문을 직접 읽으면 대기 상한이 없다.
+      const body = parseCharacterJson(await request.arrayBuffer())
       assertApiSuccess(response, body, false)
       const parsed = candidatesSchema.safeParse(body)
       if (!parsed.success || parsed.data.rows.some((row) => row.characterName !== nickname)) {
@@ -187,10 +189,11 @@ export function createCharacterImageHttp({
     validateIdentity(identity)
     try {
       signal.throwIfAborted()
-      const response = await client.get(characterImageUrl(identity), {
+      const request = client.get(characterImageUrl(identity), {
         headers: { Accept: 'image/png' },
         signal
       })
+      const response = await request
       if (response.status !== 200) {
         await response.body?.cancel().catch(() => undefined)
         if (response.status === 429) {
@@ -198,7 +201,8 @@ export function createCharacterImageHttp({
         }
         throw new SearchHttpFailure('NEOPLE_API_ERROR')
       }
-      const bytes = Buffer.from(await response.arrayBuffer())
+      // ky의 body 메서드만 본문 읽기에도 timeout을 건다.
+      const bytes = Buffer.from(await request.arrayBuffer())
       const contentType = response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase()
       if (contentType !== 'image/png') {
         throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
@@ -223,11 +227,13 @@ export function createCharacterDetailsHttp({
     validateIdentity({ serverId, characterId })
     try {
       signal.throwIfAborted()
-      const response = await client.get(`${apiOrigin}/characters/${serverId}/${characterId}`, {
+      const request = client.get(`${apiOrigin}/characters/${serverId}/${characterId}`, {
         headers: { Accept: 'application/json' },
         signal
       })
-      const body = parseCharacterJson(await response.arrayBuffer())
+      const response = await request
+      // ky의 body 메서드만 본문 읽기에도 timeout을 건다.
+      const body = parseCharacterJson(await request.arrayBuffer())
       assertApiSuccess(response, body, true)
       const parsed = detailsSchema.safeParse(body)
       if (

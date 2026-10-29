@@ -324,7 +324,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     input: OcrSearchObservation | ManualCharacterLookup
     runtime: SearchRuntime
   }): SearchCommandResult {
-    const startedAt = runtime.clock.read().monotonicMs
     const ocrInput = 'candidateNicknames' in input ? cloneOcrInput(input) : null
     const manualServerId = 'serverId' in input ? input.serverId : undefined
     // 이전 창으로 시작한 OCR 입력은 슬롯을 지우기 전에 거절해 OCR에서 시작했다는 사실을 잃은 채 다시 시도되지 않게 한다.
@@ -355,7 +354,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       nickname: input.nickname,
       observationRevision: input.observationRevision,
       requestId,
-      startedAt,
       runtime,
       ocrInput: ocrInput ?? undefined,
       manualServerId
@@ -473,7 +471,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     runDetailsRequest({
       runtime,
       summary: next.selected,
-      startedAt: runtime.clock.read().monotonicMs,
       signal: job.controller.signal,
       isCurrent: () => isCurrentDetails(job)
     })
