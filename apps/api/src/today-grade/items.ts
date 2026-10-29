@@ -1,23 +1,19 @@
-// 2026-10-30 사용자 결정: 방어구 5, 악세서리 3, 특수장비 3부위의 115레벨 에픽 대표 아이템이다. 팔찌와 목걸이는
-// 시로코 퍼리조아가 낀 아이템, 반지는 Desktop 점수 엔진 fixture, 나머지는 API 테스트 fixture의 아이템이다.
+// 2026-10-30 사용자 결정: 방어구 5, 악세서리 3, 특수장비 3부위의 `엘더 페어리` 장비(115레벨 레전더리)다.
+// Neople 상점 판매 정보 조회는 상점에서 파는 장비만 지원하며, 2026-10-30에 11개 모두 itemGradeValue를 주는 것을 확인했다.
 export const TODAY_GRADE_ITEMS = [
-  { slot: 'JACKET', itemId: '11f55a9437e514d46ee55c8a8ae82b7e', itemName: '긍휼 속 자비의 상의' },
-  { slot: 'SHOULDER', itemId: '2d81feba3c9977d5ffa32fd378785bf0', itemName: '숭고한 심판의 어깨' },
-  { slot: 'PANTS', itemId: '607ee0da46bf24a4b211bff52f3c05f1', itemName: '명예로운 공경의 하의' },
-  { slot: 'WAIST', itemId: '20c367fa5eaccbaa7b9fe372d4b94170', itemName: '완전한 침묵의 벨트' },
-  { slot: 'SHOES', itemId: 'e6360b073291b20bd81c830fe5b52962', itemName: '고요한 안식의 신발' },
-  { slot: 'WRIST', itemId: 'c65e76ae9dee4ac94ca34110daa5e63a', itemName: '노블 페어리 팔찌' },
-  { slot: 'AMULET', itemId: '184d9dfed90f970fe7ca3cb967e2a722', itemName: '노블 페어리 목걸이' },
-  { slot: 'RING', itemId: '854d52a64fe061dc2586a10bf274676b', itemName: '칠흑의 정화 반지' },
-  {
-    slot: 'SUPPORT',
-    itemId: '819d0bd846c913248d30c8b1e4e53755',
-    itemName: '초연한 청렴의 보조장비'
-  },
+  { slot: 'JACKET', itemId: 'bc0b48fc1aee8c0e52aaf26c74a333b4', itemName: '엘더 페어리 상의' },
+  { slot: 'SHOULDER', itemId: '22939054b71dfd19a8a5231f1c2056ac', itemName: '엘더 페어리 어깨' },
+  { slot: 'PANTS', itemId: '063aa2c3726ea7bb560c1a845a58caa9', itemName: '엘더 페어리 하의' },
+  { slot: 'WAIST', itemId: '9d8753d398024eb58c0e4bd845cf5b10', itemName: '엘더 페어리 벨트' },
+  { slot: 'SHOES', itemId: 'b9a53ed5a3cefd55052e245e80c8a8c4', itemName: '엘더 페어리 신발' },
+  { slot: 'WRIST', itemId: '311f3720a38dc22182863a1e975feb18', itemName: '엘더 페어리 팔찌' },
+  { slot: 'AMULET', itemId: '0346b10d179e5c4ce056fa4c42670f99', itemName: '엘더 페어리 목걸이' },
+  { slot: 'RING', itemId: 'f83450f4b2907a2a8bd5f1deb3b54289', itemName: '엘더 페어리 반지' },
+  { slot: 'SUPPORT', itemId: 'fa53754fc0f378503e801e066d331e6e', itemName: '엘더 페어리 보조장비' },
   {
     slot: 'MAGIC_STON',
-    itemId: 'b797e5b10819d9edb772d6cc69f7561d',
-    itemName: '무결한 순수의 마법석'
+    itemId: '57ad748a9e4802e0e90f6390995cd420',
+    itemName: '엘더 페어리 마법석'
   },
-  { slot: 'EARRING', itemId: '523be2dc115d046a3ce5ab76f5e1e42b', itemName: '강인한 절제의 귀걸이' }
+  { slot: 'EARRING', itemId: '841ea92775de710061d9ea2045217e21', itemName: '엘더 페어리 귀걸이' }
 ] as const
