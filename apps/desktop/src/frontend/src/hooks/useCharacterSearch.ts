@@ -1,10 +1,5 @@
-import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
-import {
-  createCaptureSearch,
-  type CaptureSearch,
-  type OcrCaptureObservation
-} from '../lib/capture-search'
-import { emptySearchSlots } from '../lib/slots'
+import { useCallback, useEffectEvent, useState } from 'react'
+import type { OcrCaptureObservation } from '../lib/capture-search'
 import {
   nextCandidatePick,
   toCandidatePicker,
@@ -30,118 +25,75 @@ function partySlotValues<T>(value: T): T[] {
   return Array.from({ length: SEARCH_SLOT_COUNTS.party }, () => value)
 }
 
-function toConfirmedPick(requestId: string | null, serverId: string): CandidatePick | null {
-  if (requestId !== null) {
-    return { requestId, serverId, confirmed: true }
-  }
+const DIRECT_LOOKUP_PICK: CandidatePick = { kind: 'confirmed', requestId: null }
 
-  return null
-}
-
+/** 회차가 끝나면 직접 조회한 슬롯과 누른 후보까지 파티 네 슬롯을 모두 비운다. */
 export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
-  const invalidatedRef = useRef(onInvalidated)
-  useLayoutEffect(() => {
-    invalidatedRef.current = onInvalidated
-  }, [onInvalidated])
-  const bridgeRef = useRef<CaptureSearch | null>(null)
   const {
-    view: manualView,
-    bridge: manualBridge,
-    lookup: manualLookup,
-    reset: resetManual
-  } = useManualCharacterLookup(window.manualSearch, SEARCH_SLOT_COUNTS.party)
+    view,
+    bridge,
+    lookup,
+    beginRound,
+    observeOcr: observeLookupOcr,
+    reset
+  } = useManualCharacterLookup(
+    window.search,
+    SEARCH_SLOT_COUNTS.party,
+    window.api.notifyOcrCandidatesDetected,
+    onInvalidated
+  )
   const [manualSlots, setManualSlots] = useState<readonly boolean[]>(() => partySlotValues(false))
   const [picks, setPicks] = useState<readonly (CandidatePick | null)[]>(() => partySlotValues(null))
-  const [view, setView] = useState<SearchView>(() => ({
-    ready: false,
-    slots: emptySearchSlots(),
-    retryPending: partySlotValues(false),
-    connectionFailed: false
-  }))
-  const api = window.search
-  const notifyOcr = window.api.notifyOcrCandidatesDetected
 
-  useEffect(() => {
-    let active = true
-    const bridge = createCaptureSearch({
-      api,
-      notifyOcr,
-      onChange: (value) => {
-        if (active) {
-          setView(value)
-        }
-      },
-      onInvalidated: () => invalidatedRef.current()
-    })
-    bridgeRef.current = bridge
-    bridge.connect()
-
-    return () => {
-      active = false
-      bridgeRef.current = null
-      bridge.dispose()
-    }
-  }, [api, notifyOcr])
-
-  const begin = useCallback(async (signal: AbortSignal): Promise<string | null> => {
-    const bridge = bridgeRef.current
-    if (bridge == null) {
-      return null
-    }
-
-    return bridge.begin({ signal })
-  }, [])
   const end = useCallback((): void => {
     setManualSlots(partySlotValues(false))
     setPicks(partySlotValues(null))
-    resetManual()
-    bridgeRef.current?.end()
-  }, [resetManual])
+    reset()
+  }, [reset])
   const setPick = useCallback((slot: number, pick: CandidatePick | null): void => {
     setPicks((current) => current.map((value, index) => (index === slot ? pick : value)))
   }, [])
   // 캡처 machine은 처음 받은 함수를 계속 부르므로, 그 함수도 최신 수동 조회 슬롯을 읽어야 한다.
   const observeOcr = useEffectEvent((input: OcrCaptureObservation): void => {
     if (!manualSlots[input.slot]) {
-      bridgeRef.current?.observe(input)
+      observeLookupOcr(input)
     }
   })
   const retry = useCallback(
     (slot: number): void => {
-      const bridge = manualSlots[slot] ? manualBridge.current : bridgeRef.current
-      bridge?.retry(slot)
+      bridge.current?.retry(slot)
     },
-    [manualBridge, manualSlots]
+    [bridge]
   )
   const lookupManually = useCallback(
     (slot: number, nickname: string, serverId: string): void => {
       setManualSlots((slots) => slots.map((manual, index) => manual || index === slot))
-      manualLookup(slot, nickname, serverId)
+      lookup(slot, nickname, serverId)
     },
-    [manualLookup]
+    [lookup]
   )
   const lookupSlot = useCallback(
     (slot: number, nickname: string, serverId: string): void => {
-      setPick(slot, toConfirmedPick(view.slots[slot].requestId, serverId))
+      setPick(slot, DIRECT_LOOKUP_PICK)
       lookupManually(slot, nickname, serverId)
     },
-    [lookupManually, setPick, view.slots]
+    [lookupManually, setPick]
   )
   const pickCandidate = useCallback(
     (slot: number, serverId: string): void => {
-      const captureSlot = view.slots[slot]
+      const current = view.slots[slot]
       const previous = picks[slot]
-      const next = nextCandidatePick(captureSlot, previous, serverId)
+      const next = nextCandidatePick(current, previous, serverId)
       if (next === null) {
         return
       }
-      const choice = captureSlot.choices?.find((candidate) => candidate.serverId === serverId)
-      if (choice === undefined) {
-        return
-      }
-      const shownServerId = toCandidatePicker(captureSlot, previous)?.shownServerId
+      const shownServerId = toCandidatePicker(current, previous)?.shownServerId
       setPick(slot, next)
-      if (next.confirmed || shownServerId === serverId) {
+      const choice =
+        next.kind === 'preview'
+          ? next.choices.find((candidate) => candidate.serverId === serverId)
+          : undefined
+      if (choice === undefined || shownServerId === serverId) {
         return
       }
       lookupManually(slot, choice.characterName, serverId)
@@ -151,33 +103,20 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   const candidatePickers = view.slots.map((slot, index) =>
     toCandidatePicker(slot, picks[index] ?? null)
   )
-  const slots = view.slots.map((slot) => {
-    if (manualSlots[slot.slot]) {
-      const manualSlot = manualView.slots[slot.slot]
-      if (manualSlot.state === 'pending' && candidatePickers[slot.slot]?.previewServerId != null) {
-        return slot
-      }
-
-      return manualSlot
+  // 미리보기 조회가 끝날 때까지는 대기 화면 대신 처음 누를 때 보이던 캐릭터를 둔다.
+  const slots = view.slots.map((slot, index) => {
+    const pick = picks[index]
+    if (pick?.kind === 'preview' && slot.state === 'pending') {
+      return pick.shownSlot
     }
 
     return slot
-  })
-  const connectionFailed = view.connectionFailed || manualView.connectionFailed
-  const retryPending = view.retryPending.map((pending, slot) => {
-    if (manualSlots[slot]) {
-      return manualView.retryPending[slot]
-    }
-
-    return pending
   })
 
   return {
     ...view,
     slots,
-    retryPending,
-    connectionFailed,
-    begin,
+    begin: beginRound,
     end,
     observeOcr,
     retry,

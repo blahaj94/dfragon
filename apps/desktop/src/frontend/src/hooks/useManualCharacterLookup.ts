@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import {
   createCaptureSearch,
   type CaptureSearch,
@@ -16,7 +16,9 @@ import type {
 export function useManualCharacterLookup(
   api: SearchApi,
   slotCount: SearchSlotCount,
-  notifyOcr?: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
+  notifyOcr: (observation: OcrSearchObservation) => Promise<SearchCommandResult>,
+  /** Main이 수명을 끝냈을 때 연결을 비운 뒤 부른다. */
+  onInvalidated?: () => void
 ): {
   view: SearchView
   bridge: React.RefObject<CaptureSearch | null>
@@ -48,12 +50,17 @@ export function useManualCharacterLookup(
     bridge.current?.end()
   }, [slotCount])
 
+  const notifyInvalidated = useEffectEvent(() => onInvalidated?.())
+
   useEffect(() => {
     const connection = createCaptureSearch({
       api,
       notifyOcr,
       onChange: setView,
-      onInvalidated: reset,
+      onInvalidated: () => {
+        reset()
+        notifyInvalidated()
+      },
       slotCount
     })
     bridge.current = connection

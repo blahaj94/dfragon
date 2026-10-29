@@ -2,7 +2,6 @@ declare global {
   interface Window {
     api: typeof import('./api/capture')
     search: typeof import('./api/search')
-    manualSearch: typeof import('./api/manual-search')
     raidSearch: typeof import('./api/raid-search')
     desktopShortcut: typeof import('./api/desktop-shortcut')
     diagnostics: typeof import('./api/diagnostics')

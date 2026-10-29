@@ -1,5 +1,5 @@
 import type { WindowFrameResult } from '../../preload/common/types/capture'
-import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
+import { SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import {
   desktopCapturer,
   ipcMain,
@@ -8,12 +8,7 @@ import {
   type WebFrameMain
 } from 'electron'
 import { addHandler } from '../ipc'
-import {
-  createCaptureSearchLifetime,
-  type CaptureSearchLifetime,
-  type CaptureBinding
-} from '../search/capture-lifetime'
-import { parseSearchControl, parseOcrSearchObservation } from '../search/commands'
+import type { CaptureBinding } from '../search/capture-lifetime'
 import {
   createCharacterCandidatesHttp,
   createCharacterDetailsHttp,
@@ -40,8 +35,7 @@ let sourceSelectionGeneration = 0
 let selectedSourceId: string | null = null
 let readSelectedFrame: ReadWindowFrame | null = null
 let selectingSource = false
-let search: CaptureSearchLifetime | undefined
-// 파티 카드와 공대 카드의 서버 지정 조회. 캡처와 별도 수명이고 문서가 바뀌면 함께 무효화한다.
+// 파티 화면과 공대 화면의 검색 수명. 문서가 바뀌면 함께 무효화한다.
 let cardSearches: ReturnType<typeof registerManualSearchIpc>[] = []
 
 async function getWindowSources(): Promise<Electron.DesktopCapturerSource[]> {
@@ -57,8 +51,7 @@ function clearSource(): void {
   readSelectedFrame = null
   selectingSource = false
   sourceSelectionGeneration += 1
-  search?.invalidate()
-  // 카드 조회 결과는 남기고, 이전 창으로 시작한 공대 캡처의 진행 중 OCR 요청만 끝낸다.
+  // 끝난 슬롯과 직접 조회 결과는 남기고, 이전 창으로 시작한 회차의 진행 중 OCR 요청만 끝낸다.
   for (const cardSearch of cardSearches) {
     cardSearch.cancelOcrRequests()
   }
@@ -185,15 +178,6 @@ function createSearchRuntime(
 
 function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
   const runtime = createSearchRuntime(configuration)
-  const lifetime = createCaptureSearchLifetime({
-    runtime,
-    isCurrent: isCurrentSearch,
-    publish: (snapshot) => {
-      if (isTrustedFrame(captureWindow, currentMainFrame())) {
-        captureWindow!.webContents.send('characterSearchChanged', snapshot)
-      }
-    }
-  })
   invalidateCardSearches()
   const registerCardSearch = (kind: ManualSearchKind): ReturnType<typeof registerManualSearchIpc> =>
     registerManualSearchIpc({
@@ -211,10 +195,9 @@ function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
         }
       }
     })
-  const manual = registerCardSearch('party')
+  const party = registerCardSearch('party')
   const raid = registerCardSearch('raid')
-  cardSearches = [manual, raid]
-  search = lifetime
+  cardSearches = [party, raid]
   clearSource()
   addHandler('listCaptureSources', async (event, ...args) => {
     const window = captureWindow
@@ -272,65 +255,20 @@ function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
     }
   })
 
-  addHandler('readCaptureFrame', (event, ...args) => readBoundCaptureFrame(event, args, lifetime))
+  addHandler('readCaptureFrame', (event, ...args) => readBoundCaptureFrame(event, args, party))
 
   addHandler('readRaidCaptureFrame', async (event, ...args) =>
     toRaidFrameResult(await readBoundCaptureFrame(event, args, raid))
   )
 
-  addHandler('controlCharacterSearch', (event, ...args) => {
-    requireSearchSender(event)
-    const control = parseSearchControl(args)
-    if (control == null) {
-      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
-    }
-    switch (control.action) {
-      case SEARCH_ACTIONS.READ:
-        return lifetime.result()
-      case SEARCH_ACTIONS.END:
-        return lifetime.end(control.captureId)
-      case SEARCH_ACTIONS.RETRY:
-        return lifetime.retry(control)
-      case SEARCH_ACTIONS.LOOKUP:
-        // 서버 지정 조회는 controlManualSearch와 controlRaidSearch로만 받는다. 공유 schema가 LOOKUP을
-        // 통과시키므로 여기서 거절한다.
-        return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
-      case SEARCH_ACTIONS.BEGIN:
-        if (selectingSource || lifetime.current != null) {
-          return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_BUSY)
-        }
-
-        if (selectedSourceId == null) {
-          return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
-        }
-
-        return lifetime.begin({
-          windowGeneration,
-          sourceGeneration: sourceSelectionGeneration
-        })
-    }
-  })
-
-  addHandler('notifyOcrCandidatesDetected', (event, ...args) => {
-    requireSearchSender(event)
-    const observation = parseOcrSearchObservation(args)
-    if (observation === null) {
-      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
-    }
-
-    return lifetime.observeOcr(observation)
-  })
-
   return () => {
-    manual.dispose()
+    party.dispose()
     raid.dispose()
     clearSource()
     ipcMain.removeHandler('listCaptureSources')
     ipcMain.removeHandler('selectCaptureSource')
     ipcMain.removeHandler('readCaptureFrame')
     ipcMain.removeHandler('readRaidCaptureFrame')
-    ipcMain.removeHandler('notifyOcrCandidatesDetected')
-    ipcMain.removeHandler('controlCharacterSearch')
   }
 }
 

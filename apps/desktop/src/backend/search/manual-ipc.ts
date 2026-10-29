@@ -13,8 +13,16 @@ import type { SearchSnapshot } from '../../preload/common/types/search'
 export type ManualSearchKind = keyof typeof SEARCH_SLOT_COUNTS
 
 const CHANNELS = {
-  party: { control: 'controlManualSearch', changed: 'manualSearchChanged' },
-  raid: { control: 'controlRaidSearch', changed: 'raidSearchChanged' }
+  party: {
+    control: 'controlCharacterSearch',
+    changed: 'characterSearchChanged',
+    observe: 'notifyOcrCandidatesDetected'
+  },
+  raid: {
+    control: 'controlRaidSearch',
+    changed: 'raidSearchChanged',
+    observe: 'notifyRaidOcrCandidatesDetected'
+  }
 } as const
 export type ManualSearchChangedChannel = (typeof CHANNELS)[ManualSearchKind]['changed']
 
@@ -32,9 +40,9 @@ export function registerManualSearchIpc({
   runtime?: SearchRuntime
   requireSender: (event: IpcMainInvokeEvent) => void
   windowGeneration: () => number
-  /** BEGIN 때의 창 선택 세대. 공대 캡처의 프레임 요청이 회차를 시작한 창인지 비교한다. */
+  /** BEGIN 때의 창 선택 세대. 캡처 회차의 프레임 요청이 회차를 시작한 창인지 비교한다. */
   sourceGeneration: () => number
-  /** 공대 캡처의 OCR 관측과 그 요청이 회차를 시작한 게임 창 선택에 아직 묶여 있는지 */
+  /** 캡처 회차의 OCR 관측과 그 요청이 회차를 시작한 게임 창 선택에 아직 묶여 있는지 */
   isCurrentCaptureSource: (binding: CaptureBinding) => boolean
   isCurrentDocument: (generation: number) => boolean
   publish: (channel: ManualSearchChangedChannel, snapshot: SearchSnapshot) => void
@@ -46,7 +54,11 @@ export function registerManualSearchIpc({
   dispose: () => void
 } {
   const slotCount = SEARCH_SLOT_COUNTS[kind]
-  const { control: controlChannel, changed: changedChannel } = CHANNELS[kind]
+  const {
+    control: controlChannel,
+    changed: changedChannel,
+    observe: observeChannel
+  } = CHANNELS[kind]
   // The shared DTO calls its session ID captureId; this instance never grants media access.
   const lifetimeRuntime: SearchRuntime | undefined =
     kind === 'raid' && runtime !== undefined ? { ...runtime, ocrIdentification: 'raid' } : runtime
@@ -84,17 +96,15 @@ export function registerManualSearchIpc({
     }
   })
 
-  if (kind === 'raid') {
-    addHandler('notifyRaidOcrCandidatesDetected', (event, ...args) => {
-      requireSender(event)
-      const observation = parseOcrSearchObservation(args, slotCount)
-      if (observation === null) {
-        return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
-      }
+  addHandler(observeChannel, (event, ...args) => {
+    requireSender(event)
+    const observation = parseOcrSearchObservation(args, slotCount)
+    if (observation === null) {
+      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
+    }
 
-      return lifetime.observeOcr(observation)
-    })
-  }
+    return lifetime.observeOcr(observation)
+  })
 
   return {
     get current() {
@@ -105,9 +115,7 @@ export function registerManualSearchIpc({
     dispose: () => {
       lifetime.invalidate()
       ipcMain.removeHandler(controlChannel)
-      if (kind === 'raid') {
-        ipcMain.removeHandler('notifyRaidOcrCandidatesDetected')
-      }
+      ipcMain.removeHandler(observeChannel)
     }
   }
 }

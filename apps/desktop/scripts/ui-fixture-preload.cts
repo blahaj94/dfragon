@@ -41,7 +41,6 @@ const blockedSearch = {
   onCharacterSearchChanged: () => () => {}
 }
 contextBridge.exposeInMainWorld('search', blockedSearch)
-contextBridge.exposeInMainWorld('manualSearch', blockedSearch)
 contextBridge.exposeInMainWorld('raidSearch', {
   ...blockedSearch,
   notifyOcrCandidatesDetected: async () => {

@@ -17,7 +17,7 @@ import { captureSearchMachine } from './capture-search-machine'
 
 type SearchOptions = {
   api: SearchApi
-  notifyOcr?: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
+  notifyOcr: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
   onChange: (view: SearchView) => void
   onInvalidated: () => void
   slotCount?: SearchSlotCount
@@ -98,14 +98,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     pending.delete(slot)
     const observationRevision = revisions[slot]
     publish()
-    const notifyOcr = options.notifyOcr
-    if (notifyOcr == null) {
-      failed = true
-      publish()
-
-      return
-    }
-    connection.invoke(() => notifyOcr({ ...input, captureId, observationRevision }))
+    connection.invoke(() => options.notifyOcr({ ...input, captureId, observationRevision }))
   }
 
   function lookup(input: { slot: number; nickname: string; serverId: string }): void {
