@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
+import { CandidateImageContext } from './CandidateImage'
 import { CheckIcon } from './CheckIcon'
 import { CloseIcon } from './CloseIcon'
 import { FACE_SIZE, styles } from './CandidateWindow.style'
 import { MISSING_VALUE } from '../constants/cards'
-import { characterImageUrl } from '../../../preload/common/search/character-summary'
 import type { CharacterChoice } from '../../../preload/common/types/search'
 import type { CandidatePicker } from '../lib/candidate-picker'
 
@@ -74,6 +74,7 @@ export function CandidateWindow({
 
 function ChoiceFace({ choice }: { choice: CharacterChoice }): React.JSX.Element {
   const [failed, setFailed] = useState(false)
+  const imageUrl = useContext(CandidateImageContext)
   const face = choice.face
   const handleError = (): void => setFailed(true)
   if (face === null || failed) {
@@ -86,7 +87,7 @@ function ChoiceFace({ choice }: { choice: CharacterChoice }): React.JSX.Element 
 
   return (
     <img
-      src={characterImageUrl(choice)}
+      src={imageUrl(choice)}
       alt=""
       draggable={false}
       onError={handleError}

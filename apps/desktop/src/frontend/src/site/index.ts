@@ -1,0 +1,1 @@
+export { WindowMockup } from './WindowMockup'
