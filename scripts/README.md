@@ -112,7 +112,11 @@ main push의 `before`부터 변경된 경로를 비교해 JSON 목록을 저장�
 
 ## `build-scope`
 
-PR 제목, PR 작성자, 실행 event로 빌드할지 정해 `GITHUB_OUTPUT`에 `build=true` 또는 `build=false`를 기록합니다. [`build-scope.yml`](../.github/workflows/build-scope.yml)이 이 도구를 실행하며 규칙은 [Repository Map의 배포 workflow 설명](../docs/reference/repository-map.md)에 있습니다. main push는 GitHub API로 commit을 merge한 PR을 찾고, 조회에 실패하면 빌드를 건너뛰지 않고 실패합니다. 새 dependency 없이 Node.js 26을 사용합니다.
+PR 제목, PR 작성자, 실행 event로 빌드할지 정해 `GITHUB_OUTPUT`에 `build=true` 또는 `build=false`를 기록합니다. [`build-scope.yml`](../.github/workflows/build-scope.yml)이 이 도구를 실행합니다. main push는 GitHub API로 commit을 merge한 PR을 찾고, 조회에 실패하면 빌드를 건너뛰지 않고 실패합니다. 새 dependency 없이 Node.js 26을 사용합니다.
+
+빌드는 비용이 큰 job이라 PR 제목이 `feat(build): ...`, `fix(build)!: ...`처럼 Conventional Commits scope가 `(build)`이거나, Dependabot PR이거나, Actions 페이지에서 수동 실행한 경우에만 실행합니다. main push는 그 commit을 merge한 PR의 제목으로 같은 규칙을 적용하며, Windows Test Build와 Product Images의 이미지 빌드, 발행이 이 결과를 따릅니다. 제목은 PR을 열거나 새 commit을 push할 때 읽으므로, 열린 PR의 제목에 `(build)`를 붙였으면 새 commit을 push하거나 Actions 페이지에서 Windows Test Build를 수동 실행합니다.
+
+배포 workflow는 셋입니다. [`product-images.yml`](../.github/workflows/product-images.yml)은 main push에서 API 이미지를 빌드해 GHCR에 발행합니다([서버 이미지](../apps/api/README.md#서버-이미지)). [`desktop-test-build.yml`](../.github/workflows/desktop-test-build.yml)은 Desktop 관련 PR에서 test 채널 포터블 exe를 artifact로 만듭니다. [`desktop-release.yml`](../.github/workflows/desktop-release.yml)은 Release 게시나 수동 실행에서 배포 포터블 exe를 Release에 첨부합니다([포터블 exe와 GitHub Releases](../apps/desktop/README.md#포터블-exe와-github-releases)). 저장소 Actions 설정은 외부 action을 40자리 commit SHA로 고정하도록 요구하므로 tag로 참조한 action은 실행되지 않습니다.
 
 검증: `node --test scripts/test/build-scope.test.mjs`, `node --check scripts/build-scope.mjs`.
 

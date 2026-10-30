@@ -4,8 +4,8 @@
 
 ## 먼저 읽을 곳
 
-- [문서 안내](docs/README.md): 주제별 제품 계약(Rule)과 현재 구현 안내(Reference)
-- [Repository Map](docs/reference/repository-map.md): workspace, app, package 구조와 표준 명령
+- [문서 안내](docs/README.md): 주제별 제품 계약(Rule)과 결정 기록(ADR)
+- 각 app, package의 README와 `package.json`: 구조, 표준 명령, 실행 안내
 - [scripts 안내의 Native validation](scripts/README.md#native-validation): 로컬 실행과 변경 범위별 검증 명령
 
 ## 설치
@@ -18,7 +18,7 @@
 
 - GitHub Actions에는 CI 검사 workflow가 없다. 검사는 로컬에서 실행한다.
 - `pnpm verify`가 저장소 검사를 차례로 실행한다. Root `pnpm test`도 `pnpm verify`를 실행한다.
-- `pnpm install`이 husky `pre-push` hook을 설치하며, hook이 push 전에 `pnpm verify --reuse-pass`를 실행한다. 같은 내용을 직접 `pnpm verify`로 통과한 직후면 다시 검사하지 않는다. Windows Test Build와 Product Images는 PR 제목 scope가 `(build)`일 때만 빌드한다. 규칙은 [Repository Map의 배포 workflow 설명](docs/reference/repository-map.md)에 있다.
+- `pnpm install`이 husky `pre-push` hook을 설치하며, hook이 push 전에 `pnpm verify --reuse-pass`를 실행한다. 같은 내용을 직접 `pnpm verify`로 통과한 직후면 다시 검사하지 않는다. Windows Test Build와 Product Images는 PR 제목 scope가 `(build)`일 때만 빌드한다. 규칙은 [scripts 안내의 build-scope](scripts/README.md#build-scope)에 있다.
 - 변경 범위별 명령 조합은 [Native validation](scripts/README.md#native-validation), 준비 조건은 [`verify` 안내](scripts/README.md#verify)를 따른다.
 - Desktop 테스트는 HOME의 모든 상위 디렉터리가 root나 현재 사용자 소유이고 group, other 쓰기 권한이 없어야 통과한다. [Desktop 테스트 범위](apps/desktop/README.md#테스트-범위와-실행)를 참고한다.
 

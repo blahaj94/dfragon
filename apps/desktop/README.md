@@ -106,11 +106,18 @@ pnpm --filter @dfragon/desktop dev
 
 `dev`는 Electron 실행 파일이 없으면 먼저 내려받고, Node의 `--env-file-if-exists=.env`로 앱 폴더의 설정을 읽은 뒤 기존 Electron 개발 실행을 시작합니다. `.env`가 없어도 카드 화면을 실행할 수 있으며, 이미 설정된 process 환경변수가 우선합니다. 설정을 바꾸면 개발 명령을 종료하고 다시 실행합니다.
 
-`pnpm --filter @dfragon/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 상단 바의 게임 연결 상태 칩을 눌러 창을 선택하면 main에 등록만 합니다. **Alt+R**이나 파티 헤더의 캡처 버튼을 누르면 Windows GDI 모듈로 프레임 한 장을 읽고, 이 회차 프레임으로 닉네임, 얼굴 크롭, OCR과 검색을 처리합니다. OCR은 연속 관측을 기다리지 않고 첫 후보의 앞뒤 공백만 제거해 확정하며 두 번째 후보로 보정하지 않습니다. 처리를 마치면 추가 프레임을 읽지 않고 회차 결과를 유지하며 반복 인식과 인식 간격 설정은 제공하지 않습니다. 다른 창에 가려진 픽셀은 인식에서 제외합니다. 창 전체가 가려졌거나 최소화됐거나 파티 프레임을 검출하지 못하면 안내 후 회차 인식을 끝냅니다. 화면이 돌아와도 자동 재개하지 않으며 **Alt+R**이나 캡처 버튼을 다시 눌러야 합니다. 최소화된 창의 백그라운드 캡처는 지원하지 않습니다. OCR 식별 상태와 선택된 캐릭터의 기본 정보를 슬롯별로 표시하며, 같은 회차 프레임의 얼굴 크롭을 동명 후보의 네오플 캐릭터 이미지와 색으로 비교합니다. 비교로 한 명을 가르지 못하면 최고 명성 후보를 얼굴 확정과 구분해 표시합니다. 연결중 팝업 등으로 일부 슬롯만 검출되지 않으면 그 슬롯은 비워 두고 검색하지 않으며 다른 슬롯은 같은 프레임으로 처리합니다. 화면 캡처 창을 닫아도 캡처는 유지되며 별도 중지 버튼으로 정리합니다. 합성 데이터의 자동 식별 상태는 `pnpm --filter @dfragon/desktop dev:preview`로 확인합니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
+`pnpm --filter @dfragon/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 상단 바의 게임 연결 상태 칩을 눌러 창을 선택하면 main에 등록만 합니다. **Alt+R**이나 파티 헤더의 캡처 버튼을 누르면 Windows GDI 모듈로 프레임 한 장을 읽고, 이 회차 프레임으로 닉네임, 얼굴 크롭, OCR과 검색을 처리합니다. OCR은 연속 관측을 기다리지 않고 첫 후보의 앞뒤 공백만 제거해 확정하며 두 번째 후보로 보정하지 않습니다. 처리를 마치면 추가 프레임을 읽지 않고 회차 결과를 유지하며 반복 인식과 인식 간격 설정은 제공하지 않습니다. 다른 창에 가려진 픽셀은 인식에서 제외합니다. 창 전체가 가려졌거나 최소화됐거나 파티 프레임을 검출하지 못하면 안내 후 회차 인식을 끝냅니다. 화면이 돌아와도 자동 재개하지 않으며 **Alt+R**이나 캡처 버튼을 다시 눌러야 합니다. 최소화된 창의 백그라운드 캡처는 지원하지 않습니다. OCR 식별 상태와 선택된 캐릭터의 기본 정보를 슬롯별로 표시하며, 같은 회차 프레임의 얼굴 크롭을 동명 후보의 네오플 캐릭터 이미지와 색으로 비교합니다. 비교로 한 명을 가르지 못하면 최고 명성 후보를 얼굴 확정과 구분해 표시합니다. 연결중 팝업 등으로 일부 슬롯만 검출되지 않으면 그 슬롯은 비워 두고 검색하지 않으며 다른 슬롯은 같은 프레임으로 처리합니다. 화면 캡처 창을 닫아도 캡처는 유지되며 별도 중지 버튼으로 정리합니다. 합성 데이터의 자동 식별 상태는 `pnpm --filter @dfragon/desktop dev:preview`로 확인합니다.
+
+합성 미리보기는 `src/frontend/src/fixture/mvp/`의 별도 HTML 진입점이며 Mac에서도 열립니다. 상단 바와 카드를 보이는 화면의 창 내용 높이(파티 163, 공대 300) 안에 그리고, 하단 조작부에서 카드 상태, 상위와 랭커 단계, 점수 라벨, 모험단 순번 스냅샷, 캡처 창 상태를 비교합니다. 이름, 서버 수정은 API를 호출하지 않고, 합성 창 선택은 UI 상태만 바꾸며 실제 캡처, OCR, IPC를 부르지 않습니다. 미리보기 HTML의 `img-src 'self' data:`는 원격 이미지를 차단하므로 로컬 자산만 씁니다. 빌드 결과는 다음 명령으로 실제 Electron에서 엽니다. 디자인 원본은 [dfragon-design](https://github.com/blahaj94/dfragon-design)이고, 화면 계약은 [Desktop MVP 카드 UI](../../docs/rules/desktop-mvp-ui.md)가 원본입니다.
+
+```sh
+pnpm --filter @dfragon/desktop build:preview
+pnpm --filter @dfragon/desktop ui:fixture mvp dark
+```
 
 ## 장비 점수 엔진
 
-카드의 장비 점수(버퍼는 버프 점수)는 비공개 엔진 저장소가 만든 네이티브 라이브러리를 main process의 점수 worker thread가 불러 계산합니다. 캡처나 직접 조회를 시작하면 worker가 엔진의 첫 계산 초기화(약 1초)를 미리 끝내 두며, 계산하는 동안 main은 막히지 않습니다. 엔진이 없어도 빌드와 실행은 그대로 되고 카드의 점수 칸만 `-`입니다. 엔진 경계와 입력 변환은 [카드 전달과 점수 엔진](../../docs/reference/desktop-character-search.md#카드-전달과-점수-엔진)에 있습니다.
+카드의 장비 점수(버퍼는 버프 점수)는 비공개 엔진 저장소가 만든 네이티브 라이브러리를 main process의 점수 worker thread가 불러 계산합니다. 캡처나 직접 조회를 시작하면 worker가 엔진의 첫 계산 초기화(약 1초)를 미리 끝내 두며, 계산하는 동안 main은 막히지 않습니다. 엔진이 없어도 빌드와 실행은 그대로 되고 카드의 점수 칸만 `-`입니다. 엔진 경계는 [점수 엔진 경계](../../docs/architecture/overview.md#점수-엔진-경계)에 있습니다.
 
 - **위치**: 패키지는 `resources/score/`를 asar 밖으로 푼 `app.asar.unpacked/resources/score/dnfscore.dll`만 엽니다. 개발 실행은 `DFRAGON_SCORE_LIBRARY`에 라이브러리의 절대 경로가 있으면 그 파일을, 없으면 앱 폴더 `resources/score/`의 플랫폼별 파일(`dnfscore.dll`, `libdnfscore.dylib`, `libdnfscore.so`)을 엽니다. 패키지는 이 환경변수를 읽지 않습니다.
 - **개발 설정**: 엔진 저장소에서 직접 빌드한 라이브러리를 쓰려면 `apps/desktop/.env`에 `DFRAGON_SCORE_LIBRARY=<라이브러리 절대 경로>`를 두고 `dev`를 다시 시작합니다. 라이브러리는 점수 worker를 처음 띄울 때 한 번 엽니다.
@@ -165,9 +172,17 @@ git add packages/models/ocr-finetuned apps/desktop/ocr-model.config.mjs
 
 준비 단계는 앱과 같은 [ONNX Runtime WASM의 추론 API](https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.html)로 `[1, 3, 48, 320]` 입력을 실행해 출력 형식과 사전 클래스 수를 검사합니다. 출력은 유한한 0~1의 softmax 확률이고 시점별 클래스 확률 합이 1이어야 하며, 합계 오차는 0.001까지 허용합니다. 런타임 디코더도 같은 조건을 검사하고 허용된 합계 오차만 보정합니다. logits에 softmax를 다시 적용하지 않습니다. 파일 누락이나 호환성 오류는 빌드 실패로 처리하며 기본 모델로 대체하지 않습니다. 이 검사가 실패하면 기존 public OCR 산출물을 지우지 않습니다. 인식 정확도와 같은 문자 수를 가진 사전의 순서 일치는 자동으로 보장하지 못하므로, 개발자 평가에서 실제 정답 이미지로 확인합니다.
 
-OCR 후보 탐색과 `modelScore`의 의미는 [CTC 후보와 모델 점수](../../docs/reference/desktop-character-search.md#ctc-후보와-모델-점수)에 있습니다.
-
 생성된 `src/frontend/public/ocr/provenance.json`에는 선택한 모델 이름과 실제 배포 파일의 SHA-256을 기록합니다. 사용자 모델을 기본 upstream revision으로 표시하거나 로컬 경로를 산출물에 넣지 않습니다. 기존 PaddleOCR와 ONNX Runtime 라이선스 고지는 유지합니다.
+
+### 실행 provider
+
+OCR worker는 `onnxruntime-web`의 WebGPU 빌드를 먼저 쓰고, GPU adapter를 얻지 못하는 PC에서는 CPU WASM provider로 넘어갑니다. Adapter를 얻었어도 세션 생성이나 준비 추론에 실패하면 세션을 해제하고 CPU WASM provider만으로 다시 만듭니다. WebGPU는 첫 추론에서 shader를 컴파일하므로 worker는 모델을 불러온 뒤 0으로 채운 입력으로 한 번 추론하고 나서 준비 완료를 알립니다. CPU 경로는 논리 코어 수와 8 중 작은 수만큼 WASM thread를 씁니다. WASM thread에는 SharedArrayBuffer가 필요한데 renderer는 `file://`로 열려 cross-origin 격리 헤더를 붙일 수 없으므로, main이 시작할 때 Chromium 기능 플래그 `enable-features=SharedArrayBuffer`로 켭니다. Renderer는 로컬 파일과 Neople 이미지만 불러오므로 격리 없이 켜는 위험을 받아들입니다. 플래그가 빠지면 onnxruntime-web이 오류 없이 1 thread로 돌아가므로 Electron을 올릴 때 확인합니다.
+
+### CTC 후보와 모델 점수
+
+`lib/ctc-candidates.ts`의 `decodeCtcCandidates`는 `{ rank, modelScore, nickname }` 후보를 최대 2개 반환하며, 회차의 검색에는 첫 후보만 씁니다. 시점별 상위 nonblank 문자 16개로 prefix를 확장하고 탐색 폭은 32개로 고정한 뒤, 남은 문자열 모두를 CTC forward 계산으로 다시 채점해 점수 내림차순으로 고릅니다. 제한된 beam이라 전체 가능한 문자열의 정확한 상위 후보를 보장하지 않습니다. Blank만 관측되면 빈 문자열 후보를 유지하며, 후보 수를 채우려고 다른 이름을 만들지 않습니다.
+
+`modelScore`는 재계산한 문자열 확률의 100배입니다. 실제 정답률이나 상위 후보 사이의 상대 비율이 아니며, 반환한 후보 점수의 합을 100으로 맞추지 않습니다. 입력은 유한한 0~1의 softmax 확률이어야 하고, 시점별 확률 합과 1의 차이가 0.001 이하면 그 합으로 나누어 보정하며 범위를 벗어나면 거절합니다. 디코더는 후보를 문자열로 합치므로 사전 label은 서로 겹치지 않는 한 문자여야 하며, worker는 모델 초기화 때 사전을 한 번 검사해 잘못되면 초기화 실패로 응답합니다.
 
 ## 테스트 범위와 실행
 
