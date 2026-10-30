@@ -5,12 +5,13 @@
 ## 원본과 수집 범위
 
 - `notices/desktop`: 마루미냐 한글(MaruMinya Hangul), Barlow Condensed, Lucide와 Desktop UI 자산 출처입니다.
-- `notices/lib`: CP949 문자 표의 iconv-lite 고지입니다. `@dfragon/lib` build에서 기존 `dist/notices`와 runtime 의존성 수집용 패키지 루트 `LICENSES`에 복사합니다.
+- `notices/lib`: CP949 문자 표의 iconv-lite 고지입니다. `@dfragon/lib` build에서 기존 `dist/notices`와 runtime 의존성 수집용 패키지 루트 `LICENSES`에 복사합니다. Desktop은 `@dfragon/lib` 원본을 직접 번들하므로 Desktop build에도 같은 원문을 냅니다.
+- `notices/score-engine`: Desktop이 배포하는 점수 엔진 바이너리에 정적으로 링크된 코드의 고지입니다. `NOTICE`는 비공개 엔진 저장소의 0.4.2 빌드 커밋 `483a3fa0`에 있는 Rust 엔진의 NOTICE(SHA-256 `fdd0c1bc319908e42ad7092eed6892b10bdabddb53cf6a941ae5bc066da622f6`)이고, `RUST-LICENSE-MIT`는 그 엔진이 고정한 Rust 1.99.1 커밋 `58cf8f9c35b355199727627d07ae34a4e2846d67`의 `LICENSE-MIT`(SHA-256 `b71bd43a069ca0641a9ecfe585ca7b3c53b5cc1608f8b68321168698e28b5ea1`)입니다. 엔진 NOTICE가 Rust 표준 라이브러리의 라이선스 이름만 적어 MIT 원문을 더했습니다. 점수 엔진 submodule을 옮길 때 엔진의 `Cargo.lock`, `NOTICE`나 Rust 버전이 바뀌었으면 이 두 파일과 출처를 같은 PR에서 갱신합니다.
 - `notices/upstream`, `overrides.json`: 설치된 npm 패키지에서 빠진 원문을 해당 버전의 upstream 또는 배포 패키지로부터 보완합니다. 출처, 버전, SHA-256을 기록하며 빌드 중 네트워크에서 가져오지 않습니다. 범용 MIT 문구로 저작권자를 추정하지 않습니다. Dependabot PR이 버전 갱신 후 `Missing license text`로 실패하면 같은 절차로 원문을 보완하고 `overrides.json`의 `이름@버전` 키, 출처, SHA-256을 갱신해 같은 PR에 추가합니다.
 - OCR 원문은 모델, 사전과 검증 hash를 함께 관리하는 `apps/desktop/assets/ocr`에 보존하고 원래 OCR 배포 경로도 유지합니다.
 - npm 고지는 번들 입력 graph와 설치된 production dependency의 전이 의존성에서 수집합니다. 입력 graph는 tree-shaking 이전 입력도 포함하므로 일부 미사용 입력의 고지가 포함될 수 있습니다. `devDependencies` 전체를 일괄 배포하지 않습니다.
 
-`uiNotices({ runtimeRoot? })`는 UI library, Example, Desktop renderer, Web build의 산출물 `notices`에 `THIRD-PARTY.txt`, 번들 입력 package와 module 목록(`bundle-modules.json`), 생성 JavaScript chunk 목록(`bundle-files.json`)을 기록합니다. Chunk 코드에는 고지 banner를 붙이지 않습니다. `desktopNotices()`는 중앙으로 옮긴 기존 Desktop 글꼴, 아이콘 고지를 같은 `notices/desktop` 경로에 배포합니다. Web도 창 목업과 글꼴에 같은 자산을 쓰므로 이 고지를 함께 배포합니다. Desktop 제품 빌드는 `runtimeRoot`에 앱 경로를 전달해 main/preload에서 사용하는 production 의존성도 `THIRD-PARTY.txt`에 포함합니다. `bundle-modules.json`에는 기존처럼 번들 입력만 기록합니다. 실제 파일을 찾지 못한 새 npm 고지는 빌드를 실패시킵니다. 빈 파일과 공백뿐인 파일도 원문 누락으로 처리하며, 유효한 원문의 개행, 공백은 그대로 보존합니다. 버전 고정 보완과 아래의 알려진 원문 공백 표시는 이 경우에도 적용합니다.
+`uiNotices({ runtimeRoot? })`는 UI library, Example, Desktop renderer, Web build의 산출물 `notices`에 `THIRD-PARTY.txt`, 번들 입력 package와 module 목록(`bundle-modules.json`), 생성 JavaScript chunk 목록(`bundle-files.json`)을 기록합니다. Chunk 코드에는 고지 banner를 붙이지 않습니다. `desktopNotices()`는 중앙으로 옮긴 기존 Desktop 글꼴, 아이콘 고지를 같은 `notices/desktop` 경로에 배포합니다. Web도 창 목업과 글꼴에 같은 자산을 쓰므로 이 고지를 함께 배포합니다. `desktopAppNotices()`는 Desktop 앱에만 들어가는 iconv-lite와 점수 엔진 고지를 `notices/lib`, `notices/score-engine` 경로에 배포하며, 점수 엔진 고지는 엔진 없이 만든 빌드에도 들어갑니다. Desktop 제품 빌드는 `runtimeRoot`에 앱 경로를 전달해 main/preload에서 사용하는 production 의존성도 `THIRD-PARTY.txt`에 포함합니다. `bundle-modules.json`에는 기존처럼 번들 입력만 기록합니다. 실제 파일을 찾지 못한 새 npm 고지는 빌드를 실패시킵니다. 빈 파일과 공백뿐인 파일도 원문 누락으로 처리하며, 유효한 원문의 개행, 공백은 그대로 보존합니다. 버전 고정 보완과 아래의 알려진 원문 공백 표시는 이 경우에도 적용합니다.
 
 ## 알려진 원문 공백
 
@@ -23,7 +24,7 @@
 소비 빌드의 `devDependencies`에 `"@dfragon/licenses": "workspace:*"`를 추가합니다.
 
 ```ts
-import { uiNotices, desktopNotices } from '@dfragon/licenses/vite'
+import { uiNotices, desktopAppNotices, desktopNotices } from '@dfragon/licenses/vite'
 ```
 
 ```bash

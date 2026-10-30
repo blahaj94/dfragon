@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { OCR_ASSETS, prepareOcrAssets } from './prepare-ocr-assets.mjs'
+import { OCR_ASSETS, OCR_MODEL_NOTICE, prepareOcrAssets } from './prepare-ocr-assets.mjs'
 import { countOcrClasses } from './validate-ocr-model.mjs'
 
 const modelPath = fileURLToPath(new URL('../assets/ocr/korean-rec.onnx', import.meta.url))
@@ -36,33 +36,39 @@ describe('OCR public asset 준비', () => {
     }
   })
 
-  it('별도 경로의 ONNX와 사전을 선택하면 그 파일과 실제 해시를 runtime 경로에 배치한다', async () => {
+  it('별도 경로의 ONNX, 사전, NOTICE를 선택하면 그 파일과 실제 해시를 runtime 경로에 배치한다', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'dfragon-selected-ocr-'))
     const destination = join(directory, 'public')
     const customModel = join(directory, 'finetuned.onnx')
     const customDictionary = join(directory, 'characters.txt')
+    const customNotice = join(directory, 'NOTICE')
+    const notice = 'Fixture model notice\nModifications: synthetic fine-tuning\n'
     try {
       await copyFile(modelPath, customModel)
       const characters = (await readFile(dictionaryPath, 'utf8')).trimEnd().split('\n')
       ;[characters[0], characters[1]] = [characters[1], characters[0]]
       const dictionary = `${characters.join('\n')}\n`
       await writeFile(customDictionary, dictionary)
+      await writeFile(customNotice, notice)
 
       await prepareOcrAssets(destination, {
         name: 'fixture-finetuned-model',
         modelPath: customModel,
-        dictionaryPath: customDictionary
+        dictionaryPath: customDictionary,
+        noticePath: customNotice
       })
 
       const model = await readFile(join(destination, 'korean-rec.onnx'))
       expect(model.equals(await readFile(customModel))).toBe(true)
       expect(await readFile(join(destination, 'korean-dict.txt'), 'utf8')).toBe(dictionary)
+      expect(await readFile(join(destination, OCR_MODEL_NOTICE), 'utf8')).toBe(notice)
       const provenanceText = await readFile(join(destination, 'provenance.json'), 'utf8')
       const provenance = JSON.parse(provenanceText)
       expect(provenance.model).toBe('fixture-finetuned-model')
       expect(provenance).not.toHaveProperty('revision')
       expect(provenance).not.toHaveProperty('source')
       expect(provenanceText).not.toContain(directory)
+      expect(provenance.files.map(({ file }) => file)).toContain(OCR_MODEL_NOTICE)
       for (const { file, sha256 } of provenance.files) {
         const bytes = await readFile(join(destination, file))
         expect(sha256).toBe(createHash('sha256').update(bytes).digest('hex'))
@@ -72,7 +78,7 @@ describe('OCR public asset 준비', () => {
     }
   })
 
-  it.each(['missing-model', 'invalid-model', 'mismatched-dictionary'])(
+  it.each(['missing-model', 'invalid-model', 'mismatched-dictionary', 'missing-notice'])(
     '%s이면 기본 모델로 대체하지 않고 실패하며 기존 산출물을 보존한다',
     async (failure) => {
       const directory = await mkdtemp(join(tmpdir(), 'dfragon-invalid-ocr-'))
@@ -84,6 +90,8 @@ describe('OCR public asset 준비', () => {
         if (failure === 'mismatched-dictionary') {
           await writeFile(replacement, '가\n나\n')
           selection.dictionaryPath = replacement
+        } else if (failure === 'missing-notice') {
+          selection.noticePath = replacement
         } else {
           selection.modelPath = replacement
           if (failure === 'invalid-model') {

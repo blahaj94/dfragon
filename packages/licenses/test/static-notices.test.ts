@@ -4,39 +4,60 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { desktopNotices } from '../src/vite.ts'
+import { desktopAppNotices, desktopNotices } from '../src/vite.ts'
 import { createPackageFixture } from './fixtures.ts'
 
 const noticeFiles = {
   lib: ['iconv-lite-LICENSE'],
-  desktop: ['BARLOW-LICENSE', 'LUCIDE-LICENSE', 'MARUMINYA-LICENSE', 'NOTICE.md']
+  desktop: ['BARLOW-LICENSE', 'LUCIDE-LICENSE', 'MARUMINYA-LICENSE', 'NOTICE.md'],
+  'score-engine': ['NOTICE', 'RUST-LICENSE-MIT']
 }
 const copyCommand = fileURLToPath(new URL('../src/copy-notices.mjs', import.meta.url))
 
-test('Desktop plugin은 중앙 글꼴, 아이콘, 자산 고지를 기존 배포 경로에 원문 그대로 낸다', () => {
+function emitPluginNotices(plugin: ReturnType<typeof desktopNotices>): Map<string, string> {
   const assets = new Map<string, string>()
-  desktopNotices().generateBundle.call({
+  plugin.generateBundle.call({
     emitFile(asset) {
       assets.set(asset.fileName, asset.source)
     }
   })
 
-  assert.deepEqual(
-    [...assets.keys()],
-    [
-      'notices/desktop/BARLOW-LICENSE',
-      'notices/desktop/LUCIDE-LICENSE',
-      'notices/desktop/MARUMINYA-LICENSE',
-      'notices/desktop/NOTICE.md'
-    ]
-  )
-  for (const name of noticeFiles.desktop) {
-    assert.equal(
-      assets.get(`notices/desktop/${name}`),
-      readFileSync(new URL(`../notices/desktop/${name}`, import.meta.url), 'utf8'),
-      name
-    )
+  return assets
+}
+
+function assertOriginalNotices(assets: Map<string, string>, groups: (keyof typeof noticeFiles)[]) {
+  for (const group of groups) {
+    for (const name of noticeFiles[group]) {
+      assert.equal(
+        assets.get(`notices/${group}/${name}`),
+        readFileSync(new URL(`../notices/${group}/${name}`, import.meta.url), 'utf8'),
+        `${group}/${name}`
+      )
+    }
   }
+}
+
+test('Desktop UI 자산 plugin은 Web과 함께 쓰는 글꼴, 아이콘, 자산 고지만 원문 그대로 낸다', () => {
+  const assets = emitPluginNotices(desktopNotices())
+
+  assert.deepEqual([...assets.keys()].sort(), [
+    'notices/desktop/BARLOW-LICENSE',
+    'notices/desktop/LUCIDE-LICENSE',
+    'notices/desktop/MARUMINYA-LICENSE',
+    'notices/desktop/NOTICE.md'
+  ])
+  assertOriginalNotices(assets, ['desktop'])
+})
+
+test('Desktop 앱 plugin은 번들한 lib와 점수 엔진 고지를 그룹별 경로에 원문 그대로 낸다', () => {
+  const assets = emitPluginNotices(desktopAppNotices())
+
+  assert.deepEqual([...assets.keys()].sort(), [
+    'notices/lib/iconv-lite-LICENSE',
+    'notices/score-engine/NOTICE',
+    'notices/score-engine/RUST-LICENSE-MIT'
+  ])
+  assertOriginalNotices(assets, ['lib', 'score-engine'])
 })
 
 for (const group of ['lib', 'desktop'] as const) {

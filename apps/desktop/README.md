@@ -44,6 +44,8 @@ pnpm --filter @dfragon/desktop build:win
 
 설치 파일은 `apps/desktop/dist/DFragon-<버전>-x64-setup.exe`에 생성됩니다. 명령은 node/web typecheck, OCR 자산 검증, 복사, main/preload/renderer 빌드, NSIS 패키징을 포함합니다. API 주소가 없거나 HTTP, localhost, 경로/쿼리가 포함된 값이면 실패합니다. 예시 주소로 패키징에 성공해도 실제 배포, 검색 검증이 된 것이 아닙니다.
 
+제3자 고지는 app.asar 안의 `out/frontend/notices`, `out/frontend/ocr`에 있고, 패키지는 사용자가 asar를 풀지 않고 읽도록 같은 고지를 앱 폴더의 `licenses/`에도 평문으로 둡니다. `licenses/THIRD-PARTY.txt`가 npm 패키지, `licenses/desktop`, `licenses/lib`, `licenses/score-engine`이 글꼴과 UI 자산, CP949 표, 점수 엔진, `licenses/ocr`이 OCR 모델과 ONNX Runtime의 고지입니다. Electron, Chromium 고지(`LICENSE.electron.txt`, `LICENSES.chromium.html`)는 electron-builder가 같은 앱 폴더에 둡니다.
+
 Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 한국어(대한민국, LCID `0x0412`)로 기록합니다. 이 값은 EXE 메타데이터에 적용하며 앱 UI와 라이선스 원문은 기존 구성을 유지합니다.
 
 패키지에는 Chromium이 직접 띄우는 문구의 번역 파일(`locales/*.pak`) 가운데 한국어(`ko`)와 영어(`en-US`)만 넣습니다. 앱 화면은 한국어로만 만들기 때문에 나머지 53개 언어(약 49MB)는 넣지 않습니다. 다른 언어로 설정한 Windows에서는 Chromium이 영어로 대신 열어, Chromium 기본 문구와 진단 기록의 시각 표기가 영어 형식으로 나옵니다.
@@ -122,6 +124,7 @@ pnpm --filter @dfragon/desktop ui:fixture mvp dark
 - **위치**: 패키지는 `resources/score/`를 asar 밖으로 푼 `app.asar.unpacked/resources/score/dnfscore.dll`만 엽니다. 개발 실행은 `DFRAGON_SCORE_LIBRARY`에 라이브러리의 절대 경로가 있으면 그 파일을, 없으면 앱 폴더 `resources/score/`의 플랫폼별 파일(`dnfscore.dll`, `libdnfscore.dylib`, `libdnfscore.so`)을 엽니다. 패키지는 이 환경변수를 읽지 않습니다.
 - **개발 설정**: 엔진 저장소에서 직접 빌드한 라이브러리를 쓰려면 `apps/desktop/.env`에 `DFRAGON_SCORE_LIBRARY=<라이브러리 절대 경로>`를 두고 `dev`를 다시 시작합니다. 라이브러리는 점수 worker를 처음 띄울 때 한 번 엽니다.
 - **자산 입수**: 엔진 바이너리는 OCR 모델과 같이 `@dfragon/models`의 `packages/models/score-engine` submodule이 고정한 커밋에 있습니다(현재 Windows 엔진 0.4.2, macOS 개발 실행용은 `native-v0.3.1`, 규칙 rev14). 비공개 저장소라 기본 checkout에서 빠지므로, 읽기 권한이 있으면 [받기](../../packages/models/README.md#받기)의 명령으로 한 번 받습니다. 그다음 `pnpm --filter @dfragon/desktop prepare:score-engine`이 플랫폼별 파일(`dnfscore.dll`, `libdnfscore.dylib`)을 `resources/score/`에 복사합니다. submodule을 받지 않았으면 건너뛰고, 복사한 폴더는 스스로 Git에서 제외합니다. 패키지는 Windows만 만듭니다.
+- **고지**: 엔진에 정적으로 링크된 miniz_oxide와 Rust 표준 라이브러리의 고지는 `@dfragon/licenses`의 [`notices/score-engine`](../../packages/licenses/README.md#원본과-수집-범위)이 보관하고, build가 `out/frontend/notices/score-engine`으로 냅니다. 엔진 submodule을 옮길 때 엔진의 `NOTICE`, `Cargo.lock`, Rust 버전이 바뀌었으면 이 고지도 같은 PR에서 갱신합니다.
 - **CI**: Windows Test Build와 Windows Portable workflow가 build 전에 secret `DFRAGON_SCORE_ENGINE_TOKEN`으로 submodule을 받고 이 명령을 실행합니다. 토큰은 엔진 바이너리 저장소의 읽기 권한이 필요하며 저장소 소유자가 설정합니다. 포크 PR은 secret을 받지 못해 엔진 없이 빌드합니다. Windows Portable은 `--require`로 실행해 엔진을 두지 못하면 실패합니다.
 - **근사값 표시**: 엔진이 장비 점수나 버프 점수 계산을 건너뛰고 근사값을 내면 카드의 점수 칸에 `≈12,345`처럼 `≈`를 붙여 보이고, 보조 기술과 마우스 설명에 근사값이라는 뜻과 사유 종류, 근사 방법을 전합니다. 근사값은 공대 식별의 장비 점수 비교에 쓰지 않습니다.
 - **실패 표시**: 파일이 없거나 열 수 없거나 계산, 결과 검증이 실패하거나 점수 worker가 죽거나 응답하지 않으면 점수만 null이고 카드의 다른 값은 그대로입니다. 진단 창에 엔진을 불러오지 못했거나 계산하지 못했다는 문구가 남고, 계산이 50ms를 넘으면 느린 계산 문구가 남습니다.
@@ -172,7 +175,7 @@ git add packages/models/ocr-finetuned apps/desktop/ocr-model.config.mjs
 
 준비 단계는 앱과 같은 [ONNX Runtime WASM의 추론 API](https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.html)로 `[1, 3, 48, 320]` 입력을 실행해 출력 형식과 사전 클래스 수를 검사합니다. 출력은 유한한 0~1의 softmax 확률이고 시점별 클래스 확률 합이 1이어야 하며, 합계 오차는 0.001까지 허용합니다. 런타임 디코더도 같은 조건을 검사하고 허용된 합계 오차만 보정합니다. logits에 softmax를 다시 적용하지 않습니다. 파일 누락이나 호환성 오류는 빌드 실패로 처리하며 기본 모델로 대체하지 않습니다. 이 검사가 실패하면 기존 public OCR 산출물을 지우지 않습니다. 인식 정확도와 같은 문자 수를 가진 사전의 순서 일치는 자동으로 보장하지 못하므로, 개발자 평가에서 실제 정답 이미지로 확인합니다.
 
-생성된 `src/frontend/public/ocr/provenance.json`에는 선택한 모델 이름과 실제 배포 파일의 SHA-256을 기록합니다. 사용자 모델을 기본 upstream revision으로 표시하거나 로컬 경로를 산출물에 넣지 않습니다. 기존 PaddleOCR와 ONNX Runtime 라이선스 고지는 유지합니다.
+생성된 `src/frontend/public/ocr/provenance.json`에는 선택한 모델 이름과 실제 배포 파일의 SHA-256을 기록합니다. 사용자 모델을 기본 upstream revision으로 표시하거나 로컬 경로를 산출물에 넣지 않습니다. 기존 PaddleOCR와 ONNX Runtime 라이선스 고지는 유지합니다. 모델 설정에 `noticePath`가 있으면 그 파일을 `OCR-Model-NOTICE.txt`로 함께 배포합니다. 파인튜닝 모델은 Apache-2.0 원본을 바꾼 파생물이라 `fineTunedOcrModel`이 모델 저장소의 `NOTICE`(출처와 변경 내역)를 지정하며, 이 파일을 읽지 못하면 빌드를 실패시킵니다.
 
 ### 실행 provider
 

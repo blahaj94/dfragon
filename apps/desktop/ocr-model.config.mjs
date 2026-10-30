@@ -10,7 +10,10 @@ export const bundledOcrModel = {
 export const fineTunedOcrModel = {
   name: 'dfragon-finetuned',
   modelPath: fileURLToPath(import.meta.resolve('@dfragon/models/ocr-finetuned/model.onnx')),
-  dictionaryPath: fileURLToPath(import.meta.resolve('@dfragon/models/ocr-finetuned/characters.txt'))
+  dictionaryPath: fileURLToPath(
+    import.meta.resolve('@dfragon/models/ocr-finetuned/characters.txt')
+  ),
+  noticePath: fileURLToPath(import.meta.resolve('@dfragon/models/ocr-finetuned/NOTICE'))
 }
 
 export default fineTunedOcrModel

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { defineConfig } from 'electron-vite'
 import { defaultClientConditions, type Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
-import { uiNotices, desktopNotices } from '@dfragon/licenses/vite'
+import { uiNotices, desktopAppNotices, desktopNotices } from '@dfragon/licenses/vite'
 import { readChannelNameFromMode, readDesktopChannel } from './build/channels'
 
 const LIB_IMPORT_PATTERN = /^@dfragon\/lib$/
@@ -33,6 +33,7 @@ export default defineConfig(({ mode, command }) => {
     ...rendererTransforms(),
     uiNotices({ runtimeRoot: resolve('.') }),
     desktopNotices(),
+    desktopAppNotices(),
     ...(mode === 'mvp-preview'
       ? [
           {
