@@ -349,7 +349,7 @@ export function Preview(): React.JSX.Element {
         </div>
       </main>
       <footer {...stylex.props(styles.footer)}>
-        <span>DFragon Desktop</span>
+        <span>던삐삐 Desktop</span>
         <select
           aria-label="캡처 미리보기 상태"
           value={capture.state}

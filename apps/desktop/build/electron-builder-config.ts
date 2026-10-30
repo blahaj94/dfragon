@@ -14,7 +14,6 @@ function readInstallerInclude(
 export function createBuilderConfig(name: ChannelName): Configuration {
   const { packaging, identity } = channels[name]
   const installerInclude = readInstallerInclude(packaging)
-  const artifactPrefix = packaging.artifactPrefix ?? '${productName}'
 
   return {
     appId: identity.appIdentity,
@@ -42,7 +41,7 @@ export function createBuilderConfig(name: ChannelName): Configuration {
     nsis: {
       language: '1042',
       oneClick: true,
-      artifactName: `${artifactPrefix}-\${version}-\${arch}-setup.\${ext}`,
+      artifactName: `${packaging.artifactPrefix}-\${version}-\${arch}-setup.\${ext}`,
       shortcutName: '${productName}',
       uninstallDisplayName: '${productName}',
       createDesktopShortcut: 'always',
@@ -51,7 +50,7 @@ export function createBuilderConfig(name: ChannelName): Configuration {
       ...installerInclude
     },
     portable: {
-      artifactName: `${artifactPrefix}-\${version}-\${arch}-portable.\${ext}`,
+      artifactName: `${packaging.artifactPrefix}-\${version}-\${arch}-portable.\${ext}`,
       requestExecutionLevel: 'admin'
     },
     mac: {
@@ -70,13 +69,13 @@ export function createBuilderConfig(name: ChannelName): Configuration {
       ],
       notarize: false
     },
-    dmg: { artifactName: `${artifactPrefix}-\${version}.\${ext}` },
+    dmg: { artifactName: `${packaging.artifactPrefix}-\${version}.\${ext}` },
     linux: {
       target: ['AppImage', 'snap', 'deb'],
       maintainer: 'electronjs.org',
       category: 'Utility'
     },
-    appImage: { artifactName: `${artifactPrefix}-\${version}.\${ext}` },
+    appImage: { artifactName: `${packaging.artifactPrefix}-\${version}.\${ext}` },
     npmRebuild: false,
     electronFuses: {
       enableNodeOptionsEnvironmentVariable: false,

@@ -15,7 +15,7 @@ const channelSchema = z.strictObject({
     packageName: publicTextSchema,
     output: publicTextSchema,
     installerInclude: publicTextSchema.optional(),
-    artifactPrefix: publicTextSchema.optional()
+    artifactPrefix: publicTextSchema
   }),
   identity: z.strictObject({ appIdentity: publicTextSchema }),
   origins: z.strictObject({ api: originSourceSchema })

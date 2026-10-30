@@ -26,7 +26,7 @@ const approximateMethods: Readonly<Record<string, string>> = {
 }
 
 const scoreNote = (label: ScoreView['label']): string =>
-  `DFragon 계산값이라 게임 ${label}와 조금 다를 수 있습니다.`
+  `던삐삐 계산값이라 게임 ${label}와 조금 다를 수 있습니다.`
 
 export const formatApproximateScore = (value: number): string => `≈${integer.format(value)}`
 
