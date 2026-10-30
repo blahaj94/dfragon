@@ -113,6 +113,9 @@ it('엔진이 건너뛴 점수에 낸 근사값은 근사값으로 보이고 사
   expect(toScoreView(approximate('common_level_skip_computed')).description).toBe(
     '근사값, 장비 정보 부족. 공통 스킬 레벨을 1로 두고 계산한 값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
   )
+  expect(toScoreView(approximate('missing_switching_item')).description).toBe(
+    '근사값, 장비 정보 부족. 판별하지 못한 버프 강화 아이템을 빼고 계산한 값이라 게임 장비 점수와 1% 넘게 다를 수 있습니다.'
+  )
   expect(toScoreView(approximate('new_source'))).toMatchObject({
     value: 321000,
     approximate: true,
