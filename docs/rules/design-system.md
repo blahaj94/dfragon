@@ -9,16 +9,16 @@ last-reviewed: 2026-10-27
 
 ## 적용 상태와 범위
 
-2026-10-18 결정으로 모든 workspace의 browser UI에서 SEED Design을 걷어냈다. `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하고, 외형은 StyleX로 직접 그린다. 이 패키지를 쓰는 앱은 Desktop 하나이며, 아래 [DFragon 디자인 규칙](#dfragon-디자인-규칙)으로 다시 그린다.
+2026-10-18 결정으로 모든 workspace의 browser UI에서 SEED Design을 걷어냈다. `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하고, 외형은 StyleX로 직접 그린다. 이 패키지를 쓰는 앱은 Desktop 하나이며, 아래 [던삐삐 디자인 규칙](#던삐삐-디자인-규칙)으로 다시 그린다.
 
-저장소에는 SEED 코드와 의존성이 남아 있지 않다. Desktop DFragon 디자인 적용은 화면별로 진행한다.
+저장소에는 SEED 코드와 의존성이 남아 있지 않다. Desktop 던삐삐 디자인 적용은 화면별로 진행한다.
 
 - `@dfragon/ui`에 대응하는 토큰이나 Component가 있으면 새 사용처는 그것을 쓴다.
 - Desktop의 이전 brand 색 재매핑 CSS는 삭제했으며 대신할 전역 override 예외는 두지 않는다.
-- 화면 계약에 남은 기존 색 이름과 상태 표현은 해당 화면의 DFragon 디자인 적용 PR에서 이 문서의 토큰과 규칙으로 옮긴다.
+- 화면 계약에 남은 기존 색 이름과 상태 표현은 해당 화면의 던삐삐 디자인 적용 PR에서 이 문서의 토큰과 규칙으로 옮긴다.
 - 상위, 랭커 티어 표시는 UI 셸과 fixture 데이터까지가 범위다. 공대 12인 화면은 자리별 서버, 이름 조회와 공대 캡처까지 연결했고 티어 기준은 별도 과제다.
 
-디자인 원본은 디자인 인계 저장소 [dfragon-design](https://github.com/dungeon-and-dragon/dfragon-design)의 markdown 문서와 손으로 관리하는 `design/tokens.json`이다. DFragon 디자인 시안 캔버스는 시각 참고이며, Penpot 보드와 PNG 미리보기는 superseded다.
+디자인 원본은 디자인 인계 저장소 [dfragon-design](https://github.com/dungeon-and-dragon/dfragon-design)의 markdown 문서와 손으로 관리하는 `design/tokens.json`이다. 던삐삐 디자인 시안 캔버스는 시각 참고이며, Penpot 보드와 PNG 미리보기는 superseded다.
 
 공용 자산과 Base UI를 우선 사용해 필요한 화면을 완성한다. 공용화와 예제 구축을 제품 화면의 선행 작업으로 만들지 않는다.
 
@@ -37,7 +37,7 @@ last-reviewed: 2026-10-27
 
 - 추가: `bgBar`, `bgWell`, `signal`(`#F8E8C8`), `onSignal`(`#111012`), `brandLogo`(`#E83830`), `fgAdventure`, `tierTop`(`#FFB400`), `tierRanker`(`#50E3C2`), 점수 숫자의 역할 색 `scoreDealer`(`#4FA3FF`), `scoreBuffer`(`#3CC985`), `bracket*`, `hatchAlert`, `gridLine`, 검색 실패의 노란색 `cardFailure`, `cardFailureWeak`(`#FFD54A`와 그 14% 면), 묵언의 진의 옵션 색 `oathUpgradeDamage`(`#FF4848`), `oathUpgradeCooldown`(`#4FA3FF`), `oathUpgradeOathPoint`(`#3CC985`), `oathUpgradeSpeed`(`#FFB400`), `oathUpgradeRange`(`#A066FF`). 묵언의 진의 색은 점수 역할 색, `rarity.epic`과 값이 같아도 뜻이 달라 따로 둔다(2026-10-20 사용자 결정, dfragon-design PR #45)
 - 삭제: `bgBrand*`, `fgBrand`, `fgInfo`, `borderBrand`, `borderFocus` 같은 파랑 계열 전부
-- 주의 톤: 2026-10-19 결정으로 DFragon 디자인 캔버스의 캡처 보드 값인 `fgWarning`(`#FFB400`)과 그 12% 면 `bgWarningWeak`을 다시 들인다. 라이트 값은 `provisional`이다.
+- 주의 톤: 2026-10-19 결정으로 던삐삐 디자인 캔버스의 캡처 보드 값인 `fgWarning`(`#FFB400`)과 그 12% 면 `bgWarningWeak`을 다시 들인다. 라이트 값은 `provisional`이다.
 
 라이트 모드는 유지한다. 라이트 값은 현재 값에서 임시로 가져온 `provisional`이며, `signal`과 티어 색처럼 대응 값이 없는 토큰도 임시 값이다. dfragon-design이 라이트 값을 정하면 함께 바꾼다.
 
@@ -71,12 +71,12 @@ last-reviewed: 2026-10-27
 | `Typo` | 변경 없음. 아래 [Typo의 명시적 예외](#typo의-명시적-예외)를 따른다 |
 
 - 키보드 조작, 포커스 이동과 복귀, ARIA 같은 interaction과 접근성은 Base UI가 책임진다. 공용 Component는 Base UI 부품의 semantic API를 유지하고 외형만 StyleX로 그린다. 같은 역할의 Component를 이름만 바꿔 다시 감싸지 않는다.
-- 이행 중에 두었던 `ActionButton`, `StatusBadge` alias와 `asChild` 같은 이전 prop 이름은 Desktop DFragon 디자인 적용의 마지막 PR에서 제거했다. 버튼은 `Button`, 상태 표시는 `StatusChip`을 쓰고 요소 합성은 Base UI의 `render`로 한다.
+- 이행 중에 두었던 `ActionButton`, `StatusBadge` alias와 `asChild` 같은 이전 prop 이름은 Desktop 던삐삐 디자인 적용의 마지막 PR에서 제거했다. 버튼은 `Button`, 상태 표시는 `StatusChip`을 쓰고 요소 합성은 Base UI의 `render`로 한다.
 - `@base-ui/react`는 `@dfragon/ui`의 peer dependency이자 build external이다. `@seed-design/*`, `@karrotmarket/*`는 dependency와 external에 두지 않는다. Package, CSS의 책임은 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다.
 - 업데이트에서는 바뀐 API, peer 조건, 실제 소비 경로의 호환성을 확인한다. 통상적인 호환 패치에는 별도 Rule 승인이나 전체 시각 matrix 재실행을 요구하지 않는다. 중요 동작이나 디자인 방향을 바꾸는 선택은 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
 - Base UI, Barlow Condensed처럼 새로 들이는 외부 코드와 자산의 license, NOTICE는 `@dfragon/licenses`의 고지 수집에 포함한다.
 
-## DFragon 디자인 규칙
+## 던삐삐 디자인 규칙
 
 Desktop 화면은 아래 규칙으로 그린다. 상세 값과 예시는 dfragon-design 문서를 따른다.
 
@@ -87,7 +87,7 @@ Desktop 화면은 아래 규칙으로 그린다. 상세 값과 예시는 dfragon
 - 카드 상태: 테두리 전체를 칠하지 않고 네 모서리 꺾쇠로 표시한다. 기본, 선택, 실패(노란 꺾쇠), 대기(dashed)를 구분한다. 스냅샷에 없는 모험단만 카드를 덮는 빨간 빗금(`alertHatch`)을 쓴다.
 - 모션: hover 120ms, 상태 전환 180ms, 숫자 증가 400ms와 감속 곡선 하나만 쓴다. 튕김, 흔들림, 빛 번짐은 쓰지 않으며 `prefers-reduced-motion: reduce`에서 모두 끈다.
 - 아이콘: 선 아이콘은 `stroke-linecap="square"`, `stroke-linejoin="miter"`로 그린다.
-- 라벨: 화면 라벨을 영어로 쓰지 않는다. 숫자, 단축키, 제품 이름 `DFragon`은 예외다.
+- 라벨: 화면 라벨을 영어로 쓰지 않는다. 숫자와 단축키는 예외다.
 
 ## Typo의 명시적 예외
 

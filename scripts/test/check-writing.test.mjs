@@ -31,10 +31,11 @@ async function checkFixture(t, files) {
   }
 }
 
-test('DFragon 표기, 식별자, 합니다체와 하세요체는 통과한다', async (t) => {
+test('던삐삐 표기, 식별자, 합니다체와 하세요체는 통과한다', async (t) => {
   const result = await checkFixture(t, {
     'allowed.md': [
-      'DFragon Desktop은 던파 창을 찾습니다.',
+      '던삐삐 Desktop은 던파 창을 찾습니다.',
+      '포터블 파일 이름은 DFragon 접두어로 시작합니다.',
       'DFRAGON_DISTRIBUTION_API_ORIGIN=https://api.example.test',
       '__DFRAGON_CHANNEL__, @dfragon/ui, dfragon://auth/callback, notices/DFRAGON-MODIFICATIONS.txt',
       '창 목록을 불러오지 못했습니다. 닉네임을 입력하세요. 다시 로그인해 주세요.',

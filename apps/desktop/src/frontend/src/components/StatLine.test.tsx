@@ -115,8 +115,8 @@ it('상위, 랭커 단계 카드는 라벨과 값 모두 단계 색으로 칠한
 
 it('점수의 계산값 안내와 계산하지 못한 사유를 보조 기술에 전한다', async () => {
   await render({ fame: 1, card: dealerCard })
-  expect(value('장비').textContent).toContain('DFragon 계산값')
-  expect(value('장비').getAttribute('title')).toContain('DFragon 계산값')
+  expect(value('장비').textContent).toContain('던삐삐 계산값')
+  expect(value('장비').getAttribute('title')).toContain('던삐삐 계산값')
 
   const skipped: CharacterCard = {
     ...dealerCard,

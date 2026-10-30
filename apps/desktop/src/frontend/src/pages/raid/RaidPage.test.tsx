@@ -486,7 +486,7 @@ it('공대 카드의 장비 점수는 카드 값에서 오고 계산값이나 �
       .nextElementSibling!
 
   expect(scoreOf(seats()[0]).textContent).toContain('330,556')
-  expect(scoreOf(seats()[0]).textContent).toContain('DFragon 계산값')
+  expect(scoreOf(seats()[0]).textContent).toContain('던삐삐 계산값')
   expect(scoreOf(seats()[1]).textContent).toBe('-계산하지 못함, 장비 정보 부족')
 })
 

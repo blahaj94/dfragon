@@ -32,7 +32,7 @@ if (isMvp && devRendererUrl != null) {
 
 const userData = mkdtempSync(join(tmpdir(), 'dfragon-ui-fixture-'))
 app.setPath('userData', userData)
-app.setName('DFragon UI fixture')
+app.setName('던삐삐 UI fixture')
 nativeTheme.themeSource = theme
 app.on('window-all-closed', () => app.quit())
 app.on('quit', () => rmSync(userData, { recursive: true, force: true }))
@@ -43,7 +43,7 @@ app.whenReady().then(async () => {
     callback(false)
   )
 
-  const title = `DFragon UI fixture — ${mode}, ${theme}`
+  const title = `던삐삐 UI fixture — ${mode}, ${theme}`
   const width = isMvp ? 900 : 1100
   const height = isMvp ? 600 : 800
   const window = new BrowserWindow({

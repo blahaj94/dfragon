@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "./out/backend/main.js",
-  "author": "DFragon contributors",
+  "author": "던삐삐 contributors",
   "homepage": "https://github.com/dungeon-and-dragon/dfragon",
   "scripts": {
     "postinstall": "electron-builder install-app-deps",

@@ -1,11 +1,12 @@
 {
   "development": {
     "packaging": {
-      "productName": "DFragon Development",
+      "productName": "던삐삐 Development",
       "executableName": "dfragon-dev",
       "packageName": "@dfragon/desktop",
       "output": "dist/development",
-      "installerInclude": "build/development-installer.nsh"
+      "installerInclude": "build/development-installer.nsh",
+      "artifactPrefix": "DFragon Development"
     },
     "identity": {
       "appIdentity": "dfragon.dev"
@@ -16,7 +17,7 @@
   },
   "test": {
     "packaging": {
-      "productName": "DFragon Test",
+      "productName": "던삐삐 Test",
       "executableName": "dfragon-test",
       "packageName": "dfragon-test",
       "output": "dist/test",
@@ -31,11 +32,12 @@
   },
   "distribution": {
     "packaging": {
-      "productName": "DFragon",
+      "productName": "던삐삐",
       "executableName": "dfragon",
       "packageName": "dfragon",
       "output": "dist",
-      "installerInclude": "build/distribution-installer.nsh"
+      "installerInclude": "build/distribution-installer.nsh",
+      "artifactPrefix": "DFragon"
     },
     "identity": {
       "appIdentity": "dfragon"

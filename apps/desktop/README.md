@@ -1,14 +1,14 @@
-# DFragon Desktop
+# 던삐삐 Desktop
 
 던전앤파이터 캐릭터를 직접 검색하거나 게임 화면의 닉네임을 PaddleOCR로 읽어 검색하는 Windows 앱입니다. 로그인 없이 사용합니다. 던파 창이 하나면 자동으로 등록하고, **Alt+R**을 누를 때마다 한 프레임으로 네 파티 슬롯을 인식하고 검색합니다. 각 카드 중앙에 OCR부터 조회 완료까지 진행 상태를 표시합니다. OCR 첫 번째 이름만 검색하며 외형을 확인하지 못하면 최고 명성 후보를 대체 표시합니다. 서버와 닉네임은 항상 수정할 수 있고, 카드는 모험단, 길드, 이름, 직업, 명성과 장비 점수를 보입니다. 창은 파티 화면에서 1280×163, 공대 화면에서 1280×300으로 작게 열리고 화면을 바꿀 때 높이가 바뀝니다.
 
 ## 실행 중 오류 확인
 
-앱에서 **Ctrl+Shift+I**를 누르면 Electron 기본 DevTools가 열립니다. **Console**의 `[DFragon ...]` 항목에서 캡처, OCR, 검색, 새 버전 확인과 화면 오류의 정제된 코드를 확인합니다. 최근 200개 기록을 현재 프로세스 메모리에만 유지하며 같은 오류가 연속되면 중복을 줄입니다. 앱을 종료하면 없어지고 파일로 저장하지 않습니다.
+앱에서 **Ctrl+Shift+I**를 누르면 Electron 기본 DevTools가 열립니다. **Console**의 `[던삐삐 ...]` 항목에서 캡처, OCR, 검색, 새 버전 확인과 화면 오류의 정제된 코드를 확인합니다. 최근 200개 기록을 현재 프로세스 메모리에만 유지하며 같은 오류가 연속되면 중복을 줄입니다. 앱을 종료하면 없어지고 파일로 저장하지 않습니다.
 
 원문 오류, 닉네임, 토큰, 이미지, 외부 응답과 개인 경로는 이 진단 기록에 넣지 않습니다. 따라서 상세 stack 대신 실패 영역과 고정 코드를 확인하는 용도입니다. 앱이 종료되는 치명적 오류의 기록은 다음 실행으로 복구하지 않습니다.
 
-‘닉네임을 읽지 못했습니다’ 원인을 확인할 수 있도록, OCR 첫 후보를 검색에 쓰지 못한 슬롯은 같은 Console에 `[DFragon ...] 슬롯 n의 OCR 첫 후보를 검색에 쓰지 못했습니다. 이유: …, 원문: "…"` 한 줄을 표시합니다. 이유는 후보 없음, 빈 문자열, 최대 길이 초과, 잘못된 Unicode 중 하나입니다. 원문은 앞뒤 공백이 보이도록 JSON 문자열로 표시하고, 후보가 없으면 `없음`으로 표시합니다. 이 줄은 화면 프로세스의 Console에만 남고 위 진단 기록과 파일에는 넣지 않습니다.
+‘닉네임을 읽지 못했습니다’ 원인을 확인할 수 있도록, OCR 첫 후보를 검색에 쓰지 못한 슬롯은 같은 Console에 `[던삐삐 ...] 슬롯 n의 OCR 첫 후보를 검색에 쓰지 못했습니다. 이유: …, 원문: "…"` 한 줄을 표시합니다. 이유는 후보 없음, 빈 문자열, 최대 길이 초과, 잘못된 Unicode 중 하나입니다. 원문은 앞뒤 공백이 보이도록 JSON 문자열로 표시하고, 후보가 없으면 `없음`으로 표시합니다. 이 줄은 화면 프로세스의 Console에만 남고 위 진단 기록과 파일에는 넣지 않습니다.
 
 ## 피아노 사운드 패키지
 
@@ -16,7 +16,7 @@
 
 ## 기존 배포본 설치와 사용
 
-1. GitHub Releases에서 `DFragon-<버전>-x64-portable.exe`를 내려받습니다. 설치 없이 실행하는 포터블이며 개발 앱 `DFragon Development`와 별도로 사용할 수 있습니다. 같은 이름 뒤에 `.sha256`이 붙은 파일의 값과 `Get-FileHash`로 구한 값을 비교해 손상 여부를 확인합니다.
+1. GitHub Releases에서 `DFragon-<버전>-x64-portable.exe`를 내려받습니다. 설치 없이 실행하는 포터블이며 개발 앱 `던삐삐 Development`와 별도로 사용할 수 있습니다. 같은 이름 뒤에 `.sha256`이 붙은 파일의 값과 `Get-FileHash`로 구한 값을 비교해 손상 여부를 확인합니다.
 2. 내려받은 exe를 실행하고 Windows 관리자 권한 요청을 승인합니다. 바로가기는 만들지 않으므로 exe를 원하는 폴더에 두고 실행합니다. Node.js, DB와 OCR 모델을 별도로 설치할 필요는 없으며 검색에는 인터넷과 배포 API 연결이 필요합니다.
 3. 닉네임을 입력해 직접 검색하거나 게임을 **창 모드 또는 테두리 없는 창 모드**로 맞추고 HP, MP가 가득 찬 파티 프레임을 표시합니다. 앱 시작 시 던파 창이 하나면 자동으로 등록합니다. 상단 바의 게임 연결 상태 칩을 눌러 연 화면 캡처 창에서 직접 창을 선택할 때도 등록만 하며 인식은 시작하지 않습니다. 게임을 나중에 실행해도 기본 15초 간격으로 감지합니다. 후보가 여러 개면 직접 선택하며 화면 캡처 창의 **새로고침**으로 즉시 확인할 수 있습니다.
 4. 창 등록 뒤 **Alt+R** 또는 상단 바의 캡처 버튼(카메라 아이콘)으로 회차를 시작합니다. 상단 바 버튼에 마우스를 올리면 단축키가 보이며, **Alt+W**는 모험단 순번 스냅샷을 켜고 **Alt+A**는 지금 화면의 자리 값을 클립보드에 복사합니다. 캡처 버튼은 **Alt+R**과 같은 회차를 시작하며 **Alt+R**이 무시되는 동안에는 누를 수 없습니다. 이전 검색, 인식 상태를 비우고 검색을 준비한 뒤 프레임을 한 장만 읽어 네 슬롯을 처리합니다. 진행 중이나 완료 뒤 **Alt+R**을 다시 누르면 처음부터 새 회차를 시작하며 늦은 이전 결과는 반영하지 않습니다. 검색 수명을 시작하는 동안 누른 **Alt+R**은 무시합니다. 상단 바는 진행 중 **인식 중**, 완료 뒤 **인식 완료**, 게임 창이 가려졌거나 파티 프레임이 없어 안내 후 끝나면 **확인 필요**를 표시합니다. 한 번 조회한 결과는 파티원이 바뀌어도 유지하며 수동 조회는 새 프레임을 읽지 않습니다. 서버와 닉네임은 언제든 수정하고 **Enter 또는 서버 변경**으로 해당 슬롯만 조회합니다. 외형 비교로 한 명을 확정하지 못하면 카드 위에 후보 창이 뜹니다. 얼굴을 한 번 누르면 그 후보로 미리보고, 다시 누르면 확정합니다. 후보 창을 닫으면 카드에 **후보 N** 칩이 남고 누르면 다시 열립니다.
@@ -64,7 +64,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 production 환경 변수 대신 사용할 공개 API 주소이며 비우면 환경 변수를 사용합니다. 이 실행도 main branch나 `v*` tag에서 시작한 경우에만 production 환경을 쓸 수 있습니다. Release 게시와 같은 main 포함 확인을 적용합니다. 같은 이름의 exe나 checksum 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 `v<버전>` 형식이 아닌 태그도 빌드를 중단합니다. 로컬 `build:win:portable` 명령은 `package.json`의 기본 버전을 사용합니다.
 
-PR 제목 scope가 `(build)`인 관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 DFragon Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 검색, 캡처, OCR을 확인하는 용도입니다. API는 항상 운영 API `https://api.dfragon.com`이며 빌드 변수로 바꾸지 않습니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 DFragon과 profile이 겹치지 않습니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
+PR 제목 scope가 `(build)`인 관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 던삐삐 Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 검색, 캡처, OCR을 확인하는 용도입니다. API는 항상 운영 API `https://api.dfragon.com`이며 빌드 변수로 바꾸지 않습니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 던삐삐와 profile이 겹치지 않습니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
 
 ```powershell
 gh run download <실행 ID> --repo dungeon-and-dragon/dfragon -n windows-x64-portable-test -D "$HOME\Downloads\dfragon-test-<실행 ID>"
@@ -82,7 +82,7 @@ gh run download <실행 ID> --repo dungeon-and-dragon/dfragon -n windows-x64-por
 | `development`  | 로컬 API를 바라보는 개발 설치본               | `development`              | `build:win:development`                       |
 | `test`         | PR 실기 테스트용 포터블                       | `test`                     | Windows Test Build artifact, `build:win:test:portable` |
 
-각 채널의 앱 이름, 실행 파일, identity, API origin 값은 이 표가 아니라 `build/channels.json`의 해당 항목에서 읽습니다. 값을 바꿀 때는 `build/channels.test.ts`의 고정값을 함께 고칩니다. identity를 바꾸면 설치된 사용자의 profile 경로가 바뀝니다.
+각 채널의 앱 이름, 실행 파일, identity, API origin 값은 이 표가 아니라 `build/channels.json`의 해당 항목에서 읽습니다. 값을 바꿀 때는 `build/channels.test.ts`의 고정값을 함께 고칩니다. identity를 바꾸면 설치된 사용자의 profile 경로가 바뀝니다. 앱 이름(`productName`)은 작업 표시줄, 바로 가기와 제거 목록에 보이는 이름이라 `던삐삐`를 씁니다. 설치, 포터블 파일 이름은 Release workflow의 glob과 맞도록 영문 `artifactPrefix`로 시작합니다.
 
 배포 앱, 개발 앱, PR용 test 채널의 공개 값은 `build/channels.json`에 채널별로 모아 둡니다. 앱 이름, 실행 파일 이름, package 이름, 출력 폴더, NSIS include, identity와 API origin의 출처가 여기에 있으며 `build/channels.ts`가 빌드 시 형식과 공개 origin 조건을 검증합니다. 채널 빌드는 `appData/<identity>`를 profile로 쓰고 같은 채널은 한 인스턴스만 띄웁니다. 빌드가 이 파일에서 채널 하나의 identity와 origin을 main bundle에 넣고, packaging 설정은 `build/electron-builder-config.ts`가 이 파일로 만듭니다. 기본 진입 파일 `electron-builder.ts`는 `DFRAGON_CHANNEL` 환경변수로 채널을 고르고 비우면 배포 채널이며, `electron-builder.development.ts`와 `electron-builder.test-channel.ts`는 각각 개발, test 채널로 고정되어 Windows PowerShell에서 환경변수 없이 쓸 수 있습니다. `scripts/desktop-package-fuses.test.mjs`와 `build/electron-builder-config.test.ts`가 electron-builder가 읽는 설정과 이 파일의 일치를 검사합니다. Secret, credential은 이 파일에 넣지 않습니다.
 
