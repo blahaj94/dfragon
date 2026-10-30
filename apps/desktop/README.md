@@ -44,6 +44,8 @@ pnpm --filter @dfragon/desktop build:win
 
 설치 파일은 `apps/desktop/dist/DFragon-<버전>-x64-setup.exe`에 생성됩니다. 명령은 node/web typecheck, OCR 자산 검증, 복사, main/preload/renderer 빌드, NSIS 패키징을 포함합니다. API 주소가 없거나 HTTP, localhost, 경로/쿼리가 포함된 값이면 실패합니다. 예시 주소로 패키징에 성공해도 실제 배포, 검색 검증이 된 것이 아닙니다.
 
+제3자 고지는 app.asar 안의 `out/frontend/notices`, `out/frontend/ocr`에 있고, 패키지는 사용자가 asar를 풀지 않고 읽도록 같은 고지를 앱 폴더의 `licenses/`에도 평문으로 둡니다. `licenses/THIRD-PARTY.txt`가 npm 패키지, `licenses/desktop`, `licenses/lib`, `licenses/score-engine`이 글꼴과 UI 자산, CP949 표, 점수 엔진, `licenses/ocr`이 OCR 모델과 ONNX Runtime의 고지입니다. Electron, Chromium 고지(`LICENSE.electron.txt`, `LICENSES.chromium.html`)는 electron-builder가 같은 앱 폴더에 둡니다.
+
 Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 한국어(대한민국, LCID `0x0412`)로 기록합니다. 이 값은 EXE 메타데이터에 적용하며 앱 UI와 라이선스 원문은 기존 구성을 유지합니다.
 
 패키지에는 Chromium이 직접 띄우는 문구의 번역 파일(`locales/*.pak`) 가운데 한국어(`ko`)와 영어(`en-US`)만 넣습니다. 앱 화면은 한국어로만 만들기 때문에 나머지 53개 언어(약 49MB)는 넣지 않습니다. 다른 언어로 설정한 Windows에서는 Chromium이 영어로 대신 열어, Chromium 기본 문구와 진단 기록의 시각 표기가 영어 형식으로 나옵니다.
