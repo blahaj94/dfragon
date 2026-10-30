@@ -53,7 +53,8 @@ export function CharacterCard({
   const { editing } = draft
   const score = toScoreView(characterFound ? character.card : null, card.scorePending)
   const busy = loading || state === 'pending'
-  const lookupStep = getLookupStep(card)
+  // 미리보기 조회 동안은 처음 누를 때의 카드 사본을 보이므로, 그 사본에 남은 상세 대기로 진행 점을 그리지 않는다.
+  const lookupStep = previewing ? null : getLookupStep(card)
   const cardStatus = getCharacterCardStatus(state)
   const slotNotice = draft.inputNotice || notice
   const emptyMessage = state === 'empty' ? cardStatus : ''

@@ -17,8 +17,6 @@ export const styles = stylex.create({
   raidDot: { width: 4, height: 4 },
   done: { backgroundColor: colors.signal },
   active: {
-    backgroundColor: colors.signal,
-    opacity: { default: 1, '@media (prefers-reduced-motion: reduce)': 0.5 },
     animationName: { default: blink, '@media (prefers-reduced-motion: reduce)': 'none' },
     animationDuration: motion.beat,
     animationTimingFunction: 'steps(1, end)',
