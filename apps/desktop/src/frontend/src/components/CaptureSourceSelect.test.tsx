@@ -73,6 +73,33 @@ function announcer(): HTMLElement {
   return document.querySelector<HTMLElement>('[data-capture-announcer]')!
 }
 
+function dialogAnnouncer(): HTMLElement | undefined {
+  return [...dialog().querySelectorAll<HTMLElement>('span[role="status"]')].find(
+    (status) => !status.hasAttribute('data-tone')
+  )
+}
+
+function tooltip(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('[role="tooltip"], [data-side]')
+}
+
+function visibleText(element: HTMLElement): string | null {
+  const copy = element.cloneNode(true) as HTMLElement
+  for (const status of copy.querySelectorAll('[data-dialog-announcer]')) {
+    status.remove()
+  }
+
+  return copy.textContent
+}
+
+async function hover(element: HTMLElement): Promise<void> {
+  await act(async () => {
+    element.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
+    element.dispatchEvent(new MouseEvent('mouseenter'))
+    element.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }))
+  })
+}
+
 function retryProgress(): HTMLElement | null {
   return document.querySelector<HTMLElement>('[data-retry-progress]')
 }
@@ -284,17 +311,8 @@ it('캡처 중지 버튼은 클릭 이벤트를 넘기지 않고 stopCapture를 
   expect(props.stopCapture).toHaveBeenCalledExactlyOnceWith()
 })
 
-it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에는 캡처 중지를 두지 않는다', async () => {
-  props.phase = 'unavailable'
-  props.status = '게임 창이 가려져 있습니다. 게임 창을 앞으로 가져온 뒤 Alt+R을 누르세요.'
+it('창을 고르기 전에는 캡처 중지를 두지 않는다', async () => {
   await openDialog()
-  const notice = dialog().querySelector<HTMLElement>('p[role="status"]')!
-  expect(notice.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe('주의')
-  expect(notice.textContent).toBe(`!${props.status}`)
-  props.phase = 'complete'
-  props.status = '인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.'
-  await render()
-  expect(dialog().querySelector('p[role="status"] [role="img"]')).toBeNull()
   props.phase = 'selected'
   props.source.sources = [{ id: 'other', name: '테스트 창' }]
   props.source.selectedSourceId = 'other'
@@ -319,18 +337,22 @@ it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에
   expect(actions()).toEqual(['새로고침', '닫기'])
 })
 
-it('안내는 헤더 줄의 상태 칩 오른쪽 한 줄이고 전체 문구를 title로 전한다', async () => {
-  props.phase = 'failed'
-  props.status = '게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.'
-  await openDialog()
-  const chip = dialog().querySelector<HTMLElement>('[role="status"][data-tone]')!
-  const notice = dialog().querySelector<HTMLElement>('p[role="status"]')!
-  expect(notice.getAttribute('title')).toBe(props.status)
-  expect(notice.parentElement).toBe(chip.parentElement)
-  expect(chip.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+it('캡처 안내는 대화상자에 펼치지 않고 상단 캡처 칩에 마우스를 올리면 툴팁으로 보인다', async () => {
+  props.status = '인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.'
+  await render()
+  await hover(chip())
+  await vi.waitFor(() => expect(tooltip()?.textContent).toBe(props.status))
+  await click(chip())
+  expect(visibleText(dialog())).not.toContain(props.status)
+  await click(dialog().querySelector<HTMLButtonElement>('button[aria-label="닫기"]')!)
+  await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+  const shownChip = chip()
   props.status = ''
   await render()
-  expect(dialog().querySelector('p[role="status"]')).toBeNull()
+  expect(chip()).toBe(shownChip)
+  await hover(chip())
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 50)))
+  expect(tooltip()).toBeNull()
 })
 
 it('새로고침 버튼은 창 목록을 다시 조회하고 대화상자를 연 채로 둔다', async () => {
@@ -390,7 +412,7 @@ it('대화상자를 닫은 동안 화면 밖 안내가 캡처 문구를 알리�
   expect(announcer().closest('[aria-hidden="true"], [inert]')).toBeNull()
   await click(chip())
   expect(announcer().closest('[aria-hidden="true"], [inert]')).not.toBeNull()
-  expect(dialog().querySelector('p[role="status"]')?.textContent).toBe(`!${props.status}`)
+  expect(dialogAnnouncer()?.textContent).toBe(props.status)
   await click(dialog().querySelector<HTMLButtonElement>('button[aria-label="닫기"]')!)
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   props.phase = 'failed'
@@ -406,18 +428,6 @@ it('캡처가 실패로 끝나면 창 감지 대신 위험 톤의 캡처 실패�
   expect(chip().getAttribute('aria-label')).toBe('화면 캡처, 캡처 실패')
   expect(chip().querySelector('[data-tone]')?.getAttribute('data-tone')).toBe('danger')
   await click(chip())
-  const notice = dialog().querySelector<HTMLElement>('p[role="status"]')!
-  const failureMark = notice.querySelector('[role="img"]')!
-  expect(failureMark.getAttribute('aria-label')).toBe('실패')
-  expect(notice.textContent).toBe(`!${props.status}`)
-  const failureClass = failureMark.className
-  props.phase = 'unavailable'
-  await render()
-  const warningMark = dialog().querySelector('p[role="status"] [role="img"]')!
-  expect(warningMark.getAttribute('aria-label')).toBe('주의')
-  expect(warningMark.className).not.toBe(failureClass)
-  props.phase = 'failed'
-  await render()
   const corner = dialog().querySelector<HTMLElement>(':scope > [aria-hidden="true"]')!
   expect(corner.dataset.tone).toBe('danger')
   expect(

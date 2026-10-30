@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, font, motion, size, space } from '@dfragon/ui/tokens.stylex'
+import { colors, motion, size, space } from '@dfragon/ui/tokens.stylex'
 
 const pulseTopLeft = stylex.keyframes({
   '0%': { transform: 'translate(-4px, -4px)', opacity: 0.5 },
@@ -121,39 +121,6 @@ export const styles = stylex.create({
   // 닫기 아이콘은 18px이다. IconButton sm의 16px 아이콘 칸 가운데에 두려고 바깥으로 1px씩 넘긴다.
   closeIcon: { width: 18, height: 18, margin: -1 },
   body: { paddingInline: space.s16, paddingBottom: space.s16 },
-  notice: {
-    display: 'flex',
-    alignItems: 'center',
-    flexGrow: 1,
-    gap: space.s8,
-    minWidth: 0,
-    margin: 0,
-    fontSize: 12,
-    lineHeight: '14px',
-    color: colors.fgMuted
-  },
-  noticeText: {
-    minWidth: 0,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap'
-  },
-  mark: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    width: 18,
-    height: 18,
-    fontFamily: font.num,
-    fontSize: 14,
-    fontWeight: 700
-  },
-  warningMark: {
-    backgroundColor: `color-mix(in srgb, ${colors.fgWarning} 16%, transparent)`,
-    color: colors.fgWarning
-  },
-  failureMark: { backgroundColor: colors.bgDangerWeak, color: colors.fgDanger },
   secondaryAction: {
     paddingLeft: 18,
     paddingRight: 18,
