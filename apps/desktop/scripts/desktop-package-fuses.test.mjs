@@ -1,5 +1,4 @@
-// fuse 검사는 electron-builder의 실제 getConfig와 schema 검증으로 설정값만 확인한다. packaged 실행 파일의
-// fuse readback과 실제 inspector 차단은 실행하지 않으며 별도 native gate로 남긴다(Issue #1027).
+// fuse 검사는 electron-builder의 실제 getConfig와 schema 검증으로 설정값만 확인한다.
 import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
