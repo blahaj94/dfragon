@@ -14,7 +14,7 @@ last-reviewed: 2026-10-30
 | 필요한 내용 | 위치 |
 | --- | --- |
 | formatter/linter 설정과 생성물 경계 | [도구 적용](rules/convention-tooling.md) |
-| 제품 이미지 실행, 인프라 운영 원본 | [서버 이미지 안내](reference/api-start-development.md#서버-이미지) |
+| 제품 이미지 실행, 인프라 운영 원본 | [서버 이미지 안내](../apps/api/README.md#서버-이미지) |
 | 명령과 현재 파일 구조 | [scripts 안내](../scripts/README.md), [Repository Map](reference/repository-map.md) |
 | app, package 경계 | [Architecture Overview](architecture/overview.md) |
 | API runtime, 검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md), [오늘의 등급](rules/today-grade.md) |

@@ -38,7 +38,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 
 배포 workflow는 다음과 같다. 저장소 Actions 설정은 외부 action을 40자리 commit SHA로 고정하도록 요구하므로 tag로 참조한 action은 실행되지 않는다. Action, npm catalog, Docker base image 갱신은 `.github/dependabot.yml`이 기본 7일 cooldown(npm major는 14일)을 둔 월간 PR로 제안하며, 관련 패키지와 이미지는 group으로 묶는다.
 
-- `.github/workflows/product-images.yml`: main push에서 API 이미지를 빌드해 GHCR에 발행한다. [서버 이미지](api-start-development.md#서버-이미지)를 참고한다.
+- `.github/workflows/product-images.yml`: main push에서 API 이미지를 빌드해 GHCR에 발행한다. [서버 이미지](../../apps/api/README.md#서버-이미지)를 참고한다.
 - `.github/workflows/desktop-test-build.yml`: Desktop 관련 PR에서 test channel 포터블 exe를 artifact로 만든다.
 - `.github/workflows/desktop-release.yml`: Release 게시나 수동 실행에서 배포 포터블 exe를 Release에 첨부한다. [포터블 exe와 GitHub Releases](../../apps/desktop/README.md#포터블-exe와-github-releases)를 참고한다.
 
@@ -72,7 +72,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 - DB를 쓰지 않는다. Neople에서 조회한 캐릭터는 API 메모리에 1시간, 공용 아이템 상세는 24시간, 오늘의 등급은 다음 0시(KST)까지 캐시한다. `POST /characters/:serverId/:characterId/refresh`가 캐릭터 캐시를 건너뛰고 다시 받는다.
 - 필수 입력: `PORT`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정, JWT를 사용하지 않는다.
 - `test`는 build, 타입, 단위, HTTP 검증이다.
-- 개발: [API 개발](api-start-development.md). 이미지 실행, 운영 책임: [제품 안내](api-start-development.md#서버-이미지).
+- 개발: [API 안내](../../apps/api/README.md). 이미지 실행, 운영 책임: [서버 이미지](../../apps/api/README.md#서버-이미지).
 
 ### `apps/desktop`
 

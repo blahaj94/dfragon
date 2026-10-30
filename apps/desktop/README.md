@@ -90,13 +90,13 @@ NSIS는 protocol을 등록하지 않으며 다른 앱의 scheme 소유를 이유
 
 ### 배포 API와 설치본 확인
 
-배포 앱은 다른 PC가 접근할 수 있는 HTTPS API를 사용합니다. 운영 API는 `https://api.dfragon.com`이며 test 채널도 항상 이 주소를 씁니다(`build/channels.json`). 서버 설정은 [API 설정](../../docs/reference/api-start-development.md)을 따릅니다. localhost 개발 API나 예시 주소를 배포 서버로 취급하지 않습니다.
+배포 앱은 다른 PC가 접근할 수 있는 HTTPS API를 사용합니다. 운영 API는 `https://api.dfragon.com`이며 test 채널도 항상 이 주소를 씁니다(`build/channels.json`). 서버 설정은 [API 설정](../api/README.md)을 따릅니다. localhost 개발 API나 예시 주소를 배포 서버로 취급하지 않습니다.
 
 실제 배포 origin으로 빌드한 설치 앱에서 **직접 검색 → 지정한 게임 창 캡처 → OCR → 결과**를 확인합니다. 닉네임 수정 유지, OCR 복귀, 중지 후 정리도 같은 흐름에서 확인합니다. 빌드, unit test, 합성 데이터 UI 확인은 이 실제 확인을 대신하지 않습니다.
 
 ## 카드 화면 개발
 
-검색까지 개발할 때는 `apps/desktop/.env.example`을 같은 폴더의 `.env`로 복사합니다. 템플릿의 검색 API `DFRAGON_API_ORIGIN`은 로컬 API를 가리킵니다. 실제 `.env`는 Git에서 제외됩니다. API는 [로컬 개발 명령](../../docs/reference/api-start-development.md#로컬-개발-명령)으로 먼저 실행합니다.
+검색까지 개발할 때는 `apps/desktop/.env.example`을 같은 폴더의 `.env`로 복사합니다. 템플릿의 검색 API `DFRAGON_API_ORIGIN`은 로컬 API를 가리킵니다. 실제 `.env`는 Git에서 제외됩니다. API는 [로컬 개발 명령](../api/README.md#로컬-개발-명령)으로 먼저 실행합니다.
 
 ```sh
 # 최초 한 번 복사하고 실제 개발 설정으로 수정합니다.
