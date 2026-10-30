@@ -8,11 +8,6 @@
 
 [dfragon.com](https://dfragon.com)이나 [최신 Release](https://github.com/dungeon-and-dragon/dfragon/releases/latest)에서 `DFragon-<버전>-x64-portable.exe`를 내려받습니다.
 
-- 설치 없이 실행하는 Windows x64용 포터블 exe입니다. Node.js나 OCR 모델을 따로 설치할 필요가 없습니다.
-- 같은 Release에 있는 `.sha256` 파일의 값과 `Get-FileHash`로 구한 값을 비교해 손상 여부를 확인할 수 있습니다.
-- 코드 서명이 없어 Windows에서 확인되지 않은 게시자로 표시될 수 있습니다.
-- 자동 업데이트는 없습니다. 새 버전이 나오면 상단 바의 칩으로 알리며, 앱을 종료하고 새 exe를 내려받아 실행합니다.
-
 ## 사용법
 
 1. exe를 실행하고 Windows 관리자 권한 요청을 승인합니다.
