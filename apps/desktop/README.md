@@ -173,7 +173,7 @@ git add packages/models/ocr-finetuned apps/desktop/ocr-model.config.mjs
 
 준비 단계는 앱과 같은 [ONNX Runtime WASM의 추론 API](https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.html)로 `[1, 3, 48, 320]` 입력을 실행해 출력 형식과 사전 클래스 수를 검사합니다. 출력은 유한한 0~1의 softmax 확률이고 시점별 클래스 확률 합이 1이어야 하며, 합계 오차는 0.001까지 허용합니다. 런타임 디코더도 같은 조건을 검사하고 허용된 합계 오차만 보정합니다. logits에 softmax를 다시 적용하지 않습니다. 파일 누락이나 호환성 오류는 빌드 실패로 처리하며 기본 모델로 대체하지 않습니다. 이 검사가 실패하면 기존 public OCR 산출물을 지우지 않습니다. 인식 정확도와 같은 문자 수를 가진 사전의 순서 일치는 자동으로 보장하지 못하므로, 개발자 평가에서 실제 정답 이미지로 확인합니다.
 
-생성된 `src/frontend/public/ocr/provenance.json`에는 선택한 모델 이름과 실제 배포 파일의 SHA-256을 기록합니다. 사용자 모델을 기본 upstream revision으로 표시하거나 로컬 경로를 산출물에 넣지 않습니다. 기존 PaddleOCR와 ONNX Runtime 라이선스 고지는 유지합니다.
+생성된 `src/frontend/public/ocr/provenance.json`에는 선택한 모델 이름과 실제 배포 파일의 SHA-256을 기록합니다. 사용자 모델을 기본 upstream revision으로 표시하거나 로컬 경로를 산출물에 넣지 않습니다. 기존 PaddleOCR와 ONNX Runtime 라이선스 고지는 유지합니다. 모델 설정에 `noticePath`가 있으면 그 파일을 `OCR-Model-NOTICE.txt`로 함께 배포합니다. 파인튜닝 모델은 Apache-2.0 원본을 바꾼 파생물이라 `fineTunedOcrModel`이 모델 저장소의 `NOTICE`(출처와 변경 내역)를 지정하며, 이 파일을 읽지 못하면 빌드를 실패시킵니다.
 
 ### 실행 provider
 
