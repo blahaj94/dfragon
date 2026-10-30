@@ -91,10 +91,10 @@ export const styles = stylex.create({
   title: {
     margin: 0,
     fontFamily: siteFonts.title,
-    fontSize: 36,
+    fontSize: { default: 36, '@media (max-width: 479px)': 24 },
     fontWeight: 700,
-    lineHeight: '48px',
-    textWrap: 'pretty'
+    lineHeight: { default: '48px', '@media (max-width: 479px)': '36px' },
+    whiteSpace: 'nowrap'
   },
   mockup: {
     maxWidth: '100%',

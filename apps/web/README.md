@@ -42,7 +42,7 @@ pnpm --filter @dfragon/web preview
 
 - `index.html`: 제목, 설명, OG 메타 태그. OG 이미지는 `https://dfragon.com/og.png`(1200×630)를 가리키며, 이미지는 `public/og.png`에 둡니다.
 - `src/App.tsx`: 상단 바(아이콘, 이름, GitHub 링크), 첫 화면, 푸터입니다. 첫 화면 배경은 방문자의 현지 시각에 따라 Desktop 창 아이콘과 같은 밤, 새벽, 낮, 오후 바다 그림으로 바뀝니다.
-- `src/download`: GitHub API `repos/dungeon-and-dragon/dfragon/releases/latest`에서 `DFragon-<버전>-x64-portable.exe`의 주소, 버전, 용량을 읽습니다. 요청이 실패하거나, 사용량 제한에 걸리거나, 포터블 exe가 없거나, 주소가 `https://github.com/` 밖이면 버튼은 Release 페이지(`releases/latest`)로 보내고 버전, 용량 없이 안내합니다. GitHub의 `releases/latest`는 Pre-release를 제외합니다.
+- `src/download`: GitHub API `repos/dungeon-and-dragon/dfragon/releases/latest`에서 `DFragon-<버전>-x64-portable.exe`의 주소를 읽어 내려받기 버튼에 씁니다. 버튼 아래에 버전, 용량 같은 안내 줄은 두지 않습니다(2026-10-31 결정). 요청이 실패하거나, 사용량 제한에 걸리거나, 포터블 exe가 없거나, 주소가 `https://github.com/` 밖이면 버튼은 Release 페이지(`releases/latest`)로 보냅니다. GitHub의 `releases/latest`는 Pre-release를 제외합니다.
 - 창 목업: Desktop renderer가 사이트용으로 공개한 `apps/desktop/src/frontend/src/site/index.ts`를 `@dfragon/desktop-site` 별칭으로 가져옵니다. 실제 상단 바와 카드 컴포넌트를 쓰고, 캡처와 검색 IPC 대신 각본 상태로 카드를 채웁니다. Desktop의 다른 source는 직접 import하지 않습니다. 별칭은 `workspace-aliases.ts`와 `tsconfig.app.json`의 `paths`에 있습니다.
 
 ## 글꼴과 고지
@@ -57,4 +57,4 @@ pnpm --filter @dfragon/web preview
 
 ## 테스트 경계
 
-`src/download`의 테스트는 2026-10-31 v0.1.0 응답 형태로 버튼 주소와 버전 줄, Release 페이지로 보내는 경우를 확인합니다. 창 목업의 각본은 Desktop의 `site/WindowMockup.test.tsx`가 확인합니다. jsdom은 실제 레이아웃을 재현하지 않으므로 390px 폭의 가로 넘침, 글자 대비, 키보드 조작은 production build를 브라우저에서 확인합니다.
+`src/download`의 테스트는 2026-10-31 v0.1.0 응답 형태로 버튼 주소와 Release 페이지로 보내는 경우를 확인합니다. 창 목업의 각본은 Desktop의 `site/WindowMockup.test.tsx`가 확인합니다. jsdom은 실제 레이아웃을 재현하지 않으므로 390px 폭의 가로 넘침, 글자 대비, 키보드 조작은 production build를 브라우저에서 확인합니다.

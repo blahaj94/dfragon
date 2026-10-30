@@ -35,9 +35,9 @@ function bufferCard(value: number): CharacterCard {
     role: 'buffer',
     score: {
       calculator: 'buff',
-      value: null,
-      skipped: { kind: 'resolution', message: '' },
-      approximate: { value, source: 'missing_switching_item', warning: '' },
+      value,
+      skipped: null,
+      approximate: null,
       versions: SCORE_VERSIONS
     }
   }
@@ -45,8 +45,8 @@ function bufferCard(value: number): CharacterCard {
 
 const members: readonly [string, ServerId, number, CharacterCard, string][] = [
   [portrait01, 'siroco', 125850, dealerCard(614806), '웨펀마스터'],
-  [portrait02, 'cain', 98420, dealerCard(581240), '배틀메이지'],
-  [portrait03, 'siroco', 110230, dealerCard(723410), '소드마스터'],
+  [portrait02, 'cain', 98420, dealerCard(581240), '넨마스터'],
+  [portrait03, 'siroco', 110230, dealerCard(723410), '스트라이커'],
   [portrait04, 'siroco', 102775, bufferCard(144800), '크루세이더'],
   [portrait05, 'siroco', 131040, dealerCard(902310), '레인저'],
   [portrait06, 'siroco', 96880, dealerCard(655900), '스트라이커'],
