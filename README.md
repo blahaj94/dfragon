@@ -25,8 +25,8 @@
 ## 앱이 보내는 정보
 
 - **캐릭터 검색**: 서버와 닉네임을 API(`api.dfragon.com`)에 보내고, API가 [Neople 오픈 API](https://developers.neople.co.kr)에서 조회합니다.
-- **새 버전 확인**: 시작할 때와 이후 6시간마다 GitHub Release 목록을 확인합니다. github.com에 IP와 User-Agent가 전달됩니다. 기준은 [ADR 0001](docs/adr/0001-update-notice-without-auto-install.md)에 있습니다.
-- **사용 통계**: 앱 실행, 캡처 회차, 직접 검색을 할 때 Google Analytics 4에 이벤트를 보냅니다. 설치별 무작위 ID, 세션 ID, 앱 버전, 파티와 공대 구분만 보내며 닉네임, 서버, 캐릭터, 이미지, OCR 결과는 보내지 않습니다.
+- **새 버전 확인**: 앱의 첫 실행, 이후 6시간마다 GitHub Release 목록을 확인합니다.
+- **사용 통계**: 앱 실행, 캡처, 검색을 하면 Google Analytics 4에 이벤트를 보냅니다. 무작위 ID, 세션 ID, 앱 버전, 파티인지 공대인지만 수집합니다. 닉네임, 서버, 캐릭터, 이미지, OCR 결과는 수집하지 않습니다.
 
 ## 개발
 
