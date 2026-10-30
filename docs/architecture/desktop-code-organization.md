@@ -19,6 +19,7 @@ last-reviewed: 2026-10-29
 - Frontend의 UI와 독립적인 구현, 공통 유틸리티는 `src/frontend/src/lib`, 공통 타입은 `types`, 상수는 `constants`에서 역할별 파일로 관리하고 직접 import한다. `lib`는 하위 폴더 없이 파일을 바로 둔다. 이 모듈은 UI 계층이나 fixture를 import하지 않는다. 요청, 구독 수명을 관리하는 class도 `lib`에 두고 구현 전용 타입은 해당 파일에 유지하며, process 간 IPC contract는 기존 preload 위치를 사용한다.
 - Frontend 커스텀 hook은 기능 전용 여부와 관계없이 `src/frontend/src/hooks`에 하위 폴더 없이 모으고, hook 전용 테스트는 옆에 둔다. Hook은 다른 hook과 기존 검색, OCR 등의 비UI 구현을 직접 참조할 수 있지만 UI 컴포넌트, page, fixture, testing을 import하지 않는다.
 - Frontend의 `src/frontend/src/testing`에는 여러 테스트가 공유하는 유틸리티, mock, fixture만 둔다. 실제 테스트 파일은 검증하는 코드 옆에 두고, 앱 조합 통합 테스트는 기존 `integration`에 둔다. 제품 코드는 `testing`을 import하지 않는다. 직접 실행하는 미리보기, Electron fixture는 기존 `fixture`에 유지한다.
+- `src/frontend/src/site`는 웹사이트(`apps/web`)가 import하는 창 목업 entry다(2026-10-31, [Issue #1037](https://github.com/dungeon-and-dragon/dfragon/issues/1037)). 실제 상단 바와 카드 컴포넌트를 캡처, 검색 IPC 대신 각본 상태로 조합하며, 목업 전용 hook, 데이터, 그림도 이 폴더에 둔다. 앱 진입점과 다른 Frontend 코드는 이 폴더를 import하지 않는다. 카드나 상단 바 컴포넌트를 바꾸면 Web 검사도 함께 실행한다.
 - `src/backend/main.ts`와 `src/preload/index.ts`는 composition root로 유지한다. App lifecycle, module 등록, API 노출만 두고 feature state, handler body, domain logic은 넣지 않는다.
 - Feature 관련 implementation과 test는 process별 feature 위치에 함께 둔다. 예: `src/backend/capture/**`, `src/preload/api/capture.ts`.
 - Desktop main의 공통 Windows 화면 획득은 `src/backend/lib`가 소유한다. 파티와 공대 캡처는 같은 GDI, DPI, 픽셀 변환과 자원 정리 구현을 사용한다. 이 lib는 검색, UI와 IPC handler에 의존하지 않으며 각 기능이 획득 결과를 자기 계약으로 변환한다. 네이티브 DLL과 Node API는 Desktop 내부에 유지하고 순수 함수용 `packages/lib`로 옮기지 않는다.
