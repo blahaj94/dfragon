@@ -70,7 +70,7 @@ it('호출 제한 실패는 정제된 오류를, 오류가 없는 실패는 결�
   )
 })
 
-it('외형을 확인하지 못한 최고 명성 후보임을 명시한다', () => {
+it('파티 카드의 최고 명성 선택은 후보 창 여부와 무관하게 선택 근거 안내를 두지 않는다', () => {
   const slot: SearchSlot = {
     slot: 0,
     observationRevision: 1,
@@ -82,36 +82,21 @@ it('외형을 확인하지 못한 최고 명성 후보임을 명시한다', () =
     selected: summary,
     selectionMethod: 'highest-fame'
   }
-  expect(searchSlotNotice(slot, nextStep)).toBe('외형 미확인, 최고 명성 후보입니다.')
-  expect(searchSlotNotice({ ...slot, selectionMethod: 'portrait' }, nextStep)).toBeUndefined()
-  expect(searchSlotNotice({ ...slot, selectionMethod: 'manual' }, nextStep)).toBeUndefined()
-})
+  const choices = [
+    { ...summary, adventureName: null, face: null },
+    { ...summary, serverId: 'siroco', serverName: '시로코', adventureName: null, face: null }
+  ].map(({ characterId, characterName, serverId, serverName, fame, adventureName, face }) => ({
+    characterId,
+    characterName,
+    serverId,
+    serverName,
+    fame,
+    adventureName,
+    face
+  }))
 
-it('후보 창이 있는 최고 명성 선택은 같은 뜻의 문구를 겹치지 않는다', () => {
-  const slot: SearchSlot = {
-    slot: 0,
-    observationRevision: 1,
-    requestId: 'request',
-    nickname: '이름',
-    state: 'success',
-    rows: [],
-    error: null,
-    selected: summary,
-    selectionMethod: 'highest-fame',
-    choices: [
-      { ...summary, adventureName: null, face: null },
-      { ...summary, serverId: 'siroco', serverName: '시로코', adventureName: null, face: null }
-    ].map(({ characterId, characterName, serverId, serverName, fame, adventureName, face }) => ({
-      characterId,
-      characterName,
-      serverId,
-      serverName,
-      fame,
-      adventureName,
-      face
-    }))
-  }
   expect(searchSlotNotice(slot, nextStep)).toBeUndefined()
+  expect(searchSlotNotice({ ...slot, choices }, nextStep)).toBeUndefined()
 })
 
 describe('공대 카드의 선택 근거 안내', () => {
@@ -160,9 +145,7 @@ describe('공대 카드의 선택 근거 안내', () => {
     expect(
       searchSlotNotice({ ...base, selectionMethod: 'highest-fame', choices }, nextStep, 'raid')
     ).toBe(notice)
-    expect(searchSlotNotice({ ...base, selectionMethod: 'highest-fame' }, nextStep)).toBe(
-      '외형 미확인, 최고 명성 후보입니다.'
-    )
+    expect(searchSlotNotice({ ...base, selectionMethod: 'highest-fame' }, nextStep)).toBeUndefined()
   })
 
   it('선택 근거가 없는 공대 실패 카드는 기존 오류 문구를 쓴다', () => {
