@@ -11,7 +11,7 @@
 - OCR 원문은 모델, 사전과 검증 hash를 함께 관리하는 `apps/desktop/assets/ocr`에 보존하고 원래 OCR 배포 경로도 유지합니다.
 - npm 고지는 번들 입력 graph와 설치된 production dependency의 전이 의존성에서 수집합니다. 입력 graph는 tree-shaking 이전 입력도 포함하므로 일부 미사용 입력의 고지가 포함될 수 있습니다. `devDependencies` 전체를 일괄 배포하지 않습니다.
 
-`uiNotices({ runtimeRoot? })`는 UI library, Example, Desktop renderer, Web build의 산출물 `notices`에 `THIRD-PARTY.txt`, 번들 입력 package와 module 목록(`bundle-modules.json`), 생성 JavaScript chunk 목록(`bundle-files.json`)을 기록합니다. Chunk 코드에는 고지 banner를 붙이지 않습니다. `desktopNotices()`는 중앙으로 옮긴 기존 Desktop 글꼴, 아이콘 고지를 같은 `notices/desktop` 경로에, iconv-lite와 점수 엔진 고지를 `notices/lib`, `notices/score-engine` 경로에 배포합니다. 점수 엔진 고지는 엔진 없이 만든 빌드에도 들어갑니다. Web도 창 목업과 글꼴에 같은 자산을 쓰므로 이 고지를 함께 배포합니다. Desktop 제품 빌드는 `runtimeRoot`에 앱 경로를 전달해 main/preload에서 사용하는 production 의존성도 `THIRD-PARTY.txt`에 포함합니다. `bundle-modules.json`에는 기존처럼 번들 입력만 기록합니다. 실제 파일을 찾지 못한 새 npm 고지는 빌드를 실패시킵니다. 빈 파일과 공백뿐인 파일도 원문 누락으로 처리하며, 유효한 원문의 개행, 공백은 그대로 보존합니다. 버전 고정 보완과 아래의 알려진 원문 공백 표시는 이 경우에도 적용합니다.
+`uiNotices({ runtimeRoot? })`는 UI library, Example, Desktop renderer, Web build의 산출물 `notices`에 `THIRD-PARTY.txt`, 번들 입력 package와 module 목록(`bundle-modules.json`), 생성 JavaScript chunk 목록(`bundle-files.json`)을 기록합니다. Chunk 코드에는 고지 banner를 붙이지 않습니다. `desktopNotices()`는 중앙으로 옮긴 기존 Desktop 글꼴, 아이콘 고지를 같은 `notices/desktop` 경로에 배포합니다. Web도 창 목업과 글꼴에 같은 자산을 쓰므로 이 고지를 함께 배포합니다. `desktopAppNotices()`는 Desktop 앱에만 들어가는 iconv-lite와 점수 엔진 고지를 `notices/lib`, `notices/score-engine` 경로에 배포하며, 점수 엔진 고지는 엔진 없이 만든 빌드에도 들어갑니다. Desktop 제품 빌드는 `runtimeRoot`에 앱 경로를 전달해 main/preload에서 사용하는 production 의존성도 `THIRD-PARTY.txt`에 포함합니다. `bundle-modules.json`에는 기존처럼 번들 입력만 기록합니다. 실제 파일을 찾지 못한 새 npm 고지는 빌드를 실패시킵니다. 빈 파일과 공백뿐인 파일도 원문 누락으로 처리하며, 유효한 원문의 개행, 공백은 그대로 보존합니다. 버전 고정 보완과 아래의 알려진 원문 공백 표시는 이 경우에도 적용합니다.
 
 ## 알려진 원문 공백
 
@@ -24,7 +24,7 @@
 소비 빌드의 `devDependencies`에 `"@dfragon/licenses": "workspace:*"`를 추가합니다.
 
 ```ts
-import { uiNotices, desktopNotices } from '@dfragon/licenses/vite'
+import { uiNotices, desktopAppNotices, desktopNotices } from '@dfragon/licenses/vite'
 ```
 
 ```bash
