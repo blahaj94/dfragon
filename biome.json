@@ -259,7 +259,12 @@
       }
     },
     {
-      "includes": ["apps/desktop/**/*.ts", "apps/desktop/**/*.tsx"],
+      "includes": [
+        "apps/desktop/**/*.ts",
+        "apps/desktop/**/*.tsx",
+        "apps/web/**/*.ts",
+        "apps/web/**/*.tsx"
+      ],
       "linter": {
         "rules": {
           "correctness": {
@@ -291,6 +296,28 @@
           "style": {
             "useComponentExportOnlyModules": {
               "level": "error",
+              "options": {
+                "allowConstantExport": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/web/**/*.ts",
+        "apps/web/**/*.tsx",
+        "!**/*.test.*",
+        "!**/*.spec.*",
+        "!**/*.cy.*",
+        "!**/*.stories.*"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useComponentExportOnlyModules": {
+              "level": "warn",
               "options": {
                 "allowConstantExport": true
               }

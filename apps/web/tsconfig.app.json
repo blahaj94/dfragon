@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "esnext",
+    "types": ["vite/client", "node"],
+    "allowArbitraryExtensions": true,
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "paths": {
+      "@dfragon/ui": ["../../packages/ui/src/index.tsx"],
+      "@dfragon/lib": ["../../packages/lib/src/index.ts"],
+      "@dfragon/lib/utils/shape-check": ["../../packages/lib/src/utils/shape-check.ts"],
+      "@dfragon/desktop-site": ["../desktop/src/frontend/src/site/index.ts"],
+      "@dfragon/desktop-site/time-of-day": ["../desktop/src/frontend/src/site/time-of-day.ts"]
+    },
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src", "../desktop/src/preload/index.d.ts"]
+}

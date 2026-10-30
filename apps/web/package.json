@@ -1,0 +1,39 @@
+{
+  "name": "@dfragon/web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "biome lint",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc -b",
+    "lint:fix": "biome lint --write",
+    "format": "biome format --write && node ../../scripts/statement-spacing.mjs --write",
+    "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check"
+  },
+  "dependencies": {
+    "@base-ui/react": "catalog:",
+    "@dfragon/lib": "workspace:*",
+    "@dfragon/ui": "workspace:*",
+    "@fontsource/noto-sans-kr": "catalog:",
+    "@stylexjs/stylex": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@dfragon/licenses": "workspace:*",
+    "@stylexjs/unplugin": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "jsdom": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

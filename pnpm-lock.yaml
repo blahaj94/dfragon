@@ -179,6 +179,9 @@ catalogs:
     '@electron-toolkit/utils':
       specifier: 4.0.0
       version: 4.0.0
+    '@fontsource/noto-sans-kr':
+      specifier: 5.3.1
+      version: 5.3.1
     '@nestjs/common':
       specifier: 12.2.0
       version: 12.2.0
@@ -494,6 +497,64 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@24.19.2)(jsdom@30.1.3(@noble/hashes@1.8.0))(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0))
+
+  apps/web:
+    dependencies:
+      '@base-ui/react':
+        specifier: 'catalog:'
+        version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@dfragon/lib':
+        specifier: workspace:*
+        version: link:../../packages/lib
+      '@dfragon/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@fontsource/noto-sans-kr':
+        specifier: 'catalog:'
+        version: 5.3.1
+      '@stylexjs/stylex':
+        specifier: 'catalog:'
+        version: 0.19.1
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
+      zod:
+        specifier: 'catalog:'
+        version: 4.6.7
+    devDependencies:
+      '@dfragon/licenses':
+        specifier: workspace:*
+        version: link:../../packages/licenses
+      '@stylexjs/unplugin':
+        specifier: 'catalog:'
+        version: 0.19.1(supports-color@7.2.0)(unplugin@2.3.11)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.5
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: 'catalog:'
+        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
+      jsdom:
+        specifier: 'catalog:'
+        version: 30.1.3(@noble/hashes@1.8.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@types/node@26.6.5)(jsdom@30.1.3(@noble/hashes@1.8.0))(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   packages/lib:
     devDependencies:
@@ -1069,6 +1130,9 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
+
+  '@fontsource/noto-sans-kr@5.3.1':
+    resolution: {integrity: sha512-aKnPug5P6zBHaiLbGEVNyBQesyOeEUYl6C3Xedb00xO3iAHJZPQs2JOsPNVqHanKSVe1fTVmTPuYIao4noImXw==}
 
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
@@ -4227,6 +4291,8 @@ snapshots:
       react-dom: 19.3.1(react@19.3.1)
 
   '@floating-ui/utils@0.2.12': {}
+
+  '@fontsource/noto-sans-kr@5.3.1': {}
 
   '@isaacs/fs-minipass@4.0.1':
     dependencies:

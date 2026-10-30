@@ -26,7 +26,7 @@ node scripts/start-task.mjs api 123 fix-character-search ../dfragon-worktrees/ap
 
 인자 순서는 `<project> <Issue 번호> <description> <새 worktree 경로>`입니다. 위 명령은 `api-123-fix-character-search` 브랜치를 만듭니다. `123`은 현재 저장소의 실제 OPEN Issue 번호로 바꿉니다. 마지막 인자는 아직 존재하지 않는 경로이며, 공백이 있으면 quote합니다. Base는 이번 fetch로 받은 main commit이며 현재 checkout의 미반영 변경은 포함하지 않습니다.
 
-`project`에는 `api`, `desktop`, `ui`, `cross`, `repo` 중 하나를 전달합니다. 이 명명법은 도구를 선택했을 때의 입력 계약이며 모든 작업 브랜치에 강제하지 않습니다. `description`은 `fix-character-search`처럼 변경 동사로 시작하는 소문자 설명을 정합니다. 스크립트는 소문자로 시작하고 소문자, 숫자를 하이픈 하나로 연결하는 형식을 검증하며, 동사 의미나 Issue 범위의 적합성은 담당자가 판단합니다.
+`project`에는 `api`, `desktop`, `web`, `ui`, `cross`, `repo` 중 하나를 전달합니다. 이 명명법은 도구를 선택했을 때의 입력 계약이며 모든 작업 브랜치에 강제하지 않습니다. `description`은 `fix-character-search`처럼 변경 동사로 시작하는 소문자 설명을 정합니다. 스크립트는 소문자로 시작하고 소문자, 숫자를 하이픈 하나로 연결하는 형식을 검증하며, 동사 의미나 Issue 범위의 적합성은 담당자가 판단합니다.
 
 기존 브랜치, worktree를 바꾸거나 지우지 않으며, 같은 이름의 로컬 브랜치나 대상 경로가 이미 존재하면 생성을 거절합니다.
 
@@ -136,7 +136,7 @@ GitHub 이미지 빌드, 발행은 내장 정보와 선택한 정확한 commit�
 
 ## `verify`
 
-`pnpm verify`는 저장소 검사를 로컬에서 실행합니다. GitHub Actions에는 CI 검사가 없으므로 이 명령이 기본 검사입니다. Root `pnpm test`도 같은 명령입니다. 정적 검사(`lint`, `format:check`, `check:writing`, `check:docs`), 루트 도구 테스트, 공용 package, Desktop test와 typecheck, API job의 run 명령을 차례로 실행합니다.
+`pnpm verify`는 저장소 검사를 로컬에서 실행합니다. GitHub Actions에는 CI 검사가 없으므로 이 명령이 기본 검사입니다. Root `pnpm test`도 같은 명령입니다. 정적 검사(`lint`, `format:check`, `check:writing`, `check:docs`), 루트 도구 테스트, 공용 package, Desktop test와 typecheck, API, Web job의 run 명령을 차례로 실행합니다.
 
 명령 목록은 `scripts/verify.mjs`에 있습니다.
 
@@ -166,6 +166,7 @@ pnpm verify
 | 저장소 전체 | `pnpm verify` |
 | API | `pnpm --filter @dfragon/api run --sequential '/^(lint\|test)$/'` |
 | Desktop | `pnpm --filter @dfragon/desktop run --sequential '/^(test\|lint\|build)$/'` |
+| Web | `pnpm --filter @dfragon/web run --sequential '/^(test\|lint\|build)$/'` |
 | Task 준비 tooling | 위 `node --test`와 `node --check` command |
 
 정적 검사만 한 번에 실행할 때는 root에서 `pnpm check:static`을 사용합니다. `lint`, `format:check`, `check:writing`, `check:docs`를 `pnpm verify`와 같은 순서로 실행하며 먼저 실패한 검사에서 멈춥니다.
@@ -178,7 +179,7 @@ node apps/api/test-support/container-deployment.mjs dfragon-api:local
 
 이 검사는 이미지를 빌드하지 않고 합성 Neople key와 네트워크 없는 컨테이너로 entrypoint, secret 입력(ENV, FILE, 기본 파일), 실행 사용자, 읽기 전용 파일시스템, HTTP 기동, 잘못된 입력의 거절, 정상 종료를 확인하고 자체 컨테이너 정리를 시도합니다. 강제 종료, Docker 장애 시 컨테이너가 남을 수 있습니다. 운영 credential은 입력하지 않습니다.
 
-Desktop `build`는 `typecheck`를 포함하므로 위 조합에서 별도로 반복하지 않습니다. 빠른 feedback이 필요할 때는 기존 개별 `test`, `lint`, `typecheck` command를 먼저 실행할 수 있습니다. 여러 범위에 실제 영향을 주면 필요한 검사를 조합합니다.
+Desktop `build`는 `typecheck`를 포함하므로 위 조합에서 별도로 반복하지 않습니다. Web `build`도 `tsc -b`를 포함합니다. Web의 창 목업은 Desktop renderer 컴포넌트를 쓰므로 Desktop renderer를 바꾸면 Web 검사도 함께 실행합니다. 빠른 feedback이 필요할 때는 기존 개별 `test`, `lint`, `typecheck` command를 먼저 실행할 수 있습니다. 여러 범위에 실제 영향을 주면 필요한 검사를 조합합니다.
 
 API의 `test`는 `build`를 먼저 실행해 `dist`를 새로 만든 뒤 `.test-dist` compile과 test를 수행합니다. 위 API 조합은 이 build와 `tsconfig.test.json`의 compile을 포함하므로 같은 입력의 별도 typecheck를 반복하지 않습니다. 단독 `pnpm --filter @dfragon/api test`도 최신 production output을 검증합니다. Root `test`는 `pnpm verify`와 같습니다. 문서만 변경할 때 app build를 반복할 필요는 없습니다. 실행 결과에는 실제 검증 범위와 실행하지 못한 항목을 구분해 기록합니다.
 

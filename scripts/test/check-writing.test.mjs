@@ -86,6 +86,44 @@ test('옛 표기, 해요체 어미, 나열 가운뎃점, 붙여 쓴 요청형을
   assert.match(result.stderr, /위반 14건/u)
 })
 
+test('웹사이트 문구는 해요체를 허용하고 다른 표기 규칙은 그대로 검사한다', async (t) => {
+  const result = await checkFixture(t, {
+    'apps/web/src/App.tsx': [
+      '파티, 공대를 쉽게 확인해봐요',
+      "const title = 'DFRAGON 사이트'",
+      '파티·공대',
+      '내려받아주세요',
+      ''
+    ].join('\n')
+  })
+
+  assert.equal(result.code, 1)
+  assert.doesNotMatch(result.stderr, /해요체/u)
+  assert.match(result.stderr, /apps\/web\/src\/App\.tsx:2: 옛 표기/u)
+  assert.match(result.stderr, /apps\/web\/src\/App\.tsx:3: 나열에는 가운뎃점/u)
+  assert.match(result.stderr, /apps\/web\/src\/App\.tsx:4: 요청형의 주세요/u)
+})
+
+test('해요체 예외는 apps/web 밖의 경로에 적용하지 않는다', async (t) => {
+  const result = await checkFixture(t, {
+    'apps/desktop/src/App.tsx': '파티, 공대를 쉽게 확인해봐요\n',
+    'apps/webview/App.tsx': '파티, 공대를 쉽게 확인해봐요\n',
+    'docs/apps/web/guide.md': '파티, 공대를 쉽게 확인해봐요\n'
+  })
+
+  assert.equal(result.code, 1)
+  for (const path of [
+    'apps/desktop/src/App.tsx',
+    'apps/webview/App.tsx',
+    'docs/apps/web/guide.md'
+  ]) {
+    assert.match(
+      result.stderr,
+      new RegExp(`${path.replaceAll('.', '\\.')}:1: 사용자 문구에 해요체`, 'u')
+    )
+  }
+})
+
 test('규칙 문서처럼 금지 표기를 예시로 담는 제외 경로는 명시해도 건너뛴다', async (t) => {
   const result = await checkFixture(t, {
     'docs/rules/writing.md': '`DFRAGON`, `Dfragon`은 쓰지 않는다. 동작·구조 나열은 쉼표로 쓴다.\n'
