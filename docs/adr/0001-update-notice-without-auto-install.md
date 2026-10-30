@@ -1,18 +1,23 @@
 ---
-type: rule
-status: active
-scope: apps/desktop new version notice for the Windows distribution channel; automatic update remains a proposal
-last-reviewed: 2026-10-27
-rationale: 코드 서명 없이 운영하는 동안 사용자가 새 버전을 놓치지 않게 하되, 서명 없는 자동 설치가 배포 경로 침해를 모든 사용자에게 퍼뜨리는 위험은 피한다.
-evidence: "Issue #632 결정 항목(https://github.com/blahaj94/dfragon/issues/632)과 1단계 구현 결정 ; electron-updater 6.8.9 npm package, 저장소의 electron-builder 26.15.3, electron-builder 저장소 master branch(미배포) source와 SignPath Foundation 약관 확인(2026-10-10) ; GitHub releases.atom 응답 확인(2026-10-10)"
+type: adr
+status: accepted
+scope: apps/desktop new version notice for the Windows distribution channel
+decided: 2026-10-10
+last-reviewed: 2026-10-30
+superseded-by: 없음
+evidence: "Issue #632 결정 항목(https://github.com/blahaj94/dfragon/issues/632)과 1단계 구현 결정 ; electron-updater 6.8.9 npm package, 저장소의 electron-builder 26.15.3, electron-builder 저장소 master branch(미배포) source와 SignPath Foundation 약관 확인(2026-10-10) ; GitHub releases.atom 응답 확인(2026-10-10) ; 칩 메뉴 표시는 Issue #819(2026-10-27)"
 review-after: 설치형 배포 시작, 코드 서명 방식 결정, Release tag 규칙이나 GitHub feed 형식 변경, electron-updater나 electron-builder major 갱신 전
 ---
 
-# Desktop 새 버전 알림과 업데이트 제안
+# ADR 0001: 새 버전 알림만 두고 자동 설치는 미룬다
 
-[1단계: 새 버전 알림](#1단계-새-버전-알림)은 채택해 구현한 제품 계약이다. 자동 설치 선택지, [포터블에서 설치형으로 옮기기](#포터블에서-설치형으로-옮기기), [자동 설치를 고를 때 정할 것](#자동-설치를-고를-때-정할-것)은 채택 전 제안이며, 자동 설치를 정하는 PR에서 채택 범위를 다시 바꾼다. 앱은 아직 업데이트를 내려받거나 설치하지 않는다.
+## 상태
 
-## 전제
+채택. [결정](#결정)의 새 버전 알림은 구현해 배포 채널에 들어 있다. 자동 설치 선택지는 채택하지 않았다. 자동 설치를 정하는 날 새 ADR을 쓰고 이 문서의 `superseded-by`에 연결한다. 그 전까지 앱은 업데이트를 내려받거나 설치하지 않는다.
+
+## 맥락
+
+코드 서명 없이 운영하는 동안 사용자가 새 버전을 놓치지 않게 하되, 서명 없는 자동 설치가 배포 경로 침해를 모든 사용자에게 퍼뜨리는 위험은 피해야 했다.
 
 - Release에는 포터블 exe만 첨부한다([Windows Portable workflow](../../.github/workflows/desktop-release.yml)). NSIS 설치형은 `build:win`으로 만들 수 있지만 Release에 첨부하지 않는다.
 - 코드 서명을 하지 않는다. 유료 인증서를 쓸 예산이 없다(2026-10-10 결정). Release 파일의 무결성 근거는 SHA-256 checksum, build provenance attestation, `v*` tag ruleset과 production 환경 제한이다.
@@ -53,33 +58,40 @@ D는 SignPath Foundation 약관의 다음 조건을 모두 맞춰야 하며, 게
 - 사용자가 지정하지 않은 시스템으로 데이터를 보내면 개인정보 정책을 설치 중에 보이고 그 기능을 끄는 설치 옵션을 둬야 한다. 지금 Desktop은 이런 전송이 없다(OCR 자료 수집 업로드는 2026-10-26에 지웠다).
 - 모든 구성원이 SignPath와 저장소에 MFA를 쓰고, Release마다 서명을 수동으로 승인하며, 홈페이지와 내려받기 페이지에 code signing policy를 게시해야 한다.
 
-## 권장안
+## 결정
 
-1단계로 A를 채택해 구현했다. 서명 없이도 지금의 신뢰 모델을 바꾸지 않고, 포터블 사용자도 새 버전을 알 수 있다. 자동 설치는 설치형 사용자가 생기고 필요가 분명해질 때 C 또는 D로 다시 정한다. B는 권장하지 않는다.
+A를 채택한다. 서명 없이도 지금의 신뢰 모델을 바꾸지 않고, 포터블 사용자도 새 버전을 알 수 있다. 자동 설치는 설치형 사용자가 생기고 필요가 분명해질 때 C 또는 D로 다시 정한다. B는 채택하지 않는다.
 
-## 1단계: 새 버전 알림
+새 버전 알림의 계약은 다음과 같다.
 
 - 대상: 배포 채널(`distribution`) 빌드만 확인한다. test, development 채널과 채널 없는 실행은 확인하지 않는다.
 - 시점: 앱 시작 뒤 한 번, 이후 6시간마다 확인한다. 실패하면 다음 주기에 다시 시도한다.
 - 방법: main process가 `https://github.com/blahaj94/dfragon/releases.atom`을 받아 각 항목의 tag를 semver로 해석한다. 토큰과 GitHub REST API를 쓰지 않는다. Release의 Pre-release 표시는 보지 않고 tag의 semver로 판단한다. 지금은 모든 Release가 Pre-release라 `/releases/latest`를 쓸 수 없다.
 - 범위: feed에 없는 오래된 Release는 후보가 되지 않는다. 새 정식 Release 뒤에 다른 Release가 10개 넘게 게시되면 정식 버전 사용자는 그 정식 Release를 알림으로 받지 못한다.
-- 후보: 현재 버전이 정식이면 정식, beta면 beta와 정식, alpha면 alpha, beta, 정식 중에서 현재보다 높고 semver로 가장 높은 버전 하나를 알린다. alpha, beta 사용자의 후보를 고르는 방식은 electron-updater 6.8.9의 게시 순서 규칙이 아니라 master의 semver 규칙과 같다. 정식 버전 사용자에게는 electron-updater가 Pre-release 표시를 기준으로 `/releases/latest`를 보는 것과 달리, 1단계 알림은 Pre-release 표시를 보지 않고 tag의 semver로 판단한다. `v<semver>` 형식이 아닌 tag와 alpha, beta가 아닌 suffix는 무시한다.
-- 표시: 상단 바의 게임 연결 상태 칩 왼쪽에 `새 버전 v1.2.0`처럼 버전을 단 칩을 보이고, 칩을 누르면 **Release 열기**와 **닫기**가 있는 메뉴를 연다(2026-10-27, [Issue #819](https://github.com/blahaj94/dfragon/issues/819)). 알림이 있어도 창 높이는 바뀌지 않는다. **Release 열기**는 지금 알리는 tag의 `https://github.com/blahaj94/dfragon/releases/tag/<tag>` 주소만 `shell.openExternal`로 연다. 알림을 닫으면 앱을 다시 시작할 때까지 같은 버전을 다시 알리지 않는다. 알림 상태는 main process가 보관하므로 창을 다시 만들어도 유지된다.
+- 후보: 현재 버전이 정식이면 정식, beta면 beta와 정식, alpha면 alpha, beta, 정식 중에서 현재보다 높고 semver로 가장 높은 버전 하나를 알린다. alpha, beta 사용자의 후보를 고르는 방식은 electron-updater 6.8.9의 게시 순서 규칙이 아니라 master의 semver 규칙과 같다. 정식 버전 사용자에게는 electron-updater가 Pre-release 표시를 기준으로 `/releases/latest`를 보는 것과 달리, 이 알림은 Pre-release 표시를 보지 않고 tag의 semver로 판단한다. `v<semver>` 형식이 아닌 tag와 alpha, beta가 아닌 suffix는 무시한다.
+- 표시: 상단 바의 게임 연결 상태 칩 왼쪽에 `새 버전 v1.2.0`처럼 버전을 단 칩을 보이고, 칩을 누르면 **Release 열기**와 **닫기**가 있는 메뉴를 연다(2026-10-27, [Issue #819](https://github.com/blahaj94/dfragon/issues/819)). 알림이 있어도 창 높이는 바뀌지 않는다. **Release 열기**는 지금 알리는 tag의 `https://github.com/blahaj94/dfragon/releases/tag/<tag>` 주소만 `shell.openExternal`로 연다. 알림을 닫으면 앱을 다시 시작할 때까지 같은 버전을 다시 알리지 않는다. 알림 상태는 main process가 보관하므로 창을 다시 만들어도 유지된다. 화면 배치는 [Desktop MVP 카드 UI의 상단 바](../rules/desktop-mvp-ui.md#상단-바)를 따른다.
 - 실패 처리: 네트워크, 파싱 실패는 화면에 보이지 않고 기존 진단 기록에 `UPDATE_CHECK_FAILED`만 남긴다. 확인에 실패해도 이전 알림은 유지한다. Release 페이지를 열지 못하면 `UPDATE_RELEASE_OPEN_FAILED`를 남긴다. 응답 크기와 대기 시간에 상한을 둔다.
 - 개인정보: github.com에 IP와 User-Agent가 전달된다. 그 밖의 정보는 보내지 않는다. 언어 header는 사용자 설정 대신 고정값 `en-US`를 보내고, 나머지 header도 사용자와 관계없는 고정값이다(2026-10-10, Electron 44.7.0 session fetch의 요청 header 확인).
 - 검증: atom 파싱, 후보 규칙, 주소 allowlist의 단위 테스트와 실제 Release 목록으로 확인한다.
-- 구현: 확인 주기, 판정, IPC는 `apps/desktop/src/backend/update-notice/`, 화면은 `apps/desktop/src/frontend/src/components/UpdateNotice.tsx`에 있다.
 
-## 포터블에서 설치형으로 옮기기
+## 결과
 
-자동 설치를 고른 뒤의 전환 방법이다.
+- 앱은 Release 파일을 내려받거나 설치하지 않는다. 승인된 배포 identity와 Release workflow는 바뀌지 않는다.
+- 포터블과 설치형 사용자 모두 알림을 받고 Release 페이지에서 직접 내려받는다. checksum과 attestation 확인은 사용자 몫으로 남는다.
+- 자동 설치를 고르면 아래 [자동 설치를 고를 때 정할 것](#자동-설치를-고를-때-정할-것)을 새 ADR에서 다시 정한다.
+
+## 자동 설치를 고를 때 정할 것
+
+채택 전 메모다. 자동 설치를 정하는 새 ADR이 이 절을 이어받는다.
+
+### 포터블에서 설치형으로 옮기기
 
 - 데이터: 설치형과 포터블은 같은 배포 identity와 사용자 profile(`appData/dfragon`)을 쓴다(채널 앱 식별자 `dfragon`). 설치형으로 바꿔도 profile이 이어진다. 단일 인스턴스 lock도 같은 profile 기준이라 둘을 동시에 실행할 수 없다.
 - 첨부: 전환 기간에는 Release에 포터블과 설치형을 함께 첨부한다. 포터블은 설치 없이 쓰려는 사용자에게 계속 제공하되 자동 설치는 받지 못한다.
-- 앱 안내: 포터블로 실행 중이면 `PORTABLE_EXECUTABLE_FILE`로 이를 알아보고 업데이트를 내려받지 않는다. 대신 1단계 알림 자리에 설치형으로 바꾸면 자동으로 업데이트된다는 안내와, 설치형이 첨부된 Release 페이지를 여는 버튼을 보인다. 버튼이 여는 주소는 1단계의 Release tag 페이지 제한을 그대로 따른다.
+- 앱 안내: 포터블로 실행 중이면 `PORTABLE_EXECUTABLE_FILE`로 이를 알아보고 업데이트를 내려받지 않는다. 대신 새 버전 알림 자리에 설치형으로 바꾸면 자동으로 업데이트된다는 안내와, 설치형이 첨부된 Release 페이지를 여는 버튼을 보인다. 버튼이 여는 주소는 위 결정의 Release tag 페이지 제한을 그대로 따른다.
 - 차이: 설치형은 바로가기를 만든다. 포터블은 만들지 않는다.
 
-## 자동 설치를 고를 때 정할 것
+### 설정과 Release 운영
 
 - GitHub provider 구성: 배포 채널의 electron-builder 설정에만 `publish: { provider: 'github', owner: 'blahaj94', repo: 'dfragon' }`를 둔다. test, development 채널에는 두지 않는다. `channel`은 지정하지 않고 Release마다 생기는 `latest.yml`을 쓴다.
 - Release 첨부: setup.exe, `.blockmap`, `latest.yml`을 첨부하고 setup.exe를 checksum과 attestation 대상에 더한다.
@@ -87,7 +99,3 @@ D는 SignPath Foundation 약관의 다음 조건을 모두 맞춰야 하며, 게
 - 정식 채널: 정식 Release는 Pre-release 표시를 끄고 게시해야 정식 버전 사용자가 받는다.
 - Release 순서: electron-updater 6.8.9를 쓰는 동안은 더 높은 alpha 뒤에 낮은 정식 hotfix를 게시하지 않거나, semver 규칙이 들어간 버전으로 올린다.
 - 관리자 권한: 다른 관리자 계정으로 승격해 실행하는 PC에서는 사용자별 설치 경로가 달라질 수 있어 확인이 필요하다.
-
-## 바꾸지 않는 것
-
-1단계 알림과 이 제안은 승인된 배포 identity와 Release workflow를 바꾸지 않는다. 자동 설치를 고르기 전까지 앱은 Release 파일을 내려받거나 설치하지 않는다.
