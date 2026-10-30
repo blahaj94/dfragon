@@ -2,6 +2,7 @@ import { CardFrame, Typo, shapes } from '@dfragon/ui'
 import {
   getCharacterCardFrameState,
   getCharacterCardStatus,
+  getLookupStep,
   isVacantSlot
 } from '../lib/card-presentation'
 import * as stylex from '@stylexjs/stylex'
@@ -52,6 +53,7 @@ export function CharacterCard({
   const { editing } = draft
   const score = toScoreView(characterFound ? character.card : null, card.scorePending)
   const busy = loading || state === 'pending'
+  const lookupStep = getLookupStep(card)
   const cardStatus = getCharacterCardStatus(state)
   const slotNotice = draft.inputNotice || notice
   const emptyMessage = state === 'empty' ? cardStatus : ''
@@ -69,7 +71,7 @@ export function CharacterCard({
         <div {...stylex.props(styles.body)}>
           <PortraitWell tier={tier} size="party">
             {characterFound && <Portrait src={character.image} />}
-            {busy && <LookupProgress slot={slot} />}
+            {lookupStep !== null && <LookupProgress slot={slot} step={lookupStep} size="party" />}
           </PortraitWell>
           <div {...stylex.props(styles.column)}>
             <div {...stylex.props(styles.header)}>
