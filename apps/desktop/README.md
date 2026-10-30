@@ -16,8 +16,8 @@
 
 ## 기존 배포본 설치와 사용
 
-1. 배포받은 `DFragon-<버전>-x64-setup.exe`를 실행합니다. 현재 Windows 사용자용으로 `dfragon` 폴더에 설치하며 개발 앱 `DFragon Development`와 별도로 사용할 수 있습니다.
-2. 시작 메뉴나 바탕화면의 **DFragon**을 실행하고 Windows 관리자 권한 요청을 승인합니다. Portable도 같은 권한을 요구합니다. Node.js, DB와 OCR 모델을 별도로 설치할 필요는 없으며 검색에는 인터넷과 배포 API 연결이 필요합니다.
+1. GitHub Releases에서 `DFragon-<버전>-x64-portable.exe`를 내려받습니다. 설치 없이 실행하는 포터블이며 개발 앱 `DFragon Development`와 별도로 사용할 수 있습니다. 같은 이름 뒤에 `.sha256`이 붙은 파일의 값과 `Get-FileHash`로 구한 값을 비교해 손상 여부를 확인합니다.
+2. 내려받은 exe를 실행하고 Windows 관리자 권한 요청을 승인합니다. 바로가기는 만들지 않으므로 exe를 원하는 폴더에 두고 실행합니다. Node.js, DB와 OCR 모델을 별도로 설치할 필요는 없으며 검색에는 인터넷과 배포 API 연결이 필요합니다.
 3. 닉네임을 입력해 직접 검색하거나 게임을 **창 모드 또는 테두리 없는 창 모드**로 맞추고 HP, MP가 가득 찬 파티 프레임을 표시합니다. 앱 시작 시 던파 창이 하나면 자동으로 등록합니다. 상단 바의 게임 연결 상태 칩을 눌러 연 화면 캡처 창에서 직접 창을 선택할 때도 등록만 하며 인식은 시작하지 않습니다. 게임을 나중에 실행해도 기본 15초 간격으로 감지합니다. 후보가 여러 개면 직접 선택하며 화면 캡처 창의 **새로고침**으로 즉시 확인할 수 있습니다.
 4. 창 등록 뒤 **Alt+R** 또는 상단 바의 캡처 버튼(카메라 아이콘)으로 회차를 시작합니다. 상단 바 버튼에 마우스를 올리면 단축키가 보이며, **Alt+W**는 모험단 순번 스냅샷을 켜고 **Alt+A**는 지금 화면의 자리 값을 클립보드에 복사합니다. 캡처 버튼은 **Alt+R**과 같은 회차를 시작하며 **Alt+R**이 무시되는 동안에는 누를 수 없습니다. 이전 검색, 인식 상태를 비우고 검색을 준비한 뒤 프레임을 한 장만 읽어 네 슬롯을 처리합니다. 진행 중이나 완료 뒤 **Alt+R**을 다시 누르면 처음부터 새 회차를 시작하며 늦은 이전 결과는 반영하지 않습니다. 검색 수명을 시작하는 동안 누른 **Alt+R**은 무시합니다. 상단 바는 진행 중 **인식 중**, 완료 뒤 **인식 완료**, 게임 창이 가려졌거나 파티 프레임이 없어 안내 후 끝나면 **확인 필요**를 표시합니다. 한 번 조회한 결과는 파티원이 바뀌어도 유지하며 수동 조회는 새 프레임을 읽지 않습니다. 서버와 닉네임은 언제든 수정하고 **Enter 또는 서버 변경**으로 해당 슬롯만 조회합니다. 외형 비교로 한 명을 확정하지 못하면 카드 위에 후보 창이 뜹니다. 얼굴을 한 번 누르면 그 후보로 미리보고, 다시 누르면 확정합니다. 후보 창을 닫으면 카드에 **후보 N** 칩이 남고 누르면 다시 열립니다.
 5. 검색의 **공대** 화면에서는 **Alt+R** 또는 상단 바의 캡처 버튼이 공대 회차를 시작합니다. 게임에서 12행 공대 상세 창을 연 채로 누르면 공대원 이름을 화면 순서대로 1~12번 자리에 넣고 자리마다 조회합니다. 공대 상세 창에는 서버가 없어 같은 이름의 후보 중 명성이 가장 높은 캐릭터를 대체 표시하며, 서버와 이름은 카드에서 고쳐 다시 조회할 수 있습니다. 공대 회차는 파티 카드를 바꾸지 않습니다.
@@ -27,7 +27,7 @@
 
 배포 앱은 시작할 때와 이후 6시간마다 GitHub Release 목록을 확인하고, 현재보다 높은 버전이 있으면 상단 바의 게임 연결 상태 칩 왼쪽에 **새 버전 v1.2.0**처럼 칩을 보이고, 칩을 누르면 **Release 열기**와 **닫기** 메뉴가 뜹니다. 정식 버전은 정식, beta는 beta와 정식, alpha는 alpha, beta, 정식 가운데 가장 높은 버전 하나를 알립니다. **닫기**를 누르면 앱을 다시 시작할 때까지 같은 버전을 다시 알리지 않습니다. 확인할 때 github.com에 IP와 User-Agent가 전달되며 언어 설정, cookie 같은 그 밖의 정보는 보내지 않습니다. 확인에 실패하면 화면에 표시하지 않고 진단 기록에 `UPDATE_CHECK_FAILED`를 남깁니다. test, development 채널과 소스 실행은 확인하지 않습니다. 기준은 [ADR 0001의 결정](../../docs/adr/0001-update-notice-without-auto-install.md#결정)에 있습니다.
 
-자동 업데이트는 제공하지 않습니다. 이후 버전은 앱을 종료하고 새 설치 파일로 설치합니다. 기본 빌드는 코드 서명이 구성되지 않았으며 Windows에서 확인되지 않은 게시자로 표시될 수 있습니다. 배포자가 전달한 파일인지 확인해야 합니다.
+자동 업데이트는 제공하지 않습니다. 이후 버전은 앱을 종료하고 새 포터블 exe를 내려받아 실행합니다. 기본 빌드는 코드 서명이 구성되지 않았으며 Windows에서 확인되지 않은 게시자로 표시될 수 있습니다. 배포자가 전달한 파일인지 확인해야 합니다.
 
 ## Windows 배포 빌드
 
@@ -60,14 +60,14 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 2. 배포할 변경을 merge하고 해당 commit에 `v<버전>` 태그로 Release를 게시합니다. 예를 들어 첫 릴리스는 `v0.0.1`, 사전 릴리스는 `v0.0.1-beta.1`처럼 지정합니다. 태그의 버전을 실행 파일의 앱 metadata와 파일명에 사용하므로 `apps/desktop/package.json`의 기본 버전과 같을 필요는 없습니다. 태그가 가리키는 commit은 main에 포함되어야 하며, 아니면 빌드 전에 실패합니다. Workflow는 테스트 통과를 확인하지 않으므로 릴리스할 commit은 로컬에서 `pnpm verify`로 확인합니다. `v*` tag는 저장소 관리자만 만들 수 있고, 만든 뒤에는 저장소 ruleset `protected-release-tags`가 tag를 옮기거나 지우는 것을 막습니다. 잘못 만든 tag는 **Settings → Rules → Rulesets**에서 `protected-release-tags`를 잠시 비활성화하고 지운 뒤 다시 활성화합니다.
 3. workflow가 성공하면 **Releases → Assets → `DFragon-<버전>-x64-portable.exe`**를 내려받습니다. 같은 이름 뒤에 `.sha256`이 붙은 파일에 exe의 SHA-256 값이 있습니다. `Source code` 압축 파일은 실행 파일이 아닙니다.
 
-내려받은 exe는 PowerShell의 `Get-FileHash <파일> -Algorithm SHA256` 결과를 `.sha256` 파일의 값과 비교해 손상 여부를 확인합니다. 이 저장소의 Windows Portable workflow가 빌드한 파일인지는 GitHub CLI의 `gh attestation verify <파일> -R blahaj94/dfragon`으로 확인합니다. Checksum과 attestation은 코드 서명을 대신하지 않습니다.
+내려받은 exe는 PowerShell의 `Get-FileHash <파일> -Algorithm SHA256` 결과를 `.sha256` 파일의 값과 비교해 손상 여부를 확인합니다. 이 저장소의 Windows Portable workflow가 빌드한 파일인지는 GitHub CLI의 `gh attestation verify <파일> -R dungeon-and-dragon/dfragon`으로 확인합니다. Checksum과 attestation은 코드 서명을 대신하지 않습니다.
 
 기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 production 환경 변수 대신 사용할 공개 API 주소이며 비우면 환경 변수를 사용합니다. 이 실행도 main branch나 `v*` tag에서 시작한 경우에만 production 환경을 쓸 수 있습니다. Release 게시와 같은 main 포함 확인을 적용합니다. 같은 이름의 exe나 checksum 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 `v<버전>` 형식이 아닌 태그도 빌드를 중단합니다. 로컬 `build:win:portable` 명령은 `package.json`의 기본 버전을 사용합니다.
 
 PR 제목 scope가 `(build)`인 관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 DFragon Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 검색, 캡처, OCR을 확인하는 용도입니다. API는 항상 운영 API `https://api.dfragon.com`이며 빌드 변수로 바꾸지 않습니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 DFragon과 profile이 겹치지 않습니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
 
 ```powershell
-gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test -D "$HOME\Downloads\dfragon-test-<실행 ID>"
+gh run download <실행 ID> --repo dungeon-and-dragon/dfragon -n windows-x64-portable-test -D "$HOME\Downloads\dfragon-test-<실행 ID>"
 ```
 
 명령은 성공해도 아무것도 출력하지 않습니다. `-D`로 지정한 폴더가 없으면 만들고 그 안에 `DFragon-Test-<버전>-x64-portable.exe`와 `.sha256` 파일을 풉니다. `-D`를 빼면 현재 폴더에 풀리므로, 관리자 권한 PowerShell처럼 시작 위치가 `C:\Windows\System32`인 셸에서는 파일이 그곳에 생깁니다. 같은 이름의 파일이 이미 있으면 덮어쓰지 않고 `file exists`로 실패하므로 실행마다 새 폴더를 씁니다. 손상 여부는 Release와 같은 방법으로 `Get-FileHash` 결과를 `.sha256` 파일의 값과 비교합니다.
