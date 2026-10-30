@@ -1,51 +1,42 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { fetchPortableRelease } from './latest-release'
+import { fetchPortableUrl } from './latest-release'
 
 const PORTABLE_URL =
   'https://github.com/dungeon-and-dragon/dfragon/releases/download/v0.1.0/DFragon-0.1.0-x64-portable.exe'
 const portableAsset = {
   name: 'DFragon-0.1.0-x64-portable.exe',
-  size: 163241950,
   browser_download_url: PORTABLE_URL
 }
 const checksumAsset = {
   name: 'DFragon-0.1.0-x64-portable.exe.sha256',
-  size: 97,
   browser_download_url: `${PORTABLE_URL}.sha256`
 }
 
 afterEach(() => vi.unstubAllGlobals())
 
-function fetchWith(respond: () => Promise<Response>): ReturnType<typeof fetchPortableRelease> {
+function fetchWith(respond: () => Promise<Response>): ReturnType<typeof fetchPortableUrl> {
   vi.stubGlobal('fetch', vi.fn(respond))
 
-  return fetchPortableRelease(new AbortController().signal)
+  return fetchPortableUrl(new AbortController().signal)
 }
 
-it('Release 첨부 중 포터블 exe의 주소, 버전, 용량을 고른다', async () => {
-  const release = await fetchWith(async () =>
-    Response.json({ tag_name: 'v0.1.0', assets: [checksumAsset, portableAsset] })
+it('Release 첨부 중 포터블 exe의 주소를 고른다', async () => {
+  const portableUrl = await fetchWith(async () =>
+    Response.json({ assets: [checksumAsset, portableAsset] })
   )
 
-  expect(release).toEqual({ version: 'v0.1.0', url: PORTABLE_URL, size: 163241950 })
+  expect(portableUrl).toBe(PORTABLE_URL)
 })
 
 it.each([
   ['요청이 실패하면', () => Promise.reject(new TypeError('Failed to fetch'))],
-  [
-    '사용량 제한에 걸리면',
-    async () => Response.json({ tag_name: 'v0.1.0', assets: [portableAsset] }, { status: 403 })
-  ],
+  ['사용량 제한에 걸리면', async () => Response.json({ assets: [portableAsset] }, { status: 403 })],
   ['응답이 JSON이 아니면', async () => new Response('<html>')],
-  [
-    '포터블 exe가 아직 붙지 않았으면',
-    async () => Response.json({ tag_name: 'v0.1.0', assets: [checksumAsset] })
-  ],
+  ['포터블 exe가 아직 붙지 않았으면', async () => Response.json({ assets: [checksumAsset] })],
   [
     '포터블 exe 주소가 GitHub 밖이면',
     async () =>
       Response.json({
-        tag_name: 'v0.1.0',
         assets: [{ ...portableAsset, browser_download_url: 'https://example.com/a.exe' }]
       })
   ]

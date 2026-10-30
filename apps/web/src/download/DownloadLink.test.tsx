@@ -10,12 +10,10 @@ const PORTABLE_URL =
 
 // 2026-10-31 v0.1.0 releases/latest 응답에서 화면이 읽는 필드만 남겼다.
 const latestRelease = {
-  tag_name: 'v0.1.0',
   assets: [
-    { name: 'DFragon-0.1.0-x64-portable.exe', size: 163241950, browser_download_url: PORTABLE_URL },
+    { name: 'DFragon-0.1.0-x64-portable.exe', browser_download_url: PORTABLE_URL },
     {
       name: 'DFragon-0.1.0-x64-portable.exe.sha256',
-      size: 97,
       browser_download_url: `${PORTABLE_URL}.sha256`
     }
   ]
@@ -43,20 +41,16 @@ async function renderWithResponse(respond: () => Promise<Response>): Promise<HTM
   return container.querySelector('a')!
 }
 
-it('최신 Release의 포터블 exe 주소, 버전, 용량을 보인다', async () => {
+it('최신 Release의 포터블 exe를 받는 버튼만 보이고 버전 줄은 두지 않는다', async () => {
   const link = await renderWithResponse(async () => Response.json(latestRelease))
 
   expect(link.href).toBe(PORTABLE_URL)
-  expect(container.textContent).toContain(
-    'v0.1.0 · Windows 10, 11 x64 · 155.7MB · 포터블, 설치 없음'
-  )
+  expect(container.textContent).toBe('Windows용 내려받기')
 })
 
-it('최신 Release를 읽지 못하면 Release 페이지로 보내고 버전, 용량 없이 안내한다', async () => {
+it('최신 Release를 읽지 못하면 버튼이 Release 페이지로 보낸다', async () => {
   const link = await renderWithResponse(() => Promise.reject(new TypeError('Failed to fetch')))
 
   expect(link.href).toBe(RELEASE_PAGE)
-  expect(container.textContent).toContain(
-    'Windows용 내려받기Windows 10, 11 x64 · 포터블, 설치 없음'
-  )
+  expect(container.textContent).toBe('Windows용 내려받기')
 })
