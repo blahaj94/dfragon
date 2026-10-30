@@ -15,7 +15,7 @@ vi.mock('electron', () => ({
 }))
 
 const documentUrl = 'file:///synthetic/index.html'
-const RELEASE_PAGE = 'https://github.com/blahaj94/dfragon/releases/tag/'
+const RELEASE_PAGE = 'https://github.com/dungeon-and-dragon/dfragon/releases/tag/'
 type Handler = (event: unknown, ...args: unknown[]) => Promise<unknown>
 type Frame = { url: string; detached: boolean; isDestroyed: () => boolean }
 let notices: UpdateNotices

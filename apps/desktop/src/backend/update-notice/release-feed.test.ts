@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { readReleaseFeedTags, releasePageUrl, selectUpdateNotice } from './release-feed'
 
-const RELEASE_PAGE = 'https://github.com/blahaj94/dfragon/releases/tag/'
+const RELEASE_PAGE = 'https://github.com/dungeon-and-dragon/dfragon/releases/tag/'
 
 function atomFeed(...links: string[]): string {
   const entries = links.map(
@@ -16,8 +16,8 @@ function atomFeed(...links: string[]): string {
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xml:lang="en-US">
-  <id>tag:github.com,2008:https://github.com/blahaj94/dfragon/releases</id>
-  <link type="text/html" rel="alternate" href="https://github.com/blahaj94/dfragon/releases"/>
+  <id>tag:github.com,2008:https://github.com/dungeon-and-dragon/dfragon/releases</id>
+  <link type="text/html" rel="alternate" href="https://github.com/dungeon-and-dragon/dfragon/releases"/>
   <title>Release notes from dfragon</title>
 ${entries.join('\n')}
 </feed>`

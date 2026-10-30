@@ -7,7 +7,7 @@ const SIX_HOURS_MS = 6 * 60 * 60 * 1000
 function atomFeed(...tags: string[]): string {
   const entries = tags.map(
     (tag) =>
-      `<entry><link rel="alternate" type="text/html" href="https://github.com/blahaj94/dfragon/releases/tag/${tag}"/></entry>`
+      `<entry><link rel="alternate" type="text/html" href="https://github.com/dungeon-and-dragon/dfragon/releases/tag/${tag}"/></entry>`
   )
 
   return `<?xml version="1.0" encoding="UTF-8"?>\n<feed xmlns="http://www.w3.org/2005/Atom">${entries.join('')}</feed>`
