@@ -14,6 +14,7 @@ import type { SlotCardKey } from '../hooks/useSlotCardStore'
 import {
   getCharacterCardFrameState,
   getCharacterCardStatus,
+  getLookupStep,
   isVacantSlot
 } from '../lib/card-presentation'
 import { toScoreView } from '../lib/card-score'
@@ -39,6 +40,7 @@ export function RaidCard({
   const nickname = characterFound ? undefined : card.nickname
   const draft = useLookupDraft({ cardKey, character, nickname, onLookup })
   const busy = loading || state === 'pending'
+  const lookupStep = getLookupStep(card)
   const cardStatus = getCharacterCardStatus(state)
   const slotNotice = draft.inputNotice || notice
   const message = slotNotice || (state === 'empty' ? cardStatus : '')
@@ -55,7 +57,7 @@ export function RaidCard({
       <div {...stylex.props(styles.body)}>
         <PortraitWell tier={tier} size="raid">
           {characterFound && <Portrait src={character.image} />}
-          {busy && <LookupProgress slot={slot} />}
+          {lookupStep !== null && <LookupProgress slot={slot} step={lookupStep} size="raid" />}
         </PortraitWell>
         <div {...stylex.props(styles.column)}>
           <div {...stylex.props(styles.header)}>

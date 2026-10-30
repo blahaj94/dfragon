@@ -2,6 +2,7 @@ import { CardFrame, Typo, shapes } from '@dfragon/ui'
 import {
   getCharacterCardFrameState,
   getCharacterCardStatus,
+  getLookupStep,
   isVacantSlot
 } from '../lib/card-presentation'
 import * as stylex from '@stylexjs/stylex'
@@ -52,6 +53,8 @@ export function CharacterCard({
   const { editing } = draft
   const score = toScoreView(characterFound ? character.card : null, card.scorePending)
   const busy = loading || state === 'pending'
+  // 미리보기 조회 동안은 처음 누를 때의 카드 사본을 보이므로, 그 사본에 남은 상세 대기로 진행 점을 그리지 않는다.
+  const lookupStep = previewing ? null : getLookupStep(card)
   const cardStatus = getCharacterCardStatus(state)
   const slotNotice = draft.inputNotice || notice
   const emptyMessage = state === 'empty' ? cardStatus : ''
@@ -69,7 +72,7 @@ export function CharacterCard({
         <div {...stylex.props(styles.body)}>
           <PortraitWell tier={tier} size="party">
             {characterFound && <Portrait src={character.image} />}
-            {busy && <LookupProgress slot={slot} />}
+            {lookupStep !== null && <LookupProgress slot={slot} step={lookupStep} size="party" />}
           </PortraitWell>
           <div {...stylex.props(styles.column)}>
             <div {...stylex.props(styles.header)}>
