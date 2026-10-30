@@ -14,7 +14,29 @@ pnpm --filter @dfragon/web build
 pnpm --filter @dfragon/web preview
 ```
 
-`build`는 `tsc -b`와 Vite production build를 포함하므로 같은 변경을 검증할 때 `typecheck`를 다시 실행할 필요는 없습니다. `pnpm verify`는 Web의 `test`, `build`를 실행합니다. 산출물은 `dist`에 생기며 GitHub Pages 배포는 별도 작업입니다.
+`build`는 `tsc -b`와 Vite production build를 포함하므로 같은 변경을 검증할 때 `typecheck`를 다시 실행할 필요는 없습니다. `pnpm verify`는 Web의 `test`, `build`를 실행합니다. 산출물은 `dist`에 생기며, `public/CNAME`(`dfragon.com`)이 함께 복사됩니다.
+
+## 배포
+
+[`web-pages.yml`](../../.github/workflows/web-pages.yml)이 main에 push(PR merge)될 때와 수동 실행에서 `pnpm --filter @dfragon/web build`의 `dist`를 GitHub Pages에 올립니다. 사이트는 submodule 없이 빌드하므로 비공개 점수 엔진은 받지 않습니다. 내려받기 버튼은 방문 시점에 GitHub API에서 최신 Release를 읽으므로 새 Release를 게시해도 다시 배포하지 않습니다.
+
+저장소 소유자가 한 번 해야 하는 설정입니다. workflow와 에이전트는 이 설정을 바꾸지 않습니다.
+
+1. Settings → Pages → Build and deployment의 Source를 GitHub Actions로 정합니다.
+2. 같은 화면의 Custom domain에 `dfragon.com`을 입력합니다. 배포마다 `CNAME` 파일이 함께 올라가므로 도메인 설정이 유지됩니다.
+3. Porkbun의 `dfragon.com` DNS에 아래 레코드를 넣습니다. IP는 GitHub 문서 [Managing a custom domain for your GitHub Pages site](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)의 apex 도메인 값이며, 설정 전에 문서와 다시 대조합니다.
+
+   | 종류 | 호스트 | 값 |
+   | --- | --- | --- |
+   | A | (비움, `dfragon.com`) | `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153` 네 개 |
+   | AAAA | (비움, `dfragon.com`) | `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153` 네 개 |
+   | CNAME | `www` | `dungeon-and-dragon.github.io` |
+
+4. DNS가 확인되면 Pages 화면에서 Enforce HTTPS를 켭니다. 인증서 발급에는 시간이 걸릴 수 있습니다.
+
+`www.dfragon.com`을 `dfragon.com`으로 보내는 일은 GitHub Pages가 합니다. Custom domain이 apex(`dfragon.com`)이고 `www` CNAME이 `dungeon-and-dragon.github.io`를 가리키면 `www`로 들어온 요청을 apex로 리디렉션하므로 별도 리디렉션 설정이 없습니다.
+
+`api.dfragon.com`은 운영 API가 쓰는 레코드입니다. 위 레코드를 넣을 때 건드리지 않습니다.
 
 ## 구성
 
