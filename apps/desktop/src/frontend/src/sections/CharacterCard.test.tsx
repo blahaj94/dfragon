@@ -309,6 +309,20 @@ it('스냅샷에 없는 모험단 카드는 ! 칩과 카드를 덮는 장식 레
   expect(card().querySelector('[aria-label^="스냅샷 순번"]')).toBeNull()
 })
 
+it('스냅샷 순번 칩 아이콘은 순번에 있으면 채우고 없으면 윤곽만 둔다', async () => {
+  await render({
+    state: 'success',
+    character: found,
+    snapshotMark: { kind: 'moved', seat: 2 }
+  })
+  const moved = card().querySelector('[aria-label="스냅샷 순번 2"] svg')!
+  expect(moved.getAttribute('fill')).toBe('currentColor')
+
+  await render({ state: 'success', character: found, snapshotMark: { kind: 'absent' } })
+  const absent = card().querySelector('[aria-label="스냅샷에 없는 모험단"] svg')!
+  expect(absent.getAttribute('fill')).toBe('none')
+})
+
 it('스냅샷 표시를 걷으면 칩과 오버레이가 함께 사라진다', async () => {
   await render({ state: 'success', character: found })
   const decorations = decorationCount()

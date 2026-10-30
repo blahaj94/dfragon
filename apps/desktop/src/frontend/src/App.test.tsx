@@ -63,7 +63,9 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
     expect(slot.querySelector('img')).toBeNull()
   }
   expect(container.querySelector('form')).toBeNull()
-  expect(container.querySelectorAll('img')).toHaveLength(0)
+  expect(
+    [...container.querySelectorAll('img')].filter((image) => image.alt !== 'Neople 오픈 API')
+  ).toHaveLength(0)
   expect(container.querySelector('footer')).toBeNull()
   expect(container.querySelector('main')?.firstElementChild?.tagName).toBe('HEADER')
   expect(container.querySelector('header')?.textContent).toContain('창 미감지')
