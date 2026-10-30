@@ -28,7 +28,7 @@ export function SnapshotChip({
       )}
     >
       <SnapshotIcon
-        center={moved}
+        filled={moved}
         strokeWidth="3"
         width={size === 'party' ? 11 : 10}
         height={size === 'party' ? 11 : 10}
