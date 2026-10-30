@@ -441,7 +441,7 @@ it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을
   await render({ state: 'success', character: found })
   const scoreValue = statValue('장비')
   expect(scoreValue.firstChild?.textContent).toBe('330,556')
-  expect(scoreValue.textContent).toContain('DFragon 계산값')
+  expect(scoreValue.textContent).toContain('던삐삐 계산값')
 })
 
 it('검색 응답에 없는 길드, 명성, 장비 점수는 0이나 빈칸 대신 -로 보인다', async () => {
