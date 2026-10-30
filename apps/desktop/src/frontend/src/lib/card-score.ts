@@ -22,7 +22,8 @@ const approximateMethods: Readonly<Record<string, string>> = {
   legacy_fusion_policy_a_input_gate_diagnostic:
     '이전 시즌 융합석을 빼고 입력값 차이를 무시하고 계산한 값',
   input_gate_diagnostic: '입력값 차이를 무시하고 계산한 값',
-  common_level_skip_computed: '공통 스킬 레벨을 1로 두고 계산한 값'
+  common_level_skip_computed: '공통 스킬 레벨을 1로 두고 계산한 값',
+  missing_switching_item: '판별하지 못한 버프 강화 아이템을 빼고 계산한 값'
 }
 
 const scoreNote = (label: ScoreView['label']): string =>
