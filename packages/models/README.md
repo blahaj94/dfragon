@@ -43,4 +43,4 @@ git -C packages/models/ocr-finetuned checkout <모델을-포함한-커밋-SHA>
 git add packages/models/ocr-finetuned
 ```
 
-점수 엔진도 같은 방법으로 `packages/models/score-engine`을 새 엔진 커밋으로 옮깁니다. 엔진 저장소의 README가 각 커밋의 엔진 버전과 SHA256을 적습니다.
+점수 엔진도 같은 방법으로 `packages/models/score-engine`을 새 엔진 커밋으로 옮깁니다. 엔진 저장소의 README가 각 커밋의 엔진 버전과 SHA256을 적습니다. 엔진의 제3자 고지는 이 submodule에 없고 [`@dfragon/licenses`의 `notices/score-engine`](../licenses/README.md#원본과-수집-범위)이 보관하므로, 엔진의 `NOTICE`, `Cargo.lock`, Rust 버전이 바뀌었으면 같은 PR에서 함께 갱신합니다.
