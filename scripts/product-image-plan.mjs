@@ -20,6 +20,10 @@ const commonDirectories = ['packages/lib/', 'packages/licenses/']
 export function selectServices(changedPaths) {
   const selected = new Set()
   for (const path of changedPaths) {
+    if (path.endsWith('.md')) {
+      continue
+    }
+
     if (
       commonFiles.has(path) ||
       commonDirectories.some((directory) => path.startsWith(directory))

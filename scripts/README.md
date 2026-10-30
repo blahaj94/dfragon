@@ -2,7 +2,7 @@
 
 저장소에서 반복적으로 사용하는 local 도구입니다. 새 dependency 없이 Node.js와 기존 Git, GitHub CLI, pnpm command를 사용합니다.
 
-서버 이미지 빌드, 실행 입력은 [제품 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)를 따릅니다. 서버 배포, SSH, timer, 백업, 복구 도구는 그 안내에서 연결한 인프라 저장소가 담당합니다.
+서버 이미지 빌드, 실행 입력은 [제품 이미지 안내](../apps/api/README.md#서버-이미지)를 따릅니다. 서버 배포, SSH, timer, 백업, 복구 도구는 그 안내에서 연결한 인프라 저장소가 담당합니다.
 
 ## 루트 도구 회귀 검증
 
@@ -97,7 +97,7 @@ pnpm check:docs
 ## `product-image-plan`
 
 Product Images의 변경 경로를 서비스별 빌드 목록으로 바꿉니다. 앱별 경로와 공용 입력은
-[서버 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)를 따릅니다.
+[서버 이미지 안내](../apps/api/README.md#서버-이미지)를 따릅니다.
 새 dependency 없이 Git과 Node.js 26을 사용합니다.
 
 `select <plan-file>`은 GitHub push event 파일과 checkout된 source commit을 확인하고,
@@ -128,7 +128,7 @@ node --test scripts/test/server-build-info.test.mjs
 ```
 
 GitHub 이미지 빌드, 발행은 내장 정보와 선택한 정확한 commit을 추가로 대조합니다.
-실행 중인 서버 조회는 [제품 이미지 안내](../docs/reference/api-start-development.md#실행-중인-서버의-버전-조회)를 참고합니다.
+실행 중인 서버 조회는 [제품 이미지 안내](../apps/api/README.md#실행-중인-서버의-버전-조회)를 참고합니다.
 
 ## `verify`
 
@@ -153,7 +153,7 @@ pnpm verify
 
 ## Native validation
 
-로컬 API, Desktop은 각 앱 `package.json`의 `dev` 명령을 사용합니다. `pnpm --filter @dfragon/api dev`, `pnpm --filter @dfragon/desktop dev`가 해당 앱의 `.env`를 읽으며, 개인 홈의 별도 실행 파일은 필요하지 않습니다. 최초 준비는 [API 로컬 실행](../docs/reference/api-start-development.md#로컬-개발-명령), Desktop 설정은 [카드 화면 개발](../apps/desktop/README.md#카드-화면-개발)을 참고합니다.
+로컬 API, Desktop은 각 앱 `package.json`의 `dev` 명령을 사용합니다. `pnpm --filter @dfragon/api dev`, `pnpm --filter @dfragon/desktop dev`가 해당 앱의 `.env`를 읽으며, 개인 홈의 별도 실행 파일은 필요하지 않습니다. 최초 준비는 [API 로컬 실행](../apps/api/README.md#로컬-개발-명령), Desktop 설정은 [카드 화면 개발](../apps/desktop/README.md#카드-화면-개발)을 참고합니다.
 
 실제 호출부, 소비자와 변경 위험에 맞는 command를 선택합니다. 아래 조합은 workspace 전반의 검사가 필요할 때의 예제이며 매 수정의 필수 목록이 아닙니다. 아래 [pnpm regex selector와 `--sequential`](https://pnpm.io/cli/run)은 선택한 script를 이름순으로 하나씩 실행하며 실패 시 non-zero로 종료합니다. 별도 validation runner나 dependency가 필요하지 않습니다.
 
@@ -166,7 +166,7 @@ pnpm verify
 
 정적 검사만 한 번에 실행할 때는 root에서 `pnpm check:static`을 사용합니다. `lint`, `format:check`, `check:writing`, `check:docs`를 `pnpm verify`와 같은 순서로 실행하며 먼저 실패한 검사에서 멈춥니다.
 
-API 이미지의 실행 계약은 아래 명령으로 검사합니다. Node.js 26, 같은 host의 Docker daemon(Docker Desktop 포함)과 로컬에 있는 Linux 앱 이미지가 필요합니다. [제품 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)의 빌드 결과를 사용하거나, 인자를 미리 pull한 검증 대상 이미지 reference로 바꿉니다.
+API 이미지의 실행 계약은 아래 명령으로 검사합니다. Node.js 26, 같은 host의 Docker daemon(Docker Desktop 포함)과 로컬에 있는 Linux 앱 이미지가 필요합니다. [제품 이미지 안내](../apps/api/README.md#서버-이미지)의 빌드 결과를 사용하거나, 인자를 미리 pull한 검증 대상 이미지 reference로 바꿉니다.
 
 ```bash
 node apps/api/test-support/container-deployment.mjs dfragon-api:local

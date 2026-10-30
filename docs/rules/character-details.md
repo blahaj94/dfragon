@@ -32,7 +32,7 @@ evidence: "2026-10-26 #796 DB 제거; 2026-10-29 #992 공용 아이템 24시간,
 
 강제 갱신이 새로 받지 못하면 상세 GET과 같은 오류 응답을 돌려주고 기존 캐시는 그대로 둔다. 경로 입력 검증, query 거절, 오류 형식은 상세 GET과 같다. Body는 읽지 않는다.
 
-저장한 응답 본문을 보낸 요청은 Neople도 공용 아이템도 기다리지 않으므로 접근 로그에 `neopleMs` 없이 `responseCached: true`가 붙는다. 캐릭터 캐시는 맞았지만 저장한 본문이 없는 요청은 `neopleMs`에 `basic`, `sections` 없이 `catalog`만 남는다. 진행 중인 조회에 합류한 요청에는 `neopleShared: true`가 붙는다. 형식은 [접근 로그](../reference/api-start-development.md#접근-로그)에 있다.
+저장한 응답 본문을 보낸 요청은 Neople도 공용 아이템도 기다리지 않으므로 접근 로그에 `neopleMs` 없이 `responseCached: true`가 붙는다. 캐릭터 캐시는 맞았지만 저장한 본문이 없는 요청은 `neopleMs`에 `basic`, `sections` 없이 `catalog`만 남는다. 진행 중인 조회에 합류한 요청에는 `neopleShared: true`가 붙는다. 형식은 [접근 로그](../../apps/api/README.md#접근-로그)에 있다.
 
 ## 응답 본문 재사용
 
