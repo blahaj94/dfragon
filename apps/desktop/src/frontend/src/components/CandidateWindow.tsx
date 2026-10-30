@@ -3,9 +3,12 @@ import * as stylex from '@stylexjs/stylex'
 import { CheckIcon } from './CheckIcon'
 import { CloseIcon } from './CloseIcon'
 import { FACE_SIZE, styles } from './CandidateWindow.style'
+import { MISSING_VALUE } from '../constants/cards'
 import { characterImageUrl } from '../../../preload/common/search/character-summary'
 import type { CharacterChoice } from '../../../preload/common/types/search'
 import type { CandidatePicker } from '../lib/candidate-picker'
+
+const integer = new Intl.NumberFormat('ko-KR')
 
 export function CandidateWindow({
   id,
@@ -24,8 +27,9 @@ export function CandidateWindow({
     const shown = choice.serverId === picker.shownServerId
     const previewing = choice.serverId === picker.previewServerId
     const server = choice.serverName ?? choice.serverId
+    const fame = choice.fame !== null ? integer.format(choice.fame) : MISSING_VALUE
     const adventure = choice.adventureName ?? '모험단 정보 없음'
-    const description = `${server}, ${adventure}`
+    const description = `${server}, 명성 ${fame}, ${adventure}`
     const state = previewing ? ', 미리보기 중, 한 번 더 누르면 확정' : ''
     const handlePick = (): void => onPick(choice.serverId)
 
@@ -40,6 +44,10 @@ export function CandidateWindow({
         {...stylex.props(styles.portrait, shown && styles.shown, previewing && styles.preview)}
       >
         <ChoiceFace choice={choice} />
+        <span aria-hidden="true" {...stylex.props(styles.tag)}>
+          <span {...stylex.props(styles.tagServer)}>{server}</span>
+          <span {...stylex.props(styles.tagFame)}>{fame}</span>
+        </span>
         {previewing && (
           <span {...stylex.props(styles.check)}>
             <CheckIcon width="9" height="9" strokeWidth="4" />
