@@ -357,7 +357,6 @@ it('공대 카드의 이름 칸도 Tab으로 서버 목록을 열고 Enter로 �
         card={{ state: 'success', character: previewCharacter }}
         slot={9}
         onLookup={onLookup}
-        move={{ movable: false }}
       />
     )
   )

@@ -6,7 +6,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { ServerSelect } from '../../components/ServerSelect'
 import type { SnapshotMark } from '../../lib/adventure-snapshot'
-import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
+import { RAID_SEAT_LAYOUT } from '../../constants/cards'
+import { createSeatOrder, swapSeats } from '../../lib/seats'
 import { bufferCard, dealerCard } from '../../testing/fixtures/character-cards'
 import { toneClassesOf } from '../../testing/test-support/score-tone-class'
 import type { CardCharacter, SlotState } from '../../types/cards'
@@ -78,7 +79,7 @@ async function render({
   characters = [],
   slotNotices,
   snapshotMarks,
-  seatOrder = createSeatOrder(),
+  seatOrder = createSeatOrder(RAID_SEAT_LAYOUT),
   canMoveSeats = true,
   swapSeats: swap = vi.fn(() => true),
   lookupSlot = vi.fn(),
@@ -100,7 +101,7 @@ async function render({
       <RaidPage
         resetKey="raid"
         {...props}
-        seats={{ seatOrder, canMoveSeats, swapSeats: swap }}
+        seats={{ layout: RAID_SEAT_LAYOUT, seatOrder, canMoveSeats, swapSeats: swap }}
         actions={{ lookupSlot }}
         slots={slots}
       />
@@ -132,7 +133,7 @@ async function pressAlt(target: HTMLElement, key: string, altKey = true): Promis
   )
 }
 
-const SEAT_DRAG_TYPE = 'application/x-dfragon-raid-seat'
+const SEAT_DRAG_TYPE = 'application/x-dfragon-seat'
 
 // jsdom에는 DragEvent가 없어 React가 읽는 dataTransfer만 붙인 이벤트로 드래그를 흉내 낸다. 기본은 자리 드래그
 // 형식이 담긴 드래그다.
@@ -196,7 +197,7 @@ it('세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () =
 
 it('자리 배치대로 슬롯을 그리고 조회는 그 자리에 놓인 검색 슬롯 번호로 알린다', async () => {
   const lookup = vi.fn()
-  const seatOrder = swapSeats(createSeatOrder(), 0, 5)
+  const seatOrder = swapSeats(createSeatOrder(RAID_SEAT_LAYOUT), 0, 5)
   await render({
     characters: [member],
     seatOrder,
@@ -225,7 +226,10 @@ it('맞바꾸면 카드가 입력 중인 이름과 함께 다른 파티의 자�
   await render({ characters: [member] })
   await enterName(seats()[3], '넷째초안')
 
-  await render({ characters: [member], seatOrder: swapSeats(createSeatOrder(), 3, 4) })
+  await render({
+    characters: [member],
+    seatOrder: swapSeats(createSeatOrder(RAID_SEAT_LAYOUT), 3, 4)
+  })
 
   expect(nameOf(seats()[4])).toBe('넷째초안')
   expect(seats()[4].querySelector('[aria-label="5번 캐릭터 이름"]')).not.toBeNull()
@@ -248,7 +252,7 @@ it('카드에 포커스한 채 Alt와 방향키로 이웃 자리와 맞바꾸고
   await render({
     characters: [member],
     swapSeats: swap,
-    seatOrder: swapSeats(createSeatOrder(), 0, 1)
+    seatOrder: swapSeats(createSeatOrder(RAID_SEAT_LAYOUT), 0, 1)
   })
   expect(document.activeElement).toBe(seats()[1])
   expect(nameOf(seats()[1])).toBe('공대원')
@@ -317,7 +321,7 @@ it('드래그하던 카드가 회차나 배치 변경으로 다시 그려지면 
     characters: [member],
     swapSeats: swap,
     resetKey: 'next-round',
-    seatOrder: swapSeats(createSeatOrder(), 6, 7)
+    seatOrder: swapSeats(createSeatOrder(RAID_SEAT_LAYOUT), 6, 7)
   })
   expect(seats()[1].className).toBe(idleClass())
   await drag('drop', seats()[4])
@@ -364,7 +368,7 @@ it('맞바꾸기를 거절하면 알리지 않고, 다음 배치 변경에서 �
     await render({
       characters: [member],
       swapSeats: swap,
-      seatOrder: swapSeats(createSeatOrder(), 0, 1)
+      seatOrder: swapSeats(createSeatOrder(RAID_SEAT_LAYOUT), 0, 1)
     })
     expect(document.activeElement).toBe(outsideButton)
   } finally {
@@ -573,7 +577,7 @@ it('보드는 창 폭을 네 등분한 열에 간격 8로 카드를 놓고 넘�
 })
 
 it('슬롯에 붙은 스냅샷 표시는 그 슬롯이 놓인 자리 카드에 칩과 경고로 들어간다', async () => {
-  const seatOrder = swapSeats(createSeatOrder(), 0, 1)
+  const seatOrder = swapSeats(createSeatOrder(RAID_SEAT_LAYOUT), 0, 1)
   await render({
     characters: [member, { ...member, adventure: '둘째모험단' }],
     seatOrder,
