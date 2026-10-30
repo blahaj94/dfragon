@@ -2,8 +2,8 @@
 type: rule
 status: active
 scope: apps/api character details
-last-reviewed: 2026-10-30
-evidence: "2026-10-26 #796 DB 제거; 2026-10-29 #992 공용 아이템 24시간, 캐릭터 1시간 메모리 캐시와 강제 갱신 API; 2026-10-30 #996 응답 본문 재사용"
+last-reviewed: 2026-10-31
+evidence: "2026-10-26 #796 DB 제거; 2026-10-29 #992 공용 아이템 24시간, 캐릭터 1시간 메모리 캐시와 강제 갱신 API; 2026-10-30 #996 응답 본문 재사용; 2026-10-31 Cloudflare Tunnel 공개 경로"
 ---
 
 # 캐릭터 상세 정보
@@ -40,7 +40,7 @@ evidence: "2026-10-26 #796 DB 제거; 2026-10-29 #992 공용 아이템 24시간,
 
 공용 아이템 상세가 하나라도 `unavailable`인 응답은 저장하지 않는다. 다음 요청이 그 아이템을 다시 조회하게 하기 위해서다. 저장한 본문 안의 공용 아이템 상세는 캐릭터 항목이 사는 동안(최대 1시간) 고정된다. 그 사이 공용 아이템 캐시가 새 값을 받아도 이 본문에 반영되지 않는 것은 감수한다(2026-10-30 결정, [Issue #996](https://github.com/blahaj94/dfragon/issues/996)).
 
-응답 압축은 API가 하지 않고 운영 Caddy가 맡는다(2026-10-30 결정). 저장한 본문도 압축하지 않은 채 보내며, Caddy가 요청의 `Accept-Encoding`에 맞춰 zstd나 gzip으로 압축한다.
+응답 압축은 API가 하지 않고 운영 Caddy가 맡는다(2026-10-30 결정). 저장한 본문도 압축하지 않은 채 보내며, Caddy가 요청의 `Accept-Encoding`에 맞춰 zstd나 gzip으로 압축한다. 운영 요청은 Cloudflare를 거치므로 Caddy가 맞추는 `Accept-Encoding`은 Cloudflare가 보낸 값이고, Desktop이 받는 압축 방식은 Cloudflare가 정한다([검색의 운영 proxy 경로](character-search.md#공개-검색과-호출-제한)).
 
 ## 카드 투영
 
