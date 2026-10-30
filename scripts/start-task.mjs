@@ -3,7 +3,7 @@ import { lstatSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const PROJECTS = new Set(['api', 'desktop', 'ui', 'cross', 'repo'])
+const PROJECTS = new Set(['api', 'desktop', 'web', 'ui', 'cross', 'repo'])
 
 function buildTaskContext({ issue, branch, destination, base }) {
   const taskContext = [
@@ -42,7 +42,7 @@ export function startTask(args, run = execFileSync) {
     hasWorktreePath
   if (!isInputValid) {
     throw new Error(
-      '사용법: pnpm start-task <project: api|desktop|ui|cross|repo> <Issue 번호> <description: 소문자-작업-설명> <새 worktree 경로>'
+      '사용법: pnpm start-task <project: api|desktop|web|ui|cross|repo> <Issue 번호> <description: 소문자-작업-설명> <새 worktree 경로>'
     )
   }
 
