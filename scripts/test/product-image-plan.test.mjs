@@ -42,8 +42,11 @@ test('공용 빌드 입력은 모든 서비스를 선택한다', () => {
 test('문서, 무관한 앱, 다른 tooling과 비슷한 접두사의 경로는 이미지를 선택하지 않는다', () => {
   assert.deepEqual(
     selectServices([
-      'docs/reference/api-start-development.md',
+      'docs/README.md',
       'README.md',
+      'apps/api/README.md',
+      'apps/api/test-support/README.md',
+      'packages/lib/README.md',
       'assets/logo.svg',
       'apps/desktop/src/main.ts',
       'apps/web/src/main.tsx',
