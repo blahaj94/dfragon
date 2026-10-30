@@ -1,4 +1,4 @@
-<img src="assets/brand/dfragon.png" width="96" height="96" alt="DFragon" />
+<img src="assets/brand/dfragon.png" width="96" height="96" alt="던삐삐" />
 
 공사중
 
