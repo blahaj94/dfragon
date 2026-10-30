@@ -41,7 +41,7 @@ export default function App(): React.JSX.Element {
       >
         <section aria-labelledby="hero-title" {...stylex.props(styles.panel)}>
           <h1 id="hero-title" {...stylex.props(styles.title)}>
-            파티, 공대를 쉽게 확인해봐요
+            파티, 공대를 쉽게 확인
           </h1>
           <DownloadLink />
         </section>
