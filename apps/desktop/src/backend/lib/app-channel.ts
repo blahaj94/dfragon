@@ -4,6 +4,7 @@ export type DesktopChannel = Readonly<{
   name: string
   identity: Readonly<{ appIdentity: string }>
   origins: Readonly<{ api: string }>
+  analytics: Readonly<{ measurementId: string; apiSecret: string }> | null
 }>
 
 declare const __DFRAGON_CHANNEL__: DesktopChannel | null
@@ -32,6 +33,15 @@ export function readAppIdentity(): string | null {
   }
 
   return channel.identity.appIdentity
+}
+
+export function readAppAnalytics(): DesktopChannel['analytics'] {
+  const channel = readBundledChannel()
+  if (channel == null) {
+    return null
+  }
+
+  return channel.analytics
 }
 
 /** 채널의 origin은 빌드할 때 검사했으므로 채널 없는 실행의 process 설정만 검사한다. */

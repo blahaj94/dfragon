@@ -34,7 +34,8 @@ export function registerManualSearchIpc({
   sourceGeneration,
   isCurrentCaptureSource,
   isCurrentDocument,
-  publish
+  publish,
+  onLookup
 }: {
   kind: ManualSearchKind
   runtime?: SearchRuntime
@@ -46,6 +47,7 @@ export function registerManualSearchIpc({
   isCurrentCaptureSource: (binding: CaptureBinding) => boolean
   isCurrentDocument: (generation: number) => boolean
   publish: (channel: ManualSearchChangedChannel, snapshot: SearchSnapshot) => void
+  onLookup?: () => void
 }): {
   readonly current: CaptureBinding | null
   invalidate: () => void
@@ -82,6 +84,8 @@ export function registerManualSearchIpc({
       case SEARCH_ACTIONS.END:
         return lifetime.end(control.captureId)
       case SEARCH_ACTIONS.LOOKUP:
+        onLookup?.()
+
         return lifetime.lookup(control)
       case SEARCH_ACTIONS.BEGIN:
         // An explicit new begin also recovers a session whose reply was lost.
