@@ -20,7 +20,7 @@ last-reviewed: 2026-10-30
 | API runtime, 검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md), [오늘의 등급](rules/today-grade.md) |
 | Desktop MVP 카드, 입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md), [디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | Desktop 새 버전 알림, 자동 설치를 미룬 결정 | [ADR 0001 새 버전 알림만 두고 자동 설치는 미룬다](adr/0001-update-notice-without-auto-install.md) |
-| 앱 공용 UI, 디자인 토큰, Base UI, StyleX, 시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [앱 공통 StyleX](reference/app-styling.md) |
+| 앱 공용 UI, 디자인 토큰, Base UI, StyleX, 시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [공통 StyleX 설정](../packages/ui/README.md#공통-stylex-설정) |
 | React 화면, hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [Desktop 구조](architecture/desktop-code-organization.md), [Repository Map](reference/repository-map.md) |
 | Penpot 확정 화면, Desktop MVP 구현 이관 | [Desktop MVP 디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | 제품 이름 표기, 사용자 문구 문체, 표기 검사 | [표기와 문체](rules/writing.md) |
@@ -40,5 +40,3 @@ Reference의 오류는 실제 파일, 설정에 맞춰 고친다. Rule과 구현
 ### Reference
 
 - [`reference/repository-map.md`](reference/repository-map.md): workspace, app, command 현황
-- [`reference/desktop-party-geometry.md`](reference/desktop-party-geometry.md): Desktop party frame의 관측값, 후보 geometry 함수와 남은 검증
-- [`reference/desktop-raid-participants.md`](reference/desktop-raid-participants.md): 12행 공대원창의 위치, 배율 검출, 닉네임 수집과 순수 메타데이터 판독 범위

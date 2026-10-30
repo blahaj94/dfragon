@@ -9,6 +9,10 @@ import { stopOwnedProcessGroup } from './consumer-process-lifecycle.mjs'
 const root = fileURLToPath(new URL('../../../', import.meta.url))
 
 // 전용 checkout에서 직렬 실행한다. 이전 case의 output/cache로 cold 실패를 가리지 않는다.
+// 보존할 artifact가 있거나 dev server, 다른 build가 도는 checkout에서는 실행하지 않는다.
+// Desktop 제품 dev는 Electron bootstrap을 띄우고 electron-vite의 --rendererOnly도 이전 main/preload를
+// 실행하므로, renderer 해석은 apps/desktop/scripts/ui-renderer-resolution.mjs가 Vite server로만 확인한다.
+// POSIX process group 종료를 쓰며 macOS에서 검증했다.
 beforeEach(() => {
   for (const path of [
     'packages/ui/dist',

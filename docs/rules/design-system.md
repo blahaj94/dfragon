@@ -122,7 +122,7 @@ Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들
 
 ## 화면별 스타일 조정
 
-Desktop의 화면별 간격, 정렬, 너비, 영역 padding, 반응형 배치는 StyleX로 작성한다. 모든 앱은 공통 compiler 설정과 workspace catalog의 버전을 사용한다. 공용 토큰 CSS, vendor 스타일, font-face, reset, 공용 foundation 같은 전역 기반 CSS는 유지한다. 연결 위치와 구현 예시는 [앱 공통 StyleX](../reference/app-styling.md)를 따른다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style, className, CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
+Desktop의 화면별 간격, 정렬, 너비, 영역 padding, 반응형 배치는 StyleX로 작성한다. 모든 앱은 공통 compiler 설정과 workspace catalog의 버전을 사용한다. 공용 토큰 CSS, vendor 스타일, font-face, reset, 공용 foundation 같은 전역 기반 CSS는 유지한다. 연결 위치와 구현 예시는 [공통 StyleX 설정](../../packages/ui/README.md#공통-stylex-설정)를 따른다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style, className, CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
 
 컴포넌트 전용 StyleX는 옆의 `{name}.style.ts`에 module scope의 `stylex.create`와 named export로 둔다. JSX는 `stylex.props(base, condition && variant)`로 필요한 스타일을 합성한다. 다른 `className`과 함께 쓰면 한쪽을 덮어쓰지 않도록 합친다. 전용 스타일이 없는 컴포넌트에 빈 파일을 만들지 않는다.
 

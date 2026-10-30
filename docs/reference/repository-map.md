@@ -47,8 +47,8 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 ## Shared library
 
 - Package: `@dfragon/lib`, 위치: `packages/lib`. 앱, UI, 플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
-- `detectPartyFrameGeometry`는 가득 찬 HP, MP와 주변 테두리에서 HUD 닉네임 위치와 래스터 배율을 검출한다. 일반 Desktop OCR이 이 함수를 사용하며, 특정 해상도 일치 조건 대신 `isValidPartyFrameSize`의 메모리 보호 한도를 적용한다. [검출 범위와 한계](desktop-party-geometry.md#일반-캡처의-검출)를 참고한다.
-- `detectDNFRaidParticipantWindow`, `cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대 캡처에서 사용한다. `readDNFRaidParticipantMetadata`의 파티, 수치 판독, `readDNFRaidParticipantValues`의 수치 판독과 `classifyDNFRaidValueColumn`의 수치 열 종류 판별, `parseDNFRaidValueNotation`의 표기 해석은 순수 객체 반환에 한정한다. [공대원창 안내](desktop-raid-participants.md)를 참고한다.
+- `detectPartyFrameGeometry`는 가득 찬 HP, MP와 주변 테두리에서 HUD 닉네임 위치와 래스터 배율을 검출한다. 일반 Desktop OCR이 이 함수를 사용하며, 특정 해상도 일치 조건 대신 `isValidPartyFrameSize`의 메모리 보호 한도를 적용한다. [HUD 파티 프레임 검출](../../packages/lib/README.md#hud-파티-프레임-검출)를 참고한다.
+- `detectDNFRaidParticipantWindow`, `cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대 캡처에서 사용한다. `readDNFRaidParticipantMetadata`의 파티, 수치 판독, `readDNFRaidParticipantValues`의 수치 판독과 `classifyDNFRaidValueColumn`의 수치 열 종류 판별, `parseDNFRaidValueNotation`의 표기 해석은 순수 객체 반환에 한정한다. [12인 공대창 검출](../../packages/lib/README.md#12인-공대창-검출-크롭)를 참고한다.
 - `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색, 계정 규칙을 대신하지 않는다. 앱은 호출하지 않으며 dfragon-ocr의 학습 닉네임 생성이 원본으로 복사해 쓴다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
 - `pnpm --filter @dfragon/lib test`는 build 후 공개 export, 경계값, 문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
 
@@ -96,7 +96,7 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
   - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section, page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트, fixture의 조합은 이 제품 의존 규칙과 구분한다.
   - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일, 불필요한 wrapper로 계층을 채우지 않는다. UI와 독립적인 검색 연결, OCR 구현은 `lib`에 두고, React 상태 연결은 `hooks`와 UI가 담당한다.
 - 기본 앱: `pnpm --filter @dfragon/desktop dev`는 새 카드 화면을 연다. 빈 슬롯 네 개로 시작하고 다크 테마로 고정한다. 로그인, 설정, 개발자 도구는 없다. 상단 바 게임 연결 상태 칩의 CaptureControls 캡처 창은 창 등록, 대상 변경, 중지를 연결한다. 던파 창 하나 자동 감지도 등록만 하며 Alt+R이나 파티 헤더의 캡처 버튼마다 한 프레임으로 네 슬롯을 인식하고 OCR 첫 후보를 카드에 표시한다. 미검출 슬롯은 비워 두고 화면 복귀 후 자동 재개나 주기적인 반복 인식을 하지 않는다. 합성 메인, 캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `build:preview` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML, 데이터, 이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
-- Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 `@dfragon/ui`의 토큰과 Component를 사용한다. 제품, test, fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
+- Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 `@dfragon/ui`의 토큰과 Component를 사용한다. 공통 변환과 작성법은 [공통 StyleX 설정](../../packages/ui/README.md#공통-stylex-설정), Desktop 연결은 [Renderer 스타일](../../apps/desktop/README.md#renderer-스타일)을 참고한다.
 - Command:
   - `pnpm --filter @dfragon/desktop dev`
   - `pnpm --filter @dfragon/desktop test`
@@ -106,13 +106,13 @@ Root `prepare`가 설치하는 husky `pre-push` hook은 push 전에 `pnpm verify
 
 ## Shared UI
 
-- Desktop은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치, 작성, 검증 범위를 정리한다.
+- Desktop은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [공통 StyleX 설정](../../packages/ui/README.md#공통-stylex-설정)에 연결 위치, 작성, 검증 범위를 정리한다.
 <DEL>
 
 - `packages/ui`: `@dfragon/ui`, DFragon 디자인 토큰(`tokens.css`, `tokens.stylex`), Base UI 기반 공용 Component, Typo와 중립 Example. Package/peer/CSS 소유, 고지, 명령은 `packages/ui/README.md`를 따른다.
 - Library: `pnpm --filter @dfragon/ui test`, `typecheck`, `lint`, `build`.
 - 독립 Example: `pnpm --filter @dfragon/ui dev:examples`, `build:examples`, `preview:examples`. 별도 app workspace는 만들지 않는다.
-- Desktop renderer/Example의 source resolution과 cold regression: `packages/ui/README.md`, `packages/ui/test/consumer-resolution.md`. 소비 command는 사전 library build를 요구하지 않는다.
+- Desktop renderer/Example의 source resolution과 cold regression: `packages/ui/README.md`와 `packages/ui/scripts/test-consumer-resolution.mjs`의 머리 주석. 소비 command는 사전 library build를 요구하지 않는다.
 - 각 consumer는 공용 `tokens.css`와 `foundation.css`를 browser entry에서 한 번 import한다. Library JS는 CSS를 import하지 않고 Base UI, React/JSX runtime과 StyleX를 external 처리한다. 공용 Component의 `stylex.create`는 각 consumer의 StyleX compiler가 정적 CSS로 바꾼다.
 - 산출물 검증: `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`, `consumer` mode로 Example, Desktop renderer 산출물을 검사한다. 입력 graph의 미사용 dependency도 보수적으로 고지에 포함한다.
 - Test-only Electron UI: `apps/desktop/scripts/ui-fixture.mjs`와 `ui-fixture-preload.cts`. `pnpm --filter @dfragon/desktop ui:fixture desktop light` 또는 `example dark`로 실제 production renderer/Example을 연다. 제품 main/preload 대신 synthetic source/선택 bridge와 media 거절 stub을 사용하며 capture/OCR 성공을 검증하지 않는다.
