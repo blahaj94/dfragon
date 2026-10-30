@@ -17,7 +17,7 @@ const casualEnding =
   /(?<=[가-힣])(?:(?<![필주중개소수동강세니])요|죠)[.!?,:]?(?=[\s'"`<)\]}」』]|$)/u
 const tightMiddleDot = /(?<! )·|·(?! )/u
 const attachedRequest = /[가-힣]주세요/u
-// 웹사이트 소개 문구는 해요체로 쓴다(2026-10-31 저장소 소유자 결정, Issue #1037).
+// 웹사이트 소개 문구는 해요체를 쓸 수 있다(2026-10-31 저장소 소유자 결정, Issue #1037).
 const sitePath = 'apps/web/'
 
 export const rules = [
