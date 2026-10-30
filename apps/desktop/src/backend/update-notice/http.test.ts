@@ -4,7 +4,7 @@ import { ResponseSizeError, TimeoutError } from 'ky'
 import { afterEach, expect, it, vi } from 'vitest'
 import { readReleaseFeed } from './http'
 
-const FEED_URL = 'https://github.com/blahaj94/dfragon/releases.atom'
+const FEED_URL = 'https://github.com/dungeon-and-dragon/dfragon/releases.atom'
 
 afterEach(() => {
   vi.useRealTimers()
@@ -72,7 +72,7 @@ it('실제 HTTP redirect를 따라가지 않고 실패한다', async () => {
   }
   try {
     await expect(readReleaseFeed(transport, new AbortController().signal)).rejects.toThrow()
-    expect(paths).toEqual(['/blahaj94/dfragon/releases.atom'])
+    expect(paths).toEqual(['/dungeon-and-dragon/dfragon/releases.atom'])
   } finally {
     server.closeAllConnections()
     await new Promise<void>((resolve, reject) =>
