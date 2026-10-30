@@ -49,7 +49,7 @@ catalog:
   vitest: 5.0.5
   xstate: 5.33.3
   zod: 4.6.7
-  zustand: 5.0.15
+  zustand: 5.0.16
 
 catalogs:
   # Desktop main, preload는 Electron 44.9.3 내장 Node 24.22.0에서 실행되므로 Node 타입도 24에 맞춘다.
