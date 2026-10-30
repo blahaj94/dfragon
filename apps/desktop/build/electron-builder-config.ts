@@ -30,6 +30,16 @@ export function createBuilderConfig(name: ChannelName): Configuration {
       '!node_modules/onnxruntime-web/**'
     ],
     asarUnpack: ['resources/**'],
+    // Notices inside app.asar cannot be read without unpacking it, so also ship them as plain files
+    // beside Electron's own LICENSE.electron.txt and LICENSES.chromium.html.
+    extraFiles: [
+      { from: 'out/frontend/notices', to: 'licenses', filter: ['**/*', '!bundle-*.json'] },
+      {
+        from: 'out/frontend/ocr',
+        to: 'licenses/ocr',
+        filter: ['*-LICENSE.txt', '*-ThirdPartyNotices.txt', '*-NOTICE.txt']
+      }
+    ],
     // The UI is Korean only, so other Chromium locale paks (about 49MB) only translate built-in
     // strings. Chromium falls back to en-US when the system locale has no pak, so keep it too.
     electronLanguages: ['ko', 'en-US'],
