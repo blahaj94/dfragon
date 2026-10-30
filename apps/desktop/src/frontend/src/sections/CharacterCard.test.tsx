@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { colors } from '@dfragon/ui/tokens.stylex'
+import * as stylex from '@stylexjs/stylex'
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -51,6 +53,7 @@ async function render({
   loading,
   snapshotMark,
   picker,
+  scorePending,
   onLookup = vi.fn(),
   onPickCandidate = vi.fn(),
   ...props
@@ -62,7 +65,8 @@ async function render({
     notice,
     loading,
     snapshotMark,
-    picker
+    picker,
+    scorePending
   }
   await act(async () =>
     root.render(
@@ -122,14 +126,19 @@ it('한글 조합 중 Enter는 조회하지 않고 서버 없는 입력은 안�
   expect(lookup).not.toHaveBeenCalled()
 })
 
-it('OCR 중과 후보 검색 중에 같은 카드의 Progress Circle을 표시한다', async () => {
+it('OCR, 후보 검색, 상세 정보 순서로 진행 점을 하나씩 켜고 조회를 마치면 지운다', async () => {
   await render({ loading: true })
-  expect(container.querySelector('[aria-label="1번 캐릭터 확인 중"] svg')).not.toBeNull()
-  expect(container.querySelector('article')?.getAttribute('aria-busy')).toBe('true')
-  await render({ state: 'pending' })
-  expect(container.querySelector('[aria-label="1번 캐릭터 확인 중"] svg')).not.toBeNull()
+  expect(progressOf()).toEqual({ step: '이름 인식 중', dots: ['진행', '대기', '대기'] })
+  expect(card().getAttribute('aria-busy')).toBe('true')
+  await render({ state: 'pending', nickname: '인식이름' })
+  expect(progressOf()).toEqual({ step: '캐릭터 검색 중', dots: ['완료', '진행', '대기'] })
+  await render({ state: 'success', character: found, scorePending: true })
+  expect(progressOf()).toEqual({ step: '상세 정보 확인 중', dots: ['완료', '완료', '진행'] })
+  expect(card().getAttribute('aria-busy')).toBe('false')
+  await render({ state: 'success', character: found })
+  expect(lookupProgress()).toBeNull()
   await render({ state: 'failure' })
-  expect(container.querySelector('[aria-label="1번 캐릭터 확인 중"]')).toBeNull()
+  expect(lookupProgress()).toBeNull()
 })
 
 it('OCR 갱신이 사용자가 수정 중인 이름을 덮어쓰지 않는다', async () => {
@@ -334,7 +343,34 @@ it('스냅샷 표시를 걷으면 칩과 오버레이가 함께 사라진다', a
 })
 
 function lookupProgress(): Element | null {
-  return card().querySelector('[role="status"][aria-label="1번 캐릭터 확인 중"]')
+  return card().querySelector('[role="progressbar"][aria-label="1번 캐릭터 확인 중"]')
+}
+
+// jsdom은 색과 애니메이션을 계산하지 않으므로, 같은 StyleX 선언의 atomic class로 점이 켜졌는지와 깜박이는지 확인한다.
+const dotStyles = stylex.create({
+  lit: { backgroundColor: colors.signal },
+  blinking: { animationIterationCount: 'infinite' }
+})
+
+function progressOf(): { step: string | null; dots: string[] } {
+  const progress = lookupProgress()!
+  const lit = stylex.props(dotStyles.lit).className!
+  const blinking = stylex.props(dotStyles.blinking).className!
+  const dots = [...progress.children].map((dot) => {
+    const classes = dot.className.split(' ')
+    if (!classes.includes(lit)) {
+      return '대기'
+    }
+
+    if (classes.includes(blinking)) {
+      return '진행'
+    }
+
+    return '완료'
+  })
+  const step = progress.getAttribute('aria-valuetext')
+
+  return { step, dots }
 }
 
 it('이름에 들어가거나 고치는 동안 선택 상태로 보이되 진행 표시는 없고 조회하면 돌아온다', async () => {
@@ -364,7 +400,7 @@ it('이름에 들어가거나 고치는 동안 선택 상태로 보이되 진행
   expect(lookupProgress()).not.toBeNull()
 })
 
-it('찾은 카드는 캡처 인식 중에만 진행 표시를 보인다', async () => {
+it('상세 정보까지 받은 찾은 카드는 캡처 인식 중에만 진행 표시를 보인다', async () => {
   await render({ state: 'success', character: found })
   await act(async () => container.querySelector('input')!.focus())
   expect(lookupProgress()).toBeNull()
