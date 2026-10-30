@@ -9,7 +9,7 @@ last-reviewed: 2026-10-30
 
 확정 Penpot 디자인의 메인 카드와 접근성 요구사항을 정의한다. 기본 앱 진입점은 상단 바, 슬롯 네 개와 캡처 창을 사용한다. 2026-10-27 축소 시안([Issue #808](https://github.com/blahaj94/dfragon/issues/808))으로 창을 세로로 줄이고 다크 테마로 고정했다. 로그인, 설정, 개발자 도구, 캐릭터 상세 창과 카드의 장비, 기타 면은 두지 않는다(2026-10-26 결정, [Issue #796](https://github.com/blahaj94/dfragon/issues/796)). OCR 식별 IPC의 슬롯 상태와 선택된 캐릭터의 기본 정보를 카드에 연결한다. 창 자동 감지, 첫 후보 검색, 최고 명성 대체 표시와 상시 수동 입력을 제공한다([Issue #595](https://github.com/blahaj94/dfragon/issues/595)). 합성 데이터의 상태와 카드 전환 미리보기는 별도 진입점에 유지하며 Windows 실사용 검증과 구분한다.
 
-디자인 원본, 현재 연결 지점, 실행 명령은 [디자인 이관 안내](../reference/desktop-mvp-design-handoff.md)를 참고한다.
+디자인 원본은 [dfragon-design](https://github.com/blahaj94/dfragon-design)이고, 미리보기 실행 명령은 [카드 화면 개발](../../apps/desktop/README.md#카드-화면-개발)을 참고한다.
 
 ## 상단 바
 

@@ -26,13 +26,13 @@ scripts/
 
 - `apps/api`: 캐릭터 공개 NestJS API workspace. DB 없이 Neople API를 조회하고 캐릭터, 공용 아이템 조회 결과를 API 메모리에 캐시한다. 승인된 ESM runtime, dependency, build/test 계약은 [`../rules/api-runtime.md`](../rules/api-runtime.md)를 따른다. 구현 현황은 Reference에서 확인한다.
 - `apps/desktop`: Electron, React, TypeScript, electron-vite 기반 desktop application.
-- `packages/ui`: 현재 tracked shared UI package `@dfragon/ui`. 실제 구현, 명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
+- `packages/ui`: 현재 tracked shared UI package `@dfragon/ui`. 실제 구현, 명령은 [공용 UI 안내](../../packages/ui/README.md)에서 확인한다.
 - `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@dfragon/lib`. 아래 Shared library boundary를 따른다.
 - `packages/licenses`: 빌드 시 고지 원문, 수집, 배포 자료를 관리하는 `@dfragon/licenses`. 제품 runtime에서 import하지 않는다.
 - `packages/models`: 빌드에 넣는 학습 모델 파일을 제공하는 `@dfragon/models`. 아래 Model package boundary를 따른다.
 - `scripts`: repository 생성, 관리 script.
 
-상세한 file과 command 현황은 [`../reference/repository-map.md`](../reference/repository-map.md)를 따른다.
+상세한 file과 command 현황은 각 app, package의 README와 `package.json`을 따른다.
 
 ## Approved boundary
 

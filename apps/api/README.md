@@ -83,7 +83,7 @@ URL, query, header, body, 오류 message와 캐릭터 ID, 이름은 남기지 �
 지운 accounts, OCR 이미지는 더 빌드하지 않습니다.
 서버 이미지 입력이 없는 문서, Desktop 전용 변경은 이미지 빌드, 발행을 건너뜁니다.
 PR 제목 scope가 `(build)`가 아닌 PR과 그 main push도 이미지를 빌드, 발행하지 않으며, 그 변경은 다음
-`(build)` main push가 함께 발행합니다. 규칙은 [Repository Map의 배포 workflow 설명](../../docs/reference/repository-map.md)에 있습니다.
+`(build)` main push가 함께 발행합니다. 규칙은 [build-scope 안내](../../scripts/README.md#build-scope)에 있습니다.
 
 Product Images는 main push에서만 실행하며 테스트 통과를 확인하지 않습니다. 테스트는 로컬의 `pnpm verify`가 맡습니다.
 main push 전체의 `before`부터 push한 commit까지 비교해 이미지를 선택하고 같은 commit으로
