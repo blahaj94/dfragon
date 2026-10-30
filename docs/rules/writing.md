@@ -11,8 +11,8 @@ last-reviewed: 2026-10-09
 
 ## 제품 이름
 
-- 산문, UI 문구, 주석, 설치 파일 이름에서 제품 이름은 `DFragon`으로 쓴다. `DFRAGON`, `Dfragon`은 쓰지 않는다.
-- Desktop 앱의 창 제목, 작업 관리자의 프로세스 이름, 작업 표시줄, 바로 가기와 제거 목록의 표시 이름은 `던삐삐`로 쓴다(2026-10-31 저장소 소유자 결정, 나머지 범위는 [Issue #1035](https://github.com/dungeon-and-dragon/dfragon/issues/1035)에서 정한다). 값은 `apps/desktop/build/channels.json`의 `productName`과 `apps/desktop/src/frontend/index.html`의 `<title>`에 있다.
+- 산문, UI 문구, 주석의 제품 이름은 아직 `DFragon`이며, [Issue #1035](https://github.com/dungeon-and-dragon/dfragon/issues/1035)에서 `던삐삐`로 옮긴다. `DFRAGON`, `Dfragon`은 쓰지 않는다.
+- Desktop 앱의 창 제목, 작업 관리자의 프로세스 이름, 작업 표시줄, 바로 가기와 제거 목록의 표시 이름은 `던삐삐`로 쓴다(2026-10-31 저장소 소유자 결정, [Issue #1035](https://github.com/dungeon-and-dragon/dfragon/issues/1035)). 설치, 포터블 파일 이름은 식별자로 보고 `DFragon` 접두어를 유지한다. 값은 `apps/desktop/build/channels.json`의 `productName`과 `apps/desktop/src/frontend/index.html`의 `<title>`에 있다.
 - 식별자는 바꾸지 않는다. `DFRAGON_` 접두어의 환경 변수와 빌드 상수, `@dfragon/*` 패키지, `dfragon` 실행 파일, profile, protocol 이름, `dfragon.com` 도메인, `DFRAGON-MODIFICATIONS.txt` 같은 파일 이름은 그대로 둔다. 검사는 앞뒤에 `_`, `-`, 영숫자가 붙은 표기를 식별자로 보고 건너뛴다.
 - 코드에서 제품 이름이 단독으로 서거나 영문 제목에 들어갈 때는 `@dfragon/lib`의 `PRODUCT_NAME`을 쓴다. HTML `<title>`처럼 import할 수 없는 곳과 `DFragon을`처럼 한국어 조사가 붙는 문장은 문자열로 쓴다.
 - 외부 저장소 이름은 이 규칙의 대상이 아니다.
