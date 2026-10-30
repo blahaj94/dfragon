@@ -189,8 +189,8 @@ catalogs:
       specifier: 12.2.0
       version: 12.2.0
     '@nestjs/swagger':
-      specifier: 12.0.2
-      version: 12.0.2
+      specifier: 12.0.3
+      version: 12.0.3
     '@nestjs/testing':
       specifier: 12.2.0
       version: 12.2.0
@@ -359,7 +359,7 @@ importers:
         version: 12.2.0(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.2.0)(supports-color@7.2.0)
       '@nestjs/swagger':
         specifier: 'catalog:'
-        version: 12.0.2(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.2.0)(reflect-metadata@0.2.2)(typescript@7.0.2)
+        version: 12.0.3(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.2.0)(reflect-metadata@0.2.2)(typescript@7.0.2)
       dataloader:
         specifier: 'catalog:'
         version: 2.2.3
@@ -1358,8 +1358,8 @@ packages:
     resolution: {integrity: sha512-9QOtNffcOF/c1seMCDnjckb3R9WHcG34tky+FHpNKKCW0wc/scYLwMtO+ptyGUfMW0/b/n4qRiALlaFHc9Oj7Q==}
     engines: {node: '>= 10.0.0'}
 
-  '@microsoft/tsdoc@0.17.0':
-    resolution: {integrity: sha512-p68VexhnH7ojf3U27RdryUDqnKJgKaWUbCL96vJR7N0mqDuhKG5OIECk3sCPPdynxjk+yoVhRkScqtv5KQjzsw==}
+  '@microsoft/tsdoc@0.17.1':
+    resolution: {integrity: sha512-VHyYyyoH63jFoO3shpw9Zfijk5v/9p/VrClW35z0/q6ooK7sSmxpzOkS4iZPxs3vO4XtBW4H38HRAKkAMIK7DA==}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
@@ -1419,8 +1419,8 @@ packages:
       '@nestjs/common': ^12.0.0
       '@nestjs/core': ^12.0.0
 
-  '@nestjs/swagger@12.0.2':
-    resolution: {integrity: sha512-/IDj6o2k1wqZybhIkMaJp58YNrAos/4TwTf3zBn/j1flKpMb5Tyfbj9sP6rpLucQ7PzHHu7n4ucmeHWEisfn6A==}
+  '@nestjs/swagger@12.0.3':
+    resolution: {integrity: sha512-uDQi1KC0CfygMZJzpD5f7UIYywDKMtqRJ2c/TKG90qiVR8JV7q7KhbB8Pgi+XB1araUhGlC7uWU4rFA/V8qSjw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@fastify/static': ^8.0.0 || ^9.0.0 || ^10.0.0
@@ -2076,6 +2076,9 @@ packages:
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
+
+  argparse@3.0.3:
+    resolution: {integrity: sha512-Sn98ftV3KfsO8xfLPHG6oT8y+b0yvbrLgZjgPDXsharNY15tTAjqIsIju4S32nl6/iEUNNE4v+yL2Zhm8ooP3w==}
 
   asn1js@3.0.10:
     resolution: {integrity: sha512-S2s3aOytiKdFRdulw2qPE51MzjzVOisppcVv7jVFR+Kw0kxwvFrDcYA0h7Ndqbmj0HkMIXYWaoj7fli8kgx1eg==}
@@ -2754,8 +2757,8 @@ packages:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
     hasBin: true
 
-  js-yaml@5.4.2:
-    resolution: {integrity: sha512-m+aqu+LwO1O6sIopafj8HUVl5aawITwZQe/yHpMCKjaWBaA/d07B/QdMb3529REftiU+RMMHL3Vlsw3hON7vWg==}
+  js-yaml@5.5.0:
+    resolution: {integrity: sha512-paNr4LFIFPjeeSmwNYdrb8FafLLG/Cr2Af3GjbsHJ5CxIjH4r0c2emlmRdAtpPAieP1gRVzk6buBbVP5gBMGAg==}
     hasBin: true
 
   jsdom@30.1.3:
@@ -3539,8 +3542,8 @@ packages:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
 
-  swagger-ui-dist@5.33.0:
-    resolution: {integrity: sha512-wpdK+m6BU5yj6pmUdMskZVTSWYG4DLglAx3sIhylloY37i8O37IrH+YEpqdXNfpaTGxILRBFzUqLF2jKqbfI7A==}
+  swagger-ui-dist@5.34.0:
+    resolution: {integrity: sha512-H6tAIjr3XqE31PbkZl0OFya1ziRLDfTwh3J6OHdumPtPCLfjTnyLeagl/55kFNZcTOz9a9QI9WP0FXldwiGJag==}
 
   tar@7.5.22:
     resolution: {integrity: sha512-MFO/QzvtAOmJbkhOaCTvbGcFN9L9b+JunIsDwaKljSOdcLMea3NJ1k9Usz/rjdfSXTq4dfzfeS7W4p4YOAAHeA==}
@@ -4565,7 +4568,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@microsoft/tsdoc@0.17.0': {}
+  '@microsoft/tsdoc@0.17.1': {}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
@@ -4613,18 +4616,18 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@nestjs/swagger@12.0.2(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.2.0)(reflect-metadata@0.2.2)(typescript@7.0.2)':
+  '@nestjs/swagger@12.0.3(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.2.0)(reflect-metadata@0.2.2)(typescript@7.0.2)':
     dependencies:
-      '@microsoft/tsdoc': 0.17.0
+      '@microsoft/tsdoc': 0.17.1
       '@nestjs/common': 12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
       '@nestjs/core': 12.2.0(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.2.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/mapped-types': 12.0.0(@nestjs/common@12.2.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(reflect-metadata@0.2.2)
       '@standard-schema/spec': 1.1.0
       es-toolkit: 1.52.0
-      js-yaml: 5.4.2
+      js-yaml: 5.5.0
       path-to-regexp: 8.4.2
       reflect-metadata: 0.2.2
-      swagger-ui-dist: 5.33.0
+      swagger-ui-dist: 5.34.0
     optionalDependencies:
       typescript: 7.0.2
 
@@ -5159,6 +5162,8 @@ snapshots:
   append-field@1.0.0: {}
 
   argparse@2.0.1: {}
+
+  argparse@3.0.3: {}
 
   asn1js@3.0.10:
     dependencies:
@@ -5960,9 +5965,9 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
-  js-yaml@5.4.2:
+  js-yaml@5.5.0:
     dependencies:
-      argparse: 2.0.1
+      argparse: 3.0.3
 
   jsdom@30.1.3(@noble/hashes@1.8.0):
     dependencies:
@@ -6662,7 +6667,7 @@ snapshots:
     dependencies:
       has-flag: 4.0.0
 
-  swagger-ui-dist@5.33.0:
+  swagger-ui-dist@5.34.0:
     dependencies:
       '@scarf/scarf': 1.4.0
 
