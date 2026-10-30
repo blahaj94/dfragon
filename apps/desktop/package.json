@@ -4,7 +4,7 @@
   "description": "",
   "main": "./out/backend/main.js",
   "author": "DFragon contributors",
-  "homepage": "https://github.com/blahaj94/ldb",
+  "homepage": "https://github.com/dungeon-and-dragon/dfragon",
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
     "lint": "biome lint",
