@@ -108,7 +108,7 @@ pnpm --filter @dfragon/desktop dev
 
 `pnpm --filter @dfragon/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 상단 바의 게임 연결 상태 칩을 눌러 창을 선택하면 main에 등록만 합니다. **Alt+R**이나 파티 헤더의 캡처 버튼을 누르면 Windows GDI 모듈로 프레임 한 장을 읽고, 이 회차 프레임으로 닉네임, 얼굴 크롭, OCR과 검색을 처리합니다. OCR은 연속 관측을 기다리지 않고 첫 후보의 앞뒤 공백만 제거해 확정하며 두 번째 후보로 보정하지 않습니다. 처리를 마치면 추가 프레임을 읽지 않고 회차 결과를 유지하며 반복 인식과 인식 간격 설정은 제공하지 않습니다. 다른 창에 가려진 픽셀은 인식에서 제외합니다. 창 전체가 가려졌거나 최소화됐거나 파티 프레임을 검출하지 못하면 안내 후 회차 인식을 끝냅니다. 화면이 돌아와도 자동 재개하지 않으며 **Alt+R**이나 캡처 버튼을 다시 눌러야 합니다. 최소화된 창의 백그라운드 캡처는 지원하지 않습니다. OCR 식별 상태와 선택된 캐릭터의 기본 정보를 슬롯별로 표시하며, 같은 회차 프레임의 얼굴 크롭을 동명 후보의 네오플 캐릭터 이미지와 색으로 비교합니다. 비교로 한 명을 가르지 못하면 최고 명성 후보를 대신 표시하고, 카드에 따로 안내하지 않습니다. 연결중 팝업 등으로 일부 슬롯만 검출되지 않으면 그 슬롯은 비워 두고 검색하지 않으며 다른 슬롯은 같은 프레임으로 처리합니다. 화면 캡처 창을 닫아도 캡처는 유지되며 별도 중지 버튼으로 정리합니다. 합성 데이터의 자동 식별 상태는 `pnpm --filter @dfragon/desktop dev:preview`로 확인합니다.
 
-합성 미리보기는 `src/frontend/src/fixture/mvp/`의 별도 HTML 진입점이며 Mac에서도 열립니다. 상단 바와 카드를 보이는 화면의 창 내용 높이(파티 163, 공대 300) 안에 그리고, 하단 조작부에서 카드 상태, 상위와 랭커 단계, 점수 라벨, 모험단 순번 스냅샷, 캡처 창 상태를 비교합니다. 이름, 서버 수정은 API를 호출하지 않고, 합성 창 선택은 UI 상태만 바꾸며 실제 캡처, OCR, IPC를 부르지 않습니다. 미리보기 HTML의 `img-src 'self' data:`는 원격 이미지를 차단하므로 로컬 자산만 씁니다. 빌드 결과는 다음 명령으로 실제 Electron에서 엽니다. 디자인 원본은 [dfragon-design](https://github.com/blahaj94/dfragon-design)이고, 화면 계약은 [Desktop MVP 카드 UI](../../docs/rules/desktop-mvp-ui.md)가 원본입니다.
+합성 미리보기는 `src/frontend/src/fixture/mvp/`의 별도 HTML 진입점이며 Mac에서도 열립니다. 상단 바와 카드를 보이는 화면의 창 내용 높이(파티 163, 공대 300) 안에 그리고, 하단 조작부에서 카드 상태, 상위와 랭커 단계, 점수 라벨, 모험단 순번 스냅샷, 캡처 창 상태를 비교합니다. 이름, 서버 수정은 API를 호출하지 않고, 합성 창 선택은 UI 상태만 바꾸며 실제 캡처, OCR, IPC를 부르지 않습니다. 미리보기 HTML의 `img-src 'self' data:`는 원격 이미지를 차단하므로 로컬 자산만 씁니다. 빌드 결과는 다음 명령으로 실제 Electron에서 엽니다. 디자인 원본은 [dfragon-design](https://github.com/dungeon-and-dragon/dfragon-design)이고, 화면 계약은 [Desktop MVP 카드 UI](../../docs/rules/desktop-mvp-ui.md)가 원본입니다.
 
 ```sh
 pnpm --filter @dfragon/desktop build:preview
@@ -141,7 +141,7 @@ CI를 기다리지 않고 포터블을 만들려면 같은 PC에서 `pnpm --filt
 
 ## 파인튜닝 OCR 모델로 빌드하기
 
-파인튜닝 모델은 공개 저장소 [dfragon-ocr-models](https://github.com/blahaj94/dfragon-ocr-models)의 루트 `model.onnx`, `characters.txt` 한 쌍으로 관리합니다. 부모 저장소는 `packages/models/ocr-finetuned` submodule에서 특정 커밋을 고정하고, workspace 패키지 `@dfragon/models`로 Desktop에 제공합니다. 모델 저장소에 파일을 올리는 것만으로 기존 빌드의 모델이 바뀌지는 않습니다.
+파인튜닝 모델은 공개 저장소 [dfragon-ocr-models](https://github.com/dungeon-and-dragon/dfragon-ocr-models)의 루트 `model.onnx`, `characters.txt` 한 쌍으로 관리합니다. 부모 저장소는 `packages/models/ocr-finetuned` submodule에서 특정 커밋을 고정하고, workspace 패키지 `@dfragon/models`로 Desktop에 제공합니다. 모델 저장소에 파일을 올리는 것만으로 기존 빌드의 모델이 바뀌지는 않습니다.
 
 처음 checkout할 때와 실제 모델을 업로드한 뒤 고정 커밋을 옮길 때의 submodule 명령은 [`@dfragon/models` 안내](../../packages/models/README.md#받기)를 따릅니다. Windows Test Build와 Windows Portable workflow도 고정된 submodule 커밋을 가져오며, 빌드 중 최신 브랜치를 자동으로 가져오지 않습니다.
 
