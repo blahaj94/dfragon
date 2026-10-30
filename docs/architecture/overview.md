@@ -16,6 +16,7 @@ last-reviewed: 2026-10-29
 apps/
   api/
   desktop/
+  web/
 packages/
   ui/
   lib/
@@ -26,6 +27,7 @@ scripts/
 
 - `apps/api`: 캐릭터 공개 NestJS API workspace. DB 없이 Neople API를 조회하고 캐릭터, 공용 아이템 조회 결과를 API 메모리에 캐시한다. 승인된 ESM runtime, dependency, build/test 계약은 [`../rules/api-runtime.md`](../rules/api-runtime.md)를 따른다. 구현 현황은 Reference에서 확인한다.
 - `apps/desktop`: Electron, React, TypeScript, electron-vite 기반 desktop application.
+- `apps/web`: 던삐삐 소개와 내려받기 정적 사이트(`dfragon.com`). React, TypeScript, Vite 기반이며 첫 화면의 창 목업은 Desktop renderer 컴포넌트로 그린다. 아래 Shared UI boundary를 따른다.
 - `packages/ui`: 현재 tracked shared UI package `@dfragon/ui`. 실제 구현, 명령은 [공용 UI 안내](../../packages/ui/README.md)에서 확인한다.
 - `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@dfragon/lib`. 아래 Shared library boundary를 따른다.
 - `packages/licenses`: 빌드 시 고지 원문, 수집, 배포 자료를 관리하는 `@dfragon/licenses`. 제품 runtime에서 import하지 않는다.
@@ -68,6 +70,7 @@ Desktop은 파티, 공대 캡처와 검색, 카드의 캐릭터 면만 둔다. �
 | --- | --- |
 | `packages/ui`의 `@dfragon/ui` | Browser React shared package 하나로 자체 토큰(`tokens.css`, `tokens.stylex`), Base UI 기반 공용 Component, 공용 형태와 실제로 공유하는 Layout, composition, 디자인 컴포넌트, Typo를 제공한다. `@dfragon/ui` → Base UI/React, StyleX runtime 방향으로 연결하며 app source, 앱 테마, API client, backend, Electron main/preload, IPC, 인증, domain을 import하지 않는다. |
 | `apps/desktop` renderer | `@dfragon/ui`를 소비하고 제품 data, event, behavior와 app별 platform 연결을 맡는다. Desktop main/preload는 UI package를 소비하지 않는다. |
+| `apps/web` | `@dfragon/ui`를 소비하고 사이트 배치와 사이트 색을 자체 StyleX 상수로 그린다. 창 목업은 Desktop renderer가 사이트용으로 공개한 entry(`apps/desktop/src/frontend/src/site/index.ts`, 별칭 `@dfragon/desktop-site`) 하나만 source로 import하고, Desktop의 다른 source, main/preload, IPC는 import하지 않는다. 그 entry는 캡처와 검색 대신 각본 상태로 실제 상단 바와 카드 컴포넌트를 그린다. |
 | 독립 Vite Example entry | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@dfragon/ui` public API와 합성 content로 확인한다. 새 화면마다 Component, Pattern, Template 예제를 갖출 의무는 없다. |
 
 공용 Component는 Base UI 부품의 semantic API와 접근성 동작을 유지하고 외형만 StyleX로 그린다. 같은 역할의 Component를 이름만 바꿔 다시 감싸지 않는다. 화면별 스타일 허용 범위와 필요한 Example, 토큰, version, 영향 검증은 [`design-system.md`](../rules/design-system.md)가 canonical Rule이다.

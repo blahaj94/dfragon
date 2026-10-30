@@ -156,7 +156,7 @@ Desktop renderer, Example은 Vite/Vitest의 exact `@dfragon/ui` alias와 TypeScr
 
 ## 고지
 
-Library, Example, Desktop renderer build는 [`@dfragon/licenses`](../licenses/README.md)의 공용 `uiNotices` plugin으로 bundle 입력 graph(미사용 입력 포함)의 dependency license/NOTICE와 module 목록, 생성 JS chunk 목록을 산출물 `notices`에 기록한다. Absolute filesystem path는 이 목록에 저장하지 않는다. `@dfragon/ui`에는 외부 source를 복사해 고친 코드가 없어 별도 수정 고지를 두지 않는다.
+Library, Example, Desktop renderer, Web build는 [`@dfragon/licenses`](../licenses/README.md)의 공용 `uiNotices` plugin으로 bundle 입력 graph(미사용 입력 포함)의 dependency license/NOTICE와 module 목록, 생성 JS chunk 목록을 산출물 `notices`에 기록한다. Absolute filesystem path는 이 목록에 저장하지 않는다. `@dfragon/ui`에는 외부 source를 복사해 고친 코드가 없어 별도 수정 고지를 두지 않는다.
 
 ## 소비 entry와 실제 UI 확인
 
