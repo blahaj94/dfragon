@@ -611,7 +611,7 @@ it('후보가 있으면 후보 창을 띄워 초상화로 고르고 지금 보�
     onPickCandidate: pick
   })
 
-  expect(candidateTile('카인').getAttribute('aria-label')).toBe('카인, 찾은모험단')
+  expect(candidateTile('카인').getAttribute('aria-label')).toBe('카인, 명성 125,850, 찾은모험단')
   expect(candidateTile('카인').getAttribute('aria-pressed')).toBe('true')
   expect(candidateTile('시로코').getAttribute('aria-pressed')).toBe('false')
   expect(card().getAttribute('data-state')).toBe('default')
@@ -632,7 +632,7 @@ it('미리보기 중이면 진행 표시 없이 카드를 선택 상태로 보�
   expect(statusMark()).toBeNull()
   expect(lookupProgress()).toBeNull()
   expect(candidateTile('시로코').getAttribute('aria-label')).toBe(
-    '시로코, 모험단 정보 없음, 미리보기 중, 한 번 더 누르면 확정'
+    '시로코, 명성 90,000, 모험단 정보 없음, 미리보기 중, 한 번 더 누르면 확정'
   )
 })
 
