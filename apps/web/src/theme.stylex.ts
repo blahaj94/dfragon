@@ -13,6 +13,5 @@ export const siteColors = stylex.defineConsts({
 
 export const siteFonts = stylex.defineConsts({
   title: '"MaruMinya Hangul", "Noto Sans KR", sans-serif',
-  body: '"Noto Sans KR", sans-serif',
-  number: '"Barlow Condensed", "Noto Sans KR", sans-serif'
+  body: '"Noto Sans KR", sans-serif'
 })

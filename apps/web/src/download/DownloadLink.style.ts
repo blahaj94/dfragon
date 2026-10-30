@@ -2,14 +2,9 @@ import * as stylex from '@stylexjs/stylex'
 import { siteColors, siteFonts } from '../theme.stylex'
 
 export const styles = stylex.create({
-  root: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: 12
-  },
   button: {
     display: 'inline-flex',
+    alignSelf: 'flex-start',
     alignItems: 'center',
     gap: 10,
     height: 48,
@@ -25,17 +20,5 @@ export const styles = stylex.create({
     whiteSpace: 'nowrap',
     outline: { default: null, ':focus-visible': `3px solid ${siteColors.ink}` },
     outlineOffset: 2
-  },
-  meta: {
-    margin: 0,
-    fontSize: 14,
-    lineHeight: '22px',
-    color: siteColors.inkMuted
-  },
-  number: {
-    fontFamily: siteFonts.number,
-    fontSize: 16,
-    fontWeight: 600,
-    fontVariantNumeric: 'tabular-nums'
   }
 })
