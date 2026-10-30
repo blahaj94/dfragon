@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, motion, space } from '@dfragon/ui/tokens.stylex'
+import { colors, font, motion, space } from '@dfragon/ui/tokens.stylex'
 
 const PORTRAIT_SIZE = 64
 const PORTRAIT_BORDER = 2
@@ -84,6 +84,39 @@ export const styles = stylex.create({
     backgroundColor: colors.cardSignal,
     color: colors.cardOnSignal,
     clipPath: 'polygon(0 0, 100% 0, 100% 100%, 6px 100%, 0 calc(100% - 6px))'
+  },
+  tag: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    left: 0,
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    paddingBlock: 1,
+    paddingInlineStart: 2,
+    paddingInlineEnd: 3,
+    backgroundColor: 'rgba(15, 15, 17, 0.82)',
+    textAlign: 'start',
+    pointerEvents: 'none'
+  },
+  tagServer: {
+    maxWidth: '100%',
+    overflow: 'hidden',
+    fontSize: 12,
+    lineHeight: '13px',
+    color: colors.cardFgMuted,
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap'
+  },
+  tagFame: {
+    fontFamily: font.num,
+    fontSize: 13,
+    fontWeight: 600,
+    fontVariantNumeric: 'tabular-nums',
+    lineHeight: '13px',
+    color: colors.cardFg
   },
   faceMissing: {
     display: 'grid',

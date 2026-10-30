@@ -151,6 +151,7 @@ const previewFace = { x: 150, y: 50, width: 40, height: 40 }
 function previewChoice(
   serverId: string,
   serverName: string,
+  fame: number | null,
   adventureName: string | null,
   face: CharacterChoice['face'] = previewFace
 ): CharacterChoice {
@@ -159,7 +160,7 @@ function previewChoice(
     characterName: '미리보기검사',
     serverId,
     serverName,
-    fame: null,
+    fame,
     adventureName,
     face
   }
@@ -167,21 +168,24 @@ function previewChoice(
 
 const candidatePreviewChoices: readonly (readonly CharacterChoice[] | null)[] = [
   [
-    previewChoice('siroco', '시로코', '샘플모험단'),
-    previewChoice('cain', '카인', '달빛아래늑대무리'),
-    previewChoice('hilder', '힐더', '새벽늑대'),
-    previewChoice('bakal', '바칼', null)
+    previewChoice('siroco', '시로코', 125850, '샘플모험단'),
+    previewChoice('cain', '카인', 131204, '달빛아래늑대무리'),
+    previewChoice('hilder', '힐더', 98412, '새벽늑대'),
+    previewChoice('bakal', '바칼', 142977, null)
   ],
-  [previewChoice('siroco', '시로코', '샘플모험단'), previewChoice('cain', '카인', '흰늑대')],
   [
-    previewChoice('bakal', '바칼', '흰늑대', null),
-    previewChoice('cain', '카인', '달빛아래늑대무리', null),
-    previewChoice('siroco', '시로코', '샘플모험단'),
-    previewChoice('hilder', '힐더', null, null),
-    previewChoice('anton', '안톤', '늑대굴파수꾼', null),
-    previewChoice('prey', '프레이', '별빛사냥꾼', null),
-    previewChoice('casillas', '카시야스', null, null),
-    previewChoice('diregie', '디레지에', '푸른송곳니', null)
+    previewChoice('siroco', '시로코', 125850, '샘플모험단'),
+    previewChoice('cain', '카인', 131204, '흰늑대')
+  ],
+  [
+    previewChoice('bakal', '바칼', 142977, '흰늑대', null),
+    previewChoice('cain', '카인', 131204, '달빛아래늑대무리', null),
+    previewChoice('siroco', '시로코', 125850, '샘플모험단'),
+    previewChoice('hilder', '힐더', 98412, null, null),
+    previewChoice('anton', '안톤', 87330, '늑대굴파수꾼', null),
+    previewChoice('prey', '프레이', 76105, '별빛사냥꾼', null),
+    previewChoice('casillas', '카시야스', null, null, null),
+    previewChoice('diregie', '디레지에', 52901, '푸른송곳니', null)
   ],
   null
 ]
