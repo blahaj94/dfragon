@@ -109,7 +109,7 @@ function Examples() {
     <main {...stylex.props(styles.page)}>
       <ContentStack>
         <SupportingText>
-          공용 Component를 중립 예시 내용으로 확인합니다. 동작은 Base UI가, 외형은 DFragon 디자인
+          공용 Component를 중립 예시 내용으로 확인합니다. 동작은 Base UI가, 외형은 던삐삐 디자인
           토큰이 맡습니다.
         </SupportingText>
         <div {...stylex.props(styles.row)}>
