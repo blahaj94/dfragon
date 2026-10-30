@@ -1,6 +1,6 @@
 import { RAID_PARTY_SIZE } from '../constants/cards'
 import { slotAdventureName } from '../lib/adventure-snapshot'
-import { seatValuesToSlotOrder } from '../lib/raid-seats'
+import { seatValuesToSlotOrder } from '../lib/seats'
 import { toClipboardText } from '../lib/slot-clipboard'
 import { toSlotCards, type SlotCard } from '../lib/slot-cards'
 import { useAdventureSnapshot } from './useAdventureSnapshot'

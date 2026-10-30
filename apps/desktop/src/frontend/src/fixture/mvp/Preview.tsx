@@ -42,7 +42,9 @@ import {
   nextCandidatePick,
   toCandidatePicker
 } from '../../lib/candidate-picker'
-import { createSeatOrder, seatValuesToSlotOrder, swapSeats } from '../../lib/raid-seats'
+import { seatValuesToSlotOrder, type SeatLayout } from '../../lib/seats'
+import { RAID_SEAT_LAYOUT } from '../../constants/cards'
+import { useSeatOrder, type SeatArrangement } from '../../hooks/useSeatOrder'
 import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
 
 const EMPTY_CANDIDATE_PICKS: readonly (CandidatePick | null)[] = [null, null, null, null]
@@ -131,7 +133,7 @@ export function Preview(): React.JSX.Element {
   const searchMode = useSearchModeStore((state) => state.searchMode)
   const isPartyMode = useIsPartyMode()
   const isRaidMode = useIsRaidMode()
-  const [seatOrder, setSeatOrder] = useState(createSeatOrder)
+  const raidSeats = useSeatOrder(RAID_SEAT_LAYOUT)
   const [partyRound, setPartyRound] = useState(0)
   const [raidRound, setRaidRound] = useState(0)
   const [candidatePicks, setCandidatePicks] = useState(EMPTY_CANDIDATE_PICKS)
@@ -159,7 +161,7 @@ export function Preview(): React.JSX.Element {
   )
   const raidSnapshot = useAdventureSnapshot(
     'raid',
-    seatOrder.map((slot) => {
+    raidSeats.seatOrder.map((slot) => {
       const adventure = raidCharacters[slot]?.adventure
       if (adventure == null) {
         return null
@@ -200,7 +202,7 @@ export function Preview(): React.JSX.Element {
       picker
     }
   })
-  const raidSnapshotMarks = seatValuesToSlotOrder(seatOrder, raidSnapshot.marks)
+  const raidSnapshotMarks = seatValuesToSlotOrder(raidSeats.seatOrder, raidSnapshot.marks)
   const raidCards: SlotCard[] = raidCharacters.map((member, slot) => {
     const state = member == null ? 'idle' : 'success'
     const selected = member ?? undefined
@@ -217,18 +219,15 @@ export function Preview(): React.JSX.Element {
     capture.completeCapture()
     setRaidRound((round) => round + 1)
   }
-  const handleSwapSeats = (from: number, to: number): boolean => {
-    if (!canMoveSeats) {
-      return false
-    }
-    const next = swapSeats(seatOrder, from, to)
-    if (next === seatOrder) {
-      return false
-    }
-    setSeatOrder(next)
-
-    return true
-  }
+  const toPreviewSeats = (
+    layout: SeatLayout,
+    { seatOrder, swapSeats }: ReturnType<typeof useSeatOrder>
+  ): SeatArrangement => ({
+    layout,
+    seatOrder,
+    canMoveSeats,
+    swapSeats: (from, to) => canMoveSeats && swapSeats(from, to)
+  })
   const handleCaptureStateChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
     capture.changeState(event.target.value)
   }
@@ -341,7 +340,7 @@ export function Preview(): React.JSX.Element {
               <RaidPage
                 slots={raidCards}
                 resetKey="raid"
-                seats={{ seatOrder, canMoveSeats, swapSeats: handleSwapSeats }}
+                seats={toPreviewSeats(RAID_SEAT_LAYOUT, raidSeats)}
                 actions={{ lookupSlot: lookupPreviewSlot }}
               />
             </div>

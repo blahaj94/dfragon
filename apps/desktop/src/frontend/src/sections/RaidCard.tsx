@@ -1,5 +1,4 @@
 import { CardFrame, shapes } from '@dfragon/ui'
-import type { HTMLAttributes, ReactNode, Ref } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CardAnnouncer } from '../components/CardAnnouncer'
 import { FailureMark } from '../components/FailureMark'
@@ -24,28 +23,16 @@ import type { CharacterTier } from '../types/cards'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import { styles } from './RaidCard.style'
 
-export type RaidCardMove = Pick<
-  HTMLAttributes<HTMLDivElement>,
-  'onDragStart' | 'onDragOver' | 'onDragLeave' | 'onDrop' | 'onDragEnd' | 'onKeyDown'
-> & {
-  movable: boolean
-  drag?: 'source' | 'target'
-  describedBy?: string
-  ref?: Ref<HTMLDivElement>
-}
-
 export function RaidCard({
   cardKey,
   card,
   slot,
-  onLookup,
-  move
+  onLookup
 }: {
   cardKey: SlotCardKey
   card: SlotCard
   slot: number
   onLookup: (nickname: string, serverId: string) => void
-  move: RaidCardMove
 }): React.JSX.Element {
   const { state, character, notice, snapshotMark, loading = false } = card
   const characterFound = state === 'success' && character != null
@@ -64,86 +51,44 @@ export function RaidCard({
   const score = toScoreView(characterFound ? character.card : null, card.scorePending)
 
   return (
-    <Seat slot={slot} move={move}>
-      <CardFrame as="article" state={frameState} aria-busy={busy}>
-        <div {...stylex.props(styles.body)}>
-          <PortraitWell tier={tier} size="raid">
-            {characterFound && <Portrait src={character.image} />}
-            {busy && <LookupProgress slot={slot} />}
-          </PortraitWell>
-          <div {...stylex.props(styles.column)}>
-            <div {...stylex.props(styles.header)}>
-              <LookupField
-                slot={slot}
-                tone={toNameFieldTone(frameState)}
-                draft={draft}
-                size="raid"
-              />
-              {tier !== undefined && (
-                <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
-              )}
-              {frameState === 'failure' && <FailureMark label={cardStatus} size="raid" />}
-              {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
-              <SlotNumber selected={frameState === 'selected'} tier={tier}>
-                {String(slot).padStart(2, '0')}
-              </SlotNumber>
-            </div>
-            {characterFound ? (
-              <AffiliationLine adventure={character.adventure} guild={character.guild}>
-                {message}
-              </AffiliationLine>
-            ) : (
-              <NoticeLine>{message}</NoticeLine>
+    <CardFrame as="article" state={frameState} aria-busy={busy}>
+      <div {...stylex.props(styles.body)}>
+        <PortraitWell tier={tier} size="raid">
+          {characterFound && <Portrait src={character.image} />}
+          {busy && <LookupProgress slot={slot} />}
+        </PortraitWell>
+        <div {...stylex.props(styles.column)}>
+          <div {...stylex.props(styles.header)}>
+            <LookupField slot={slot} tone={toNameFieldTone(frameState)} draft={draft} size="raid" />
+            {tier !== undefined && (
+              <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
             )}
-            <StatLine
-              fame={characterFound ? character.fame : null}
-              score={score}
-              vacant={isVacantSlot(state)}
-              tier={tier}
-            />
+            {frameState === 'failure' && <FailureMark label={cardStatus} size="raid" />}
+            {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
+            <SlotNumber selected={frameState === 'selected'} tier={tier}>
+              {String(slot).padStart(2, '0')}
+            </SlotNumber>
           </div>
+          {characterFound ? (
+            <AffiliationLine adventure={character.adventure} guild={character.guild}>
+              {message}
+            </AffiliationLine>
+          ) : (
+            <NoticeLine>{message}</NoticeLine>
+          )}
+          <StatLine
+            fame={characterFound ? character.fame : null}
+            score={score}
+            vacant={isVacantSlot(state)}
+            tier={tier}
+          />
         </div>
-        {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
-        <CardAnnouncer>
-          {characterFound && !draft.editing ? character.name : slotNotice || cardStatus}
-        </CardAnnouncer>
-      </CardFrame>
-    </Seat>
-  )
-}
-
-function Seat({
-  slot,
-  move,
-  children
-}: {
-  slot: number
-  move: RaidCardMove
-  children: ReactNode
-}): React.JSX.Element {
-  const { movable, drag, describedBy, ref, ...handlers } = move
-
-  return (
-    <div
-      ref={ref}
-      aria-label={movable ? `${slot}번 자리, 끌어서 옮기기` : `${slot}번 자리`}
-      role="group"
-      aria-describedby={describedBy}
-      aria-keyshortcuts={
-        movable ? 'Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight' : undefined
-      }
-      tabIndex={movable ? 0 : -1}
-      draggable={movable}
-      {...handlers}
-      {...stylex.props(
-        styles.seat,
-        movable && styles.movable,
-        drag === 'source' && styles.dragSource,
-        drag === 'target' && styles.dragTarget
-      )}
-    >
-      {children}
-    </div>
+      </div>
+      {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
+      <CardAnnouncer>
+        {characterFound && !draft.editing ? character.name : slotNotice || cardStatus}
+      </CardAnnouncer>
+    </CardFrame>
   )
 }
 
