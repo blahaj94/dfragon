@@ -140,6 +140,7 @@ last-reviewed: 2026-10-31
 
 ## 표현과 이미지
 
+- 앱 화면에서는 웹 페이지처럼 글자를 끌어 선택하거나 이미지, 링크, 선택한 글자를 끌어 옮기지 않는다. 글자 선택은 이름 칸 같은 입력 안에서만 하고, 끌 수 있는 것은 파티와 공대 카드의 자리뿐이다(2026-10-31 사용자 요청).
 - Desktop은 다크 테마 하나만 쓰고 저장된 라이트 설정은 읽지 않는다(2026-10-27, [Issue #818](https://github.com/blahaj94/dfragon/issues/818)).
 - 글꼴은 번들한 마루미냐 한글(MaruMinya Hangul)이며 한국어 줄바꿈과 표기 기준은 [글꼴과 한국어 타이포그래피](design-system.md#글꼴과-한국어-타이포그래피)를 따른다. 한글 글자는 12px 하나(행간 14)로 쓰고, 숫자는 상단 바의 인원수, 회차, 마지막 캡처 초만 Barlow Condensed로 쓴다.
 - 무료 아이콘의 디자인 원본은 [Lucide 아이콘 목록](https://lucide.dev/icons)이다. 현재 사용 중인 camera, chevron-down, check, copy, monitor, refresh-cw, external-link를 기준으로 구현 자산과 출처를 맞추고, 선 끝과 꺾임은 각지게(`stroke-linecap="square"`, `stroke-linejoin="miter"`) 그린다. 스냅샷은 dfragon-design [아이콘](https://github.com/dungeon-and-dragon/dfragon-design/blob/main/design/icons.md)의 DFragon 아이콘을 쓴다.
