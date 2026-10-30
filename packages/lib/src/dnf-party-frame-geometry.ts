@@ -319,7 +319,12 @@ function findColoredRuns({
       continue
     }
 
-    if (start >= 0 && x - lastColorPixel > Math.round(bandPolicy.maxColorGapPx * expansion)) {
+    // The dark frame border ends a track even when the background beyond it shares the track color.
+    const separated =
+      start >= 0 &&
+      ((x <= lastColumn && isDarkPixel(rgba, (y * width + x) * 4)) ||
+        x - lastColorPixel > Math.round(bandPolicy.maxColorGapPx * expansion))
+    if (separated) {
       if (lastColorPixel - start + 1 >= MIN_COLOR_RUN_WIDTH) {
         runs.push({ y, left: start, right: lastColorPixel })
       }
@@ -529,12 +534,7 @@ function scoreLocalEdgeTemplate({
       }
       let darkPixels = 0
       for (let x = edgeLeft; x < edgeLeft + edgeWidth; x += 1) {
-        const offset = (y * width + x) * 4
-        if (
-          rgba[offset] < DARK_CHANNEL_LIMIT &&
-          rgba[offset + 1] < DARK_CHANNEL_LIMIT &&
-          rgba[offset + 2] < DARK_CHANNEL_LIMIT
-        ) {
+        if (isDarkPixel(rgba, (y * width + x) * 4)) {
           darkPixels += 1
         }
       }
@@ -547,6 +547,14 @@ function scoreLocalEdgeTemplate({
   const strongRows = supports.filter((support) => support >= edgePolicy.minDarkRatio).length
 
   return { mean: averageSupport, strongRows }
+}
+
+function isDarkPixel(rgba: Uint8Array, offset: number): boolean {
+  return (
+    rgba[offset] < DARK_CHANNEL_LIMIT &&
+    rgba[offset + 1] < DARK_CHANNEL_LIMIT &&
+    rgba[offset + 2] < DARK_CHANNEL_LIMIT
+  )
 }
 
 function deduplicateCandidates(candidates: TrackPairCandidate[]): TrackPairCandidate[] {
