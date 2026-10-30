@@ -522,6 +522,39 @@ it('일부 슬롯 미검출은 그 슬롯만 비우고 나머지는 한 번 통�
   await hook.unmount()
 })
 
+it('파티 회차는 자리 배치를 처음으로 되돌리고 인식하는 동안 맞바꾸지 않다가 인식을 마치면 다시 받는다', async () => {
+  const late = Promise.withResolvers<ReturnType<typeof ocrResult>>()
+  defaultWorker.recognize.mockReturnValueOnce(late.promise)
+  setSlots(0)
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().source.selectSource('game'))
+  let swapped: boolean | undefined
+  await act(async () => {
+    swapped = hook.getCurrent().seats.swapSeats(0, 3)
+  })
+  expect(swapped).toBe(true)
+  expect(hook.getCurrent().seats.seatOrder).toEqual([3, 1, 2, 0])
+
+  await shortcut()
+  await vi.waitFor(() => expect(defaultWorker.recognize).toHaveBeenCalledOnce())
+  expect(hook.getCurrent().seats.seatOrder).toEqual([0, 1, 2, 3])
+  expect(hook.getCurrent().seats.canMoveSeats).toBe(false)
+  await act(async () => {
+    swapped = hook.getCurrent().seats.swapSeats(0, 1)
+  })
+  expect(swapped).toBe(false)
+  expect(hook.getCurrent().seats.seatOrder).toEqual([0, 1, 2, 3])
+
+  await act(async () => late.resolve(ocrResult('Alice')))
+  await vi.waitFor(() => expect(hook.getCurrent().seats.canMoveSeats).toBe(true))
+  await act(async () => {
+    swapped = hook.getCurrent().seats.swapSeats(0, 1)
+  })
+  expect(swapped).toBe(true)
+  expect(hook.getCurrent().seats.seatOrder).toEqual([1, 0, 2, 3])
+  await hook.unmount()
+})
+
 it.each([
   [[], '이유: 후보 없음, 원문: 없음'],
   [['', '정상'], '이유: 빈 문자열, 원문: ""'],

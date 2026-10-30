@@ -8,6 +8,8 @@ import { useCharacterSearch } from './useCharacterSearch'
 import { findSingleDnfCaptureSource } from '../lib/capture-presentation'
 import { getRecognizedNicknames } from '../lib/recognized-nicknames'
 import { useDesktopShortcut } from './useDesktopShortcut'
+import { useSeatOrder, type SeatArrangement } from './useSeatOrder'
+import { PARTY_SEAT_LAYOUT } from '../constants/cards'
 import { createSharedOcrWorker, type OcrRecognition } from '../lib/ocr-worker-recognition'
 
 export type CaptureSourceSelection = ReturnType<typeof useCaptureSources> & {
@@ -30,19 +32,34 @@ export type PartyCapture = {
   recognizeWithOcr: OcrRecognition
   startRound: () => void
   stopCapture: () => void
+  seats: SeatArrangement
 }
 
+/**
+ * 회차는 네 자리를 비우고 게임 화면의 파티 순서대로 1~4번 자리를 채우므로 시작할 때 자리 배치를 처음으로
+ * 되돌리고, 인식하는 동안에는 맞바꾸지 않는다.
+ */
 export function usePartyCapture({ receivesShortcut }: { receivesShortcut: boolean }): PartyCapture {
   const stopRef = useRef<() => void>(() => {})
   const search = useCharacterSearch(() => stopRef.current())
   const [ocrWorker] = useState(createSharedOcrWorker)
+  const { seatOrder, swapSeats, resetSeats } = useSeatOrder(PARTY_SEAT_LAYOUT)
+  const { begin: beginSearch } = search
+  const beginRound = useCallback(
+    (signal: AbortSignal): Promise<string | null> => {
+      resetSeats()
+
+      return beginSearch(signal)
+    },
+    [beginSearch, resetSeats]
+  )
 
   // actor 자체가 멈추기 전에 대기 중인 공개 명령의 완료도 알린다.
   useEffect(() => () => stopRef.current(), [])
   const [snapshot, send] = useMachine(partyCaptureMachine, {
     input: {
       selectSource: (sourceId) => window.api.selectCaptureSource(sourceId),
-      beginSearch: search.begin,
+      beginSearch: beginRound,
       readFrame: (captureId) => window.api.readCaptureFrame(captureId),
       endSearch: search.end,
       observeOcr: search.observeOcr,
@@ -81,6 +98,7 @@ export function usePartyCapture({ receivesShortcut }: { receivesShortcut: boolea
   }
 
   const recognizing = phase === 'recognizing'
+  const canMoveSeats = !recognizing
   const nicknames = getRecognizedNicknames(snapshot.context.results, SEARCH_SLOT_COUNTS.party)
   const selectedSourceId = snapshot.context.selectedSourceId
   const canStartCapture = snapshot.can({ type: 'START' })
@@ -119,6 +137,12 @@ export function usePartyCapture({ receivesShortcut }: { receivesShortcut: boolea
     lastCompletedAt: snapshot.context.completedAt,
     recognizeWithOcr: ocrWorker.recognize,
     startRound,
-    stopCapture
+    stopCapture,
+    seats: {
+      layout: PARTY_SEAT_LAYOUT,
+      seatOrder,
+      canMoveSeats,
+      swapSeats: (from, to) => canMoveSeats && swapSeats(from, to)
+    }
   }
 }

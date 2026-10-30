@@ -1,4 +1,5 @@
 import { slotAdventureName } from '../lib/adventure-snapshot'
+import { seatValuesToSlotOrder } from '../lib/seats'
 import { toClipboardText } from '../lib/slot-clipboard'
 import { toSlotCards, type SlotCard } from '../lib/slot-cards'
 import { useAdventureSnapshot } from './useAdventureSnapshot'
@@ -10,9 +11,10 @@ export function usePartySlotCards(capture: PartyCapture): {
   clipboardText: string
 } {
   const { search } = capture
+  const { seatOrder } = capture.seats
   const snapshot = useAdventureSnapshot(
     'party',
-    search.slots.map(slotAdventureName),
+    seatOrder.map((slot) => slotAdventureName(search.slots[slot])),
     capture.startedRounds
   )
   const cards = toSlotCards({
@@ -20,13 +22,13 @@ export function usePartySlotCards(capture: PartyCapture): {
     nicknames: capture.nicknames,
     manualSlots: search.manualSlots,
     recognizing: capture.recognizing,
-    snapshotMarks: snapshot.marks,
+    snapshotMarks: seatValuesToSlotOrder(seatOrder, snapshot.marks),
     candidatePickers: search.candidatePickers
   })
   const clipboardText = toClipboardText({
     slots: search.slots,
     nicknames: capture.nicknames,
-    seatOrder: search.slots.map((_, slot) => slot),
+    seatOrder,
     rowSize: search.slots.length
   })
 

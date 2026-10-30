@@ -42,7 +42,9 @@ import {
   nextCandidatePick,
   toCandidatePicker
 } from '../../lib/candidate-picker'
-import { createSeatOrder, seatValuesToSlotOrder, swapSeats } from '../../lib/raid-seats'
+import { seatValuesToSlotOrder, type SeatLayout } from '../../lib/seats'
+import { PARTY_SEAT_LAYOUT, RAID_SEAT_LAYOUT } from '../../constants/cards'
+import { useSeatOrder, type SeatArrangement } from '../../hooks/useSeatOrder'
 import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
 
 const EMPTY_CANDIDATE_PICKS: readonly (CandidatePick | null)[] = [null, null, null, null]
@@ -131,7 +133,8 @@ export function Preview(): React.JSX.Element {
   const searchMode = useSearchModeStore((state) => state.searchMode)
   const isPartyMode = useIsPartyMode()
   const isRaidMode = useIsRaidMode()
-  const [seatOrder, setSeatOrder] = useState(createSeatOrder)
+  const partySeats = useSeatOrder(PARTY_SEAT_LAYOUT)
+  const raidSeats = useSeatOrder(RAID_SEAT_LAYOUT)
   const [partyRound, setPartyRound] = useState(0)
   const [raidRound, setRaidRound] = useState(0)
   const [candidatePicks, setCandidatePicks] = useState(EMPTY_CANDIDATE_PICKS)
@@ -147,7 +150,8 @@ export function Preview(): React.JSX.Element {
   const raidCharacters = snapshotPreviewRaidRounds[raidRound % snapshotPreviewRaidRounds.length]
   const partySnapshot = useAdventureSnapshot(
     'party',
-    partySlots.map((state, slot) => {
+    partySeats.seatOrder.map((slot) => {
+      const state = partySlots[slot]
       const shown = partyCharacters[slot]
       if (state !== 'success' || shown == null) {
         return null
@@ -159,7 +163,7 @@ export function Preview(): React.JSX.Element {
   )
   const raidSnapshot = useAdventureSnapshot(
     'raid',
-    seatOrder.map((slot) => {
+    raidSeats.seatOrder.map((slot) => {
       const adventure = raidCharacters[slot]?.adventure
       if (adventure == null) {
         return null
@@ -184,6 +188,7 @@ export function Preview(): React.JSX.Element {
     const next = nextCandidatePick(candidatePreviewSlots[slot], candidatePicks[slot], serverId)
     setCandidatePicks(candidatePicks.map((current, index) => (index === slot ? next : current)))
   }
+  const partySnapshotMarks = seatValuesToSlotOrder(partySeats.seatOrder, partySnapshot.marks)
   const partyCards: SlotCard[] = partySlots.map((state, slot) => {
     const shown = partyCharacters[slot]
     const selected = shown ?? undefined
@@ -196,11 +201,11 @@ export function Preview(): React.JSX.Element {
       character: selected,
       nickname,
       notice,
-      snapshotMark: partySnapshot.marks[slot],
+      snapshotMark: partySnapshotMarks[slot],
       picker
     }
   })
-  const raidSnapshotMarks = seatValuesToSlotOrder(seatOrder, raidSnapshot.marks)
+  const raidSnapshotMarks = seatValuesToSlotOrder(raidSeats.seatOrder, raidSnapshot.marks)
   const raidCards: SlotCard[] = raidCharacters.map((member, slot) => {
     const state = member == null ? 'idle' : 'success'
     const selected = member ?? undefined
@@ -217,18 +222,15 @@ export function Preview(): React.JSX.Element {
     capture.completeCapture()
     setRaidRound((round) => round + 1)
   }
-  const handleSwapSeats = (from: number, to: number): boolean => {
-    if (!canMoveSeats) {
-      return false
-    }
-    const next = swapSeats(seatOrder, from, to)
-    if (next === seatOrder) {
-      return false
-    }
-    setSeatOrder(next)
-
-    return true
-  }
+  const toPreviewSeats = (
+    layout: SeatLayout,
+    { seatOrder, swapSeats }: ReturnType<typeof useSeatOrder>
+  ): SeatArrangement => ({
+    layout,
+    seatOrder,
+    canMoveSeats,
+    swapSeats: (from, to) => canMoveSeats && swapSeats(from, to)
+  })
   const handleCaptureStateChange = (event: React.ChangeEvent<HTMLSelectElement>): void => {
     capture.changeState(event.target.value)
   }
@@ -300,6 +302,7 @@ export function Preview(): React.JSX.Element {
               <PartyPage
                 slots={partyCards}
                 resetKey={scenario}
+                seats={toPreviewSeats(PARTY_SEAT_LAYOUT, partySeats)}
                 actions={{ lookupSlot: lookupPreviewSlot, pickCandidate }}
               />
             </div>
@@ -341,7 +344,7 @@ export function Preview(): React.JSX.Element {
               <RaidPage
                 slots={raidCards}
                 resetKey="raid"
-                seats={{ seatOrder, canMoveSeats, swapSeats: handleSwapSeats }}
+                seats={toPreviewSeats(RAID_SEAT_LAYOUT, raidSeats)}
                 actions={{ lookupSlot: lookupPreviewSlot }}
               />
             </div>
