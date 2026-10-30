@@ -14,6 +14,7 @@ import {
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
 import { CloseIcon } from './CloseIcon'
+import { ShortcutTooltip } from './ShortcutTooltip'
 import type { CaptureSourceSelection } from '../hooks/usePartyCapture'
 import type { CapturePhase } from '../types/capture'
 import {
@@ -65,7 +66,7 @@ export function CaptureControls({
   return (
     <DialogRoot onOpenChange={handleOpenChange}>
       <span {...stylex.props(windowChromeStyles.noDrag)}>
-        <CaptureChipTrigger state={state} />
+        <CaptureChipTrigger state={state} status={status} />
         <CaptureAnnouncer>{status}</CaptureAnnouncer>
       </span>
       {/* 공용 DialogContent는 화면 가운데에 놓고 전체 창을 덮는다. 이 패널은 상단 바 아래에 붙고 상단 바는
@@ -81,7 +82,7 @@ export function CaptureControls({
             <StatusChip tone={state.tone} busy={state.busy} role="status">
               {state.label}
             </StatusChip>
-            {status && <CaptureNotice phase={phase}>{status}</CaptureNotice>}
+            <DialogAnnouncer>{status}</DialogAnnouncer>
             {hasSelection && <StopCaptureButton onClick={stopCapture} />}
             <RefreshSourcesButton
               disabled={source.sourcesLoading}
@@ -108,24 +109,28 @@ export function CaptureControls({
 }
 
 function CaptureChipTrigger({
-  state
+  state,
+  status
 }: {
   state: ReturnType<typeof getCaptureControlState>
+  status: string
 }): React.JSX.Element {
   return (
-    <DialogTrigger
-      render={
-        <button
-          type="button"
-          aria-label={`화면 캡처, ${state.label}`}
-          {...stylex.props(styles.trigger)}
-        />
-      }
-    >
-      <StatusChip tone={state.tone} busy={state.busy} size="md">
-        {state.label}
-      </StatusChip>
-    </DialogTrigger>
+    <ShortcutTooltip label={status} disabled={status.length === 0}>
+      <DialogTrigger
+        render={
+          <button
+            type="button"
+            aria-label={`화면 캡처, ${state.label}`}
+            {...stylex.props(styles.trigger)}
+          />
+        }
+      >
+        <StatusChip tone={state.tone} busy={state.busy} size="md">
+          {state.label}
+        </StatusChip>
+      </DialogTrigger>
+    </ShortcutTooltip>
   )
 }
 
@@ -134,6 +139,15 @@ function CaptureAnnouncer({ children }: { children: string }): React.JSX.Element
   // 대화상자 안의 안내가 같은 문구를 알리므로 두 번 읽히지 않는다.
   return (
     <span role="status" data-capture-announcer="" {...stylex.props(shapes.srOnly)}>
+      {children}
+    </span>
+  )
+}
+
+function DialogAnnouncer({ children }: { children: string }): React.JSX.Element {
+  // 대화상자가 열리면 바깥 안내는 가려지므로 같은 문구를 대화상자 안에서 화면에 보이지 않게 알린다.
+  return (
+    <span role="status" data-dialog-announcer="" {...stylex.props(shapes.srOnly)}>
       {children}
     </span>
   )
@@ -221,46 +235,5 @@ function CloseDialogButton(): React.JSX.Element {
         />
       }
     />
-  )
-}
-
-function getNoticeMarkLabel(phase: CapturePhase): string | null {
-  if (phase === 'unavailable') {
-    return '주의'
-  }
-
-  if (phase === 'failed') {
-    return '실패'
-  }
-
-  return null
-}
-
-function CaptureNotice({
-  phase,
-  children
-}: {
-  phase: CapturePhase
-  children: string
-}): React.JSX.Element {
-  const markLabel = getNoticeMarkLabel(phase)
-
-  return (
-    <p role="status" title={children} {...stylex.props(styles.notice)}>
-      {markLabel != null && (
-        <span
-          role="img"
-          aria-label={markLabel}
-          {...stylex.props(
-            shapes.cutTopRight,
-            styles.mark,
-            phase === 'failed' ? styles.failureMark : styles.warningMark
-          )}
-        >
-          !
-        </span>
-      )}
-      <span {...stylex.props(styles.noticeText)}>{children}</span>
-    </p>
   )
 }
