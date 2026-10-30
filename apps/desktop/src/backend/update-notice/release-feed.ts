@@ -1,7 +1,7 @@
 import { parseReleaseTag, type ReleaseVersion } from '../../preload/common/update-notice'
 import type { UpdateNotice } from '../../preload/common/types/update-notice'
 
-const RELEASES_URL = 'https://github.com/blahaj94/dfragon/releases'
+const RELEASES_URL = 'https://github.com/dungeon-and-dragon/dfragon/releases'
 const RELEASE_PAGE_PREFIX = `${RELEASES_URL}/tag/`
 const RELEASE_TAG_PREFIX = 'v'
 export const RELEASE_FEED_URL = `${RELEASES_URL}.atom`
