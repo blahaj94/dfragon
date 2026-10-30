@@ -1,0 +1,46 @@
+@font-face {
+  font-family: 'MaruMinya Hangul';
+  src: url('../../desktop/src/frontend/src/assets/fonts/x12y12pxMaruMinyaHangul.woff2')
+    format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../../desktop/src/frontend/src/assets/fonts/BarlowCondensed-SemiBold.woff2')
+    format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../../desktop/src/frontend/src/assets/fonts/BarlowCondensed-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E;
+}
+
+/* 창 목업의 Desktop 컴포넌트는 Desktop 전역 글꼴 CSS와 같은 글꼴 토큰을 읽는다. */
+:root {
+  color-scheme: light;
+  --df-font-ui:
+    'MaruMinya Hangul', -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo',
+    'Malgun Gothic', sans-serif;
+  --df-font-num:
+    'Barlow Condensed', 'MaruMinya Hangul', -apple-system, BlinkMacSystemFont, system-ui,
+    'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  color: #0f1a24;
+  background: #f3f8fc;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}

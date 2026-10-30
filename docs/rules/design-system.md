@@ -99,6 +99,8 @@ Desktop renderer는 앱에 번들한 마루미냐 한글(MaruMinya Hangul, x12y1
 
 Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들하고 CDN에서 받지 않는다. 600, 700 굵기를 숫자와 기본 라틴 문자로 줄여 담고, `@font-face`는 Desktop 전역 글꼴 CSS에, 글꼴 이름은 `font` 토큰에 둔다. 숫자 값은 `NumericText`나 같은 토큰으로 이 글꼴을 쓴다.
 
+웹사이트(`apps/web`)는 제목에 마루미냐 한글을 12px의 정수 배(24, 36, 48)로만 쓰고, 본문은 Noto Sans KR, 숫자는 Barlow Condensed로 쓴다(2026-10-31 결정, [Issue #1037](https://github.com/dungeon-and-dragon/dfragon/issues/1037)). 세 글꼴 모두 SIL OFL 1.1이고 사이트에 함께 배포하며 CDN에서 받지 않는다. 마루미냐 한글과 Barlow Condensed는 Desktop과 같은 파일을, Noto Sans KR은 `@fontsource/noto-sans-kr`의 글자 범위별 파일을 쓴다. 창 목업은 Desktop과 같은 글꼴 토큰을 읽는다.
+
 - 같은 전역 CSS에 `word-break: keep-all`, `overflow-wrap: anywhere`를 두어 한국어를 어절 단위로 줄바꿈하고 긴 문자열은 영역 안에서 나눈다. `packages/ui/foundation.css`는 공용 Example도 공유하므로 이 기준을 두지 않는다.
 - 기울임, `text-transform: uppercase`, 양수 자간을 새로 쓰지 않는다.
 - 수치, 표, 타이머는 `font-variant-numeric: tabular-nums`를 쓴다. 기존 사용처는 유지하며 기존 코드의 일괄 정리는 이 기준의 선행 조건이 아니다.

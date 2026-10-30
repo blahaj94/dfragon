@@ -8,7 +8,8 @@ const outputs = [
   ['apps/desktop/build/icon.ico', 'ico/icon.ico'],
   ['apps/desktop/build/icon.icns', 'icns/icon.icns'],
   ['apps/desktop/build/icon.png', 'set/512x512.png'],
-  ['apps/desktop/resources/brand.png', 'set/128x128.png']
+  ['apps/desktop/resources/brand.png', 'set/128x128.png'],
+  ['apps/web/public/favicon.png', 'set/64x64.png']
 ]
 
 test('변환한 형식과 크기를 각 앱 경로에 복사하고 임시 디렉터리를 정리한다', (t) => {
