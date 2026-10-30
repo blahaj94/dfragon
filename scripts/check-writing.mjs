@@ -17,11 +17,17 @@ const casualEnding =
   /(?<=[가-힣])(?:(?<![필주중개소수동강세니])요|죠)[.!?,:]?(?=[\s'"`<)\]}」』]|$)/u
 const tightMiddleDot = /(?<! )·|·(?! )/u
 const attachedRequest = /[가-힣]주세요/u
+// 웹사이트 소개 문구는 해요체로 쓴다(2026-10-31 저장소 소유자 결정, Issue #1037).
+const sitePath = 'apps/web/'
 
 export const rules = [
   { name: '옛 표기 DFRAGON, Dfragon을 쓰지 않는다', pattern: legacyBrandName },
   { name: '옛 표기 DFRAGON, Dfragon을 쓰지 않는다', pattern: mixedCaseBrandName },
-  { name: '사용자 문구에 해요체를 쓰지 않는다', pattern: casualEnding },
+  {
+    name: '사용자 문구에 해요체를 쓰지 않는다',
+    pattern: casualEnding,
+    skips: (path) => path.startsWith(sitePath)
+  },
   { name: '나열에는 가운뎃점 대신 쉼표와 공백을 쓴다', pattern: tightMiddleDot },
   { name: '요청형의 주세요는 띄어 쓴다', pattern: attachedRequest }
 ]
@@ -31,6 +37,10 @@ export function findViolations(path, content) {
 
   content.split('\n').forEach((text, index) => {
     for (const rule of rules) {
+      if (rule.skips?.(path)) {
+        continue
+      }
+
       if (rule.pattern.test(text)) {
         violations.push({ path, line: index + 1, rule: rule.name, text: text.trim() })
       }
