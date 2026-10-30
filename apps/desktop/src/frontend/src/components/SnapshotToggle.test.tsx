@@ -60,6 +60,14 @@ function choice(name: string): HTMLButtonElement {
   return [...confirm()!.querySelectorAll('button')].find((button) => button.textContent === name)!
 }
 
+it('버튼 아이콘은 켜짐 여부와 관계없이 윤곽만 있는 핀이다', async () => {
+  await render()
+  expect(toggle().querySelector('svg')?.getAttribute('fill')).toBe('none')
+
+  await render({ active: true })
+  expect(toggle().querySelector('svg')?.getAttribute('fill')).toBe('none')
+})
+
 it('꺼진 버튼을 누르면 확인 없이 스냅샷을 켠다', async () => {
   const onTake = vi.fn()
   await render({ onTake })
