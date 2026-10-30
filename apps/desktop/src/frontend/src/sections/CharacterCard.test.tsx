@@ -383,10 +383,10 @@ it('찾은 카드는 이름 칸, 모험단과 길드, 명성과 점수, 각성 �
 })
 
 it('찾은 카드의 안내는 직업 뒤에 두고, 고치는 동안에는 Enter 조회 안내를 둔다', async () => {
-  await render({ state: 'success', character: found, notice: '외형 미확인, 최고 명성 후보입니다.' })
+  await render({ state: 'success', character: found, notice: '명성으로 추정한 후보입니다.' })
   const note = columnLines()[3].querySelector('p')!
-  expect(columnLines()[3].textContent).toBe('찾은직업외형 미확인, 최고 명성 후보입니다.')
-  expect(note.title).toBe('외형 미확인, 최고 명성 후보입니다.')
+  expect(columnLines()[3].textContent).toBe('찾은직업명성으로 추정한 후보입니다.')
+  expect(note.title).toBe('명성으로 추정한 후보입니다.')
 
   await render({ state: 'success', character: found })
   await enterName('고친이름')
