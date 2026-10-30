@@ -8,6 +8,7 @@ import { registerCaptureIpc, registerCaptureWindow } from './capture/ipc-handler
 import { registerCapturePermissions } from './capture/permission-policy'
 import { readAppApiOrigin, readAppChannelName, readAppIdentity } from './lib/app-channel'
 import { fetchApi } from './api-fetch'
+import { openExternalLink } from './external-link'
 import { readTodayGrade } from './today-grade/http'
 import { registerTodayGradeWindow } from './today-grade/ipc-handler'
 import { readReleaseFeed } from './update-notice/http'
@@ -144,7 +145,11 @@ function createWindow(): void {
         mainWindow = null
       }
     })
-    window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+    window.webContents.setWindowOpenHandler(({ url }) => {
+      openExternalLink(url)
+
+      return { action: 'deny' }
+    })
     window.webContents.on('will-navigate', (event) => event.preventDefault())
     const load = shouldLoadDevUrl ? window.loadURL(rendererDocumentUrl) : window.loadFile(entry)
     load.catch(() => reportDiagnostic('MAIN_PROCESS_FAILED'))
