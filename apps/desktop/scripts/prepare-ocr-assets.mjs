@@ -20,11 +20,12 @@ export const OCR_ASSETS = [
   'ort/ort-wasm-simd-threaded.asyncify.mjs',
   'ort/ort-wasm-simd-threaded.asyncify.wasm'
 ]
+export const OCR_MODEL_NOTICE = 'OCR-Model-NOTICE.txt'
 const defaultDestination = fileURLToPath(new URL('../src/frontend/public/ocr', import.meta.url))
 
 /**
  * @param {string} destination
- * @param {{name: string, modelPath: string, dictionaryPath: string}} selection
+ * @param {{name: string, modelPath: string, dictionaryPath: string, noticePath?: string}} selection
  * @returns {Promise<void>}
  */
 export async function prepareOcrAssets(destination = defaultDestination, selection = ocrModel) {
@@ -59,6 +60,7 @@ export async function prepareOcrAssets(destination = defaultDestination, selecti
   } catch {
     throw new Error('Could not read the ONNX model or dictionary selected in ocr-model.config.mjs.')
   }
+  const notice = await readModelNotice(selection.noticePath)
   const classes = countOcrClasses(dictionary)
   await validateOcrModel(model, classes)
   vendorBytes.set('korean-rec.onnx', model)
@@ -69,6 +71,13 @@ export async function prepareOcrAssets(destination = defaultDestination, selecti
 
     return { file, sha256 }
   })
+  if (notice !== undefined) {
+    vendorBytes.set(OCR_MODEL_NOTICE, notice)
+    files.push({
+      file: OCR_MODEL_NOTICE,
+      sha256: createHash('sha256').update(notice).digest('hex')
+    })
+  }
   const selectedProvenance =
     usesBundledModel && usesBundledDictionary
       ? { ...provenance, model: selection.name, files }
@@ -78,9 +87,10 @@ export async function prepareOcrAssets(destination = defaultDestination, selecti
     Buffer.from(`${JSON.stringify(selectedProvenance, null, 2)}\n`)
   )
 
+  const targets = notice === undefined ? OCR_ASSETS : [...OCR_ASSETS, OCR_MODEL_NOTICE]
   await rm(destination, { recursive: true, force: true })
   await Promise.all(
-    OCR_ASSETS.map(async (target) => {
+    targets.map(async (target) => {
       const targetPath = join(destination, target)
       await mkdir(dirname(targetPath), { recursive: true })
       if (target.startsWith('ort/')) {
@@ -90,6 +100,22 @@ export async function prepareOcrAssets(destination = defaultDestination, selecti
       }
     })
   )
+}
+
+/**
+ * @param {string | undefined} noticePath
+ * @returns {Promise<Buffer | undefined>}
+ */
+async function readModelNotice(noticePath) {
+  if (noticePath === undefined) {
+    return undefined
+  }
+
+  try {
+    return await readFile(resolve(appRoot, noticePath))
+  } catch {
+    throw new Error('Could not read the OCR model notice selected in ocr-model.config.mjs.')
+  }
 }
 
 const invokedPath = process.argv[1]

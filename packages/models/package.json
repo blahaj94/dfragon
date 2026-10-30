@@ -6,6 +6,7 @@
   "exports": {
     "./ocr-finetuned/model.onnx": "./ocr-finetuned/model.onnx",
     "./ocr-finetuned/characters.txt": "./ocr-finetuned/characters.txt",
+    "./ocr-finetuned/NOTICE": "./ocr-finetuned/NOTICE",
     "./score-engine/dnfscore.dll": "./score-engine/dnfscore.dll",
     "./score-engine/libdnfscore.dylib": "./score-engine/libdnfscore.dylib",
     "./package.json": "./package.json"
