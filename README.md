@@ -26,7 +26,7 @@
 
 - **캐릭터 검색**: 서버와 닉네임을 던삐삐 API(`api.dfragon.com`)에 보내고, API가 [Neople 오픈 API](https://developers.neople.co.kr)에서 조회합니다. 검색에는 인터넷 연결이 필요합니다.
 - **새 버전 확인**: 시작할 때와 이후 6시간마다 GitHub Release 목록을 확인합니다. github.com에 IP와 User-Agent가 전달됩니다. 기준은 [ADR 0001](docs/adr/0001-update-notice-without-auto-install.md)에 있습니다.
-- **사용 통계**: 앱 실행, 캡처 회차, 직접 검색을 할 때 Google Analytics 4에 이벤트를 보냅니다. 설치별 무작위 ID, 세션 ID, 앱 버전, 파티와 공대 구분만 보내며 닉네임, 서버, 캐릭터, 이미지, OCR 결과는 보내지 않습니다. 끄는 설정은 없습니다. 기준은 [ADR 0002](docs/adr/0002-desktop-usage-stats-ga4.md)에 있습니다.
+- **사용 통계**: 앱 실행, 캡처 회차, 직접 검색을 할 때 Google Analytics 4에 이벤트를 보냅니다. 설치별 무작위 ID, 세션 ID, 앱 버전, 파티와 공대 구분만 보내며 닉네임, 서버, 캐릭터, 이미지, OCR 결과는 보내지 않습니다.
 
 ## 개발
 
