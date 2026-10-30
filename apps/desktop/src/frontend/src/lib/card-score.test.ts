@@ -19,7 +19,7 @@ it('딜러 카드는 장비 점수를 딜러 톤으로 보이고 계산값임을
     tone: 'dealer',
     value: 330556,
     approximate: false,
-    description: 'DFragon 계산값이라 게임 장비 점수와 조금 다를 수 있습니다.'
+    description: '던삐삐 계산값이라 게임 장비 점수와 조금 다를 수 있습니다.'
   })
 })
 
@@ -29,7 +29,7 @@ it('버퍼 카드는 점수 라벨을 버프 점수, 색을 버퍼 톤으로 정
     tone: 'buffer',
     value: 55358,
     approximate: false,
-    description: 'DFragon 계산값이라 게임 버프 점수와 조금 다를 수 있습니다.'
+    description: '던삐삐 계산값이라 게임 버프 점수와 조금 다를 수 있습니다.'
   })
 })
 

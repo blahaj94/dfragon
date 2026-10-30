@@ -37,19 +37,17 @@ it.each(CHANNEL_NAMES)(
   }
 )
 
-it('설치형 배포, 개발 채널은 legacy cleanup NSIS include를 가지고 파일명은 앱 이름으로 시작한다', () => {
+it('설치형 배포, 개발 채널은 legacy cleanup NSIS include를 가지고 파일명은 한글 앱 이름 대신 영문 접두어로 시작한다', () => {
   const development = createBuilderConfig('development')
   expect(development.nsis?.include).toBe('build/development-installer.nsh')
-  expect(development.nsis?.artifactName).toBe('${productName}-${version}-${arch}-setup.${ext}')
+  expect(development.nsis?.artifactName).toBe('DFragon Development-${version}-${arch}-setup.${ext}')
 
   const distribution = createBuilderConfig('distribution')
   expect(distribution.nsis?.include).toBe('build/distribution-installer.nsh')
   expect(distribution.protocols).toBeUndefined()
-  // electron-builder가 앱 이름 DFragon을 채운다. Release workflow와 README가 이 파일명 형식에 의존한다.
-  expect(distribution.portable?.artifactName).toBe(
-    '${productName}-${version}-${arch}-portable.${ext}'
-  )
-  expect(distribution.nsis?.artifactName).toBe('${productName}-${version}-${arch}-setup.${ext}')
+  // Release workflow의 glob과 README가 이 파일명 형식에 의존한다.
+  expect(distribution.portable?.artifactName).toBe('DFragon-${version}-${arch}-portable.${ext}')
+  expect(distribution.nsis?.artifactName).toBe('DFragon-${version}-${arch}-setup.${ext}')
 })
 
 it('test 채널은 protocol과 NSIS include 없이 공백 없는 파일명 접두어를 쓴다', () => {

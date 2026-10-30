@@ -52,7 +52,6 @@ it('상단 바는 등급, 이름, 내비, 게임 연결 상태 순서로 표시�
   const header = container.querySelector('header')!
   expect(container.querySelectorAll('header')).toHaveLength(1)
   expect(header.querySelector('img')).toBeNull()
-  expect(header.textContent).not.toContain('DFragon')
   const grade = header.querySelector('[role="img"]')!
   const name = [...header.querySelectorAll('span')].find((span) => span.textContent === '던삐삐')!
   expect(name).toBeDefined()
