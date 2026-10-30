@@ -60,7 +60,7 @@ Penpot 파일은 화면별 편집 페이지가 편집 기준이다.
 
 Renderer에 Neople API key나 임의 URL 호출을 추가하지 않고, 기존 main/preload 경계와 runtime 검증을 따른다. 같은 캐릭터의 카드 면을 바꿀 때마다 새 HTTP 요청을 만들지 않도록 조회 데이터와 표시 상태를 분리한다.
 
-레이아웃은 기존 React, TypeScript, StyleX와 `@dfragon/ui`를 사용한다. [Desktop 스타일 작성](desktop-styling.md), [Design System](../rules/design-system.md), [검색 구현 안내](desktop-character-search.md)의 공용 자산, 접근성, 캡처 수명을 유지한다. 화면 전용 조합은 Desktop 내부에서 시작하며 별도 디자인 시스템 구축을 선행하지 않는다.
+레이아웃은 기존 React, TypeScript, StyleX와 `@dfragon/ui`를 사용한다. [Renderer 스타일](../../apps/desktop/README.md#renderer-스타일), [Design System](../rules/design-system.md), [검색 구현 안내](desktop-character-search.md)의 공용 자산, 접근성, 캡처 수명을 유지한다. 화면 전용 조합은 Desktop 내부에서 시작하며 별도 디자인 시스템 구축을 선행하지 않는다.
 
 ## Typo 적용
 

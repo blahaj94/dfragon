@@ -86,9 +86,48 @@ import { Typo } from '@dfragon/ui'
 
 ## 공통 StyleX 설정
 
-`@dfragon/ui/stylex-config`는 모든 앱과 Example, test가 사용하는 빌드 전용 compiler 옵션이다. Browser runtime에서 import하지 않는다. StyleX 버전은 workspace catalog에 둔다. 앱별 adapter 연결과 스타일 작성법은 [앱 공통 StyleX](../../docs/reference/app-styling.md)를 따른다. 이 entry를 쓰기 위해 UI library를 먼저 빌드할 필요는 없다.
+`@dfragon/ui/stylex-config`는 모든 앱과 Example, test가 사용하는 빌드 전용 compiler 옵션이다. Browser runtime에서 import하지 않는다. StyleX runtime과 compiler 버전은 `pnpm-workspace.yaml`의 catalog에 두고, 앱 manifest는 `@stylexjs/stylex`와 개발 의존성 `@stylexjs/unplugin`을 `catalog:`로 참조한다. 이 entry를 쓰기 위해 UI library를 먼저 빌드할 필요는 없다.
 
-Library의 StyleX는 `--df-*` 변수만 참조하고 `defineVars`나 앱 테마를 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 `stylex.create`를 그대로 내보낸다. 소비 앱과 Example, test의 StyleX compiler가 이 옵션으로 정적 CSS를 만들며, compiler 없이 전체 entry를 실행하면 `stylex.create`가 실행 시점에 오류를 낸다. 주입 runtime(`@stylexjs/stylex/lib/stylex-inject`)은 정적 stylesheet와 CSP 경로를 깨므로 쓰지 않는다. `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
+- `runtimeInjection: false`: production CSS를 빌드 시 추출해 기존 CSP와 정적 stylesheet 경로를 유지한다.
+- `useCSSLayers: false`: 공용 토큰 CSS, foundation, 앱 전역 글꼴 CSS 같은 전역 기반 스타일과 같은 cascade에서 조합한다.
+- Vite에서는 StyleX를 React plugin보다 먼저 실행한다. Vitest는 HTTP/HMR timer가 없는 Rollup adapter를 사용한다.
+- 모든 browser entry는 `@dfragon/ui/tokens.css`, 공용 `foundation.css`, 앱 전역 글꼴 CSS 순서로 한 번 import한다. 글꼴, reset 같은 전역 기반 CSS와 vendor CSS는 StyleX로 복제하지 않는다.
+- 테마는 다크 하나다. `tokens.css`가 `:root`에 다크 색 변수와 `color-scheme`을 두므로 앱은 테마 값을 따로 넣지 않아도 첫 페인트부터 다크다.
+
+| 소비자 | 연결 위치 |
+| --- | --- |
+| Desktop 제품, test, fixture | `apps/desktop/build/renderer-transforms.ts` |
+| 공용 UI Example, test | `packages/ui/examples/vite.config.ts`, `packages/ui/vitest.config.ts` |
+| 공용 UI 산출물 소비 검사 | `packages/ui/test/build-consumer/vite.config.ts` |
+
+공식 [unplugin 설정](https://stylexjs.com/docs/api/configuration/unplugin/)과 [Vite 연결](https://stylexjs.com/docs/learn/installation/vite/)을 따른다. Library의 StyleX는 `--df-*` 변수만 참조하고 `defineVars`나 앱 테마를 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 `stylex.create`를 그대로 내보내며 CSS도 내지 않는다. 위 소비자의 compiler가 앱 스타일과 함께 정적 CSS로 추출하므로 `@dfragon/ui` 기본 entry를 쓰는 앱은 StyleX compiler를 연결해야 하고, compiler 없이 전체 entry를 실행하면 `stylex.create`가 실행 시점에 오류를 낸다. 주입 runtime(`@stylexjs/stylex/lib/stylex-inject`)은 정적 stylesheet와 CSP 경로를 깨므로 쓰지 않는다. `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
+
+### 화면 스타일 작성
+
+파일 배치, named export, 스타일 합성의 기준은 [화면별 스타일 계약](../../docs/rules/design-system.md#화면별-스타일-조정)을 따른다.
+
+```tsx
+import * as stylex from '@stylexjs/stylex'
+import { colors, space } from '@dfragon/ui/tokens.stylex'
+
+const styles = stylex.create({
+  actions: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: space.s12,
+    color: colors.fgMuted
+  }
+})
+
+// JSX
+<div {...stylex.props(styles.actions)}>{children}</div>
+```
+
+- 스타일은 module scope에서 선언하고 색, 간격, 반지름, 모션은 `@dfragon/ui/tokens.stylex`의 상수를 쓴다. `colors`의 키는 dfragon-design [색 체계](https://github.com/blahaj94/dfragon-design/blob/main/design/colors.md)의 의미 토큰을 camelCase로 옮긴 것이다(`bg.surface`는 `bgSurface`, `card.fgMuted`는 `cardFgMuted`).
+- 홀짝 행, hover, focus, disabled처럼 브라우저가 판단할 수 있는 시각 상태는 CSS pseudo-class로 표현한다. 예를 들어 교차 행 배경은 `backgroundColor: { default: colors.cardBg, ':nth-child(even)': colors.cardStripe }`로 선언하고 JSX에서 행 인덱스를 계산하지 않는다.
+- 유한한 UI 상태는 정적 스타일을 정의하고 상태 값으로 고른다. 동적 스타일 함수는 런타임 색상, 그리드 좌표처럼 실제 값이 달라질 때만 쓴다. StyleX는 빌드 중 정적으로 해석하므로 일반 함수 호출이나 임의의 외부 객체를 `stylex.create` 안에 넣지 않는다.
+- 기존 `className`, `style`과 같은 요소에 적용할 때는 JSX spread가 그 prop을 덮어쓰지 않도록 합성한다. 공용 Component의 내부 DOM 선택자는 쓰지 않는다. 공용 Component에 넘긴 StyleX와 공용 class가 같은 속성을 덮으면 우선순위가 CSS 순서에 달려 있으므로, 배치는 감싼 요소에 주는 편이 안전하다.
+- StyleX class hash는 생성 결과이므로 테스트 계약이 아니다. 테스트는 접근 가능한 이름과 표시 내용을 검사한다.
 
 ## Command
 
@@ -105,7 +144,7 @@ Library의 StyleX는 `--df-*` 변수만 참조하고 `defineVars`나 앱 테마�
 - `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`: 공개 export 산출물, Base UI와 StyleX를 포함한 external, `@stylexjs/stylex` 외 StyleX import 없음, SEED 패키지 import 없음, CSS 없음, 이식 가능한 declaration, 토큰 상수의 위치와 export 이름, React 전용 Typo entry.
 - `node packages/ui/scripts/verify-build.mjs consumer <산출물 경로>`: 단일 React 사본, 번들된 경우 단일 Base UI 사본, stylesheet 1개, tokens.css 1회, 공용 글꼴 선언 1회, dependency license 원문 확인.
 - `pnpm install --frozen-lockfile`
-- `node --test packages/ui/scripts/test-consumer-resolution.mjs`: 전용 checkout의 cold consumer command 회귀. 격리, 삭제되는 산출물, Desktop 경계는 `test/consumer-resolution.md`를 먼저 확인한다.
+- `node --test packages/ui/scripts/test-consumer-resolution.mjs`: 전용 checkout의 cold consumer command 회귀. 격리 조건과 Desktop 경계는 script 머리 주석에 있다.
 
 현재 package command는 repository root에서 실행한다. 소비 app과 Example은 [Design System의 영향 범위 검증](../../docs/rules/design-system.md#영향-범위-검증)에 따라 변경한 화면, 상태, 환경을 선택해 확인한다. jsdom 결과를 실제 browser/Electron 또는 Tab 이동 성공으로 대신하지 않는다.
 

@@ -196,3 +196,9 @@ pnpm --filter @dfragon/desktop build:win:development
 ```
 
 개발 설치본도 새 카드 화면을 사용하며 `dist/development`에 생성됩니다. `dfragon.dev` identity와 로컬 HTTPS API(`https://localhost:3443`)를 씁니다.
+
+## Renderer 스타일
+
+Renderer 화면 스타일은 StyleX로 작성하며 compiler 옵션과 작성법은 [공용 UI의 공통 StyleX 설정](../../packages/ui/README.md#공통-stylex-설정)을 따릅니다. `apps/desktop/build/renderer-transforms.ts`가 `@stylexjs/unplugin`과 React plugin의 순서를 관리하고, 제품 electron-vite renderer와 Vitest가 이 설정을 함께 씁니다. Main, preload에는 StyleX 변환을 적용하지 않습니다. HTML entry를 쓰는 개발 서버에는 plugin이 CSS와 HMR runtime을 연결하므로 별도의 StyleX CLI 실행은 필요하지 않습니다.
+
+`pnpm --filter @dfragon/desktop build`는 typecheck와 production CSS 추출을 포함합니다. 스타일 변경은 실제 renderer에서 좁은 화면과 넓은 화면, 바꾼 focus 상태를 확인합니다. jsdom 테스트 성공만으로 CSS 적용이나 Electron 실행 성공을 판단하지 않습니다.
