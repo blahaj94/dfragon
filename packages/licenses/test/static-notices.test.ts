@@ -9,11 +9,12 @@ import { createPackageFixture } from './fixtures.ts'
 
 const noticeFiles = {
   lib: ['iconv-lite-LICENSE'],
-  desktop: ['BARLOW-LICENSE', 'LUCIDE-LICENSE', 'MARUMINYA-LICENSE', 'NOTICE.md']
+  desktop: ['BARLOW-LICENSE', 'LUCIDE-LICENSE', 'MARUMINYA-LICENSE', 'NOTICE.md'],
+  'score-engine': ['NOTICE', 'RUST-LICENSE-MIT']
 }
 const copyCommand = fileURLToPath(new URL('../src/copy-notices.mjs', import.meta.url))
 
-test('Desktop plugin은 중앙 글꼴, 아이콘, 자산 고지를 기존 배포 경로에 원문 그대로 낸다', () => {
+test('Desktop plugin은 UI 자산, 번들한 lib, 점수 엔진 고지를 그룹별 경로에 원문 그대로 낸다', () => {
   const assets = new Map<string, string>()
   desktopNotices().generateBundle.call({
     emitFile(asset) {
@@ -21,21 +22,23 @@ test('Desktop plugin은 중앙 글꼴, 아이콘, 자산 고지를 기존 배포
     }
   })
 
-  assert.deepEqual(
-    [...assets.keys()],
-    [
-      'notices/desktop/BARLOW-LICENSE',
-      'notices/desktop/LUCIDE-LICENSE',
-      'notices/desktop/MARUMINYA-LICENSE',
-      'notices/desktop/NOTICE.md'
-    ]
-  )
-  for (const name of noticeFiles.desktop) {
-    assert.equal(
-      assets.get(`notices/desktop/${name}`),
-      readFileSync(new URL(`../notices/desktop/${name}`, import.meta.url), 'utf8'),
-      name
-    )
+  assert.deepEqual([...assets.keys()].sort(), [
+    'notices/desktop/BARLOW-LICENSE',
+    'notices/desktop/LUCIDE-LICENSE',
+    'notices/desktop/MARUMINYA-LICENSE',
+    'notices/desktop/NOTICE.md',
+    'notices/lib/iconv-lite-LICENSE',
+    'notices/score-engine/NOTICE',
+    'notices/score-engine/RUST-LICENSE-MIT'
+  ])
+  for (const [group, names] of Object.entries(noticeFiles)) {
+    for (const name of names) {
+      assert.equal(
+        assets.get(`notices/${group}/${name}`),
+        readFileSync(new URL(`../notices/${group}/${name}`, import.meta.url), 'utf8'),
+        `${group}/${name}`
+      )
+    }
   }
 })
 
