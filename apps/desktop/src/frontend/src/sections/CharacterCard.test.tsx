@@ -128,12 +128,12 @@ it('한글 조합 중 Enter는 조회하지 않고 서버 없는 입력은 안�
 
 it('OCR, 후보 검색, 상세 정보 순서로 진행 점을 하나씩 켜고 조회를 마치면 지운다', async () => {
   await render({ loading: true })
-  expect(progressOf()).toEqual({ step: '이름 인식 중', dots: ['진행', '대기', '대기'] })
+  expect(progressOf()).toEqual({ step: '이름 인식 중', dots: [activeDot, waitingDot, waitingDot] })
   expect(card().getAttribute('aria-busy')).toBe('true')
   await render({ state: 'pending', nickname: '인식이름' })
-  expect(progressOf()).toEqual({ step: '캐릭터 검색 중', dots: ['완료', '진행', '대기'] })
+  expect(progressOf()).toEqual({ step: '캐릭터 검색 중', dots: [doneDot, activeDot, waitingDot] })
   await render({ state: 'success', character: found, scorePending: true })
-  expect(progressOf()).toEqual({ step: '상세 정보 확인 중', dots: ['완료', '완료', '진행'] })
+  expect(progressOf()).toEqual({ step: '상세 정보 확인 중', dots: [doneDot, doneDot, activeDot] })
   expect(card().getAttribute('aria-busy')).toBe('false')
   await render({ state: 'success', character: found })
   expect(lookupProgress()).toBeNull()
@@ -352,21 +352,22 @@ const dotStyles = stylex.create({
   blinking: { animationIterationCount: 'infinite' }
 })
 
-function progressOf(): { step: string | null; dots: string[] } {
+type DotState = { lit: boolean; blinking: boolean }
+
+const waitingDot: DotState = { lit: false, blinking: false }
+const activeDot: DotState = { lit: false, blinking: true }
+const doneDot: DotState = { lit: true, blinking: false }
+
+function progressOf(): { step: string | null; dots: DotState[] } {
   const progress = lookupProgress()!
-  const lit = stylex.props(dotStyles.lit).className!
-  const blinking = stylex.props(dotStyles.blinking).className!
+  const litClass = stylex.props(dotStyles.lit).className!
+  const blinkingClass = stylex.props(dotStyles.blinking).className!
   const dots = [...progress.children].map((dot) => {
     const classes = dot.className.split(' ')
-    if (!classes.includes(lit)) {
-      return '대기'
-    }
+    const lit = classes.includes(litClass)
+    const blinking = classes.includes(blinkingClass)
 
-    if (classes.includes(blinking)) {
-      return '진행'
-    }
-
-    return '완료'
+    return { lit, blinking }
   })
   const step = progress.getAttribute('aria-valuetext')
 
@@ -670,10 +671,11 @@ it('후보가 있으면 후보 창을 띄워 초상화로 고르고 지금 보�
   expect(pick).toHaveBeenCalledExactlyOnceWith('siroco')
 })
 
-it('미리보기 중이면 진행 표시 없이 카드를 선택 상태로 보이고 그 후보에 한 번 더 누르면 확정이라고 알린다', async () => {
+it('미리보기 중이면 상세를 기다리던 카드여도 진행 표시 없이 선택 상태로 보이고 그 후보에 한 번 더 누르면 확정이라고 알린다', async () => {
   await render({
     state: 'success',
     character: found,
+    scorePending: true,
     picker: { choices, shownServerId: 'siroco', previewServerId: 'siroco' },
     onPickCandidate: vi.fn()
   })
