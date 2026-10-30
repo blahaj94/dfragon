@@ -10,7 +10,7 @@ last-reviewed: 2026-10-29
 
 ## Repository topology
 
-DFragon은 pnpm workspace monorepo다.
+던삐삐는 pnpm workspace monorepo다.
 
 ```text
 apps/

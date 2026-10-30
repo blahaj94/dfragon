@@ -1,4 +1,4 @@
-# DFragon API
+# 던삐삐 API
 
 `apps/api`는 공개 캐릭터 API입니다. DB를 쓰지 않으며 Neople API에서 조회한 캐릭터는 API 메모리에 1시간, 공용 아이템 정보는 24시간 캐시합니다.
 여러 노드로 띄울 수 있지만 캐시는 노드마다 따로 둡니다. 기본 entry는 설정 검증, HTTP listen 순서로 시작합니다.

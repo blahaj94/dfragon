@@ -19,8 +19,8 @@ const tightMiddleDot = /(?<! )·|·(?! )/u
 const attachedRequest = /[가-힣]주세요/u
 
 export const rules = [
-  { name: '제품 이름은 DFragon으로 쓴다', pattern: legacyBrandName },
-  { name: '제품 이름은 DFragon으로 쓴다', pattern: mixedCaseBrandName },
+  { name: '옛 표기 DFRAGON, Dfragon을 쓰지 않는다', pattern: legacyBrandName },
+  { name: '옛 표기 DFRAGON, Dfragon을 쓰지 않는다', pattern: mixedCaseBrandName },
   { name: '사용자 문구에 해요체를 쓰지 않는다', pattern: casualEnding },
   { name: '나열에는 가운뎃점 대신 쉼표와 공백을 쓴다', pattern: tightMiddleDot },
   { name: '요청형의 주세요는 띄어 쓴다', pattern: attachedRequest }

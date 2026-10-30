@@ -21,21 +21,23 @@ it('승인된 배포, 개발, test identity tuple과 packaging 값을 유지한�
   expect(channels.development.identity).toEqual({ appIdentity: 'dfragon.dev' })
   expect(channels.test.identity).toEqual({ appIdentity: 'dfragon.test' })
   expect(channels.distribution.packaging).toEqual({
-    productName: 'DFragon',
+    productName: '던삐삐',
     executableName: 'dfragon',
     packageName: 'dfragon',
     output: 'dist',
-    installerInclude: 'build/distribution-installer.nsh'
+    installerInclude: 'build/distribution-installer.nsh',
+    artifactPrefix: 'DFragon'
   })
   expect(channels.development.packaging).toEqual({
-    productName: 'DFragon Development',
+    productName: '던삐삐 Development',
     executableName: 'dfragon-dev',
     packageName: '@dfragon/desktop',
     output: 'dist/development',
-    installerInclude: 'build/development-installer.nsh'
+    installerInclude: 'build/development-installer.nsh',
+    artifactPrefix: 'DFragon Development'
   })
   expect(channels.test.packaging).toEqual({
-    productName: 'DFragon Test',
+    productName: '던삐삐 Test',
     executableName: 'dfragon-test',
     packageName: 'dfragon-test',
     output: 'dist/test',

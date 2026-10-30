@@ -102,7 +102,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo "Test channel build \`$TEST_VERSION\` (\`DFragon Test\`, \`dfragon-test.exe\`)."
+            echo "Test channel build \`$TEST_VERSION\` (\`던삐삐 Test\`, \`dfragon-test.exe\`)."
             echo
             echo "Download in PowerShell on a Windows PC with the GitHub CLI. It prints nothing on success, creates the folder,"
             echo "and refuses to overwrite existing files, so keep one folder per run:"
