@@ -58,6 +58,7 @@ export function PartyScreen(): React.JSX.Element {
       <PartyPage
         resetKey={String(capture.round)}
         slots={cards}
+        seats={capture.seats}
         actions={{
           lookupSlot: capture.search.lookupSlot,
           pickCandidate: capture.search.pickCandidate

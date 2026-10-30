@@ -43,7 +43,7 @@ import {
   toCandidatePicker
 } from '../../lib/candidate-picker'
 import { seatValuesToSlotOrder, type SeatLayout } from '../../lib/seats'
-import { RAID_SEAT_LAYOUT } from '../../constants/cards'
+import { PARTY_SEAT_LAYOUT, RAID_SEAT_LAYOUT } from '../../constants/cards'
 import { useSeatOrder, type SeatArrangement } from '../../hooks/useSeatOrder'
 import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
 
@@ -133,6 +133,7 @@ export function Preview(): React.JSX.Element {
   const searchMode = useSearchModeStore((state) => state.searchMode)
   const isPartyMode = useIsPartyMode()
   const isRaidMode = useIsRaidMode()
+  const partySeats = useSeatOrder(PARTY_SEAT_LAYOUT)
   const raidSeats = useSeatOrder(RAID_SEAT_LAYOUT)
   const [partyRound, setPartyRound] = useState(0)
   const [raidRound, setRaidRound] = useState(0)
@@ -149,7 +150,8 @@ export function Preview(): React.JSX.Element {
   const raidCharacters = snapshotPreviewRaidRounds[raidRound % snapshotPreviewRaidRounds.length]
   const partySnapshot = useAdventureSnapshot(
     'party',
-    partySlots.map((state, slot) => {
+    partySeats.seatOrder.map((slot) => {
+      const state = partySlots[slot]
       const shown = partyCharacters[slot]
       if (state !== 'success' || shown == null) {
         return null
@@ -186,6 +188,7 @@ export function Preview(): React.JSX.Element {
     const next = nextCandidatePick(candidatePreviewSlots[slot], candidatePicks[slot], serverId)
     setCandidatePicks(candidatePicks.map((current, index) => (index === slot ? next : current)))
   }
+  const partySnapshotMarks = seatValuesToSlotOrder(partySeats.seatOrder, partySnapshot.marks)
   const partyCards: SlotCard[] = partySlots.map((state, slot) => {
     const shown = partyCharacters[slot]
     const selected = shown ?? undefined
@@ -198,7 +201,7 @@ export function Preview(): React.JSX.Element {
       character: selected,
       nickname,
       notice,
-      snapshotMark: partySnapshot.marks[slot],
+      snapshotMark: partySnapshotMarks[slot],
       picker
     }
   })
@@ -299,6 +302,7 @@ export function Preview(): React.JSX.Element {
               <PartyPage
                 slots={partyCards}
                 resetKey={scenario}
+                seats={toPreviewSeats(PARTY_SEAT_LAYOUT, partySeats)}
                 actions={{ lookupSlot: lookupPreviewSlot, pickCandidate }}
               />
             </div>
