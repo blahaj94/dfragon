@@ -5,6 +5,7 @@ import { deferred } from '../lib/async-test-fixture'
 import { registerCaptureIpc, registerCaptureWindow } from './ipc-handler'
 import type { WindowFrameResult } from '../../preload/common/types/capture'
 import { raidFrame } from '../lib/raid-window-test-fixture'
+import type { UsageEvent } from '../usage-stats/usage-stats'
 
 const nativeFrame = vi.hoisted(() => {
   const read = vi.fn<() => Promise<WindowFrameResult>>()
@@ -40,7 +41,7 @@ type MediaHandler = (
   callback: (result: unknown) => void
 ) => void
 
-async function setup(): Promise<{
+async function setup(recordUsage?: (event: UsageEvent) => void): Promise<{
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
   event: IpcMainInvokeEvent
   documentEvents: EventEmitter
@@ -66,7 +67,7 @@ async function setup(): Promise<{
     }
   }
   const window = { webContents, isDestroyed: () => false, on: windowEvents.on.bind(windowEvents) }
-  const disposeIpc = registerCaptureIpc(undefined)
+  const disposeIpc = registerCaptureIpc(undefined, recordUsage)
   disposeFixtures.add(disposeIpc)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   const handlers = new Map<string, Handler>()
@@ -575,6 +576,36 @@ describe('capture main document and source boundary', () => {
 })
 
 describe('선택한 창의 네이티브 프레임 IPC', () => {
+  it('사용 통계는 실제로 읽은 프레임만 캡처로, 직접 조회 요청은 직접 검색으로 센다', async () => {
+    const recordUsage = vi.fn<(event: UsageEvent) => void>()
+    const f = await setup(recordUsage)
+    const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
+    await f.invoke('selectCaptureSource', sources[0].id)
+    const captureId = await beginCapture(f)
+
+    nativeFrame.read.mockResolvedValueOnce({ kind: 'waiting', reason: 'covered' })
+    await f.invoke('readCaptureFrame', captureId)
+    nativeFrame.read.mockResolvedValueOnce({ kind: 'unsupported' })
+    await f.invoke('readCaptureFrame', captureId)
+    expect(recordUsage).not.toHaveBeenCalled()
+
+    nativeFrame.read.mockResolvedValueOnce({ kind: 'frame', image })
+    await f.invoke('readCaptureFrame', captureId)
+    await f.invoke('controlCharacterSearch', {
+      action: 'lookup',
+      captureId,
+      slot: 0,
+      observationRevision: 1,
+      nickname: 'SYNTHETIC_NAME',
+      serverId: 'cain'
+    })
+
+    expect(recordUsage.mock.calls).toEqual([
+      [{ name: 'capture', screen: 'party' }],
+      [{ name: 'character_search', screen: 'party' }]
+    ])
+  })
+
   it('활성 캡처에 결합된 창만 읽고 임의 창 식별자를 받지 않는다', async () => {
     const f = await setup()
     const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
