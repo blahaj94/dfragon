@@ -9,7 +9,7 @@ last-reviewed: 2026-10-30
 
 확정 Penpot 디자인의 메인 카드와 접근성 요구사항을 정의한다. 기본 앱 진입점은 상단 바, 슬롯 네 개와 캡처 창을 사용한다. 2026-10-27 축소 시안([Issue #808](https://github.com/blahaj94/dfragon/issues/808))으로 창을 세로로 줄이고 다크 테마로 고정했다. 로그인, 설정, 개발자 도구, 캐릭터 상세 창과 카드의 장비, 기타 면은 두지 않는다(2026-10-26 결정, [Issue #796](https://github.com/blahaj94/dfragon/issues/796)). OCR 식별 IPC의 슬롯 상태와 선택된 캐릭터의 기본 정보를 카드에 연결한다. 창 자동 감지, 첫 후보 검색, 최고 명성 대체 표시와 상시 수동 입력을 제공한다([Issue #595](https://github.com/blahaj94/dfragon/issues/595)). 합성 데이터의 상태와 카드 전환 미리보기는 별도 진입점에 유지하며 Windows 실사용 검증과 구분한다.
 
-디자인 원본은 [dfragon-design](https://github.com/blahaj94/dfragon-design)이고, 미리보기 실행 명령은 [카드 화면 개발](../../apps/desktop/README.md#카드-화면-개발)을 참고한다.
+디자인 원본은 [dfragon-design](https://github.com/dungeon-and-dragon/dfragon-design)이고, 미리보기 실행 명령은 [카드 화면 개발](../../apps/desktop/README.md#카드-화면-개발)을 참고한다.
 
 ## 상단 바
 
@@ -142,7 +142,7 @@ last-reviewed: 2026-10-30
 
 - Desktop은 다크 테마 하나만 쓰고 저장된 라이트 설정은 읽지 않는다(2026-10-27, [Issue #818](https://github.com/blahaj94/dfragon/issues/818)).
 - 글꼴은 번들한 마루미냐 한글(MaruMinya Hangul)이며 한국어 줄바꿈과 표기 기준은 [글꼴과 한국어 타이포그래피](design-system.md#글꼴과-한국어-타이포그래피)를 따른다. 한글 글자는 12px 하나(행간 14)로 쓰고, 숫자는 상단 바의 인원수, 회차, 마지막 캡처 초만 Barlow Condensed로 쓴다.
-- 무료 아이콘의 디자인 원본은 [Lucide 아이콘 목록](https://lucide.dev/icons)이다. 현재 사용 중인 camera, chevron-down, check, copy, monitor, refresh-cw, external-link를 기준으로 구현 자산과 출처를 맞추고, 선 끝과 꺾임은 각지게(`stroke-linecap="square"`, `stroke-linejoin="miter"`) 그린다. 스냅샷은 dfragon-design [아이콘](https://github.com/blahaj94/dfragon-design/blob/main/design/icons.md)의 DFragon 아이콘을 쓴다.
+- 무료 아이콘의 디자인 원본은 [Lucide 아이콘 목록](https://lucide.dev/icons)이다. 현재 사용 중인 camera, chevron-down, check, copy, monitor, refresh-cw, external-link를 기준으로 구현 자산과 출처를 맞추고, 선 끝과 꺾임은 각지게(`stroke-linecap="square"`, `stroke-linejoin="miter"`) 그린다. 스냅샷은 dfragon-design [아이콘](https://github.com/dungeon-and-dragon/dfragon-design/blob/main/design/icons.md)의 DFragon 아이콘을 쓴다.
 - 실행 중인 창과 Dock 아이콘은 PC의 현지 시각에 따라 같은 바다 풍경의 시간대 그림으로 바뀐다. 0시~4시와 22시~24시는 밤, 4시~6시와 18시~22시는 새벽, 6시~12시는 낮, 12시~18시는 오후 그림이고, 1분마다 확인해 시간대가 바뀌면 교체한다. 설치 파일과 exe 아이콘은 바뀌지 않는다(2026-10-30 사용자 요청). 22시~24시는 요청에 없어 0시부터의 밤에 이었다.
 - 캐릭터 이미지: `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=<zoom>`.
 
@@ -150,7 +150,7 @@ last-reviewed: 2026-10-30
 
 ## 장비 점수 표시
 
-장비 점수는 Desktop main의 점수 엔진이 계산해 카드 값에 담고(Issue #716 3번 항목), renderer는 계산식을 추정하지 않는다. OCR 회차는 이름과 서버를 먼저 채우고 상세와 점수를 나중에 채우므로([이름과 서버를 먼저 정하는 순서](character-search.md#이름과-서버를-먼저-정하는-순서)), 점수를 채우는 동안 점수 칸은 `-`이고 보조 기술에 `계산 중`을 전한다. 상세를 받지 못한 카드는 점수 칸이 `-`이고 안내로 `상세 정보를 불러오지 못했습니다. 서버와 이름을 직접 조회하면 다시 불러옵니다.`를 전한다. 엔진이 없거나 계산하지 못하면 `-`이고, 계산을 건너뛴 결과에 엔진이 근사값을 냈으면 위 캐릭터 면 설명대로 `≈`를 붙여 보인다. 근사값은 카드 표시에만 쓴다. 정확한 점수의 예측값 표시는 위 캐릭터 면 설명대로 보조 기술과 마우스 설명에만 둔다. 근사값의 `≈`는 Issue #784에서 정한 화면 표시이며, 디자인 결정 기록(blahaj94/dfragon-design#40)에는 아직 반영되지 않았다.
+장비 점수는 Desktop main의 점수 엔진이 계산해 카드 값에 담고(Issue #716 3번 항목), renderer는 계산식을 추정하지 않는다. OCR 회차는 이름과 서버를 먼저 채우고 상세와 점수를 나중에 채우므로([이름과 서버를 먼저 정하는 순서](character-search.md#이름과-서버를-먼저-정하는-순서)), 점수를 채우는 동안 점수 칸은 `-`이고 보조 기술에 `계산 중`을 전한다. 상세를 받지 못한 카드는 점수 칸이 `-`이고 안내로 `상세 정보를 불러오지 못했습니다. 서버와 이름을 직접 조회하면 다시 불러옵니다.`를 전한다. 엔진이 없거나 계산하지 못하면 `-`이고, 계산을 건너뛴 결과에 엔진이 근사값을 냈으면 위 캐릭터 면 설명대로 `≈`를 붙여 보인다. 근사값은 카드 표시에만 쓴다. 정확한 점수의 예측값 표시는 위 캐릭터 면 설명대로 보조 기술과 마우스 설명에만 둔다. 근사값의 `≈`는 Issue #784에서 정한 화면 표시이며, 디자인 결정 기록(dungeon-and-dragon/dfragon-design#40)에는 아직 반영되지 않았다.
 
 ## 구현 완료 확인
 

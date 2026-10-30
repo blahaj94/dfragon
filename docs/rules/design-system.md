@@ -18,7 +18,7 @@ last-reviewed: 2026-10-27
 - 화면 계약에 남은 기존 색 이름과 상태 표현은 해당 화면의 DFragon 디자인 적용 PR에서 이 문서의 토큰과 규칙으로 옮긴다.
 - 상위, 랭커 티어 표시는 UI 셸과 fixture 데이터까지가 범위다. 공대 12인 화면은 자리별 서버, 이름 조회와 공대 캡처까지 연결했고 티어 기준은 별도 과제다.
 
-디자인 원본은 디자인 인계 저장소 [dfragon-design](https://github.com/blahaj94/dfragon-design)의 markdown 문서와 손으로 관리하는 `design/tokens.json`이다. DFragon 디자인 시안 캔버스는 시각 참고이며, Penpot 보드와 PNG 미리보기는 superseded다.
+디자인 원본은 디자인 인계 저장소 [dfragon-design](https://github.com/dungeon-and-dragon/dfragon-design)의 markdown 문서와 손으로 관리하는 `design/tokens.json`이다. DFragon 디자인 시안 캔버스는 시각 참고이며, Penpot 보드와 PNG 미리보기는 superseded다.
 
 공용 자산과 Base UI를 우선 사용해 필요한 화면을 완성한다. 공용화와 예제 구축을 제품 화면의 선행 작업으로 만들지 않는다.
 
@@ -103,7 +103,7 @@ Desktop renderer는 숫자 글꼴 Barlow Condensed(SIL OFL 1.1)를 앱에 번들
 - 기울임, `text-transform: uppercase`, 양수 자간을 새로 쓰지 않는다.
 - 수치, 표, 타이머는 `font-variant-numeric: tabular-nums`를 쓴다. 기존 사용처는 유지하며 기존 코드의 일괄 정리는 이 기준의 선행 조건이 아니다.
 
-값과 규칙의 디자인 기준은 디자인 인계 저장소의 [Typography](https://github.com/blahaj94/dfragon-design/blob/main/design/typography.md)다. Pretendard 기준은 사용자가 승인한 Pretendard 전환 요청으로 채택했고, Desktop의 마루미냐 한글은 2026-10-26 요청(#795)으로 바꿨으며, Barlow Condensed 기준은 2026-10-18 결정으로 채택했다.
+값과 규칙의 디자인 기준은 디자인 인계 저장소의 [Typography](https://github.com/dungeon-and-dragon/dfragon-design/blob/main/design/typography.md)다. Pretendard 기준은 사용자가 승인한 Pretendard 전환 요청으로 채택했고, Desktop의 마루미냐 한글은 2026-10-26 요청(#795)으로 바꿨으며, Barlow Condensed 기준은 2026-10-18 결정으로 채택했다.
 
 ## 공통 자산과 화면의 책임
 

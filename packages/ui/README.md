@@ -123,7 +123,7 @@ const styles = stylex.create({
 <div {...stylex.props(styles.actions)}>{children}</div>
 ```
 
-- 스타일은 module scope에서 선언하고 색, 간격, 반지름, 모션은 `@dfragon/ui/tokens.stylex`의 상수를 쓴다. `colors`의 키는 dfragon-design [색 체계](https://github.com/blahaj94/dfragon-design/blob/main/design/colors.md)의 의미 토큰을 camelCase로 옮긴 것이다(`bg.surface`는 `bgSurface`, `card.fgMuted`는 `cardFgMuted`).
+- 스타일은 module scope에서 선언하고 색, 간격, 반지름, 모션은 `@dfragon/ui/tokens.stylex`의 상수를 쓴다. `colors`의 키는 dfragon-design [색 체계](https://github.com/dungeon-and-dragon/dfragon-design/blob/main/design/colors.md)의 의미 토큰을 camelCase로 옮긴 것이다(`bg.surface`는 `bgSurface`, `card.fgMuted`는 `cardFgMuted`).
 - 홀짝 행, hover, focus, disabled처럼 브라우저가 판단할 수 있는 시각 상태는 CSS pseudo-class로 표현한다. 예를 들어 교차 행 배경은 `backgroundColor: { default: colors.cardBg, ':nth-child(even)': colors.cardStripe }`로 선언하고 JSX에서 행 인덱스를 계산하지 않는다.
 - 유한한 UI 상태는 정적 스타일을 정의하고 상태 값으로 고른다. 동적 스타일 함수는 런타임 색상, 그리드 좌표처럼 실제 값이 달라질 때만 쓴다. StyleX는 빌드 중 정적으로 해석하므로 일반 함수 호출이나 임의의 외부 객체를 `stylex.create` 안에 넣지 않는다.
 - 기존 `className`, `style`과 같은 요소에 적용할 때는 JSX spread가 그 prop을 덮어쓰지 않도록 합성한다. 공용 Component의 내부 DOM 선택자는 쓰지 않는다. 공용 Component에 넘긴 StyleX와 공용 class가 같은 속성을 덮으면 우선순위가 CSS 순서에 달려 있으므로, 배치는 감싼 요소에 주는 편이 안전하다.

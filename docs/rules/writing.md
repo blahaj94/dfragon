@@ -7,7 +7,7 @@ last-reviewed: 2026-10-09
 
 # 표기와 문체
 
-제품 이름의 표기와 사용자에게 보이는 문구의 문체를 정한다. 제품 저장소와 디자인 인계 저장소 [dfragon-design](https://github.com/blahaj94/dfragon-design)이 같은 기준을 따른다. 기준을 바꿀 때는 이 문서와 `scripts/check-writing.mjs`를 함께 고치고, 디자인 저장소의 검사도 같은 규칙으로 맞춘다.
+제품 이름의 표기와 사용자에게 보이는 문구의 문체를 정한다. 제품 저장소와 디자인 인계 저장소 [dfragon-design](https://github.com/dungeon-and-dragon/dfragon-design)이 같은 기준을 따른다. 기준을 바꿀 때는 이 문서와 `scripts/check-writing.mjs`를 함께 고치고, 디자인 저장소의 검사도 같은 규칙으로 맞춘다.
 
 ## 제품 이름
 
