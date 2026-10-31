@@ -44,18 +44,18 @@ function bufferCard(value: number): CharacterCard {
 }
 
 const members: readonly [string, ServerId, number, CharacterCard, string][] = [
-  [portrait01, 'siroco', 125850, dealerCard(614806), '웨펀마스터'],
-  [portrait02, 'cain', 98420, dealerCard(581240), '넨마스터'],
-  [portrait03, 'siroco', 110230, dealerCard(723410), '스트라이커'],
-  [portrait04, 'siroco', 102775, bufferCard(144800), '크루세이더'],
-  [portrait05, 'siroco', 131040, dealerCard(902310), '트러블슈터'],
-  [portrait06, 'siroco', 96880, dealerCard(655900), '비질란테'],
-  [portrait07, 'siroco', 118500, dealerCard(791760), '엘레멘탈마스터'],
-  [portrait08, 'siroco', 104210, bufferCard(134200), '크루세이더'],
-  [portrait09, 'siroco', 122330, dealerCard(948480), '스트리트파이터'],
-  [portrait10, 'siroco', 99760, dealerCard(537150), '소울브링어'],
-  [portrait11, 'siroco', 127910, dealerCard(689120), '버서커'],
-  [portrait12, 'siroco', 108640, bufferCard(147900), '뮤즈']
+  [portrait01, 'siroco', 130000, dealerCard(614806), '웨펀마스터'],
+  [portrait02, 'cain', 130000, dealerCard(581240), '넨마스터'],
+  [portrait03, 'siroco', 125000, dealerCard(523410), '스트라이커'],
+  [portrait04, 'siroco', 125000, bufferCard(135800), '크루세이더'],
+  [portrait05, 'siroco', 125000, dealerCard(702310), '트러블슈터'],
+  [portrait06, 'siroco', 125000, dealerCard(755900), '비질란테'],
+  [portrait07, 'siroco', 125000, dealerCard(591760), '엘레멘탈마스터'],
+  [portrait08, 'siroco', 125000, bufferCard(134200), '크루세이더'],
+  [portrait09, 'siroco', 125000, dealerCard(548480), '스트리트파이터'],
+  [portrait10, 'siroco', 125000, dealerCard(437150), '소울브링어'],
+  [portrait11, 'siroco', 125000, dealerCard(689120), '버서커'],
+  [portrait12, 'siroco', 125000, bufferCard(130900), '뮤즈']
 ]
 
 export const raidCharacters: readonly CardCharacter[] = members.map(
