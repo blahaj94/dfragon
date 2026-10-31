@@ -33,7 +33,8 @@ it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은
     fame: 0,
     guild: null,
     card: null,
-    image: summary.imageUrl
+    image: summary.imageUrl,
+    face: null
   })
   expect(toCharacterCard({ ...summary, fame: null, level: null, jobName: null })).toMatchObject({
     fame: null,
@@ -50,6 +51,15 @@ it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은
   ).toMatchObject({ guild: '길드', card: dealerCard })
   expect(toCharacterCard(undefined)).toBeUndefined()
   expect(toCharacterCard({ ...summary, serverId: 'unknown' })).toBeUndefined()
+})
+
+it('기본 직업이 얼굴 위치 표에 있으면 이미지 속 그 직업의 얼굴 칸을 카드에 넘긴다', () => {
+  expect(toCharacterCard({ ...summary, jobName: '마법사(여)' })?.face).toEqual({
+    x: 85,
+    y: 108,
+    width: 26,
+    height: 26
+  })
 })
 
 it('호출 제한 실패는 정제된 오류를, 오류가 없는 실패는 결과 없음을 다음 안내와 함께 표시한다', () => {

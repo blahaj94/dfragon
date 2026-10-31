@@ -299,8 +299,8 @@ it('공대 스냅샷을 켠 뒤 자리를 옮기면 바뀐 카드에 순번 칩�
   expect(seats().flatMap(chipsOf)).toEqual([])
 
   await moveRight(seats()[0])
-  expect(chipsOf(seats()[0])).toEqual(['스냅샷 순번 2'])
-  expect(chipsOf(seats()[1])).toEqual(['스냅샷 순번 1'])
+  expect(chipsOf(seats()[0])).toEqual(['스냅샷 순번 R2'])
+  expect(chipsOf(seats()[1])).toEqual(['스냅샷 순번 R1'])
 
   await lookup(seats()[2], '낯선사람')
   await vi.waitFor(() => expect(raid.lookups()).toHaveLength(3))
@@ -311,8 +311,8 @@ it('공대 스냅샷을 켠 뒤 자리를 옮기면 바뀐 카드에 순번 칩�
       ...raid.current().slots.slice(3)
     ])
   )
-  expect(chipsOf(seats()[0])).toEqual(['스냅샷 순번 2'])
-  expect(chipsOf(seats()[1])).toEqual(['스냅샷 순번 1'])
+  expect(chipsOf(seats()[0])).toEqual(['스냅샷 순번 R2'])
+  expect(chipsOf(seats()[1])).toEqual(['스냅샷 순번 R1'])
   expect(chipsOf(seats()[2])).toEqual(['스냅샷에 없는 모험단'])
 
   await act(async () => snapshotButton().click())
