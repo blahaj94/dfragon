@@ -101,11 +101,60 @@ it('첫 자동 캡처 전에 공대로 바꿔 캡처하면 자동 캡처가 공�
   expect(cardNames().every((name) => name.length > 0)).toBe(true)
 })
 
-it('복사를 누르면 복사 완료 상태를 잠시 보이고 되돌린다', async () => {
-  const announcer = (): string =>
-    container.querySelector('[data-clipboard-announcer]')?.textContent ?? ''
+function clipboardAnnouncement(): string | null | undefined {
+  return container.querySelector('[data-clipboard-announcer]')?.textContent
+}
+
+it('복사를 누르면 채운 파티 카드를 클립보드에 쓰고 복사 완료 상태를 잠시 보인다', async () => {
+  const writeText = vi.fn(async () => {})
+  vi.stubGlobal('navigator', { clipboard: { writeText } })
+  await advance(2400)
+
   await click(button('클립보드로 복사'))
-  expect(announcer()).toBe('클립보드로 복사했습니다.')
+
+  expect(writeText).toHaveBeenCalledWith(
+    '[캐릭터1, 시로코, 모험단1], [캐릭터2, 카인, 모험단2], [캐릭터3, 시로코, 모험단3], [캐릭터4, 시로코, 모험단4]'
+  )
+  expect(clipboardAnnouncement()).toBe('클립보드로 복사했습니다.')
   await advance(1500)
-  expect(announcer()).toBe('')
+  expect(clipboardAnnouncement()).toBe('')
+})
+
+it('브라우저가 클립보드 쓰기를 거절하면 복사 실패를 보인다', async () => {
+  vi.stubGlobal('navigator', {
+    clipboard: { writeText: vi.fn(async () => Promise.reject(new Error('denied'))) }
+  })
+
+  await click(button('클립보드로 복사'))
+
+  expect(clipboardAnnouncement()).toBe('클립보드에 복사하지 못했습니다.')
+})
+
+it('보안 컨텍스트가 아니라 navigator.clipboard가 없으면 복사 실패를 보인다', async () => {
+  vi.stubGlobal('navigator', {})
+
+  await click(button('클립보드로 복사'))
+
+  expect(clipboardAnnouncement()).toBe('클립보드에 복사하지 못했습니다.')
+})
+
+it('공대에서 복사하면 파티마다 한 줄씩 쓴다', async () => {
+  const writeText = vi.fn(async () => {})
+  vi.stubGlobal('navigator', { clipboard: { writeText } })
+  await click(button(/검색/))
+  await click(
+    container.ownerDocument.querySelector('[role="menuitemradio"]:not([aria-checked="true"])')!
+  )
+  await click(button('공대 캡처, 단축키 Alt R'))
+  await advance(150 * 12)
+
+  await click(button('클립보드로 복사'))
+
+  expect(writeText).toHaveBeenCalledWith(
+    [
+      '[캐릭터1, 시로코, 모험단1], [캐릭터2, 카인, 모험단2], [캐릭터3, 시로코, 모험단3], [캐릭터4, 시로코, 모험단4]',
+      '[캐릭터5, 시로코, 모험단5], [캐릭터6, 시로코, 모험단6], [캐릭터7, 시로코, 모험단7], [캐릭터8, 시로코, 모험단8]',
+      '[캐릭터9, 시로코, 모험단9], [캐릭터10, 시로코, 모험단10], [캐릭터11, 시로코, 모험단11], [캐릭터12, 시로코, 모험단12]'
+    ].join(',\n')
+  )
 })

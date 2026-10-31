@@ -4,7 +4,14 @@ export type ClipboardCopyStatus = 'idle' | 'copied' | 'failed'
 
 const COPIED_FEEDBACK_MS = 1500
 
-export function useClipboardCopy(text: string): {
+function writeDesktopClipboard(text: string): Promise<void> {
+  return window.desktopClipboard.writeText(text)
+}
+
+export function useClipboardCopy(
+  text: string,
+  writeText: (text: string) => Promise<void> = writeDesktopClipboard
+): {
   status: ClipboardCopyStatus
   copy: () => void
 } {
@@ -30,7 +37,7 @@ export function useClipboardCopy(text: string): {
         setResult({ status })
       }
     }
-    window.desktopClipboard.writeText(text).then(
+    writeText(text).then(
       () => settle('copied'),
       () => settle('failed')
     )

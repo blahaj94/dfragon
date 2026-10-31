@@ -1,6 +1,6 @@
 import { StatusChip } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { BoardHeader } from '../components/BoardHeader'
 import { BoardHeaderSlot } from '../components/BoardHeaderSlot'
 import { BoardTitle } from '../components/BoardTitle'
@@ -11,16 +11,18 @@ import { LastCaptureTime } from '../components/LastCaptureTime'
 import { MainNav } from '../components/MainNav'
 import { SnapshotToggle } from '../components/SnapshotToggle'
 import { TopBar } from '../components/TopBar'
-import { PARTY_SEAT_LAYOUT, RAID_SEAT_LAYOUT } from '../constants/cards'
+import { PARTY_SEAT_LAYOUT, RAID_PARTY_SIZE, RAID_SEAT_LAYOUT } from '../constants/cards'
 import { MAIN_WINDOW_HEIGHTS } from '../constants/main-window-heights'
 import { MAIN_WINDOW_SIZE } from '../../../preload/common/window-chrome'
 import { useAdventureSnapshot } from '../hooks/useAdventureSnapshot'
 import { useBoardHeaderPortal } from '../hooks/useBoardHeaderPortal'
+import { useClipboardCopy } from '../hooks/useClipboardCopy'
 import { useSearchModeStore } from '../hooks/useSearchModeStore'
 import { type SeatArrangement, useSeatOrder } from '../hooks/useSeatOrder'
 import { getCaptureControlState } from '../lib/capture-presentation'
 import { type CandidatePick, nextCandidatePick, toCandidatePicker } from '../lib/candidate-picker'
 import { type SeatLayout, seatValuesToSlotOrder } from '../lib/seats'
+import { characterSeatText, seatRowsText } from '../lib/slot-clipboard'
 import { filledSlotCount, type SlotCard } from '../lib/slot-cards'
 import { PartyPage } from '../pages/party/PartyPage'
 import { RaidPage } from '../pages/raid/RaidPage'
@@ -37,10 +39,28 @@ import {
 import { useCaptureScript } from './useCaptureScript'
 import { styles } from './WindowMockup.style'
 
-const COPIED_FEEDBACK_MS = 1500
 const DEFAULT_CANDIDATE_SERVER = 'siroco'
 
 function lookupSlot(): void {}
+
+// 웹사이트에는 Desktop preload가 없어 브라우저 Clipboard API로 쓴다. 보안 컨텍스트가 아니면
+// navigator.clipboard가 없으므로, async로 감싸 그 TypeError도 복사 실패로 보이게 한다.
+async function writeBrowserClipboard(text: string): Promise<void> {
+  await navigator.clipboard.writeText(text)
+}
+
+function mockupClipboardText(
+  characters: readonly CardCharacter[],
+  filled: number,
+  seatOrder: readonly number[],
+  rowSize: number
+): string {
+  const seats = seatOrder.map((index) =>
+    index < filled ? characterSeatText(characters[index], characters[index].adventure) : '[]'
+  )
+
+  return seatRowsText(seats, rowSize)
+}
 
 export function WindowMockup(): React.JSX.Element {
   const { renderBoardHeader } = useBoardHeaderPortal()
@@ -51,19 +71,9 @@ export function WindowMockup(): React.JSX.Element {
   const [candidatePick, setCandidatePick] = useState<CandidatePick | null>(null)
   const [candidateServer, setCandidateServer] = useState(DEFAULT_CANDIDATE_SERVER)
   const [snapshotRound, setSnapshotRound] = useState<number | null>(null)
-  const [copyCount, setCopyCount] = useState(0)
   const party = boards.party
   const raid = boards.raid
   const recognizing = phase === 'recognizing'
-
-  useEffect(() => {
-    if (copyCount === 0) {
-      return
-    }
-    const timer = window.setTimeout(() => setCopyCount(0), COPIED_FEEDBACK_MS)
-
-    return () => window.clearTimeout(timer)
-  }, [copyCount])
 
   const slot = candidateSlot(party.round, candidateServer)
   const picker = toCandidatePicker(slot, candidatePick)
@@ -99,6 +109,11 @@ export function WindowMockup(): React.JSX.Element {
 
     return { state: 'success', character, snapshotMark: partyMarks[index], picker: cardPicker }
   })
+  const clipboardText =
+    searchMode === 'party'
+      ? mockupClipboardText(partyShown, party.filled, partySeats.seatOrder, partyShown.length)
+      : mockupClipboardText(raidCharacters, raid.filled, raidSeats.seatOrder, RAID_PARTY_SIZE)
+  const clipboard = useClipboardCopy(clipboardText, writeBrowserClipboard)
   const raidMarks = seatValuesToSlotOrder(raidSeats.seatOrder, raidSnapshot.marks)
   const raidCards: SlotCard[] = raidCharacters.map((character, index) => {
     if (index >= raid.filled) {
@@ -133,7 +148,6 @@ export function WindowMockup(): React.JSX.Element {
     partySnapshot.clear()
     setSnapshotRound(null)
   }
-  const handleCopy = (): void => setCopyCount((count) => count + 1)
   const toSeats = (
     layout: SeatLayout,
     { seatOrder, swapSeats }: ReturnType<typeof useSeatOrder>
@@ -156,7 +170,7 @@ export function WindowMockup(): React.JSX.Element {
           onTake={snapshot.take}
           onClear={snapshot.clear}
         />
-        <ClipboardCopyButton status={copyCount > 0 ? 'copied' : 'idle'} onCopy={handleCopy} />
+        <ClipboardCopyButton status={clipboard.status} onCopy={clipboard.copy} />
         <CaptureButton target={label} disabled={false} onClick={handleCapture} />
       </>
     )
