@@ -6,7 +6,7 @@
 
 ## 루트 도구 회귀 검증
 
-`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비, 날짜, build-info, 이미지 선택, 앱 생성, 아이콘 생성, lint 플러그인, 포맷 정책, 표기와 문체 검사, 문서 링크와 경로 검사, 토큰 없는 의존성 설치, `verify` 실행기와 workflow 연결의 회귀 검사가 포함됩니다. 어느 테스트든 실패하면 검사가 실패합니다. Root `pnpm test`는 [`pnpm verify`](#verify)를 실행합니다.
+`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비, 날짜, build-info, 이미지 선택, 앱 생성, 아이콘 생성, lint 플러그인, 포맷 정책, 표기와 문체 검사, 문서 링크와 경로 검사, 토큰 없는 의존성 설치, 의존성 snapshot 변환, `verify` 실행기와 workflow 연결의 회귀 검사가 포함됩니다. 어느 테스트든 실패하면 검사가 실패합니다. Root `pnpm test`는 [`pnpm verify`](#verify)를 실행합니다.
 
 앱 생성과 아이콘 생성 검사는 저장소 코드를 격리된 임시 디렉터리에 복사해 실제 CLI의 출력 파일, 입력 거절, 실패 코드, 정리를 확인합니다. 아이콘 변환기는 합성 파일을 만드는 fake이므로 실제 Electron 이미지 변환 품질이나 제품 아이콘은 검증하지 않습니다.
 
@@ -116,9 +116,19 @@ PR 제목, PR 작성자, 실행 event로 빌드할지 정해 `GITHUB_OUTPUT`에 
 
 빌드는 비용이 큰 job이라 PR 제목이 `feat(build): ...`, `fix(build)!: ...`처럼 Conventional Commits scope가 `(build)`이거나, Dependabot PR이거나, Actions 페이지에서 수동 실행한 경우에만 실행합니다. main push는 그 commit을 merge한 PR의 제목으로 같은 규칙을 적용하며, Windows Test Build와 Product Images의 이미지 빌드, 발행이 이 결과를 따릅니다. 제목은 PR을 열거나 새 commit을 push할 때 읽으므로, 열린 PR의 제목에 `(build)`를 붙였으면 새 commit을 push하거나 Actions 페이지에서 Windows Test Build를 수동 실행합니다.
 
-배포 workflow는 넷입니다. [`product-images.yml`](../.github/workflows/product-images.yml)은 main push에서 API 이미지를 빌드해 GHCR에 발행합니다([서버 이미지](../apps/api/README.md#서버-이미지)). [`desktop-test-build.yml`](../.github/workflows/desktop-test-build.yml)은 Desktop 관련 PR에서 test 채널 포터블 exe를 artifact로 만듭니다. [`desktop-release.yml`](../.github/workflows/desktop-release.yml)은 Release 게시나 수동 실행에서 배포 포터블 exe를 Release에 첨부합니다([포터블 exe와 GitHub Releases](../apps/desktop/README.md#포터블-exe와-github-releases)). [`web-pages.yml`](../.github/workflows/web-pages.yml)은 main push와 수동 실행에서 `apps/web`을 빌드해 GitHub Pages에 올립니다. 빌드가 가볍고 사이트가 항상 main과 같아야 하므로 build scope를 따르지 않습니다([Web 배포](../apps/web/README.md#배포)). 저장소 Actions 설정은 외부 action을 40자리 commit SHA로 고정하도록 요구하므로 tag로 참조한 action은 실행되지 않습니다.
+배포 workflow는 넷입니다. [`product-images.yml`](../.github/workflows/product-images.yml)은 main push에서 API 이미지를 빌드해 GHCR에 발행합니다([서버 이미지](../apps/api/README.md#서버-이미지)). [`desktop-test-build.yml`](../.github/workflows/desktop-test-build.yml)은 Desktop 관련 PR에서 test 채널 포터블 exe를 artifact로 만듭니다. [`desktop-release.yml`](../.github/workflows/desktop-release.yml)은 Release 게시나 수동 실행에서 배포 포터블 exe를 Release에 첨부합니다([포터블 exe와 GitHub Releases](../apps/desktop/README.md#포터블-exe와-github-releases)). [`web-pages.yml`](../.github/workflows/web-pages.yml)은 main push와 수동 실행에서 `apps/web`을 빌드해 GitHub Pages에 올립니다. 빌드가 가볍고 사이트가 항상 main과 같아야 하므로 build scope를 따르지 않습니다([Web 배포](../apps/web/README.md#배포)). 의존성 snapshot 제출은 [`dependency-snapshot`](#dependency-snapshot)에 있습니다. 저장소 Actions 설정은 외부 action을 40자리 commit SHA로 고정하도록 요구하므로 tag로 참조한 action은 실행되지 않습니다.
 
 검증: `node --test scripts/test/build-scope.test.mjs`, `node --check scripts/build-scope.mjs`.
+
+## `dependency-snapshot`
+
+pnpm 11 이상의 lockfile은 pnpm 실행 파일을 담은 첫 YAML 문서와 workspace 의존성을 담은 마지막 문서로 나뉩니다. 현재 GitHub dependency graph는 이 lockfile에서 첫 문서의 package만 인식해 workspace의 전이 의존성이 Dependabot alerts에서 빠집니다. [`dependency-snapshot.yml`](../.github/workflows/dependency-snapshot.yml)은 main push에서 의존성 파일이 바뀌었을 때와 main에서 수동 실행했을 때 `pnpm sbom --sbom-format cyclonedx --lockfile-only` 결과를 이 도구로 Dependency submission snapshot으로 바꿔 제출합니다. 저장소 검사가 아니라 Dependabot alerts의 기준을 갱신하는 workflow이며, PR의 의존성 검토는 하지 않습니다.
+
+인자는 `<cyclonedx-sbom-file> <snapshot-file>`이고 `SNAPSHOT_SHA`, `SNAPSHOT_REF`(`refs/heads/<branch>`), `GITHUB_WORKFLOW`, `GITHUB_JOB`, `GITHUB_RUN_ID`를 읽습니다. Workspace가 직접 의존하는 package는 `direct`, 나머지는 `indirect`로 기록합니다. pnpm이 개발 의존성으로만 도달한다고 표시한(`excluded`) package는 `development`, 나머지는 `runtime`입니다. peer 조합처럼 bom-ref만 다르고 purl이 같은 package는 하나로 합치며, 한 변형이라도 `direct`, `runtime`이면 그 값을 쓰고 하위 의존성은 중복 없이 모읍니다. 그래프가 불완전하거나 commit, branch 값이 올바르지 않으면 파일을 쓰지 않고 실패합니다.
+
+GitHub는 workflow 이름과 job id로 만든 correlator마다 마지막 snapshot만 씁니다. 예전 Dependency Review workflow가 제출한 snapshot을 대체하도록 workflow 이름 `Dependency Review`와 job id `submit`을 유지합니다.
+
+검증: `node --test scripts/test/dependency-snapshot.test.mjs`, `node --check scripts/dependency-snapshot.mjs`.
 
 ## `server-build-info`
 
