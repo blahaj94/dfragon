@@ -79,7 +79,7 @@ gh run download <실행 ID> --repo dungeon-and-dragon/dfragon -n windows-x64-por
 
 패키징 성공과 실제 Windows에서의 앱 실행, API 동작 확인은 구분합니다.
 
-설치본 main에는 공개 API origin과 `build/channels.json`의 distribution 항목에 있는 identity만 포함합니다. 실행 PC의 개발용 `DFRAGON_API_ORIGIN` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다. `onnxruntime-web`은 renderer가 번들하고 WASM은 `out`에 복사한 OCR 자산에서 읽으므로 설치된 패키지는 패키징에서 제외합니다.
+설치본 main에는 공개 API origin과 `build/channels.json`의 distribution 항목에 있는 identity만 포함합니다. 실행 PC의 개발용 `DFRAGON_API_ORIGIN` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다. `onnxruntime-web`은 renderer가 번들하고 WASM은 `out`에 복사한 OCR 자산에서 읽으므로 설치된 패키지와 그 의존성은 패키징에서 제외합니다. 의존성의 source map과 TypeScript 소스도 실행에 쓰이지 않아 제외합니다.
 
 | 채널           | 용도                                          | `build/channels.json` 항목 | 만드는 경로                                   |
 | -------------- | --------------------------------------------- | -------------------------- | --------------------------------------------- |
