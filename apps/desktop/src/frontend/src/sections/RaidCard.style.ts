@@ -51,9 +51,9 @@ export const styles = stylex.create({
     transitionDuration: motion.durState,
     transitionTimingFunction: motion.ease
   },
-  numberSelected: { backgroundColor: colors.cardSignal, color: colors.cardOnSignal },
-  numberTop: { backgroundColor: colors.tierTop, color: colors.cardOnSignal },
-  numberRanker: { backgroundColor: colors.tierRanker, color: colors.cardOnSignal },
+  numberRed: { backgroundColor: colors.raidPartyRed, color: colors.cardFg },
+  numberYellow: { backgroundColor: colors.raidPartyYellow, color: colors.cardOnSignal },
+  numberGreen: { backgroundColor: colors.raidPartyGreen, color: colors.cardFg },
   affiliation: {
     display: 'flex',
     alignItems: 'center',
