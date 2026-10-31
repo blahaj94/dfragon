@@ -20,8 +20,7 @@ export const DIAGNOSTIC_MESSAGES = {
   RENDERER_PROCESS_GONE: '화면 프로세스가 종료되었습니다.',
   MAIN_PROCESS_FAILED: '앱의 메인 프로세스에서 오류가 발생했습니다.',
   UPDATE_CHECK_FAILED: '새 버전을 확인하지 못했습니다.',
-  UPDATE_RELEASE_OPEN_FAILED: 'Release 페이지를 열지 못했습니다.',
-  USAGE_STATS_FAILED: '사용 통계를 보내지 못했습니다.'
+  UPDATE_RELEASE_OPEN_FAILED: 'Release 페이지를 열지 못했습니다.'
 } as const
 
 export type DiagnosticCode = keyof typeof DIAGNOSTIC_MESSAGES

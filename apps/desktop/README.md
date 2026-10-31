@@ -27,8 +27,6 @@
 
 배포 앱은 시작할 때와 이후 6시간마다 GitHub Release 목록을 확인하고, 현재보다 높은 버전이 있으면 상단 바의 게임 연결 상태 칩 왼쪽에 **새 버전 v1.2.0**처럼 칩을 보이고, 칩을 누르면 **Release 열기**와 **닫기** 메뉴가 뜹니다. 정식 버전은 정식, beta는 beta와 정식, alpha는 alpha, beta, 정식 가운데 가장 높은 버전 하나를 알립니다. **닫기**를 누르면 앱을 다시 시작할 때까지 같은 버전을 다시 알리지 않습니다. 확인할 때 github.com에 IP와 User-Agent가 전달되며 언어 설정, cookie 같은 그 밖의 정보는 보내지 않습니다. 확인에 실패하면 화면에 표시하지 않고 진단 기록에 `UPDATE_CHECK_FAILED`를 남깁니다. test, development 채널과 소스 실행은 확인하지 않습니다. 기준은 [ADR 0001의 결정](../../docs/adr/0001-update-notice-without-auto-install.md#결정)에 있습니다.
 
-배포 앱은 사용량을 세기 위해 앱 실행, 캡처 회차, 직접 검색을 할 때마다 Google Analytics 4(Measurement Protocol)에 이벤트를 보냅니다. 함께 보내는 값은 설치별 무작위 ID(profile 폴더의 `usage-stats.json`), 실행마다 바뀌는 세션 ID, 앱 버전, 파티와 공대 구분이며 닉네임, 서버, 캐릭터, 이미지, OCR 결과는 보내지 않습니다. 요청에는 IP와 User-Agent가 전달되고 언어 header는 고정값입니다. 화면 안내와 끄는 설정은 없으며, 전송에 실패하면 다시 보내지 않고 진단 기록에 `USAGE_STATS_FAILED`를 남깁니다. test, development 채널과 소스 실행은 보내지 않습니다. 기준은 [ADR 0002의 결정](../../docs/adr/0002-desktop-usage-stats-ga4.md#결정)에 있습니다.
-
 자동 업데이트는 제공하지 않습니다. 이후 버전은 앱을 종료하고 새 포터블 exe를 내려받아 실행합니다. 기본 빌드는 코드 서명이 구성되지 않았으며 Windows에서 확인되지 않은 게시자로 표시될 수 있습니다. 배포자가 전달한 파일인지 확인해야 합니다.
 
 ## Windows 배포 빌드
@@ -61,7 +59,6 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 [Windows Portable workflow](../../.github/workflows/desktop-release.yml)는 Release를 게시하면 해당 태그의 소스로 빌드하여 포터블 exe와 SHA-256 checksum 파일을 Release의 Assets에 첨부하고, exe의 build provenance attestation을 기록합니다.
 
 1. 저장소 **Settings → Environments → production**의 Environment variables에 `DFRAGON_DISTRIBUTION_API_ORIGIN`을 실제 배포 API의 HTTPS origin으로 설정합니다. production 환경은 main branch와 `v*` tag에서 시작한 실행만 쓸 수 있습니다. 공개 연결 주소만 입력하며 서버 credential은 넣지 않습니다.
-   사용 통계를 보내려면 GA4 웹 데이터 스트림의 측정 ID(`G-`로 시작)를 같은 환경의 variable `DFRAGON_GA_MEASUREMENT_ID`에, 그 스트림의 Measurement Protocol API secret을 환경 secret `DFRAGON_GA_API_SECRET`에 둡니다. 두 값은 빌드 단계에만 전달되어 exe에 들어가므로 설치본에서 꺼낼 수 있습니다. 둘 다 비우면 사용 통계 없이 빌드하며 workflow에 경고를 남기고, 하나만 있거나 형식이 틀리면 값을 출력하지 않고 빌드를 멈춥니다. 앱 버전으로 나눠 보려면 GA의 맞춤 정의에 사용자 범위 `app_version`을, 파티와 공대로 나누려면 이벤트 범위 `screen`을 등록합니다.
 2. 배포할 변경을 merge하고 해당 commit에 `v<버전>` 태그로 Release를 게시합니다. 예를 들어 첫 릴리스는 `v0.0.1`, 사전 릴리스는 `v0.0.1-beta.1`처럼 지정합니다. 태그의 버전을 실행 파일의 앱 metadata와 파일명에 사용하므로 `apps/desktop/package.json`의 기본 버전과 같을 필요는 없습니다. 태그가 가리키는 commit은 main에 포함되어야 하며, 아니면 빌드 전에 실패합니다. Workflow는 테스트 통과를 확인하지 않으므로 릴리스할 commit은 로컬에서 `pnpm verify`로 확인합니다. `v*` tag는 저장소 관리자만 만들 수 있고, 만든 뒤에는 저장소 ruleset `protected-release-tags`가 tag를 옮기거나 지우는 것을 막습니다. 잘못 만든 tag는 **Settings → Rules → Rulesets**에서 `protected-release-tags`를 잠시 비활성화하고 지운 뒤 다시 활성화합니다.
 3. workflow가 성공하면 **Releases → Assets → `DFragon-<버전>-x64-portable.exe`**를 내려받습니다. 같은 이름 뒤에 `.sha256`이 붙은 파일에 exe의 SHA-256 값이 있습니다. `Source code` 압축 파일은 실행 파일이 아닙니다.
 

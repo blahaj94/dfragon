@@ -46,14 +46,6 @@
       "api": {
         "variable": "DFRAGON_DISTRIBUTION_API_ORIGIN"
       }
-    },
-    "analytics": {
-      "measurementId": {
-        "variable": "DFRAGON_GA_MEASUREMENT_ID"
-      },
-      "apiSecret": {
-        "variable": "DFRAGON_GA_API_SECRET"
-      }
     }
   }
 }

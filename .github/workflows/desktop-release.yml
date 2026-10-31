@@ -93,17 +93,7 @@ jobs:
             submodule update --init --checkout --depth 1 packages/models/score-engine
       - name: Prepare score engine
         run: pnpm --filter @dfragon/desktop prepare:score-engine --require
-      # Pass the GA values only to this step so install scripts never see the API secret.
-      - name: Build distribution bundle
-        shell: bash
-        env:
-          DFRAGON_GA_MEASUREMENT_ID: ${{ vars.DFRAGON_GA_MEASUREMENT_ID }}
-          DFRAGON_GA_API_SECRET: ${{ secrets.DFRAGON_GA_API_SECRET }}
-        run: |
-          if [[ -z "$DFRAGON_GA_MEASUREMENT_ID" && -z "$DFRAGON_GA_API_SECRET" ]]; then
-            echo "::warning::DFRAGON_GA_MEASUREMENT_ID and DFRAGON_GA_API_SECRET are not set. Building without usage stats."
-          fi
-          pnpm --filter @dfragon/desktop build:distribution
+      - run: pnpm --filter @dfragon/desktop build:distribution
       - name: Package portable executable with release version
         shell: bash
         env:

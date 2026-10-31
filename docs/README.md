@@ -20,7 +20,7 @@ last-reviewed: 2026-10-30
 | API runtime, 검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md), [오늘의 등급](rules/today-grade.md) |
 | Desktop MVP 카드, 입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md) |
 | Desktop 새 버전 알림, 자동 설치를 미룬 결정 | [ADR 0001 새 버전 알림만 두고 자동 설치는 미룬다](adr/0001-update-notice-without-auto-install.md) |
-| Desktop 사용 통계(GA4)로 보내는 값과 결정 | [ADR 0002 Desktop 사용량을 GA4로 센다](adr/0002-desktop-usage-stats-ga4.md) |
+| Desktop 사용 통계를 지운 결정 | [ADR 0003 Desktop 사용 통계를 보내지 않는다](adr/0003-remove-desktop-usage-stats.md), 이전 결정 [ADR 0002](adr/0002-desktop-usage-stats-ga4.md) |
 | 앱 공용 UI, 디자인 토큰, Base UI, StyleX, 시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [공통 StyleX 설정](../packages/ui/README.md#공통-stylex-설정) |
 | React 화면, hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [Desktop 구조](architecture/desktop-code-organization.md) |
 | 제품 이름 표기, 사용자 문구 문체, 표기 검사 | [표기와 문체](rules/writing.md) |

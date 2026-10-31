@@ -6,12 +6,7 @@ import { readAppIcon, registerTimeOfDayIcon } from './app-icon/register'
 import { validateDevRendererUrl } from './renderer-document'
 import { registerCaptureIpc, registerCaptureWindow } from './capture/ipc-handler'
 import { registerCapturePermissions } from './capture/permission-policy'
-import {
-  readAppAnalytics,
-  readAppApiOrigin,
-  readAppChannelName,
-  readAppIdentity
-} from './lib/app-channel'
+import { readAppApiOrigin, readAppChannelName, readAppIdentity } from './lib/app-channel'
 import { fetchApi } from './api-fetch'
 import { openExternalLink } from './external-link'
 import { readTodayGrade } from './today-grade/http'
@@ -29,9 +24,6 @@ import { registerClipboardWindow } from './clipboard/ipc-handler'
 import { MAIN_WINDOW_SIZE, WINDOW_CHROME_COLORS } from '../preload/common/window-chrome'
 import { getTitleBarOverlay } from './window-chrome/title-bar-overlay'
 import { registerMainDiagnosticErrors, reportDiagnostic } from './diagnostics/log'
-import { readOrCreateClientId } from './usage-stats/client-id'
-import { sendMeasurement } from './usage-stats/http'
-import { createUsageStats } from './usage-stats/usage-stats'
 
 // OCR worker가 WASM을 여러 thread로 돌리려면 SharedArrayBuffer가 필요하다. Renderer는 file://로 열려 cross-origin
 // 격리 헤더를 붙일 수 없어 Chromium 기능 플래그로 켠다. Renderer는 로컬 파일과 Neople 이미지만 불러온다.
@@ -61,22 +53,6 @@ const updateNotices = createUpdateNotices({
   onFailure: reportDiagnostic
 })
 let mainWindow: BrowserWindow | null = null
-
-function createAppUsageStats(): ReturnType<typeof createUsageStats> | null {
-  const analytics = readAppAnalytics()
-  if (analytics == null) {
-    return null
-  }
-  const startedAt = Date.now()
-
-  return createUsageStats({
-    clientId: readOrCreateClientId(join(app.getPath('userData'), 'usage-stats.json'), startedAt),
-    appVersion: app.getVersion(),
-    startedAt,
-    send: (body) => sendMeasurement(fetchApi, analytics, body),
-    onFailure: reportDiagnostic
-  })
-}
 
 function createWindow(): void {
   const devUrl = process.env['ELECTRON_RENDERER_URL']
@@ -221,9 +197,6 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  const usageStats = createAppUsageStats()
-  usageStats?.record({ name: 'app_start' })
-
   const apiOrigin = readAppApiOrigin()
   // 점수 worker는 캡처를 시작하거나 점수를 처음 계산할 때 띄운다.
   const scoreEngine = createScoreEngine({
@@ -241,7 +214,7 @@ app.whenReady().then(() => {
     apiOrigin != null
       ? { apiOrigin, portraitColorPolicy: INITIAL_PORTRAIT_COLOR_POLICY, scoreEngine }
       : undefined
-  const disposeCapture = registerCaptureIpc(searchConfiguration, usageStats?.record)
+  const disposeCapture = registerCaptureIpc(searchConfiguration)
   app.on('quit', () => {
     disposeCapture()
     scoreEngine.dispose()
