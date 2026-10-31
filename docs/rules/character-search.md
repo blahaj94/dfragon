@@ -38,13 +38,13 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 
 요청은 OCR 우선순위에서 선택한 이름 하나만 받는다. 필수 query는 `characterName`이고 decode 후 Unicode code point 1~12개를 허용한다. `match`에 `full`의 최소 2자 제한을 적용하지 않으며, 이 길이 상한과 측정 단위는 우리 입력 정책이다. 앞뒤 공백, 중복 key, 배열 key, 미정의 key, 잘못된 URL encoding과 HEAD는 `400 INVALID_SEARCH_QUERY`다. 이름을 trim, 대소문자 변환, Unicode 정규화하거나 OCR 보정하지 않는다. `serverId`, `wordType`, `limit`, `zoom`을 요청자가 지정할 수 없다.
 
-서버는 Neople 검색을 `serverId=all`, `wordType=match`, `limit=200`으로 한 번 호출한다. 저장한 결과가 없는 이름에만 호출한다([후보 검색 캐시](#후보-검색-캐시)). 현재 8개 서버의 동명 캐릭터를 찾지만 응답을 임의로 8개에서 자르지 않는다. Neople의 `match`는 영문 대소문자를 구분하지 않아 `exe` 검색에 `EXE`도 함께 돌려준다. 2026-10-20 [#770](https://github.com/blahaj94/dfragon/issues/770) 결정으로 대소문자만 다른 이름은 공급자 오류로 보지 않고 후보에서 뺀다. 후보로 반환하는 이름은 요청 이름과 정확히 같다. 대소문자를 무시해도 다른 이름은 공급자 응답 오류다. 후보의 서버는 지원하는 실제 서버 ID이고 캐릭터 ID는 상세 API와 같은 1~256자의 ASCII 영숫자, `_`, `-`여야 한다. 다른 이름이나 사용할 수 없는 식별자가 섞이면 일부만 반환하지 않고 `502 NEOPLE_API_ERROR`로 실패한다. 이 추가 검증은 새 후보 API에 한정하며 기존 검색의 미등록 서버 보존 정책을 바꾸지 않는다.
+서버는 Neople 검색을 `serverId=all`, `wordType=match`, `limit=200`으로 한 번 호출한다. 저장한 결과가 없는 이름에만 호출한다([후보 검색 캐시](#후보-검색-캐시)). 현재 8개 서버의 동명 캐릭터를 찾지만 응답을 임의로 8개에서 자르지 않는다. Neople의 `match`는 영문 대소문자를 구분하지 않아 `exe` 검색에 `EXE`도 함께 돌려준다. 2026-10-20 [#770](https://github.com/dungeon-and-dragon/dfragon/issues/770) 결정으로 대소문자만 다른 이름은 공급자 오류로 보지 않고 후보에서 뺀다. 후보로 반환하는 이름은 요청 이름과 정확히 같다. 대소문자를 무시해도 다른 이름은 공급자 응답 오류다. 후보의 서버는 지원하는 실제 서버 ID이고 캐릭터 ID는 상세 API와 같은 1~256자의 ASCII 영숫자, `_`, `-`여야 한다. 다른 이름이나 사용할 수 없는 식별자가 섞이면 일부만 반환하지 않고 `502 NEOPLE_API_ERROR`로 실패한다. 이 추가 검증은 새 후보 API에 한정하며 기존 검색의 미등록 서버 보존 정책을 바꾸지 않는다.
 
 성공 응답은 `{"rows":[...]}`다. 각 행은 기존 `characterId`, `characterName`, `serverId`, `serverName`, `fame`에 `imageUrl`을 추가한다. `imageUrl`은 검증한 식별자로 구성한 `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=1`이다. 네오플의 전체 캐릭터 이미지 URL이며 얼굴만 잘린 이미지가 아니다. API는 이미지를 다운로드, 변환, 저장하거나 중계하지 않는다.
 
-각 행에는 `jobName`, `jobGrowName`도 붙인다. 2026-10-20 [#760](https://github.com/blahaj94/dfragon/issues/760) 결정으로, Desktop이 공대원 창의 직업명과 같은 후보만 남길 수 있게 Neople 검색 응답의 두 필드를 그대로 전달한다. 문자열이 아니거나 비어 있으면 null이다. 이를 채우려고 Neople을 더 호출하거나 후보마다 상세를 조회하지 않는다. 기존 `GET /characters`는 위 다섯 필드를 유지하며 직업명을 섞지 않는다.
+각 행에는 `jobName`, `jobGrowName`도 붙인다. 2026-10-20 [#760](https://github.com/dungeon-and-dragon/dfragon/issues/760) 결정으로, Desktop이 공대원 창의 직업명과 같은 후보만 남길 수 있게 Neople 검색 응답의 두 필드를 그대로 전달한다. 문자열이 아니거나 비어 있으면 null이다. 이를 채우려고 Neople을 더 호출하거나 후보마다 상세를 조회하지 않는다. 기존 `GET /characters`는 위 다섯 필드를 유지하며 직업명을 섞지 않는다.
 
-각 행에는 `adventureName`도 붙인다. 2026-10-20 [#756](https://github.com/blahaj94/dfragon/issues/756) 결정으로 Desktop의 후보 고르기 화면에 모험단명을 보이기 위해 추가했다. 저장한 상세에서 찾던 값이라 DB를 지운 뒤로는 항상 null이며([#796](https://github.com/blahaj94/dfragon/issues/796)), 이를 채우려고 Neople을 더 호출하지 않는다. 기존 Desktop이 읽는 필드라 남긴다.
+각 행에는 `adventureName`도 붙인다. 2026-10-20 [#756](https://github.com/dungeon-and-dragon/dfragon/issues/756) 결정으로 Desktop의 후보 고르기 화면에 모험단명을 보이기 위해 추가했다. 저장한 상세에서 찾던 값이라 DB를 지운 뒤로는 항상 null이며([#796](https://github.com/dungeon-and-dragon/dfragon/issues/796)), 이를 채우려고 Neople을 더 호출하지 않는다. 기존 Desktop이 읽는 필드라 남긴다.
 
 정렬 순서는 아래와 같다.
 
@@ -56,7 +56,7 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 
 ### 후보 검색 캐시
 
-2026-10-31 [#1069](https://github.com/blahaj94/dfragon/issues/1069) 결정으로 `GET /characters/candidates`의 검색 결과를 API 프로세스 메모리에 이름별로 24시간 캐시한다. 기존 `GET /characters`의 `full` 검색에는 캐시를 두지 않는다. 응답 형태, 정렬, 오류는 캐시가 없을 때와 같다.
+2026-10-31 [#1069](https://github.com/dungeon-and-dragon/dfragon/issues/1069) 결정으로 `GET /characters/candidates`의 검색 결과를 API 프로세스 메모리에 이름별로 24시간 캐시한다. 기존 `GET /characters`의 `full` 검색에는 캐시를 두지 않는다. 응답 형태, 정렬, 오류는 캐시가 없을 때와 같다.
 
 - 키는 요청 이름 그대로이며 대소문자를 구분한다. Neople의 `match`는 대소문자를 무시하지만 후보에는 요청 이름과 정확히 같은 이름만 남기므로, `exe`와 `EXE`는 후보가 다른 별개 검색이고 따로 저장한다.
 - 유효 기간은 저장한 시각부터 24시간이고, 크기 상한은 5,000개 이름이다. 가득 차면 가장 오래 쓰지 않은 이름부터 내보낸다. 후보 행 하나는 힙에서 약 0.4KB이다(2026-10-31 합성 행으로 측정). 서버가 8개이고 한 서버 안에서 이름이 겹치지 않으면 이름 하나는 8행 안팎인 약 3KB이므로 5,000개가 다 차도 약 15MB다. Neople `limit`인 200행이 모두 차는 이론상 최대는 이름당 약 70KB, 전체 약 350MB이며 현실적인 값이 아니다.
@@ -78,11 +78,11 @@ API와 Desktop의 역할은 다음 순서로 나눈다. 이 API 구현은 후보
 
 1. Desktop은 `decodeCtcCandidates`가 반환한 OCR 후보 순서를 유지하고 첫 번째 닉네임으로 후보 API를 호출한다.
 2. 후보가 둘 이상이고 얼굴 크롭이 있으면, Desktop은 명성 순 상위 후보 전원(최대 `maxCandidates`명)의 네오플 캐릭터 이미지를 받아 얼굴 크롭과 비교한다. 네오플 전체 이미지에서 비교 영역을 맞추는 처리는 Desktop이 담당한다. 한 후보의 이미지나 점수를 얻지 못해도 나머지 후보는 계속 비교한다. 후보가 한 명이거나 크롭이 없으면 이미지를 받지 않는다.
-3. 2026-10-20 [#756](https://github.com/blahaj94/dfragon/issues/756) 결정으로, 거리를 구한 후보가 있으면 거리가 가장 작은 후보를 선택한다. 거리가 같으면 명성 순서가 앞선 후보다. 거리를 하나도 구하지 못했으면 명성이 가장 높은 후보를 선택하고 얼굴로 고른 결과와 진단 코드로 구분한다. 2026-10-31 사용자 요청으로 파티 카드에는 이 선택의 안내 문구를 두지 않는다. 외형이 같은 후보는 얼굴로 가를 수 없고, 얼굴 선택이 실제 서버가 유일하다는 증명도 아니다.
+3. 2026-10-20 [#756](https://github.com/dungeon-and-dragon/dfragon/issues/756) 결정으로, 거리를 구한 후보가 있으면 거리가 가장 작은 후보를 선택한다. 거리가 같으면 명성 순서가 앞선 후보다. 거리를 하나도 구하지 못했으면 명성이 가장 높은 후보를 선택하고 얼굴로 고른 결과와 진단 코드로 구분한다. 2026-10-31 사용자 요청으로 파티 카드에는 이 선택의 안내 문구를 두지 않는다. 외형이 같은 후보는 얼굴로 가를 수 없고, 얼굴 선택이 실제 서버가 유일하다는 증명도 아니다.
 4. 1위 거리가 `maxDistance` 이하이고 2위와의 거리 차이가 `minMargin` 이상이며 비교한 후보 전원의 거리가 있을 때만 선택을 확정한다. 그 밖에는 선택과 함께 사용자가 고를 후보를 카드 위에 한 겹 더 뜨는 후보 창에 보인다([Desktop MVP 카드 UI의 후보 창](desktop-mvp-ui.md#후보-창)). 후보는 비교한 상위 후보이고, 거리를 하나도 구하지 못했으면 동명 후보 전부다. 사용자가 한 번 누르면 그 후보로 수동 조회해 미리보기하고, 같은 후보를 한 번 더 누르면 확정해 후보 창을 닫는다. 확정하지 않고 후보 창을 닫으면 카드에 후보 수를 단 칩이 남아 다시 열 수 있다. 수동 조회가 시작되면 이 슬롯의 OCR 자동 검색은 다음 캡처까지 멈추며, 확정하지 않은 미리보기는 다음 캡처에서 버린다. 서버 칩으로 직접 조회해도 확정으로 본다.
 5. 선택한 후보로 `GET /characters/:serverId/:characterId`를 호출해 상세 정보를 표시한다. 호출 순서는 아래 [이름과 서버를 먼저 정하는 순서](#이름과-서버를-먼저-정하는-순서)를 따른다. 후보 검색 결과가 없으면 미식별이며 두 번째 OCR 닉네임으로 넘어가지 않는다. 이미지 로딩 실패를 불일치로 간주하지 않고 그 후보의 거리만 없는 것으로 처리한다.
 
-Desktop의 후보 검색, 후보 이미지, 상세 요청은 각각 HTTP client(ky)의 기본 timeout을 따르고 자동으로 다시 요청하지 않는다. 2026-10-29 [#954](https://github.com/blahaj94/dfragon/issues/954) 결정으로 접수부터 15초이던 검색 한 번의 시간 예산을 없앴다. 단계가 이어지면 사용자가 기다리는 시간이 15초보다 길어질 수 있다.
+Desktop의 후보 검색, 후보 이미지, 상세 요청은 각각 HTTP client(ky)의 기본 timeout을 따르고 자동으로 다시 요청하지 않는다. 2026-10-29 [#954](https://github.com/dungeon-and-dragon/dfragon/issues/954) 결정으로 접수부터 15초이던 검색 한 번의 시간 예산을 없앴다. 단계가 이어지면 사용자가 기다리는 시간이 15초보다 길어질 수 있다.
 
 ### 얼굴 비교 기준
 
@@ -103,7 +103,7 @@ Desktop은 파티 얼굴 크롭과 후보의 네오플 캐릭터 이미지(zoom=
 
 ### Desktop의 공대 식별 흐름
 
-2026-10-20 [#760](https://github.com/blahaj94/dfragon/issues/760) 결정으로, 공대 캡처는 공대원 창 각 행의 직업명과 명성으로 동명 후보의 서버를 고른다. 2026-10-27 결정으로 장비 점수 비교를 없앴다. 서버를 고르려고 후보 여러 명의 상세를 조회하면 Neople 호출이 크게 늘기 때문이다. 공대원 창에는 얼굴이 없어 위 얼굴 비교를 쓰지 않는다. 화면 판독은 [12인 공대창 검출](../../packages/lib/README.md#12인-공대창-검출-크롭)에 둔다.
+2026-10-20 [#760](https://github.com/dungeon-and-dragon/dfragon/issues/760) 결정으로, 공대 캡처는 공대원 창 각 행의 직업명과 명성으로 동명 후보의 서버를 고른다. 2026-10-27 결정으로 장비 점수 비교를 없앴다. 서버를 고르려고 후보 여러 명의 상세를 조회하면 Neople 호출이 크게 늘기 때문이다. 공대원 창에는 얼굴이 없어 위 얼굴 비교를 쓰지 않는다. 화면 판독은 [12인 공대창 검출](../../packages/lib/README.md#12인-공대창-검출-크롭)에 둔다.
 
 1. Desktop은 행의 닉네임 OCR 첫 후보로 후보 API를 호출한다. 후보가 없으면 미식별이다.
 2. 직업명 칸은 닉네임과 같은 전처리로 OCR한다. 앞의 `眞`을 지우고 한글만 남긴 두 문자열이 같으면 일치다. 읽은 문자열이 4자 이상이고 후보 이름이 그 문자열로 시작해도 일치이며, 5자 이상이면 마지막 한 글자를 뺀 문자열로 시작해도 일치다. 읽은 문자열이 `眞`으로 시작하지 않으면 첫 글자를 뺀 문자열로도 비교한다. 후보 쪽은 `jobGrowName`을 같은 방식으로 정규화한다.
@@ -119,7 +119,7 @@ Desktop은 파티 얼굴 크롭과 후보의 네오플 캐릭터 이미지(zoom=
 
 2026-10-27 결정으로, OCR로 시작한 파티, 공대 회차는 모든 슬롯의 이름과 서버를 먼저 정한 뒤 상세와 장비 점수를 채운다. 공대 12자리의 이름과 서버가 상세 조회를 기다리지 않고 먼저 화면에 뜨게 하기 위해서다.
 
-2026-10-29 [#987](https://github.com/blahaj94/dfragon/issues/987) 사용자 결정으로, 상세는 슬롯 순서로 하나씩 받지 않고 필요한 슬롯 전부를 동시 제한 없이 한꺼번에 받는다. 마지막 슬롯이 앞 슬롯의 상세를 기다리지 않게 하기 위해서다. 공대 12자리면 API가 Neople에 기본정보 12개, 섹션 120개, 공용 아이템 묶음의 세 물결로 요청을 보내며, 이로 인한 API key 할당량 위험은 감수한다.
+2026-10-29 [#987](https://github.com/dungeon-and-dragon/dfragon/issues/987) 사용자 결정으로, 상세는 슬롯 순서로 하나씩 받지 않고 필요한 슬롯 전부를 동시 제한 없이 한꺼번에 받는다. 마지막 슬롯이 앞 슬롯의 상세를 기다리지 않게 하기 위해서다. 공대 12자리면 API가 Neople에 기본정보 12개, 섹션 120개, 공용 아이템 묶음의 세 물결로 요청을 보내며, 이로 인한 API key 할당량 위험은 감수한다.
 
 1. 슬롯마다 후보 검색과 서버 고르기(파티는 얼굴 비교 포함)까지만 하고, 고른 후보의 이름, 서버, 명성, 직업으로 카드를 먼저 채운다. 레벨, 길드와 장비 점수는 아직 비어 있다.
 2. 회차의 어느 슬롯도 조회 중이 아니면 이름과 서버를 정한 모든 슬롯의 상세를 한꺼번에 받기 시작하고, 받는 대로 그 슬롯의 레벨, 길드와 장비 점수를 채운다.
@@ -206,11 +206,11 @@ Timeout이 나면 transport를 취소하고, 늦게 도착한 response나 code�
 
 2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무, 유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT, session DB 조회, 활동 갱신, refresh는 검색 경로에서 수행하지 않는다.
 
-검색에는 **클라이언트별 호출 제한이 없다**. 2026-10-20 [#774](https://github.com/blahaj94/dfragon/issues/774)의 사용자 결정으로 이전의 클라이언트별 최근 60초 10회 한도를 없앴다. 공대 12자리 조회 한 번이 이 한도를 넘어 일부 슬롯이 429로 실패했기 때문이다.
+검색에는 **클라이언트별 호출 제한이 없다**. 2026-10-20 [#774](https://github.com/dungeon-and-dragon/dfragon/issues/774)의 사용자 결정으로 이전의 클라이언트별 최근 60초 10회 한도를 없앴다. 공대 12자리 조회 한 번이 이 한도를 넘어 일부 슬롯이 429로 실패했기 때문이다.
 
-Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778](https://github.com/blahaj94/dfragon/issues/778)의 사용자 결정으로 모든 검색, 캐릭터 섹션, 공용 상세가 함께 쓰던 프로세스 전체 최근 60초 600회, 동시 12회 예산을 없앴다. 공대 12자리가 동시에 조회하면 동시 12회에 닿아 일부 슬롯이 429로 실패할 수 있었기 때문이다. 이제 API는 검색에서 429를 반환하지 않으며, 많은 요청이 몰려 Neople API key의 공식 할당량을 넘으면 key가 막혀 모든 사용자의 검색, 상세가 공급자 오류로 실패할 수 있다. 같은 결정으로 [캐릭터 상세](character-details.md#오류-호출-제한)의 동시 섹션 조회, 공용 상세 동시 호출 제한도 없앴다. 2026-10-29 [#992](https://github.com/blahaj94/dfragon/issues/992)부터 캐릭터 조회는 1시간, 공용 아이템 상세는 24시간 메모리에 캐시해 캐시 안의 캐릭터와 아이템은 Neople을 다시 부르지 않는다([캐릭터 캐시](character-details.md#캐릭터-캐시와-강제-갱신), [공용 아이템 상세](character-details.md#공용-아이템-상세)). 캐시에 없는 상세 요청과 강제 갱신은 Neople을 부른다. 2026-10-31 [#1069](https://github.com/blahaj94/dfragon/issues/1069)부터 후보 검색(`GET /characters/candidates`)도 이름별로 24시간 캐시해 캐시 안의 이름은 Neople을 다시 부르지 않는다([후보 검색 캐시](#후보-검색-캐시)). 기존 `GET /characters`의 `full` 검색은 캐시하지 않는다.
+Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778](https://github.com/dungeon-and-dragon/dfragon/issues/778)의 사용자 결정으로 모든 검색, 캐릭터 섹션, 공용 상세가 함께 쓰던 프로세스 전체 최근 60초 600회, 동시 12회 예산을 없앴다. 공대 12자리가 동시에 조회하면 동시 12회에 닿아 일부 슬롯이 429로 실패할 수 있었기 때문이다. 이제 API는 검색에서 429를 반환하지 않으며, 많은 요청이 몰려 Neople API key의 공식 할당량을 넘으면 key가 막혀 모든 사용자의 검색, 상세가 공급자 오류로 실패할 수 있다. 같은 결정으로 [캐릭터 상세](character-details.md#오류-호출-제한)의 동시 섹션 조회, 공용 상세 동시 호출 제한도 없앴다. 2026-10-29 [#992](https://github.com/dungeon-and-dragon/dfragon/issues/992)부터 캐릭터 조회는 1시간, 공용 아이템 상세는 24시간 메모리에 캐시해 캐시 안의 캐릭터와 아이템은 Neople을 다시 부르지 않는다([캐릭터 캐시](character-details.md#캐릭터-캐시와-강제-갱신), [공용 아이템 상세](character-details.md#공용-아이템-상세)). 캐시에 없는 상세 요청과 강제 갱신은 Neople을 부른다. 2026-10-31 [#1069](https://github.com/dungeon-and-dragon/dfragon/issues/1069)부터 후보 검색(`GET /characters/candidates`)도 이름별로 24시간 캐시해 캐시 안의 이름은 Neople을 다시 부르지 않는다([후보 검색 캐시](#후보-검색-캐시)). 기존 `GET /characters`의 `full` 검색은 캐시하지 않는다.
 
-위 표의 `429 SEARCH_RATE_LIMITED`는 앞단 proxy가 호출 제한을 둘 때 쓸 응답 형식으로 남긴다. Desktop은 429 body의 `error.code`가 이 값일 때만 호출 제한 실패로 본다. 2026-10-29 [#954](https://github.com/blahaj94/dfragon/issues/954) 결정으로 Desktop은 `Retry-After`를 읽지 않고 기다리지도 않으므로, 사용자는 호출 제한 실패 뒤 바로 다시 시도할 수 있다.
+위 표의 `429 SEARCH_RATE_LIMITED`는 앞단 proxy가 호출 제한을 둘 때 쓸 응답 형식으로 남긴다. Desktop은 429 body의 `error.code`가 이 값일 때만 호출 제한 실패로 본다. 2026-10-29 [#954](https://github.com/dungeon-and-dragon/dfragon/issues/954) 결정으로 Desktop은 `Retry-After`를 읽지 않고 기다리지도 않으므로, 사용자는 호출 제한 실패 뒤 바로 다시 시도할 수 있다.
 
 운영 요청은 Cloudflare edge, 운영 호스트의 cloudflared(Cloudflare Tunnel), 같은 호스트 Caddy의 loopback site를 차례로 거쳐 API에 온다(2026-10-31 결정, 인프라 저장소 결정 기록 0008). API가 믿는 proxy는 Caddy 한 단계이며, 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의 1-hop `trust proxy`를 켠다. Caddy는 loopback에서 온 요청의 `Cf-Connecting-IP`만 클라이언트 주소로 삼아 `X-Forwarded-For`를 그 값 하나로 덮어쓰고, API의 공개 port는 loopback으로 제한한다. 따라서 API가 보는 클라이언트 주소는 Cloudflare가 본 주소다. 외부의 유일한 경로가 Cloudflare Tunnel과 Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 직접 접근 주체까지 인증하는 설정은 아니다. API가 믿는 proxy 단계를 늘리거나 외부 직접 접근으로 확대하지 않는다. 지금은 API에 IP를 key로 쓰는 한도가 없어 이 설정이 응답에 영향을 주지 않지만, 운영 설정을 바꾸지 않도록 설정 읽기는 남겨 둔다.
 
@@ -220,7 +220,7 @@ Neople 호출에도 **서버 전체 호출 제한이 없다**. 2026-10-20 [#778]
 
 ### Authentication activity contract
 
-이전 PR #48의 검색 JWT, 계정 admission, DB 활동 계약은 공개 검색에 적용하지 않는다. 계정 서비스는 2026-10-26에 지웠다([#796](https://github.com/blahaj94/dfragon/issues/796)).
+이전 PR #48의 검색 JWT, 계정 admission, DB 활동 계약은 공개 검색에 적용하지 않는다. 계정 서비스는 2026-10-26에 지웠다([#796](https://github.com/dungeon-and-dragon/dfragon/issues/796)).
 
 ## 간결한 경계 예시
 

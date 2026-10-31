@@ -8,7 +8,7 @@ evidence: "2026-10-30 #1001 상단 바 등급 퍼센트의 뜻, 조회 아이템
 
 # 오늘의 등급
 
-Desktop 상단 바 왼쪽의 등급 퍼센트를 API가 계산해 제공한다(2026-10-30 결정, [Issue #1001](https://github.com/blahaj94/dfragon/issues/1001)). 오늘의 등급은 캐릭터와 상관없이 모든 사용자에게 같은 값이다. Neople API 키는 API 서버에만 있으므로 Desktop은 Neople을 직접 부르지 않는다. 화면 표시는 [Desktop MVP 카드 UI의 상단 바](desktop-mvp-ui.md#상단-바)를 따른다.
+Desktop 상단 바 왼쪽의 등급 퍼센트를 API가 계산해 제공한다(2026-10-30 결정, [Issue #1001](https://github.com/dungeon-and-dragon/dfragon/issues/1001)). 오늘의 등급은 캐릭터와 상관없이 모든 사용자에게 같은 값이다. Neople API 키는 API 서버에만 있으므로 Desktop은 Neople을 직접 부르지 않는다. 화면 표시는 [Desktop MVP 카드 UI의 상단 바](desktop-mvp-ui.md#상단-바)를 따른다.
 
 ## 조회와 계산
 
