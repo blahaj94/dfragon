@@ -3,9 +3,9 @@ const grayWeights = { red: 9798, green: 19235, blue: 3735, shift: 15 }
 const MIN_CLASS_PROBABILITY = 2 ** -23
 const RGBA_CHANNELS = 4
 const NICKNAME_BACKGROUND = 255
-// 관측한 HUD 닉네임의 위아래 여백 안에 걸친 프레임 장식만 경계 계산에서 제외한다.
-const HUD_EDGE_MARGIN_RATIO = 1 / 5
-const HUD_FRAME_LINE_WIDTH_RATIO = 3 / 4
+// 관측한 HUD 닉네임의 프레임 장식과 공대 선택 행 테두리는 위아래 여백 안에 걸친 긴 가로선이다.
+const FRAME_EDGE_MARGIN_RATIO = 1 / 5
+const FRAME_LINE_WIDTH_RATIO = 3 / 4
 // 게임 닉네임에는 공백이 없다. UI 0% 높이 17px 공대 닉네임 칸에서 공백 한 칸 폭(4px) 이상
 // 떨어진 덩어리는 레이드 보상 테두리에서 튄 점 같은 이름 밖의 픽셀로 본다(2026-10-30 결정).
 const RAID_DETACHED_GAP_RATIO = 4 / 17
@@ -17,7 +17,7 @@ function excludeNicknameFrameLines(
   margin: number,
   excluded: Uint8Array
 ): void {
-  const minLineWidth = Math.ceil(width * HUD_FRAME_LINE_WIDTH_RATIO)
+  const minLineWidth = Math.ceil(width * FRAME_LINE_WIDTH_RATIO)
   for (let y = 0; y < height; y += 1) {
     if (y >= margin && y < height - margin) {
       continue
@@ -40,7 +40,7 @@ function nicknameFramePixels(rgba: Uint8ClampedArray, width: number, height: num
   const excluded = new Uint8Array(width * height)
   const visited = new Uint8Array(width * height)
   const pending = new Int32Array(width * height)
-  const margin = Math.floor(height * HUD_EDGE_MARGIN_RATIO)
+  const margin = Math.floor(height * FRAME_EDGE_MARGIN_RATIO)
   excludeNicknameFrameLines(rgba, width, height, margin, excluded)
   for (const edgeY of [0, height - 1]) {
     for (let edgeX = 0; edgeX < width; edgeX += 1) {
@@ -133,19 +133,41 @@ export function nicknameCenterOffset(
   return destinationLeft - left
 }
 
+type Brightness = (red: number, green: number, blue: number) => number
+
+function bt601Gray(red: number, green: number, blue: number): number {
+  return (
+    (grayWeights.red * red +
+      grayWeights.green * green +
+      grayWeights.blue * blue +
+      (1 << (grayWeights.shift - 1))) >>
+    grayWeights.shift
+  )
+}
+
+// 미카엘라 레이드 명예 보상의 노란 배경은 BT.601 회색에서 반짝이는 곳(최대 164)이 연노랑 글자의
+// 가장자리(최소 145)보다 밝아 글자로 남는다. 가장 어두운 채널은 글자 중앙값 134, 배경 72 이하로
+// 갈리므로 이 값을 밝기로 쓴다(2026-10-31 실측).
+function darkestChannel(red: number, green: number, blue: number): number {
+  return Math.min(red, green, blue)
+}
+
 export function binarizeNicknamePixels(data: Uint8ClampedArray): void {
+  binarizeTextPixels(data, bt601Gray)
+}
+
+export function binarizeRaidTextPixels(data: Uint8ClampedArray): void {
+  binarizeTextPixels(data, darkestChannel)
+}
+
+function binarizeTextPixels(data: Uint8ClampedArray, brightness: Brightness): void {
   if (data.length === 0) {
     return
   }
   const histogram = new Uint32Array(256)
   let total = 0
   for (let index = 0; index < data.length; index += 4) {
-    const gray =
-      (grayWeights.red * data[index] +
-        grayWeights.green * data[index + 1] +
-        grayWeights.blue * data[index + 2] +
-        (1 << (grayWeights.shift - 1))) >>
-      grayWeights.shift
+    const gray = brightness(data[index], data[index + 1], data[index + 2])
     data[index] = gray
     histogram[gray] += 1
     total += gray
@@ -157,6 +179,29 @@ export function binarizeNicknamePixels(data: Uint8ClampedArray): void {
     data[index + 1] = value
     data[index + 2] = value
     data[index + 3] = 255
+  }
+}
+
+// 공대 창에서 선택한 행의 파란 테두리는 노란 명예 보상 배경과 섞여 글자만큼 밝은 가로선이 된다.
+// 이 선이 `_`로 읽히고 떨어진 덩어리 사이를 이어 붙이므로 그보다 먼저 지운다(2026-10-31 실기 확인).
+export function removeRaidNicknameFrameLines(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): void {
+  const lines = new Uint8Array(width * height)
+  excludeNicknameFrameLines(
+    data,
+    width,
+    height,
+    Math.floor(height * FRAME_EDGE_MARGIN_RATIO),
+    lines
+  )
+  for (let pixel = 0; pixel < lines.length; pixel += 1) {
+    if (lines[pixel] !== 0) {
+      const index = pixel * RGBA_CHANNELS
+      data.fill(NICKNAME_BACKGROUND, index, index + 3)
+    }
   }
 }
 
@@ -233,9 +278,16 @@ export function toRaidNicknameCanvas(
   image: Readonly<{ width: number; height: number; rgba: ArrayLike<number> }>
 ): HTMLCanvasElement {
   return toTextCanvas(image, (pixels) => {
-    binarizeNicknamePixels(pixels.data)
+    binarizeRaidTextPixels(pixels.data)
+    removeRaidNicknameFrameLines(pixels.data, pixels.width, pixels.height)
     removeDetachedRaidNicknamePixels(pixels.data, pixels.width, pixels.height)
   })
+}
+
+export function toRaidJobCanvas(
+  image: Readonly<{ width: number; height: number; rgba: ArrayLike<number> }>
+): HTMLCanvasElement {
+  return toTextCanvas(image, (pixels) => binarizeRaidTextPixels(pixels.data))
 }
 
 /** 두 밝기 집단의 분산이 가장 커지는 임계값을 OpenCV의 확률, 평균 계산 순서로 찾는다. */

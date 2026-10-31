@@ -86,6 +86,33 @@ it('닉네임 칸에서만 본문과 떨어진 점을 지우고 직업명 칸은
   expect([...jobCanvas].filter((_, index) => index % 4 === 0)).toEqual([0, 255, 0, 0])
 })
 
+it('닉네임 칸은 선택 행 테두리 가로선을 지운 뒤 그 선으로 이어졌던 떨어진 점도 지운다', async () => {
+  recognize.mockResolvedValue(result('공대원'))
+  const width = 20
+  const height = 17
+  const isBody = (x: number, y: number) => x >= 2 && x <= 6 && y >= 3 && y <= 13
+  const gray = Array.from({ length: width * height }, (_, pixel) => {
+    const x = pixel % width
+    const y = Math.floor(pixel / width)
+
+    if (isBody(x, y) || y === 15 || (x === 18 && y === 8)) {
+      return 230
+    }
+
+    return 20
+  })
+  const rgba = new Uint8Array(gray.flatMap((value) => [value, value, value, 255]))
+
+  await recognizeRaidRows(
+    [{ nickname: { width, height, rgba }, job: null, valueText: '' }],
+    recognize
+  )
+
+  const pixels = drawn.get(recognize.mock.calls[0][0])!
+  const dark = gray.map((_, pixel) => pixels[pixel * 4] === 0)
+  expect(dark).toEqual(gray.map((_, pixel) => isBody(pixel % width, Math.floor(pixel / width))))
+})
+
 it.each([
   ['', 'empty'],
   ['가'.repeat(13), 'too-long']

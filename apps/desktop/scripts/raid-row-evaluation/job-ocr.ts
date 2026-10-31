@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
 import { decodeCtcCandidates } from '../../src/frontend/src/lib/ctc-candidates'
-import { binarizeNicknamePixels } from '../../src/frontend/src/lib/nickname-pixels'
+import { binarizeRaidTextPixels } from '../../src/frontend/src/lib/nickname-pixels'
 import {
   MODEL_INPUT_HEIGHT,
   MODEL_INPUT_WIDTH,
@@ -62,7 +62,7 @@ function resizeBilinear(
 function recognitionInput(crop: CharacterImage, preprocessing: JobOcrPreprocessing): Float32Array {
   const pixels = Uint8ClampedArray.from(crop.rgba)
   if (preprocessing === 'nickname') {
-    binarizeNicknamePixels(pixels)
+    binarizeRaidTextPixels(pixels)
   }
   const height = MODEL_INPUT_HEIGHT
   const width = Math.min(MODEL_INPUT_WIDTH, Math.ceil((height * crop.width) / crop.height))
