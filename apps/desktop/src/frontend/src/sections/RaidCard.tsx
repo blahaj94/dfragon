@@ -21,9 +21,8 @@ import {
 } from '../lib/card-presentation'
 import { toScoreView } from '../lib/card-score'
 import { toNameFieldTone } from '../lib/name-field-tone'
-import { toRaidSeat } from '../lib/raid-seat'
+import { type RaidParty, toRaidSeat } from '../lib/raid-seat'
 import type { SlotCard } from '../lib/slot-cards'
-import type { CharacterTier } from '../types/cards'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import { styles } from './RaidCard.style'
 
@@ -72,9 +71,7 @@ export function RaidCard({
             )}
             {frameState === 'failure' && <FailureMark label={cardStatus} size="raid" />}
             {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
-            <SlotNumber selected={frameState === 'selected'} tier={tier}>
-              {toRaidSeat(slot).label}
-            </SlotNumber>
+            <SlotNumber {...toRaidSeat(slot)} />
           </div>
           {characterFound && (
             <AffiliationLine adventure={character.adventure} guild={character.guild}>
@@ -113,27 +110,19 @@ export function RaidCard({
   )
 }
 
-function SlotNumber({
-  selected,
-  tier,
-  children
-}: {
-  selected: boolean
-  tier: CharacterTier | undefined
-  children: string
-}): React.JSX.Element {
+const partyNumberStyles: Readonly<Record<RaidParty, stylex.StyleXStyles>> = {
+  R: styles.numberRed,
+  Y: styles.numberYellow,
+  G: styles.numberGreen
+}
+
+function SlotNumber({ party, label }: { party: RaidParty; label: string }): React.JSX.Element {
   return (
     <span
       aria-hidden="true"
-      {...stylex.props(
-        styles.number,
-        shapes.cutTopRight,
-        selected && styles.numberSelected,
-        tier === 'top' && styles.numberTop,
-        tier === 'ranker' && styles.numberRanker
-      )}
+      {...stylex.props(styles.number, shapes.cutTopRight, partyNumberStyles[party])}
     >
-      {children}
+      {label}
     </span>
   )
 }
