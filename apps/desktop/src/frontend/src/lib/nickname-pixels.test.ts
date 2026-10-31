@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
 import {
   binarizeNicknamePixels,
+  binarizeRaidTextPixels,
   nicknameCenterOffset,
   removeDetachedRaidNicknamePixels
 } from './nickname-pixels'
@@ -37,6 +38,26 @@ it('빨강의 BT.601 밝기 76을 밝은 글자 집단으로 분류한다', () =
   ])
   binarizeNicknamePixels(pixels)
   expect([...pixels]).toEqual([255, 255, 0, 0, 0].flatMap((gray) => [gray, gray, gray, 255]))
+})
+
+// 2026-10-31 미카엘라 레이드 명예 보상 행에서 잰 글자, 배경이 반짝이는 곳, 배경 색이다.
+it('공대 칸은 노란 배경이 반짝이는 곳을 글자로 남기지 않고 연노랑 글자만 남긴다', () => {
+  const text = [238, 225, 134]
+  const glint = [192, 170, 62]
+  const background = [76, 61, 13]
+  const input = [text, text, glint, glint, background, background, background]
+  const pixels = new Uint8ClampedArray(input.flatMap((color) => [...color, 255]))
+  binarizeRaidTextPixels(pixels)
+  expect([...pixels]).toEqual(
+    [0, 0, 255, 255, 255, 255, 255].flatMap((gray) => [gray, gray, gray, 255])
+  )
+})
+
+it('공대 칸도 어두운 배경의 흰 글자는 글자로 남긴다', () => {
+  const input = [10, 20, 30, 200, 210, 220]
+  const pixels = new Uint8ClampedArray(input.flatMap((gray) => [gray, gray, gray, 128]))
+  binarizeRaidTextPixels(pixels)
+  expect([...pixels]).toEqual([255, 255, 255, 0, 0, 0].flatMap((gray) => [gray, gray, gray, 255]))
 })
 
 it('빈 픽셀 배열은 그대로 유지한다', () => {
