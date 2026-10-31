@@ -61,7 +61,8 @@ export function PartyScreen(): React.JSX.Element {
         seats={capture.seats}
         actions={{
           lookupSlot: capture.search.lookupSlot,
-          pickCandidate: capture.search.pickCandidate
+          pickCandidate: capture.search.pickCandidate,
+          changeSnapshotAdventure: snapshot.changeAdventure
         }}
       />
     </div>

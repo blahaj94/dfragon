@@ -189,12 +189,18 @@ export function Preview(): React.JSX.Element {
     setCandidatePicks(candidatePicks.map((current, index) => (index === slot ? next : current)))
   }
   const partySnapshotMarks = seatValuesToSlotOrder(partySeats.seatOrder, partySnapshot.marks)
+  const partySnapshotAdventureInputs = seatValuesToSlotOrder(
+    partySeats.seatOrder,
+    partySnapshot.adventureInputs
+  )
   const partyCards: SlotCard[] = partySlots.map((state, slot) => {
     const shown = partyCharacters[slot]
     const selected = shown ?? undefined
     const nickname = identification ? (identificationNicknames[slot] ?? undefined) : undefined
     const notice = identification ? identificationNotices[slot] : undefined
     const picker = candidatePickers[slot] ?? undefined
+    const characterMissing = state === 'failure' || state === 'empty'
+    const snapshotAdventureInput = characterMissing ? partySnapshotAdventureInputs[slot] : undefined
 
     return {
       state,
@@ -202,6 +208,7 @@ export function Preview(): React.JSX.Element {
       nickname,
       notice,
       snapshotMark: partySnapshotMarks[slot],
+      snapshotAdventureInput,
       picker
     }
   })
@@ -303,7 +310,11 @@ export function Preview(): React.JSX.Element {
                 slots={partyCards}
                 resetKey={scenario}
                 seats={toPreviewSeats(PARTY_SEAT_LAYOUT, partySeats)}
-                actions={{ lookupSlot: lookupPreviewSlot, pickCandidate }}
+                actions={{
+                  lookupSlot: lookupPreviewSlot,
+                  pickCandidate,
+                  changeSnapshotAdventure: partySnapshot.changeAdventure
+                }}
               />
             </div>
           )}
@@ -345,7 +356,10 @@ export function Preview(): React.JSX.Element {
                 slots={raidCards}
                 resetKey="raid"
                 seats={toPreviewSeats(RAID_SEAT_LAYOUT, raidSeats)}
-                actions={{ lookupSlot: lookupPreviewSlot }}
+                actions={{
+                  lookupSlot: lookupPreviewSlot,
+                  changeSnapshotAdventure: raidSnapshot.changeAdventure
+                }}
               />
             </div>
           )}

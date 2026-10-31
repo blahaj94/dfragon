@@ -14,6 +14,7 @@ export type SlotCard = {
   notice?: string
   loading?: boolean
   snapshotMark?: SnapshotMark
+  snapshotAdventureInput?: string
   picker?: CandidatePicker
   scorePending?: boolean
 }
@@ -21,6 +22,7 @@ export type SlotCard = {
 export type SlotCardActions = {
   lookupSlot: (slot: number, nickname: string, serverId: string) => void
   pickCandidate: (slot: number, serverId: string) => void
+  changeSnapshotAdventure: (seat: number, value: string) => void
 }
 
 export function toSlotCards({
@@ -29,6 +31,7 @@ export function toSlotCards({
   manualSlots,
   recognizing,
   snapshotMarks,
+  snapshotAdventureInputs,
   candidatePickers = [],
   screen = 'party'
 }: {
@@ -37,6 +40,7 @@ export function toSlotCards({
   manualSlots: readonly boolean[]
   recognizing: boolean
   snapshotMarks: readonly (SnapshotMark | undefined)[]
+  snapshotAdventureInputs: readonly (string | undefined)[]
   candidatePickers?: readonly (CandidatePicker | null)[]
   screen?: SearchMode
 }): SlotCard[] {
@@ -47,6 +51,8 @@ export function toSlotCards({
     const loading = !manualSlots[index] && recognizing
     const picker = candidatePickers[index] ?? undefined
     const scorePending = slot.details === 'pending'
+    const characterMissing = slot.state === 'failure' || slot.state === 'empty'
+    const snapshotAdventureInput = characterMissing ? snapshotAdventureInputs[index] : undefined
 
     return {
       state: slot.state,
@@ -55,6 +61,7 @@ export function toSlotCards({
       notice,
       loading,
       snapshotMark: snapshotMarks[index],
+      snapshotAdventureInput,
       picker,
       scorePending
     }

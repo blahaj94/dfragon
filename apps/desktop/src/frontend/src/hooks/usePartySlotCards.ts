@@ -23,6 +23,7 @@ export function usePartySlotCards(capture: PartyCapture): {
     manualSlots: search.manualSlots,
     recognizing: capture.recognizing,
     snapshotMarks: seatValuesToSlotOrder(seatOrder, snapshot.marks),
+    snapshotAdventureInputs: seatValuesToSlotOrder(seatOrder, snapshot.adventureInputs),
     candidatePickers: search.candidatePickers
   })
   const clipboardText = toClipboardText({

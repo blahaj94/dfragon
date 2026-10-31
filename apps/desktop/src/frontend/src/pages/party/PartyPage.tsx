@@ -20,7 +20,7 @@ export function PartyPage({
   actions: SlotCardActions
 }): React.JSX.Element {
   const { seatOrder, canMoveSeats } = seats
-  const { lookupSlot, pickCandidate } = actions
+  const { lookupSlot, pickCandidate, changeSnapshotAdventure } = actions
   const hintId = useId()
   const { moveSeat, notice } = useSeatMove({ resetKey, seats })
 
@@ -28,6 +28,8 @@ export function PartyPage({
     const handleLookup = (nickname: string, serverId: string): void =>
       lookupSlot(slot, nickname, serverId)
     const handlePickCandidate = (serverId: string): void => pickCandidate(slot, serverId)
+    const handleChangeSnapshotAdventure = (value: string): void =>
+      changeSnapshotAdventure(seat, value)
 
     return (
       <Seat
@@ -42,6 +44,7 @@ export function PartyPage({
           slot={seat + 1}
           onLookup={handleLookup}
           onPickCandidate={handlePickCandidate}
+          onChangeSnapshotAdventure={handleChangeSnapshotAdventure}
         />
       </Seat>
     )

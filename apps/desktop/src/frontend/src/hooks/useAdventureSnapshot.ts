@@ -8,16 +8,28 @@ import type { SearchMode } from '../types/search-mode'
 
 type AdventureSnapshot = {
   adventures: SeatAdventures
+  typedAdventures: readonly string[]
   startedRoundsAtTake: number
 }
 
 const useAdventureSnapshotStore = create<{
   snapshots: Record<SearchMode, AdventureSnapshot | null>
   changeSnapshot: (screen: SearchMode, snapshot: AdventureSnapshot | null) => void
+  changeTypedAdventure: (screen: SearchMode, seat: number, value: string) => void
 }>()((set) => ({
   snapshots: { party: null, raid: null },
   changeSnapshot: (screen, snapshot) =>
-    set((state) => ({ snapshots: { ...state.snapshots, [screen]: snapshot } }))
+    set((state) => ({ snapshots: { ...state.snapshots, [screen]: snapshot } })),
+  changeTypedAdventure: (screen, seat, value) =>
+    set((state) => {
+      const snapshot = state.snapshots[screen]
+      if (snapshot === null) {
+        return state
+      }
+      const typedAdventures = snapshot.typedAdventures.with(seat, value)
+
+      return { snapshots: { ...state.snapshots, [screen]: { ...snapshot, typedAdventures } } }
+    })
 }))
 
 /**
@@ -34,24 +46,44 @@ export function useAdventureSnapshot(
   active: boolean
   marks: readonly (SnapshotMark | undefined)[]
   round: number | null
+  adventureInputs: readonly (string | undefined)[]
   take: () => void
   clear: () => void
+  changeAdventure: (seat: number, value: string) => void
 } {
   const snapshot = useAdventureSnapshotStore((state) => state.snapshots[screen])
   const changeSnapshot = useAdventureSnapshotStore((state) => state.changeSnapshot)
+  const changeTypedAdventure = useAdventureSnapshotStore((state) => state.changeTypedAdventure)
 
   const active = snapshot !== null
   const marks = active
-    ? compareWithSnapshot(snapshot.adventures, current)
+    ? compareWithSnapshot(
+        snapshot.adventures.map(
+          (adventure, seat) => adventure ?? snapshot.typedAdventures[seat].trim()
+        ),
+        current
+      )
     : current.map(() => undefined)
   const round = active ? startedRounds - snapshot.startedRoundsAtTake + 1 : null
+  const adventureInputs =
+    active && round === 1
+      ? snapshot.adventures.map((adventure, seat) =>
+          adventure === null ? snapshot.typedAdventures[seat] : undefined
+        )
+      : current.map(() => undefined)
 
   return {
     active,
     marks,
     round,
+    adventureInputs,
     take: () =>
-      changeSnapshot(screen, { adventures: [...current], startedRoundsAtTake: startedRounds }),
-    clear: () => changeSnapshot(screen, null)
+      changeSnapshot(screen, {
+        adventures: [...current],
+        typedAdventures: current.map(() => ''),
+        startedRoundsAtTake: startedRounds
+      }),
+    clear: () => changeSnapshot(screen, null),
+    changeAdventure: (seat, value) => changeTypedAdventure(screen, seat, value)
   }
 }
