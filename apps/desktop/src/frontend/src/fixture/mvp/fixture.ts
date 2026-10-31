@@ -12,7 +12,8 @@ export const previewCharacter: CardCharacter = {
   serverId: 'siroco',
   fame: 125850,
   card: dealerCard,
-  image: characterImage
+  image: characterImage,
+  face: { x: 80, y: 68, width: 35, height: 35 }
 }
 
 const bufferPreviewCharacter: CardCharacter = {

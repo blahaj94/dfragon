@@ -1,5 +1,5 @@
 import type { CharacterImage, CharacterPortrait } from '../../preload/common/types/character'
-import type { PortraitAnchor } from './portrait-anchor'
+import type { PortraitAnchor } from '../../preload/common/search/portrait-anchor'
 import {
   ALPHA_CHANNEL,
   countComparisonStep,
