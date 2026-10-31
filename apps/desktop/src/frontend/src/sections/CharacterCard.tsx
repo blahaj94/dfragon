@@ -3,7 +3,8 @@ import {
   getCharacterCardFrameState,
   getCharacterCardStatus,
   getLookupStep,
-  isVacantSlot
+  isVacantSlot,
+  toJobLabel
 } from '../lib/card-presentation'
 import * as stylex from '@stylexjs/stylex'
 import { useId } from 'react'
@@ -207,10 +208,4 @@ function LineMessage({ children }: { children: string }): React.JSX.Element {
       {children}
     </Typo.caption>
   )
-}
-
-const AWAKENING_PREFIX = /^眞\s*/u
-
-function toJobLabel(job: string): string {
-  return job.replace(AWAKENING_PREFIX, '')
 }
