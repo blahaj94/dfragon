@@ -1,10 +1,10 @@
 ---
 type: adr
-status: accepted
+status: superseded
 scope: apps/desktop usage stats for the Windows distribution channel
 decided: 2026-10-31
 last-reviewed: 2026-10-31
-superseded-by: 없음
+superseded-by: 0003-remove-desktop-usage-stats.md
 evidence: "GA4 Measurement Protocol 문서 확인(2026-10-31) ; GitHub Release 다운로드 수와 API 접근 로그 구조 확인(2026-10-31) ; 저장소 소유자 결정(2026-10-31)"
 review-after: 개인정보처리방침 게시, 웹사이트 공개, 설치형 배포나 코드 서명(SignPath) 신청 전
 ---
