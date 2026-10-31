@@ -204,7 +204,11 @@ export function WindowMockup(): React.JSX.Element {
                 slots={partyCards}
                 resetKey={String(party.round)}
                 seats={toSeats(PARTY_SEAT_LAYOUT, partySeats)}
-                actions={{ lookupSlot, pickCandidate: handlePickCandidate }}
+                actions={{
+                  lookupSlot,
+                  pickCandidate: handlePickCandidate,
+                  changeSnapshotAdventure: partySnapshot.changeAdventure
+                }}
               />
             </div>
           )}
@@ -227,7 +231,7 @@ export function WindowMockup(): React.JSX.Element {
                 slots={raidCards}
                 resetKey={String(raid.round)}
                 seats={toSeats(RAID_SEAT_LAYOUT, raidSeats)}
-                actions={{ lookupSlot }}
+                actions={{ lookupSlot, changeSnapshotAdventure: raidSnapshot.changeAdventure }}
               />
             </div>
           )}

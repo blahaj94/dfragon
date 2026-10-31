@@ -9,6 +9,8 @@ import { useAdventureSnapshot } from './useAdventureSnapshot'
 let container: HTMLDivElement
 let root: Root
 
+const typed = { seat: 0, value: '' }
+
 function Harness({
   screen,
   adventures,
@@ -18,17 +20,16 @@ function Harness({
   adventures: SeatAdventures
   startedRounds: number
 }): React.JSX.Element {
-  const { active, marks, round, take, clear } = useAdventureSnapshot(
-    screen,
-    adventures,
-    startedRounds
-  )
+  const { active, marks, round, adventureInputs, take, clear, changeAdventure } =
+    useAdventureSnapshot(screen, adventures, startedRounds)
 
   return (
     <>
       <button type="button" id="take" onClick={take} />
       <button type="button" id="clear" onClick={clear} />
+      <button type="button" id="type" onClick={() => changeAdventure(typed.seat, typed.value)} />
       <output>{JSON.stringify({ active, marks, round })}</output>
+      <data>{JSON.stringify(adventureInputs)}</data>
     </>
   )
 }
@@ -43,12 +44,21 @@ async function render(
   )
 }
 
-async function press(id: 'take' | 'clear'): Promise<void> {
+async function press(id: 'take' | 'clear' | 'type'): Promise<void> {
   await act(async () => container.querySelector<HTMLButtonElement>(`#${id}`)!.click())
 }
 
 function shown(): { active: boolean; marks: unknown[]; round: number | null } {
   return JSON.parse(container.querySelector('output')!.textContent!)
+}
+
+async function typeAdventure(seat: number, value: string): Promise<void> {
+  Object.assign(typed, { seat, value })
+  await press('type')
+}
+
+function adventureInputs(): (string | null)[] {
+  return JSON.parse(container.querySelector('data')!.textContent!)
 }
 
 beforeEach(() => {
@@ -151,4 +161,42 @@ it('끄면 번호를 지우고 다시 켜면 1번째부터 센다', async () => 
   expect(shown().round).toBe(1)
   await render(['가'], 5)
   expect(shown().round).toBe(2)
+})
+
+it('켠 회차에는 모험단 없이 저장한 자리만 입력을 열고, 적은 모험단을 그 자리의 스냅샷으로 비교한다', async () => {
+  await render(['가', null], 0)
+  await press('take')
+  expect(adventureInputs()).toEqual([null, ''])
+  await typeAdventure(1, ' 별빛 ')
+  expect(adventureInputs()).toEqual([null, ' 별빛 '])
+
+  await render(['별빛', '가'], 1)
+  expect(adventureInputs()).toEqual([null, null])
+  expect(shown().marks).toEqual([
+    { kind: 'moved', seat: 2 },
+    { kind: 'moved', seat: 1 }
+  ])
+})
+
+it('자모로 나뉜 입력도 NFC로 합쳐 검색 결과의 모험단과 맞춘다', async () => {
+  await render(['가', null], 0)
+  await press('take')
+  await typeAdventure(1, '별빛'.normalize('NFD'))
+
+  await render(['가', '별빛'], 1)
+
+  expect(shown().marks).toEqual([null, null])
+})
+
+it('끄고 다시 켜면 전에 적은 모험단을 지우고 빈 입력으로 시작한다', async () => {
+  await render(['가', null], 0)
+  await press('take')
+  await typeAdventure(1, '별빛')
+
+  await press('clear')
+  await press('take')
+
+  expect(adventureInputs()).toEqual([null, ''])
+  await render(['가', '별빛'], 1)
+  expect(shown().marks).toEqual([null, { kind: 'absent' }])
 })

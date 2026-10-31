@@ -52,10 +52,12 @@ async function render({
   notice,
   loading,
   snapshotMark,
+  snapshotAdventureInput,
   picker,
   scorePending,
   onLookup = vi.fn(),
   onPickCandidate = vi.fn(),
+  onChangeSnapshotAdventure = vi.fn(),
   ...props
 }: RenderProps = {}): Promise<void> {
   const card = {
@@ -65,6 +67,7 @@ async function render({
     notice,
     loading,
     snapshotMark,
+    snapshotAdventureInput,
     picker,
     scorePending
   }
@@ -75,6 +78,7 @@ async function render({
         slot={1}
         onLookup={onLookup}
         onPickCandidate={onPickCandidate}
+        onChangeSnapshotAdventure={onChangeSnapshotAdventure}
         {...props}
         card={card}
       />
@@ -192,6 +196,7 @@ it('제출한 수동 이름은 검색 대기와 실패 중 이전 OCR이나 캐�
         slot={1}
         onLookup={lookup}
         onPickCandidate={vi.fn()}
+        onChangeSnapshotAdventure={vi.fn()}
       />
     )
   )
@@ -460,6 +465,27 @@ it('찾지 못한 자리는 소속 줄에 안내를, 안내가 없으면 흐린 
   const placeholder = columnLines()[1].firstElementChild!
   expect(placeholder.textContent).toBe('모험단')
   expect(placeholder.getAttribute('aria-hidden')).toBe('true')
+})
+
+it('스냅샷 모험단 입력이 열린 실패 카드는 소속 줄을 모험단 입력으로 바꾸고 안내를 툴팁으로 둔다', async () => {
+  const change = vi.fn()
+  await render({
+    state: 'failure',
+    nickname: '없는이름',
+    notice: '캐릭터를 찾지 못했습니다.',
+    snapshotAdventureInput: '별',
+    onChangeSnapshotAdventure: change
+  })
+
+  const field = columnLines()[1].querySelector<HTMLInputElement>('input[aria-label="1번 모험단"]')!
+  expect(field.value).toBe('별')
+  expect(field.title).toBe('캐릭터를 찾지 못했습니다.')
+  expect(columnLines()[1].querySelector('p')).toBeNull()
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(field, '별빛')
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  expect(change).toHaveBeenCalledExactlyOnceWith('별빛')
 })
 
 it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을 구분하며 소속을 보인다', async () => {
@@ -748,6 +774,7 @@ it('다음 회차에 새로 그린 카드는 닫았던 후보 창을 다시 연 
         slot={1}
         onLookup={vi.fn()}
         onPickCandidate={vi.fn()}
+        onChangeSnapshotAdventure={vi.fn()}
       />
     )
   )
@@ -765,6 +792,7 @@ it('다음 회차에 새로 그린 카드는 닫았던 후보 창을 다시 연 
         slot={1}
         onLookup={vi.fn()}
         onPickCandidate={vi.fn()}
+        onChangeSnapshotAdventure={vi.fn()}
       />
     )
   )

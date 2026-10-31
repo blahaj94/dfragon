@@ -23,10 +23,10 @@ export function RaidPage({
   slots: readonly SlotCard[]
   resetKey: string
   seats: SeatArrangement
-  actions: Pick<SlotCardActions, 'lookupSlot'>
+  actions: Pick<SlotCardActions, 'lookupSlot' | 'changeSnapshotAdventure'>
 }): React.JSX.Element {
   const { seatOrder, canMoveSeats } = seats
-  const { lookupSlot } = actions
+  const { lookupSlot, changeSnapshotAdventure } = actions
   const id = useId()
   const { moveSeat, notice } = useSeatMove({ resetKey, seats })
   const hintId = `${id}-move-hint`
@@ -35,6 +35,8 @@ export function RaidPage({
     const slot = seatOrder[seat]
     const handleLookup = (nickname: string, serverId: string): void =>
       lookupSlot(slot, nickname, serverId)
+    const handleChangeSnapshotAdventure = (value: string): void =>
+      changeSnapshotAdventure(seat, value)
 
     return (
       <Seat
@@ -48,6 +50,7 @@ export function RaidPage({
           card={slots[slot]}
           slot={seat + 1}
           onLookup={handleLookup}
+          onChangeSnapshotAdventure={handleChangeSnapshotAdventure}
         />
       </Seat>
     )

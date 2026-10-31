@@ -14,6 +14,7 @@ import { LookupField } from '../components/LookupField'
 import { LookupProgress } from '../components/LookupProgress'
 import { Portrait } from '../components/Portrait'
 import { PortraitWell } from '../components/PortraitWell'
+import { SnapshotAdventureField } from '../components/SnapshotAdventureField'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { useLookupDraft } from '../hooks/useLookupDraft'
@@ -32,15 +33,25 @@ export function CharacterCard({
   card,
   slot,
   onLookup,
-  onPickCandidate
+  onPickCandidate,
+  onChangeSnapshotAdventure
 }: {
   cardKey: SlotCardKey
   card: SlotCard
   slot: number
   onLookup: (nickname: string, serverId: string) => void
   onPickCandidate: (serverId: string) => void
+  onChangeSnapshotAdventure: (value: string) => void
 }): React.JSX.Element {
-  const { state, character, notice, picker, snapshotMark, loading = false } = card
+  const {
+    state,
+    character,
+    notice,
+    picker,
+    snapshotMark,
+    snapshotAdventureInput,
+    loading = false
+  } = card
   const characterFound = state === 'success' && character != null
   const candidates = useCandidateWindow(cardKey, picker !== undefined)
   const candidateWindowId = useId()
@@ -98,9 +109,20 @@ export function CharacterCard({
               )}
               {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="party" />}
             </div>
-            {characterFound ? (
+            {characterFound && (
               <AffiliationLine adventure={character.adventure} guild={character.guild} />
-            ) : (
+            )}
+            {!characterFound && snapshotAdventureInput !== undefined && (
+              <div {...stylex.props(styles.line)}>
+                <SnapshotAdventureField
+                  slot={slot}
+                  value={snapshotAdventureInput}
+                  notice={slotNotice || emptyMessage}
+                  onChange={onChangeSnapshotAdventure}
+                />
+              </div>
+            )}
+            {!characterFound && snapshotAdventureInput === undefined && (
               <NoticeLine>{slotNotice || emptyMessage}</NoticeLine>
             )}
             <StatLine

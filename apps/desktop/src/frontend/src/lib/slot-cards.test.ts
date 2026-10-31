@@ -35,6 +35,7 @@ function input(
     manualSlots: slots.map(() => false),
     recognizing: false,
     snapshotMarks: [],
+    snapshotAdventureInputs: [],
     ...overrides
   }
 }
@@ -117,6 +118,29 @@ describe('toSlotCards', () => {
     )
 
     expect(cards.map((card) => card.snapshotMark)).toEqual([undefined, moved, undefined])
+  })
+
+  it('스냅샷 모험단 입력은 검색 실패와 결과 0건 카드에만 붙인다', () => {
+    const cards = toSlotCards(
+      input(
+        [
+          slot('success', { selected: summary }),
+          slot('failure'),
+          slot('empty'),
+          slot('idle'),
+          slot('pending')
+        ],
+        { snapshotAdventureInputs: ['', '실패', '', '빈자리', '조회중'] }
+      )
+    )
+
+    expect(cards.map((card) => card.snapshotAdventureInput)).toEqual([
+      undefined,
+      '실패',
+      '',
+      undefined,
+      undefined
+    ])
   })
 })
 

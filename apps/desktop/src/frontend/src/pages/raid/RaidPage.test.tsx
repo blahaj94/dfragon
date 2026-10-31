@@ -78,6 +78,7 @@ type RenderProps = Partial<Omit<ComponentProps<typeof RaidPage>, 'slots' | 'seat
     characters?: (CardCharacter | null)[]
     slotNotices?: (string | undefined)[]
     snapshotMarks?: (SnapshotMark | undefined)[]
+    snapshotAdventureInputs?: (string | undefined)[]
   }
 
 async function render({
@@ -85,10 +86,12 @@ async function render({
   characters = [],
   slotNotices,
   snapshotMarks,
+  snapshotAdventureInputs,
   seatOrder = createSeatOrder(RAID_SEAT_LAYOUT),
   canMoveSeats = true,
   swapSeats: swap = vi.fn(() => true),
   lookupSlot = vi.fn(),
+  changeSnapshotAdventure = vi.fn(),
   ...props
 }: RenderProps = {}): Promise<void> {
   const slots = (states ?? idle).map((state, index) => {
@@ -99,7 +102,8 @@ async function render({
       state: shownState,
       character,
       notice: slotNotices?.[index],
-      snapshotMark: snapshotMarks?.[index]
+      snapshotMark: snapshotMarks?.[index],
+      snapshotAdventureInput: snapshotAdventureInputs?.[index]
     }
   })
   await act(async () =>
@@ -108,7 +112,7 @@ async function render({
         resetKey="raid"
         {...props}
         seats={{ layout: RAID_SEAT_LAYOUT, seatOrder, canMoveSeats, swapSeats: swap }}
-        actions={{ lookupSlot }}
+        actions={{ lookupSlot, changeSnapshotAdventure }}
         slots={slots}
       />
     )
@@ -634,4 +638,25 @@ it('슬롯에 붙은 스냅샷 표시는 그 슬롯이 놓인 자리 카드에 �
   expect(second.querySelector('[aria-label="스냅샷에 없는 모험단"]')).not.toBeNull()
   expect(third.querySelector('[aria-label^="스냅샷"]')).toBeNull()
   expect(container.querySelectorAll('[aria-label^="스냅샷 순번"]')).toHaveLength(1)
+})
+
+it('스냅샷 모험단 입력은 그 슬롯이 놓인 자리 카드에 열리고 바꾼 값을 자리 번호로 알린다', async () => {
+  const change = vi.fn()
+  const seatOrder = swapSeats(createSeatOrder(RAID_SEAT_LAYOUT), 0, 5)
+  await render({
+    slots: idle.with(5, 'failure'),
+    slotNotices: idle.map((_, slot) => (slot === 5 ? '캐릭터를 찾지 못했습니다.' : undefined)),
+    snapshotAdventureInputs: idle.map((_, slot) => (slot === 5 ? '' : undefined)),
+    seatOrder,
+    changeSnapshotAdventure: change
+  })
+
+  expect(container.querySelectorAll('input[aria-label$="번 모험단"]')).toHaveLength(1)
+  const field = seats()[0].querySelector<HTMLInputElement>('input[aria-label="1번 모험단"]')!
+  expect(field.title).toBe('캐릭터를 찾지 못했습니다.')
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(field, '별빛')
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  expect(change).toHaveBeenCalledExactlyOnceWith(0, '별빛')
 })
