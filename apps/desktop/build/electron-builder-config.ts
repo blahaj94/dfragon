@@ -29,6 +29,11 @@ export function createBuilderConfig(name: ChannelName): Configuration {
       // installed package is never read at runtime. Leaving it out keeps about 138MB out of app.asar.
       '!node_modules/onnxruntime-web/**'
     ],
+    // The portable exe extracts the whole app on every launch. On a Windows 10 test PC, unpacking the
+    // default solid LZMA2 archive took 10.7s versus 1.9s for an uncompressed one, so trade a bigger
+    // download (163MB to about 450MB) for start time. electron-builder applies this to every target,
+    // so the NSIS installers, which Releases do not ship, are also uncompressed.
+    compression: 'store',
     asarUnpack: ['resources/**'],
     // Notices inside app.asar cannot be read without unpacking it, so also ship them as plain files
     // beside Electron's own LICENSE.electron.txt and LICENSES.chromium.html.
