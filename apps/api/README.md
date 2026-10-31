@@ -63,15 +63,20 @@ URL, query, header, body, 오류 message와 캐릭터 ID, 이름은 남기지 �
 같은 캐릭터의 겹친 요청은 기본정보와 섹션 조회를 공유하므로 그 조회를 기다린 요청들에 같은 `basic`, `sections` 값이 붙고, 진행 중인 조회에 합류한 요청에는 `neopleShared: true`가 붙습니다.
 캐릭터 캐시가 맞았지만 [저장한 응답 본문](../../docs/rules/character-details.md#응답-본문-재사용)이 없는 요청은 Neople을 기다리지 않으므로 `basic`, `sections` 없이 `catalog`만 남습니다.
 저장한 응답 본문을 그대로 보낸 요청은 Neople도 공용 아이템도 기다리지 않으므로 `neopleMs` 없이 `responseCached: true`가 붙습니다.
-`responseCached`는 상세 GET과 강제 갱신에만 붙고, 저장한 본문 없이 새로 만든 응답에는 붙지 않습니다.
+`responseCached`는 상세 GET과 강제 갱신, 후보 검색에만 붙고, 저장한 본문 없이 새로 만든 응답에는 붙지 않습니다.
 강제 갱신은 캐시를 건너뛰므로 새로 받았거나 합류한 조회의 `basic`, `sections`가 붙습니다.
 `catalog`는 그 요청이 공용 아이템 정보를 기다린 시간입니다.
 공용 아이템은 24시간 캐시하므로 모든 아이템이 캐시에 있으면 거의 0이고, 다른 요청이 이미 조회 중인 아이템은 그 조회를 함께 기다립니다.
+
+`GET /characters/candidates`는 이름별로 24시간 [캐시](../../docs/rules/character-search.md#후보-검색-캐시)하며 `neopleMs`를 붙이지 않습니다.
+저장한 결과를 보낸 요청에는 `responseCached: true`, 같은 이름의 진행 중인 검색에 합류한 요청에는 `neopleShared: true`가 붙고, Neople을 직접 기다린 요청에는 둘 다 붙지 않습니다.
+상세와 같은 뜻이라 같은 필드를 쓰며, 둘은 route로 구분합니다.
 
 ```json
 {"time":"2026-10-29T00:00:00.000Z","service":"api","method":"GET","route":"/characters/:serverId/:characterId","status":200,"durationMs":512,"neopleMs":{"basic":88,"sections":231,"catalog":176},"correlationId":"<uuid>"}
 {"time":"2026-10-29T00:00:05.000Z","service":"api","method":"GET","route":"/characters/:serverId/:characterId","status":200,"durationMs":4,"neopleMs":{"catalog":1},"correlationId":"<uuid>"}
 {"time":"2026-10-29T00:00:09.000Z","service":"api","method":"GET","route":"/characters/:serverId/:characterId","status":200,"durationMs":0,"responseCached":true,"correlationId":"<uuid>"}
+{"time":"2026-10-31T00:00:00.000Z","service":"api","method":"GET","route":"/characters/candidates","status":200,"durationMs":0,"responseCached":true,"correlationId":"<uuid>"}
 ```
 
 ## 서버 이미지
