@@ -361,7 +361,7 @@ it('공대 화면의 Alt+W는 공대 스냅샷만 켜고 Alt+A는 공대 열두 
   ).toBe('true')
   await f.shortcut('copy-clipboard')
   expect(window.desktopClipboard.writeText).toHaveBeenCalledExactlyOnceWith(
-    ['[], [], [], []', '[], [], [], []', '[], [], [], []'].join('\n')
+    ['[], [], [], []', '[], [], [], []', '[], [], [], []'].join(',\n')
   )
 
   await showScreen('파티')
