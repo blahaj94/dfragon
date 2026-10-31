@@ -199,6 +199,19 @@ it('세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () =
   expect(first.textContent).not.toContain('01')
   expect(seats()[4].textContent).toContain('Y1')
   expect(seats()[11].textContent).toContain('G4')
+  const seatNumberLabel = /^[RYG][1-4]$/
+  const seatNumber = (index: number): Element =>
+    [...seats()[index].querySelectorAll('span[aria-hidden="true"]')].find((span) =>
+      seatNumberLabel.test(span.textContent ?? '')
+    )!
+  const seatFills = [
+    [0, expectedPartyFill.red],
+    [4, expectedPartyFill.yellow],
+    [11, expectedPartyFill.green]
+  ] as const
+  for (const [index, fill] of seatFills) {
+    expect([...seatNumber(index).classList]).toEqual(expect.arrayContaining(classesOf(fill)))
+  }
   expect(first.textContent).toContain('공대모험단')
   expect(first.textContent).toContain('공대길드')
   const job = first.querySelector<HTMLElement>('[title="공대직업"]')
@@ -535,7 +548,7 @@ it('공대 카드는 엔진이 낸 근사값을 ≈를 붙여 보이고 근사�
   expect(seats()[0].textContent).not.toContain('TITLE')
 })
 
-it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 단계 카드는 명성과 점수에 단계 색을 칠한다', async () => {
+it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 단계 카드는 명성과 점수에 단계 색을 칠하되 자리 번호는 파티 색을 유지한다', async () => {
   const termValue = (seat: HTMLElement, label: string): Element | undefined => {
     const term = [...seat.querySelectorAll('dt')].find((item) => item.textContent === label)
     if (term == null) {
@@ -566,6 +579,16 @@ it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 
   expect(toneClassesOf(termValue(topSeat, '버프')!)).toEqual(['top'])
   expect(toneClassesOf(termValue(rankerSeat, '명성')!)).toEqual(['ranker'])
   expect(toneClassesOf(termValue(rankerSeat, '장비')!)).toEqual(['ranker'])
+  const seatNumberOf = (seat: HTMLElement, label: string): Element =>
+    [...seat.querySelectorAll('span[aria-hidden="true"]')].find(
+      (span) => span.textContent === label
+    )!
+  expect([...seatNumberOf(topSeat, 'R4').classList]).toEqual(
+    expect.arrayContaining(classesOf(expectedPartyFill.red))
+  )
+  expect([...seatNumberOf(rankerSeat, 'Y1').classList]).toEqual(
+    expect.arrayContaining(classesOf(expectedPartyFill.yellow))
+  )
   expect(termValue(missingSeat, '버프')!.textContent).toBe('-')
   expect(toneClassesOf(termValue(missingSeat, '버프')!)).toEqual([])
 })
