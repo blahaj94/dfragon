@@ -62,7 +62,10 @@ export function RaidScreen(): React.JSX.Element {
         resetKey={String(capture.round)}
         slots={cards}
         seats={capture.seats}
-        actions={{ lookupSlot: capture.search.lookupSlot }}
+        actions={{
+          lookupSlot: capture.search.lookupSlot,
+          changeSnapshotAdventure: snapshot.changeAdventure
+        }}
       />
     </>
   )

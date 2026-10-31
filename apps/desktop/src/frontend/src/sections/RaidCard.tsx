@@ -6,6 +6,7 @@ import { LookupField } from '../components/LookupField'
 import { LookupProgress } from '../components/LookupProgress'
 import { Portrait } from '../components/Portrait'
 import { PortraitWell } from '../components/PortraitWell'
+import { SnapshotAdventureField } from '../components/SnapshotAdventureField'
 import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { StatLine } from '../components/StatLine'
@@ -30,14 +31,16 @@ export function RaidCard({
   cardKey,
   card,
   slot,
-  onLookup
+  onLookup,
+  onChangeSnapshotAdventure
 }: {
   cardKey: SlotCardKey
   card: SlotCard
   slot: number
   onLookup: (nickname: string, serverId: string) => void
+  onChangeSnapshotAdventure: (value: string) => void
 }): React.JSX.Element {
-  const { state, character, notice, snapshotMark, loading = false } = card
+  const { state, character, notice, snapshotMark, snapshotAdventureInput, loading = false } = card
   const characterFound = state === 'success' && character != null
   const nickname = characterFound ? undefined : card.nickname
   const draft = useLookupDraft({ cardKey, character, nickname, onLookup })
@@ -74,11 +77,22 @@ export function RaidCard({
               {toRaidSeat(slot).label}
             </SlotNumber>
           </div>
-          {characterFound ? (
+          {characterFound && (
             <AffiliationLine adventure={character.adventure} guild={character.guild}>
               {message}
             </AffiliationLine>
-          ) : (
+          )}
+          {!characterFound && snapshotAdventureInput !== undefined && (
+            <div {...stylex.props(styles.affiliation)}>
+              <SnapshotAdventureField
+                slot={slot}
+                value={snapshotAdventureInput}
+                notice={message}
+                onChange={onChangeSnapshotAdventure}
+              />
+            </div>
+          )}
+          {!characterFound && snapshotAdventureInput === undefined && (
             <NoticeLine>{message}</NoticeLine>
           )}
           <StatLine

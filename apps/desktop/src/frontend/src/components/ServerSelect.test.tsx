@@ -43,6 +43,7 @@ it('서버 변경은 해당 카드만 조회한다', async () => {
           slot={1}
           onLookup={onLookup}
           onPickCandidate={vi.fn()}
+          onChangeSnapshotAdventure={vi.fn()}
         />
         <CharacterCard
           cardKey={{ id: 'party-1', resetKey: '0' }}
@@ -50,6 +51,7 @@ it('서버 변경은 해당 카드만 조회한다', async () => {
           slot={2}
           onLookup={otherLookup}
           onPickCandidate={vi.fn()}
+          onChangeSnapshotAdventure={vi.fn()}
         />
       </>
     )
@@ -190,6 +192,7 @@ it('파티 카드의 서버 목록은 카인, 디레지에, 시로코, 프레이
         slot={1}
         onLookup={vi.fn()}
         onPickCandidate={vi.fn()}
+        onChangeSnapshotAdventure={vi.fn()}
       />
     )
   )
@@ -255,6 +258,7 @@ async function renderCard(onLookup: (nickname: string, serverId: string) => void
         slot={1}
         onLookup={onLookup}
         onPickCandidate={vi.fn()}
+        onChangeSnapshotAdventure={vi.fn()}
       />
     )
   )
@@ -357,6 +361,7 @@ it('공대 카드의 이름 칸도 Tab으로 서버 목록을 열고 Enter로 �
         card={{ state: 'success', character: previewCharacter }}
         slot={9}
         onLookup={onLookup}
+        onChangeSnapshotAdventure={vi.fn()}
       />
     )
   )

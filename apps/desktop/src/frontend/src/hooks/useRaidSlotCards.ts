@@ -24,6 +24,7 @@ export function useRaidSlotCards(capture: RaidCapture): {
     manualSlots: search.manualSlots,
     recognizing: capture.recognizing,
     snapshotMarks: seatValuesToSlotOrder(seatOrder, snapshot.marks),
+    snapshotAdventureInputs: seatValuesToSlotOrder(seatOrder, snapshot.adventureInputs),
     screen: 'raid'
   })
   const clipboardText = toClipboardText({
