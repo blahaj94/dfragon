@@ -50,7 +50,7 @@ Desktop은 파티, 공대 캡처와 검색, 카드의 캐릭터 면만 둔다. �
 
 ## 점수 엔진 경계
 
-비공개 저장소가 만든 C 네이티브 점수 엔진(Windows DLL, macOS dylib)은 Desktop main process가 띄운 Node worker thread 하나에서 `koffi`로 불러 쓴다(2026-10-19 결정, [Issue #716](https://github.com/blahaj94/dfragon/issues/716), worker 이전은 [Issue #987](https://github.com/blahaj94/dfragon/issues/987)). Main의 경계는 `apps/desktop/src/backend/score/engine.ts`, worker 진입은 `worker.ts`다. 엔진은 OS thread마다 첫 계산을 초기화하므로 준비와 모든 계산을 같은 worker에서 하고, main은 계산을 기다리는 동안 막히지 않는다.
+비공개 엔진 저장소가 만든 C 네이티브 점수 엔진(Windows DLL, macOS dylib)은 Desktop main process가 띄운 Node worker thread 하나에서 `koffi`로 불러 쓴다(2026-10-19 결정, [Issue #716](https://github.com/blahaj94/dfragon/issues/716), worker 이전은 [Issue #987](https://github.com/blahaj94/dfragon/issues/987)). Main의 경계는 `apps/desktop/src/backend/score/engine.ts`, worker 진입은 `worker.ts`다. 엔진은 OS thread마다 첫 계산을 초기화하므로 준비와 모든 계산을 같은 worker에서 하고, main은 계산을 기다리는 동안 막히지 않는다.
 
 | 대상 | 책임 |
 | --- | --- |
@@ -103,7 +103,7 @@ OCR 파인튜닝 모델 submodule은 `packages/models`의 workspace package `@df
 | `packages/models`의 `@dfragon/models` | 모델 저장소를 submodule로 고정 커밋에 묶고 `exports`로 모델, 사전 파일 경로를 제공한다. 코드와 dependency가 없으며 앱 source를 참조하지 않는다. |
 | `apps/desktop` | 빌드 설정에서 패키지 이름으로 모델 파일을 찾아 renderer 자원으로 복사한다. 어떤 모델을 넣을지와 호환성 검증은 Desktop이 소유한다. |
 
-점수 엔진 바이너리도 같은 패키지의 submodule(`score-engine`)로 입수한다. 바이너리 저장소가 비공개라 기본 checkout에서 빠지며(`update = none`) 권한이 없는 checkout은 점수 없이 빌드한다. 어떤 엔진을 넣을지는 submodule 커밋으로 고정하고 Desktop이 플랫폼별 파일을 패키지 자원으로 복사한다.
+점수 엔진 바이너리도 같은 패키지의 submodule(`score-engine`)로 입수한다. 바이너리 저장소는 공개라 OCR 모델과 같은 submodule 명령으로 받으며, 받지 않은 checkout은 점수 없이 빌드한다. 어떤 엔진을 넣을지는 submodule 커밋으로 고정하고 Desktop이 플랫폼별 파일을 패키지 자원으로 복사한다.
 
 
 모델 원본과 학습은 모델 저장소가 소유하며 이 저장소에 모델 파일을 commit하지 않는다. 점수 엔진의 소스와 빌드는 비공개 엔진 저장소가 소유한다. 사용법과 갱신 절차는 [패키지 안내](../../packages/models/README.md)를 따른다.

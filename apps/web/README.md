@@ -18,7 +18,7 @@ pnpm --filter @dfragon/web preview
 
 ## 배포
 
-[`web-pages.yml`](../../.github/workflows/web-pages.yml)이 main에 push(PR merge)될 때와 수동 실행에서 `pnpm --filter @dfragon/web build`의 `dist`를 GitHub Pages에 올립니다. 사이트는 submodule 없이 빌드하므로 비공개 점수 엔진은 받지 않습니다. 내려받기 버튼은 방문 시점에 GitHub API에서 최신 Release를 읽으므로 새 Release를 게시해도 다시 배포하지 않습니다.
+[`web-pages.yml`](../../.github/workflows/web-pages.yml)이 main에 push(PR merge)될 때와 수동 실행에서 `pnpm --filter @dfragon/web build`의 `dist`를 GitHub Pages에 올립니다. 사이트는 submodule 없이 빌드하므로 OCR 모델과 점수 엔진은 받지 않습니다. 내려받기 버튼은 방문 시점에 GitHub API에서 최신 Release를 읽으므로 새 Release를 게시해도 다시 배포하지 않습니다.
 
 저장소 소유자가 한 번 해야 하는 설정입니다. workflow와 에이전트는 이 설정을 바꾸지 않습니다.
 
