@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { space } from '@dfragon/ui/tokens.stylex'
+import { colors, space } from '@dfragon/ui/tokens.stylex'
 import * as stylex from '@stylexjs/stylex'
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -36,6 +36,12 @@ const expectedLayout = stylex.create({
   columns: { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' },
   gap: { gap: space.s8 },
   scroll: { overflow: 'auto' }
+})
+
+const expectedPartyFill = stylex.create({
+  red: { backgroundColor: colors.raidPartyRed, color: colors.cardFg },
+  yellow: { backgroundColor: colors.raidPartyYellow, color: colors.cardOnSignal },
+  green: { backgroundColor: colors.raidPartyGreen, color: colors.cardFg }
 })
 
 let root: Root
@@ -185,7 +191,10 @@ it('세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () =
   const first = seats()[0]
   expect(first.querySelector('article')?.getAttribute('data-state')).toBe('default')
   expect(nameOf(first)).toBe('공대원')
-  expect(first.textContent).toContain('01')
+  expect(first.textContent).toContain('R1')
+  expect(first.textContent).not.toContain('01')
+  expect(seats()[4].textContent).toContain('Y1')
+  expect(seats()[11].textContent).toContain('G4')
   expect(first.textContent).toContain('공대모험단')
   expect(first.textContent).toContain('공대길드')
   const job = first.querySelector<HTMLElement>('[title="공대직업"]')
@@ -215,7 +224,7 @@ it('자리 배치대로 슬롯을 그리고 조회는 그 자리에 놓인 검�
   })
 
   expect(nameOf(seats()[5])).toBe('공대원')
-  expect(seats()[5].textContent).toContain('06')
+  expect(seats()[5].textContent).toContain('Y2')
   expect(nameOf(seats()[0])).toBe('')
   const firstSeat = seats()[0]
   const input = await enterName(firstSeat, '첫자리')
@@ -566,6 +575,31 @@ it('검색 응답에 없는 길드, 명성, 장비 점수는 -로 보인다', as
   expect(first.textContent).toContain('공대모험단-')
 })
 
+it('스냅샷 순번 칩은 스냅샷 자리를 파티 색 글자와 파티 안 순번으로 보이고 그 파티 색 면에 옐로만 어두운 글자를 둔다', async () => {
+  await render({
+    characters: [member, member, member],
+    snapshotMarks: [
+      { kind: 'moved', seat: 4 },
+      { kind: 'moved', seat: 5 },
+      { kind: 'moved', seat: 12 },
+      ...Array(9).fill(undefined)
+    ]
+  })
+
+  const chips = seats()
+    .slice(0, 3)
+    .map((seat) => seat.querySelector('[aria-label^="스냅샷 순번"]')!)
+  expect(chips.map((chip) => [chip.getAttribute('aria-label'), chip.textContent])).toEqual([
+    ['스냅샷 순번 R4', 'R4'],
+    ['스냅샷 순번 Y1', 'Y1'],
+    ['스냅샷 순번 G4', 'G4']
+  ])
+  const fills = [expectedPartyFill.red, expectedPartyFill.yellow, expectedPartyFill.green]
+  for (const [index, chip] of chips.entries()) {
+    expect([...chip.classList]).toEqual(expect.arrayContaining(classesOf(fills[index])))
+  }
+})
+
 it('보드는 창 폭을 네 등분한 열에 간격 8로 카드를 놓고 넘치면 보드 영역이 스크롤한다', async () => {
   await render({ characters: [member] })
   const scroller = container.querySelector('section')!.firstElementChild!
@@ -595,7 +629,7 @@ it('슬롯에 붙은 스냅샷 표시는 그 슬롯이 놓인 자리 카드에 �
   })
 
   const [first, second, third] = seats()
-  expect(first.querySelector('[aria-label="스냅샷 순번 2"]')).not.toBeNull()
+  expect(first.querySelector('[aria-label="스냅샷 순번 R2"]')).not.toBeNull()
   expect(first.querySelector('[aria-label="스냅샷에 없는 모험단"]')).toBeNull()
   expect(second.querySelector('[aria-label="스냅샷에 없는 모험단"]')).not.toBeNull()
   expect(third.querySelector('[aria-label^="스냅샷"]')).toBeNull()

@@ -12,6 +12,8 @@
  * 대화상자 뒤 막 --df-bg-overlay의 다크 값은 2026-10-20 던삐삐 디자인 캔버스의 메인 위 설정, 캡처 보드 값
  * (rgba(8, 8, 10, .72))을 들였고, tokens.json의 다크 값(#00000074)과 다르다.
  * tokens.json의 hazard(검색 실패 그림 칸의 사선 색)는 제품에서 쓰지 않아 옮기지 않았다.
+ * 공대 파티 색 --df-raid-party-{red,yellow,green}은 2026-10-31 사용자 요청으로 게임 공대 창의 R, Y, G 배지
+ * 캡처에서 뽑은 값이고, 아직 tokens.json에는 이 이름이 없다.
  */
 :root {
   color-scheme: dark;
@@ -102,6 +104,9 @@
   --df-oath-upgrade-oath-point: #3cc985;
   --df-oath-upgrade-speed: #ffb400;
   --df-oath-upgrade-range: #a066ff;
+  --df-raid-party-red: #782726;
+  --df-raid-party-yellow: #c39b3b;
+  --df-raid-party-green: #318b2b;
 
   --df-space-4: 4px;
   --df-space-8: 8px;
