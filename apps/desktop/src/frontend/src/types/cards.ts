@@ -1,5 +1,5 @@
 import type { ServerId } from './servers'
-import type { SearchSlot } from '../../../preload/common/types/search'
+import type { CharacterFaceWindow, SearchSlot } from '../../../preload/common/types/search'
 import type { CharacterCard } from '../../../preload/common/types/character'
 
 export type SlotState = SearchSlot['state']
@@ -20,4 +20,5 @@ export interface CardCharacter {
   tier?: CharacterTier
   card: CharacterCard | null
   image?: string
+  face?: CharacterFaceWindow | null
 }

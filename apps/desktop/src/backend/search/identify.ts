@@ -10,7 +10,11 @@ import type {
   CharacterPortrait
 } from '../../preload/common/types/character'
 import { orderedCandidates } from './candidate-order'
-import { portraitAnchorOf, portraitFaceWindowOf, type PortraitAnchor } from './portrait-anchor'
+import {
+  portraitAnchorOf,
+  portraitFaceWindowOf,
+  type PortraitAnchor
+} from '../../preload/common/search/portrait-anchor'
 import { planRaidComparison, selectRaidCandidate, type RaidObservedValues } from './raid-candidate'
 
 const MAX_OCR_NAMES = 2

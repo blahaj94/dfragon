@@ -57,7 +57,7 @@ export function RaidCard({
     <CardFrame as="article" state={frameState} aria-busy={busy}>
       <div {...stylex.props(styles.body)}>
         <PortraitWell tier={tier} size="raid">
-          {characterFound && <Portrait src={character.image} />}
+          {characterFound && <Portrait src={character.image} face={character.face} />}
           {lookupStep !== null && <LookupProgress slot={slot} step={lookupStep} size="raid" />}
         </PortraitWell>
         <div {...stylex.props(styles.column)}>
