@@ -178,6 +178,16 @@ it('켠 회차에는 모험단 없이 저장한 자리만 입력을 열고, 적�
   ])
 })
 
+it('자모로 나뉜 입력도 NFC로 합쳐 검색 결과의 모험단과 맞춘다', async () => {
+  await render(['가', null], 0)
+  await press('take')
+  await typeAdventure(1, '별빛'.normalize('NFD'))
+
+  await render(['가', '별빛'], 1)
+
+  expect(shown().marks).toEqual([null, null])
+})
+
 it('끄고 다시 켜면 전에 적은 모험단을 지우고 빈 입력으로 시작한다', async () => {
   await render(['가', null], 0)
   await press('take')
