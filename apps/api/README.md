@@ -99,7 +99,7 @@ main에서는 마지막으로 Product Images 전체가 성공한 실행의 sourc
 지우기 전의 목록에 남은 `ocr`, `accounts`는 이전 성공 목록에서만 무시합니다.
 선택 목록이 없거나 source commit이 다르면 실패하며 임의로 빌드를 생략하지 않습니다.
 
-이미지는 `ghcr.io/blahaj94/dfragon/api:<40자리 commit SHA>`로 발행하고
+이미지는 `ghcr.io/dungeon-and-dragon/dfragon/api:<40자리 commit SHA>`로 발행하고
 OCI `source`, `revision` label에 저장소와 commit을 기록합니다. 대상 플랫폼은 `linux/amd64` 하나입니다.
 같은 제품 commit을 `SOURCE_COMMIT` 빌드 인자로 전달해 이미지 내부 `/app/build-info.json`에도
 고정합니다. 빌드와 발행 전에 컨테이너를 시작하지 않고 파일을 추출해 서비스명과 commit을
@@ -116,14 +116,14 @@ Tag는 조회 편의용이고 배포 입력은 `image@sha256:digest`입니다.
 ```json
 {
   "service": "api",
-  "image": "ghcr.io/blahaj94/dfragon/api@sha256:<registry-digest>",
+  "image": "ghcr.io/dungeon-and-dragon/dfragon/api@sha256:<registry-digest>",
   "sourceCommit": "<40-character-commit-sha>"
 }
 ```
 
 발행 job은 push한 digest에 build provenance attestation을 기록하고 GHCR에도 함께 올립니다.
 Attestation이 실패하면 handoff artifact를 올리지 않고 발행 실행도 실패합니다. 출처는
-`gh attestation verify oci://ghcr.io/blahaj94/dfragon/<service>@sha256:<digest> -R blahaj94/dfragon`으로
+`gh attestation verify oci://ghcr.io/dungeon-and-dragon/dfragon/<service>@sha256:<digest> -R dungeon-and-dragon/dfragon`으로
 확인하며 해당 이미지의 GHCR 조회 권한이 필요합니다.
 
 선택 job은 `contents: read`와 원본, 이전 성공 실행의 목록을 읽기 위한 `actions: read`,
@@ -136,7 +136,7 @@ GHCR의 공개 범위, 접근 정책은 workflow가 변경하지 않습니다. �
 
 제품은 테스트, 빌드, 이미지 발행과 Dockerfile, 앱 실행 진입점을 소유합니다.
 이미지 선택, 비밀값 관리와 전달, Compose, SSH, 서버 권한, 배포 절차의 원본은
-[인프라 운영 안내](https://github.com/blahaj94/dfragon-infra/blob/main/deploy/linux/README.md)입니다.
+[인프라 운영 안내](https://github.com/dungeon-and-dragon/dfragon-infra/blob/main/deploy/linux/README.md)입니다.
 제품 main merge는 운영 배포를 실행하지 않으며 Product Images는 인프라 checkout, 운영 credential에 의존하지 않습니다.
 
 Dockerfile과 전용 ignore 파일은 `apps/api/`에 있습니다. 빌드 context는 제품 저장소 root이며

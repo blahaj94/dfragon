@@ -12,7 +12,7 @@
 
 - Node.js 26(root `package.json`의 `devEngines.runtime`이 고정한 버전을 pnpm이 내려받아 script에 쓴다. API의 `engines`는 `>=26.11.1 <27`)과 pnpm 12.11.2(root `package.json`의 `packageManager`)를 쓴다. Desktop main, preload는 Electron 44.9.3이 내장한 Node 24.22.0에서 실행되고, 호스트 Node 26은 Desktop의 테스트, 빌드 실행기로만 쓴다.
 - 의존성은 `pnpm install --frozen-lockfile`로 설치한다.
-- Desktop을 배포 빌드와 같은 입력으로 테스트, 빌드하려면 `git submodule update --init --recursive packages/models/ocr-finetuned`로 OCR 모델 submodule을 받는다. 비공개 점수 엔진 submodule은 읽기 권한이 있을 때만 `git submodule update --init --checkout packages/models/score-engine`로 받으며, 없으면 점수 없이 빌드된다.
+- Desktop을 배포 빌드와 같은 입력으로 테스트, 빌드하려면 `git submodule update --init --recursive`로 OCR 모델과 점수 엔진 submodule을 받는다. 점수 엔진 submodule을 받지 않으면 점수 없이 빌드된다.
 
 ## 검증
 

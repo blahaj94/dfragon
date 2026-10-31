@@ -160,7 +160,7 @@ Job 안에서는 앞 명령이 실패하면 남은 명령을 건너뛰고 다른
 pnpm verify
 ```
 
-- `pnpm install --frozen-lockfile`로 의존성을 설치합니다. 배포 빌드는 OCR 모델 submodule도 받으므로 같은 입력으로 확인하려면 `git submodule update --init --recursive packages/models/ocr-finetuned`를 실행합니다.
+- `pnpm install --frozen-lockfile`로 의존성을 설치합니다. 배포 빌드는 OCR 모델과 점수 엔진 submodule도 받으므로 같은 입력으로 확인하려면 `git submodule update --init --recursive`를 실행합니다.
 - Desktop 테스트는 HOME의 모든 상위 디렉터리가 root나 현재 사용자 소유이고 group, other 쓰기 권한이 없어야 통과합니다. [Desktop 테스트 범위](../apps/desktop/README.md#테스트-범위와-실행)를 참고합니다.
 
 로컬 통과는 Windows 실기 확인과 Product Images의 이미지 빌드를 대신하지 않습니다. 실행기는 macOS, Linux에서 확인했고 Windows에서는 확인하지 않았습니다. `pnpm verify`로 실행하면 `npm_execpath`의 pnpm을 직접 시작하므로 `pnpm.cmd`만 있는 Windows 환경에서도 명령을 시작합니다. `node scripts/verify.mjs`로 직접 실행하면 shell 없이 `pnpm`을 찾으므로 이런 환경에서는 시작하지 못할 수 있습니다.

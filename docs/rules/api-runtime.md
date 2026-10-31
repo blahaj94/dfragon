@@ -11,7 +11,7 @@ review-after: 지원 Node 또는 Nest major 변경 시
 
 # API Runtime Contract
 
-이 Rule은 API runtime과 검증 계약을 정의한다. API는 인증과 DB 없이 동작한다([Issue #796](https://github.com/blahaj94/dfragon/issues/796)). 구현은 현재 요청 범위에서 [제품 계약 적용 기준](../README.md#document-class)과 [검증 명령](../../scripts/README.md#native-validation)을 따른다. Dependency와 architecture 변경은 공통 변경 승인 기준을 따른다.
+이 Rule은 API runtime과 검증 계약을 정의한다. API는 인증과 DB 없이 동작한다([Issue #796](https://github.com/dungeon-and-dragon/dfragon/issues/796)). 구현은 현재 요청 범위에서 [제품 계약 적용 기준](../README.md#document-class)과 [검증 명령](../../scripts/README.md#native-validation)을 따른다. Dependency와 architecture 변경은 공통 변경 승인 기준을 따른다.
 
 ## 결정의 상태
 

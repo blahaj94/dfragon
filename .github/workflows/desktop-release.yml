@@ -77,20 +77,6 @@ jobs:
             exit 1
           fi
       - run: pnpm install --frozen-lockfile
-      # The score engine submodule is private, so the recursive checkout skips it (update = none in .gitmodules).
-      - name: Fetch score engine submodule
-        shell: bash
-        env:
-          DFRAGON_SCORE_ENGINE_TOKEN: ${{ secrets.DFRAGON_SCORE_ENGINE_TOKEN }}
-        run: |
-          if [[ -z "$DFRAGON_SCORE_ENGINE_TOKEN" ]]; then
-            echo "DFRAGON_SCORE_ENGINE_TOKEN is not set. Building without the score engine."
-            exit 0
-          fi
-          basic=$(printf 'x-access-token:%s' "$DFRAGON_SCORE_ENGINE_TOKEN" | base64 | tr -d '\n')
-          echo "::add-mask::$basic"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $basic" \
-            submodule update --init --checkout --depth 1 packages/models/score-engine
       - name: Prepare score engine
         run: pnpm --filter @dfragon/desktop prepare:score-engine --require
       - run: pnpm --filter @dfragon/desktop build:distribution

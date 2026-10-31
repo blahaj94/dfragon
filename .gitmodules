@@ -4,4 +4,3 @@
 [submodule "packages/models/score-engine"]
 	path = packages/models/score-engine
 	url = https://github.com/dungeon-and-dragon/dfragon-score-engine.git
-	update = none

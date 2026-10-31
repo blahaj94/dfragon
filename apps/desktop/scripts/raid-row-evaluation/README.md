@@ -105,7 +105,7 @@ pnpm --filter @dfragon/desktop run test:raid-row-evaluation
 
 - `raid-heading.png`: 창 검출 기준 헤더. 제품과 같은 파일입니다.
 - `raid-value-heading-fame.png`, `raid-value-heading-equipment-score.png`: 수치 열 제목 칸(`75 × 18`). 1067×600, 검출 배율 1.0 원본에서 잘라 낸 UI 0% 게임 UI입니다.
-- `raid-value-glyphs.png`: 수치 글자 `0`~`9`, 쉼표, 소수점, `K`를 이 순서로 여백 없이 이어 붙인 `81 × 17` sprite. 글자별 폭은 `raid-value-glyphs.ts`의 표에 있고 제품과 평가가 같은 함수로 자릅니다. 표본에서 자르지 않고 [dnf-ocr-synth](https://github.com/blahaj94/dnf-ocr-synth)로 만들었습니다.
+- `raid-value-glyphs.png`: 수치 글자 `0`~`9`, 쉼표, 소수점, `K`를 이 순서로 여백 없이 이어 붙인 `81 × 17` sprite. 글자별 폭은 `raid-value-glyphs.ts`의 표에 있고 제품과 평가가 같은 함수로 자릅니다. 표본에서 자르지 않고 [dnf-ocr-synth](https://github.com/dungeon-and-dragon/dnf-ocr-synth)로 만들었습니다.
   - 렌더링: 돋움(`gulim.ttc` 글꼴 번호 2), `profile="dotum"`, `scale=1`(UI 0%)로 그려 어두운 배경에 합칩니다. 숫자 윗줄을 높이 17 칸의 다섯째 줄(0부터 4)에 맞춥니다.
   - 자르기: 쉼표, 소수점, `K`는 기준선을 유지하려고 `0,`, `0.`, `0K`로 그린 뒤 둘째 글자를 씁니다. 국소 대비로 나눈 글자를 좌우 1px 여백과 함께 높이 17로 자릅니다.
   - 확인: `0`~`9`와 쉼표는 실제 화면에서 자른 글자와 획 모양이 같습니다. 소수점과 `K`는 실제 화면 표본이 없습니다.

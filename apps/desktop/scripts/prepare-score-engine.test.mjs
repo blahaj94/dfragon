@@ -57,7 +57,7 @@ describe('점수 엔진 준비', () => {
     expect(await readFile(join(target, 'dnfscore.dll'), 'utf8')).toBe('new engine')
   })
 
-  it('비공개 submodule을 받지 않았으면 엔진 없이 진행한다', async () => {
+  it('엔진 submodule을 받지 않았으면 엔진 없이 진행한다', async () => {
     const root = await temporaryRoot()
     const source = await temporaryRoot()
 
