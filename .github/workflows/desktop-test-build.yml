@@ -75,9 +75,6 @@ jobs:
       - run: pnpm --filter @dfragon/desktop build:test
       - name: Package the test channel portable executable
         shell: bash
-        env:
-          # 7z archiving dominates this job. Test builds trade exe size for time.
-          ELECTRON_BUILDER_COMPRESSION_LEVEL: 3
         run: pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$TEST_VERSION"
       - name: Write portable executable checksum
         shell: bash
