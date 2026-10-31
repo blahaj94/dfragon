@@ -4,8 +4,15 @@ import test from 'node:test'
 import type { TestContext } from 'node:test'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createNeopleCharacterSearchForTest } from '../src/characters/neople-character-search.js'
+import { createCharacterSearchService } from '../src/characters/search-service.js'
+import { NeopleSearchFailure } from '../src/errors/neople-search.js'
 import { createApiHttpApp } from '../src/http.js'
-import type { NeopleCharacterSearchTestDependencies } from '../src/types/neople-character-search.js'
+import type {
+  CharacterSearchRow,
+  NeopleCharacterSearchInput,
+  NeopleCharacterSearchResult,
+  NeopleCharacterSearchTestDependencies
+} from '../src/types/neople-character-search.js'
 
 const characterName = '후보이름'
 const candidatePath = `/characters/candidates?characterName=${encodeURIComponent(characterName)}`
@@ -189,7 +196,7 @@ test('후보가 8개를 넘어도 자르지 않고 빈 검색 결과도 성공�
     ]
   )
 
-  const empty = await fetch(`${origin}${candidatePath}`)
+  const empty = await fetch(`${origin}/characters/candidates?characterName=없는이름`)
   assert.equal(empty.status, 200)
   assert.deepEqual(await empty.json(), { rows: [] })
   assert.equal(calls, 2)
@@ -455,4 +462,171 @@ test('후보의 모험단명은 저장하지 않으므로 항상 null이다', as
     body.rows.map((row) => row.adventureName),
     [null, null]
   )
+})
+
+const HOUR_MS = 60 * 60 * 1000
+
+function candidateRow(name: string, characterId: string): CharacterSearchRow {
+  return {
+    characterId,
+    characterName: name,
+    serverId: 'cain',
+    serverName: '카인',
+    fame: 100,
+    jobName: null,
+    jobGrowName: null
+  }
+}
+
+function candidateUrl(name: string): string {
+  return `/characters/candidates?characterName=${encodeURIComponent(name)}`
+}
+
+function createCountingSearch(
+  search: (input: NeopleCharacterSearchInput) => Promise<NeopleCharacterSearchResult>
+) {
+  const names: string[] = []
+  const service = createCharacterSearchService({
+    searchCharacters: async (input) => {
+      names.push(input.characterName)
+
+      return search(input)
+    }
+  })
+
+  return { service, names }
+}
+
+test('24시간 안에 같은 이름을 다시 검색하면 Neople을 부르지 않고 24시간이 지나면 다시 부른다', async (t) => {
+  // lru-cache는 performance.now로 유효 기간을 재므로 가짜 Date 시계를 따르게 한다.
+  t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: Date.parse('2026-10-31T00:00:00Z') })
+  t.mock.method(performance, 'now', () => Date.now())
+  const { service, names } = createCountingSearch(async (input) => ({
+    rows: [candidateRow(input.characterName, `id-${names.length}`)]
+  }))
+
+  const first = await service.candidates(candidateUrl(characterName))
+  t.mock.timers.tick(23 * HOUR_MS)
+  const withinDay = await service.candidates(candidateUrl(characterName))
+  t.mock.timers.tick(2 * HOUR_MS)
+  const nextDay = await service.candidates(candidateUrl(characterName))
+
+  assert.equal(names.length, 2)
+  assert.equal(first.source, 'neople')
+  assert.equal(withinDay.source, 'cache')
+  assert.deepEqual(withinDay.result, first.result)
+  assert.equal(nextDay.source, 'neople')
+  assert.notDeepEqual(nextDay.result, first.result)
+})
+
+test('실패한 후보 검색과 빈 결과는 저장하지 않아 다음 요청이 Neople을 다시 부른다', async (t) => {
+  const outcomes: Array<() => NeopleCharacterSearchResult> = [
+    () => {
+      throw new NeopleSearchFailure('api')
+    },
+    () => ({ rows: [] }),
+    () => ({ rows: [candidateRow(characterName, 'created-later')] })
+  ]
+  const { service, names } = createCountingSearch(async () => outcomes[names.length - 1]!())
+  t.after(() => service.onModuleDestroy())
+
+  await assert.rejects(service.candidates(candidateUrl(characterName)), NeopleSearchFailure)
+  const empty = await service.candidates(candidateUrl(characterName))
+  const created = await service.candidates(candidateUrl(characterName))
+  const cached = await service.candidates(candidateUrl(characterName))
+
+  assert.deepEqual(empty.result, { rows: [] })
+  assert.deepEqual(
+    created.result.rows.map((row) => row.characterId),
+    ['created-later']
+  )
+  assert.equal(cached.source, 'cache')
+  assert.equal(names.length, 3)
+})
+
+test('같은 이름의 동시 후보 요청은 Neople 검색 하나를 함께 기다리고 실패도 함께 받는다', async (t) => {
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let fail = false
+  const { service, names } = createCountingSearch(async (input) => {
+    await gate
+    if (fail) {
+      throw new NeopleSearchFailure('timeout')
+    }
+
+    return { rows: [candidateRow(input.characterName, 'shared-id')] }
+  })
+  t.after(() => service.onModuleDestroy())
+
+  const concurrent = [
+    service.candidates(candidateUrl(characterName)),
+    service.candidates(candidateUrl(characterName)),
+    service.candidates(candidateUrl(characterName))
+  ]
+  release()
+  const results = await Promise.all(concurrent)
+
+  assert.equal(names.length, 1)
+  assert.deepEqual(
+    results.map(({ source }) => source),
+    ['neople', 'shared', 'shared']
+  )
+  assert.deepEqual(results[1]!.result, results[0]!.result)
+
+  const failedName = '실패이름'
+  fail = true
+  const failures = await Promise.allSettled([
+    service.candidates(candidateUrl(failedName)),
+    service.candidates(candidateUrl(failedName))
+  ])
+  assert.deepEqual(
+    failures.map(({ status }) => status),
+    ['rejected', 'rejected']
+  )
+  assert.equal(names.length, 2)
+})
+
+test('대소문자만 다른 이름은 따로 검색하고 따로 저장한다', async (t) => {
+  const { service, names } = createCountingSearch(async (input) => ({
+    rows: [candidateRow(input.characterName, `id-${input.characterName}`)]
+  }))
+  t.after(() => service.onModuleDestroy())
+
+  const lower = await service.candidates(candidateUrl('exe'))
+  const upper = await service.candidates(candidateUrl('EXE'))
+  const lowerAgain = await service.candidates(candidateUrl('exe'))
+
+  assert.deepEqual(names, ['exe', 'EXE'])
+  assert.deepEqual(
+    [lower, upper, lowerAgain].map(({ result }) => result.rows.map((row) => row.characterId)),
+    [['id-exe'], ['id-EXE'], ['id-exe']]
+  )
+})
+
+test('서버 종료 뒤에는 저장한 후보도 돌려주지 않고 진행 중이던 검색은 응답을 마친다', async () => {
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const storedName = '저장이름'
+  const { service, names } = createCountingSearch(async (input) => {
+    if (input.characterName !== storedName) {
+      await gate
+    }
+
+    return { rows: [candidateRow(input.characterName, 'fixture-id')] }
+  })
+  await service.candidates(candidateUrl(storedName))
+  const pending = service.candidates(candidateUrl(characterName))
+
+  await service.onModuleDestroy()
+  release()
+
+  assert.equal((await pending).result.rows.length, 1)
+  for (const name of [storedName, characterName]) {
+    await assert.rejects(service.candidates(candidateUrl(name)), NeopleSearchFailure)
+  }
+  assert.equal(names.length, 2)
 })

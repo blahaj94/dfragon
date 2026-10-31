@@ -64,7 +64,7 @@ export function ApiCharacterCandidates() {
     ApiOperation({
       summary: 'OCR 닉네임의 캐릭터 비교 후보 조회',
       description:
-        '공개 API. 닉네임 하나를 전체 서버에서 정확히 일치하는 wordType=match로 검색합니다. fame이 있는 후보를 내림차순, fame이 null인 후보를 뒤에 반환하며 동률과 null 사이에는 공급자 순서를 유지합니다. jobName, jobGrowName은 Neople 검색 응답의 값이며 없으면 null입니다. imageUrl은 zoom=1인 전체 캐릭터 이미지이며 얼굴 크롭과 비교는 Desktop에서 수행합니다. 반환 순서대로 비교하여 기준을 먼저 통과한 캐릭터를 선택하고, 모두 실패한 뒤 다음 OCR 닉네임을 요청합니다. 검색 결과와 이미지는 API에 저장하지 않습니다. IP별, 서버 전체 호출 제한은 없습니다. characterName 외 query key, 중복 query와 HEAD는 거절합니다.'
+        '공개 API. 닉네임 하나를 전체 서버에서 정확히 일치하는 wordType=match로 검색합니다. fame이 있는 후보를 내림차순, fame이 null인 후보를 뒤에 반환하며 동률과 null 사이에는 공급자 순서를 유지합니다. jobName, jobGrowName은 Neople 검색 응답의 값이며 없으면 null입니다. imageUrl은 zoom=1인 전체 캐릭터 이미지이며 얼굴 크롭과 비교는 Desktop에서 수행합니다. 반환 순서대로 비교하여 기준을 먼저 통과한 캐릭터를 선택하고, 모두 실패한 뒤 다음 OCR 닉네임을 요청합니다. 후보가 있는 검색 결과는 이름별로 API 메모리에 24시간 캐시하며, 실패와 빈 결과는 캐시하지 않습니다. 이미지는 API에 저장하지 않습니다. IP별, 서버 전체 호출 제한은 없습니다. characterName 외 query key, 중복 query와 HEAD는 거절합니다.'
     }),
     ApiQuery({
       name: 'characterName',

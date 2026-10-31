@@ -3,8 +3,9 @@ import { ApiCharacterCandidates, ApiCharacterSearch } from '../swagger/operation
 import { Controller, Get, Inject, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { NeopleSearchFailure } from '../errors/neople-search.js'
-import { respondWithCancellation } from '../http-response.js'
-import type { CharacterSearchHttpService } from './types.js'
+import { recordAccessLogCachedResponse, recordAccessLogSharedNeopleFetch } from '../access-log.js'
+import { respondWithCancellation, sendWithCancellation } from '../http-response.js'
+import type { CharacterCandidatesResponse, CharacterSearchHttpService } from './types.js'
 
 export const CHARACTER_SEARCH_SERVICE = Symbol('CHARACTER_SEARCH_SERVICE')
 
@@ -18,25 +19,33 @@ export class CharacterSearchController {
   @Get()
   @ApiCharacterSearch()
   async search(@Req() request: Request, @Res() response: Response): Promise<void> {
-    await this.respond(request, response, false)
+    assertGet(request)
+    await respondWithCancellation(response, () => this.service.search(request.originalUrl))
   }
 
   @Get('candidates')
   @ApiCharacterCandidates()
   async candidates(@Req() request: Request, @Res() response: Response): Promise<void> {
-    await this.respond(request, response, true)
+    assertGet(request)
+    await sendWithCancellation(
+      response,
+      () => this.service.candidates(request.originalUrl),
+      (candidates) => sendCandidates(response, candidates)
+    )
   }
+}
 
-  private async respond(request: Request, response: Response, candidates: boolean): Promise<void> {
-    if (request.method !== 'GET') {
-      throw new NeopleSearchFailure('query')
-    }
-    await respondWithCancellation(response, () => {
-      if (candidates) {
-        return this.service.candidates(request.originalUrl)
-      }
-
-      return this.service.search(request.originalUrl)
-    })
+function assertGet(request: Request): void {
+  if (request.method !== 'GET') {
+    throw new NeopleSearchFailure('query')
   }
+}
+
+function sendCandidates(response: Response, { result, source }: CharacterCandidatesResponse) {
+  if (source === 'cache') {
+    recordAccessLogCachedResponse(response)
+  } else if (source === 'shared') {
+    recordAccessLogSharedNeopleFetch(response)
+  }
+  response.status(200).json(result)
 }

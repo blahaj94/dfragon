@@ -4,6 +4,7 @@ import test from 'node:test'
 import { type AccessLogSink, createStreamAccessLogSink } from '../src/access-log.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createNeopleCharacterDetailsForTest } from '../src/characters/details/neople.js'
+import { createNeopleCharacterSearchForTest } from '../src/characters/neople-character-search.js'
 import { createApiHttpApp } from '../src/http.js'
 
 const unusedProvider = async (): Promise<never> => {
@@ -429,6 +430,78 @@ test('저장한 응답을 다시 보낸 상세 요청 로그는 단계 시간 �
     { route: detailRoute, stages: [], responseCached: true },
     { route: refreshRoute, stages: [], responseCached: undefined }
   ])
+})
+
+test('후보 검색 요청 로그는 저장한 결과를 보낸 요청에 responseCached, 진행 중인 검색에 합류한 요청에 neopleShared를 붙인다', {
+  timeout: 5000
+}, async (t) => {
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  let providerCalls = 0
+  const logs = collectAccessLogs()
+  const app = await createApiHttpApp({
+    search: {
+      searchCharacters: createNeopleCharacterSearchForTest('fake-key', {
+        fetch: async (request) => {
+          providerCalls += 1
+          await gate
+          const characterName = new URL(request.url).searchParams.get('characterName')
+
+          return Response.json({
+            rows: [{ characterId: 'fixture-character', characterName, serverId: 'cain', fame: 1 }]
+          })
+        }
+      })
+    },
+    details: unusedDetails,
+    todayGrade: { fetchShopGrade: unusedProvider },
+    writeAccessLog: logs.sink
+  })
+  t.after(() => app.close())
+  await app.listen(0, '127.0.0.1')
+  let arrived = 0
+  app.getHttpServer().on('request', () => {
+    arrived += 1
+  })
+  const candidatesUrl = `${await app.getUrl()}/characters/candidates?characterName=${encodeURIComponent(secrets.characterName)}`
+
+  const first = fetch(candidatesUrl)
+  const joined = fetch(candidatesUrl)
+  while (arrived < 2) {
+    await new Promise((resolve) => setImmediate(resolve))
+  }
+  // 두 요청이 서비스에 도착한 뒤에만 Neople 응답을 풀어 합류를 확정한다.
+  await new Promise((resolve) => setImmediate(resolve))
+  release()
+  const shared = await Promise.all([first, joined])
+  const stored = await fetch(candidatesUrl)
+  for (const response of [...shared, stored]) {
+    assert.equal(response.status, 200)
+    await response.arrayBuffer()
+  }
+  await logs.waitFor(3)
+
+  assert.equal(providerCalls, 1)
+  const entries = logs.lines.map((line) => {
+    const { route, neopleMs, neopleShared, responseCached } = readEntry(line).fields
+
+    return { route, neopleMs, neopleShared, responseCached }
+  })
+  const route = '/characters/candidates'
+  assert.deepEqual(
+    entries.filter(({ neopleShared }) => neopleShared === true),
+    [{ route, neopleMs: undefined, neopleShared: true, responseCached: undefined }]
+  )
+  assert.deepEqual(
+    entries.filter(({ responseCached }) => responseCached === true),
+    [{ route, neopleMs: undefined, neopleShared: undefined, responseCached: true }]
+  )
+  assert.equal(
+    entries.filter(({ neopleShared, responseCached }) => !neopleShared && !responseCached).length,
+    1
+  )
 })
 
 test('Stack을 만든 뒤 message가 바뀌면 frame을 생략하고, 원래 오류를 정제하다 예외가 나면 원인을 생략한다', {

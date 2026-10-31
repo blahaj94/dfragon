@@ -87,7 +87,8 @@ function readRouteTemplate(request: Request): string {
 /**
  * 요청 하나당 allowlist field만 담은 JSON 한 줄을 남긴다. URL, query, header, body와
  * 오류 message는 남기지 않고, 5xx 응답에만 정제한 오류 chain을 붙인다. 캐릭터 상세 요청에는
- * 끝난 Neople 단계별 대기 시간과 저장한 응답 본문을 다시 보냈는지만 붙인다. Correlation ID는
+ * 끝난 Neople 단계별 대기 시간과 저장한 응답 본문을 다시 보냈는지만 붙이고, 후보 검색 요청에는
+ * 저장한 결과를 보냈는지와 진행 중인 검색에 합류했는지만 붙인다. Correlation ID는
  * 클라이언트 값 대신 서버가 만들어 `X-Correlation-Id` 응답 header로도 돌려준다.
  */
 export function createAccessLog(sink: AccessLogSink) {
