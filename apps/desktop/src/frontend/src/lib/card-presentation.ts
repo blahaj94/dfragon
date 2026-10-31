@@ -26,6 +26,12 @@ export type CharacterCardFrameState = Extract<
   'default' | 'selected' | 'failure' | 'waiting' | CharacterTier
 >
 
+const AWAKENING_PREFIX = /^眞\s*/u
+
+export function toJobLabel(job: string): string {
+  return job.replace(AWAKENING_PREFIX, '')
+}
+
 export function isVacantSlot(state: SlotState): boolean {
   return state === 'idle'
 }

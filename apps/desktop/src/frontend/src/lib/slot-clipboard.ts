@@ -34,5 +34,5 @@ export function toClipboardText({
     rows.push(seats.slice(start, start + rowSize).join(', '))
   }
 
-  return rows.join('\n')
+  return rows.join(',\n')
 }

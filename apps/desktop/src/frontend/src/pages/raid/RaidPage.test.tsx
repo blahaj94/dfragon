@@ -161,7 +161,12 @@ function classesOf(style: stylex.StyleXStyles): string[] {
 }
 
 it('세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () => {
-  await render({ characters: [member, { ...member, name: '둘째' }] })
+  await render({
+    characters: [
+      { ...member, job: '眞 공대직업' },
+      { ...member, name: '둘째' }
+    ]
+  })
 
   expect(seats().map((seat) => seat.getAttribute('aria-label'))).toEqual(
     Array.from({ length: 12 }, (_, index) => `${index + 1}번 자리, 끌어서 옮기기`)
@@ -183,7 +188,12 @@ it('세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () =
   expect(first.textContent).toContain('01')
   expect(first.textContent).toContain('공대모험단')
   expect(first.textContent).toContain('공대길드')
-  expect(first.textContent).not.toContain('공대직업')
+  const job = first.querySelector<HTMLElement>('[title="공대직업"]')
+  expect(job?.textContent).toBe('공대직업')
+  expect(
+    job?.previousElementSibling?.contains(first.querySelector('[aria-label="1번 캐릭터 이름"]'))
+  ).toBe(true)
+  expect(first.textContent).not.toContain('眞')
   expect(first.textContent).not.toContain('서버 순위')
   expect(first.querySelector('[aria-label="1번 캐릭터 상세 열기"]')).toBeNull()
   expect(container.querySelector('[role="tab"]')).toBeNull()

@@ -15,7 +15,8 @@ import {
   getCharacterCardFrameState,
   getCharacterCardStatus,
   getLookupStep,
-  isVacantSlot
+  isVacantSlot,
+  toJobLabel
 } from '../lib/card-presentation'
 import { toScoreView } from '../lib/card-score'
 import { toNameFieldTone } from '../lib/name-field-tone'
@@ -62,6 +63,7 @@ export function RaidCard({
         <div {...stylex.props(styles.column)}>
           <div {...stylex.props(styles.header)}>
             <LookupField slot={slot} tone={toNameFieldTone(frameState)} draft={draft} size="raid" />
+            {characterFound && <JobLabel job={character.job} />}
             {tier !== undefined && (
               <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
             )}
@@ -115,6 +117,16 @@ function SlotNumber({
       )}
     >
       {children}
+    </span>
+  )
+}
+
+function JobLabel({ job }: { job: string }): React.JSX.Element {
+  const label = toJobLabel(job)
+
+  return (
+    <span title={label} {...stylex.props(styles.job)}>
+      {label}
     </span>
   )
 }
