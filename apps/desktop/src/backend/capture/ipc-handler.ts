@@ -23,7 +23,6 @@ import { createPortraitColorScorer, type PortraitColorPolicy } from '../search/p
 import type { CharacterSelectionPolicy } from '../search/identify'
 import type { SearchRuntime } from '../search/request'
 import type { ScoreEngine } from '../score/engine'
-import type { UsageEvent } from '../usage-stats/usage-stats'
 import { registerManualSearchIpc, type ManualSearchKind } from '../search/manual-ipc'
 import { findSelectedSource } from './capture-policy'
 import { bindWindowFrame, type ReadWindowFrame } from './native-frame'
@@ -177,10 +176,7 @@ function createSearchRuntime(
   }
 }
 
-function registerCaptureIpc(
-  configuration?: SearchConfiguration,
-  recordUsage?: (event: UsageEvent) => void
-): () => void {
+function registerCaptureIpc(configuration?: SearchConfiguration): () => void {
   const runtime = createSearchRuntime(configuration)
   invalidateCardSearches()
   const registerCardSearch = (kind: ManualSearchKind): ReturnType<typeof registerManualSearchIpc> =>
@@ -197,8 +193,7 @@ function registerCaptureIpc(
         if (isTrustedFrame(captureWindow, currentMainFrame())) {
           captureWindow!.webContents.send(channel, snapshot)
         }
-      },
-      onLookup: () => recordUsage?.({ name: 'character_search', screen: kind })
+      }
     })
   const party = registerCardSearch('party')
   const raid = registerCardSearch('raid')
@@ -260,24 +255,11 @@ function registerCaptureIpc(
     }
   })
 
-  // 회차마다 프레임을 한 장만 읽으므로, 가려지거나 지원하지 않는 창을 뺀 프레임 수가 캡처 회차 수다.
-  addHandler('readCaptureFrame', async (event, ...args) => {
-    const frame = await readBoundCaptureFrame(event, args, party)
-    if (frame.kind === 'frame') {
-      recordUsage?.({ name: 'capture', screen: 'party' })
-    }
+  addHandler('readCaptureFrame', (event, ...args) => readBoundCaptureFrame(event, args, party))
 
-    return frame
-  })
-
-  addHandler('readRaidCaptureFrame', async (event, ...args) => {
-    const frame = await readBoundCaptureFrame(event, args, raid)
-    if (frame.kind === 'frame') {
-      recordUsage?.({ name: 'capture', screen: 'raid' })
-    }
-
-    return toRaidFrameResult(frame)
-  })
+  addHandler('readRaidCaptureFrame', async (event, ...args) =>
+    toRaidFrameResult(await readBoundCaptureFrame(event, args, raid))
+  )
 
   return () => {
     party.dispose()
