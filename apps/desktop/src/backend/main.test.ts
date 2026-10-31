@@ -337,7 +337,7 @@ it('API 미구성이면 검색 설정 없이 캡처 IPC를 등록한다', async 
   await import('./main')
   await mocks.bootstrap
 
-  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith(undefined, undefined)
+  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith(undefined)
 })
 
 it('API origin이 있으면 얼굴 비교 정책과 점수 엔진을 캡처 IPC에 연결하고 종료 때 점수 worker를 정리한다', async () => {
@@ -345,14 +345,11 @@ it('API origin이 있으면 얼굴 비교 정책과 점수 엔진을 캡처 IPC�
   await import('./main')
   await mocks.bootstrap
 
-  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith(
-    {
-      apiOrigin: 'https://api.synthetic.test',
-      portraitColorPolicy: expect.any(Object),
-      scoreEngine: expect.objectContaining({ prepare: expect.any(Function) })
-    },
-    undefined
-  )
+  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith({
+    apiOrigin: 'https://api.synthetic.test',
+    portraitColorPolicy: expect.any(Object),
+    scoreEngine: expect.objectContaining({ prepare: expect.any(Function) })
+  })
   expect(mocks.createScoreWorker).not.toHaveBeenCalled()
   const [configuration] = mocks.registerCapture.mock.calls[0] as unknown as [
     { scoreEngine: ScoreEngine }

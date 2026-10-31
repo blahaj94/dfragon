@@ -2,7 +2,6 @@ import { expect, it } from 'vitest'
 import {
   channels,
   parseChannels,
-  readChannelAnalytics,
   readChannelNameFromEnvironment,
   readChannelNameFromMode,
   readChannelOrigin,
@@ -12,14 +11,6 @@ import {
 
 const CHANNEL_NAMES: readonly ChannelName[] = ['development', 'test', 'distribution']
 
-// 합성 값이며 실제 GA 속성의 값이 아니다.
-const SYNTHETIC_ANALYTICS_ENVIRONMENT = {
-  DFRAGON_GA_MEASUREMENT_ID: 'G-SYNTH123',
-  DFRAGON_GA_API_SECRET: 'synthetic_Secret-1'
-}
-const GA_MEASUREMENT_ID_FAILURE = /^Set DFRAGON_GA_MEASUREMENT_ID to a GA4 measurement ID\.$/
-const GA_API_SECRET_FAILURE =
-  /^Set DFRAGON_GA_API_SECRET to a GA4 Measurement Protocol API secret\.$/
 const DISTRIBUTION_API_ORIGIN_FAILURE =
   /^Set DFRAGON_DISTRIBUTION_API_ORIGIN to a non-loopback canonical HTTPS origin\.$/
 
@@ -157,14 +148,12 @@ it('main bundle에 넣는 채널 tuple은 identity와 빌드 시점에 읽은 or
   ).toEqual({
     name: 'distribution',
     identity: channels.distribution.identity,
-    origins: { api: 'https://api.example.test' },
-    analytics: null
+    origins: { api: 'https://api.example.test' }
   })
   expect(readDesktopChannel('development', {})).toEqual({
     name: 'development',
     identity: channels.development.identity,
-    origins: { api: 'https://localhost:3443' },
-    analytics: null
+    origins: { api: 'https://localhost:3443' }
   })
   expect(() => readDesktopChannel('distribution', {})).toThrow(DISTRIBUTION_API_ORIGIN_FAILURE)
 })
@@ -173,49 +162,16 @@ it('test 채널의 tuple은 빌드 변수와 관계없이 항상 운영 API를 �
   const expected = {
     name: 'test',
     identity: channels.test.identity,
-    origins: { api: 'https://api.dfragon.com' },
-    analytics: null
+    origins: { api: 'https://api.dfragon.com' }
   }
   expect(readDesktopChannel('test', {})).toEqual(expected)
   expect(
     readDesktopChannel('test', {
       DFRAGON_TEST_API_ORIGIN: 'https://api.example.test',
       DFRAGON_DISTRIBUTION_API_ORIGIN: 'https://api.example.test',
-      DFRAGON_API_ORIGIN: 'https://localhost:3443',
-      ...SYNTHETIC_ANALYTICS_ENVIRONMENT
+      DFRAGON_API_ORIGIN: 'https://localhost:3443'
     })
   ).toEqual(expected)
-})
-
-it('배포 채널만 GA 측정 ID와 API secret을 넣고, 둘 다 없으면 사용 통계 없이 빌드한다', () => {
-  expect(readChannelAnalytics('distribution', SYNTHETIC_ANALYTICS_ENVIRONMENT)).toEqual({
-    measurementId: 'G-SYNTH123',
-    apiSecret: 'synthetic_Secret-1'
-  })
-  expect(
-    readChannelAnalytics('distribution', {
-      DFRAGON_GA_MEASUREMENT_ID: '',
-      DFRAGON_GA_API_SECRET: ''
-    })
-  ).toBeNull()
-  expect(readChannelAnalytics('development', SYNTHETIC_ANALYTICS_ENVIRONMENT)).toBeNull()
-})
-
-it.each([
-  ['API secret 누락', { DFRAGON_GA_MEASUREMENT_ID: 'G-SYNTH123' }, GA_API_SECRET_FAILURE],
-  ['측정 ID 누락', { DFRAGON_GA_API_SECRET: 'synthetic_Secret-1' }, GA_MEASUREMENT_ID_FAILURE],
-  [
-    '측정 ID 형식 오류',
-    { DFRAGON_GA_MEASUREMENT_ID: 'UA-private', DFRAGON_GA_API_SECRET: 'synthetic_Secret-1' },
-    GA_MEASUREMENT_ID_FAILURE
-  ],
-  [
-    'API secret 형식 오류',
-    { DFRAGON_GA_MEASUREMENT_ID: 'G-SYNTH123', DFRAGON_GA_API_SECRET: 'private secret&x=1' },
-    GA_API_SECRET_FAILURE
-  ]
-])('GA 설정의 %s는 값 노출 없이 빌드를 멈춘다', (_name, environment, failure) => {
-  expect(() => readChannelAnalytics('distribution', environment)).toThrow(failure)
 })
 
 it('electron-builder 기본 진입 파일은 DFRAGON_CHANNEL로 채널을 고르고 비우면 배포 채널을 만든다', () => {
