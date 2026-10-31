@@ -20,6 +20,7 @@ import {
 } from '../lib/card-presentation'
 import { toScoreView } from '../lib/card-score'
 import { toNameFieldTone } from '../lib/name-field-tone'
+import { toRaidSeat } from '../lib/raid-seat'
 import type { SlotCard } from '../lib/slot-cards'
 import type { CharacterTier } from '../types/cards'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
@@ -70,7 +71,7 @@ export function RaidCard({
             {frameState === 'failure' && <FailureMark label={cardStatus} size="raid" />}
             {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
             <SlotNumber selected={frameState === 'selected'} tier={tier}>
-              {String(slot).padStart(2, '0')}
+              {toRaidSeat(slot).label}
             </SlotNumber>
           </div>
           {characterFound ? (

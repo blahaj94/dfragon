@@ -87,7 +87,10 @@ export const colors = stylex.defineConsts({
   oathUpgradeCooldown: 'var(--df-oath-upgrade-cooldown)',
   oathUpgradeOathPoint: 'var(--df-oath-upgrade-oath-point)',
   oathUpgradeSpeed: 'var(--df-oath-upgrade-speed)',
-  oathUpgradeRange: 'var(--df-oath-upgrade-range)'
+  oathUpgradeRange: 'var(--df-oath-upgrade-range)',
+  raidPartyRed: 'var(--df-raid-party-red)',
+  raidPartyYellow: 'var(--df-raid-party-yellow)',
+  raidPartyGreen: 'var(--df-raid-party-green)'
 })
 
 export const space = stylex.defineConsts({

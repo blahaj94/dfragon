@@ -22,5 +22,13 @@ export const styles = stylex.create({
   partyAbsent: { paddingInlineStart: 7 },
   raid: { height: 20, gap: 3, paddingInlineEnd: 8, fontSize: 14 },
   raidMoved: { paddingInlineStart: 5 },
-  raidAbsent: { paddingInlineStart: 6 }
+  raidAbsent: { paddingInlineStart: 6 },
+  // 노란 면은 흰 글자의 대비가 낮아 옐로만 어두운 글자를 쓴다.
+  raidRed: { backgroundColor: colors.raidPartyRed, boxShadow: 'none', color: colors.cardFg },
+  raidYellow: {
+    backgroundColor: colors.raidPartyYellow,
+    boxShadow: 'none',
+    color: colors.cardOnSignal
+  },
+  raidGreen: { backgroundColor: colors.raidPartyGreen, boxShadow: 'none', color: colors.cardFg }
 })
