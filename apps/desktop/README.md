@@ -54,7 +54,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 ### 포터블 exe와 GitHub Releases
 
-같은 환경에서 `pnpm --filter @dfragon/desktop build:win:portable`을 실행하면 `apps/desktop/dist/DFragon-<버전>-x64-portable.exe`가 생성됩니다. Windows x64에서 이 파일을 내려받아 실행하며 Node.js나 별도 설치 프로그램은 필요하지 않습니다. 설치형처럼 실행할 때 Windows 관리자 권한을 요청합니다. OCR 모델과 실행 라이브러리도 포함합니다. 실행할 때 임시 폴더에 앱을 풀기 때문에 첫 실행에 시간이 걸릴 수 있습니다.
+같은 환경에서 `pnpm --filter @dfragon/desktop build:win:portable`을 실행하면 `apps/desktop/dist/DFragon-<버전>-x64-portable.exe`가 생성됩니다. Windows x64에서 이 파일을 내려받아 실행하며 Node.js나 별도 설치 프로그램은 필요하지 않습니다. 설치형처럼 실행할 때 Windows 관리자 권한을 요청합니다. OCR 모델과 실행 라이브러리도 포함합니다. 실행할 때마다 임시 폴더에 앱을 풀기 때문에 압축하지 않고 담습니다. 압축하면 exe는 작아지지만 Windows 10 실기 PC에서 창이 뜨기까지 약 12초가 걸렸고, 압축하지 않으면 약 3초였습니다. 이 설정은 electron-builder가 모든 target에 적용하므로 Release에 올리지 않는 설치형 setup.exe도 압축하지 않습니다.
 
 포터블은 설치 없이 실행하는 배포 형식입니다. Electron profile은 exe 옆이 아닌 기존 사용자 profile `appData/dfragon`을 쓰며 설치형과 공유합니다. 바로가기는 만들지 않습니다. 자동 업데이트와 코드 서명은 기존 배포본과 같습니다.
 
@@ -69,7 +69,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 production 환경 변수 대신 사용할 공개 API 주소이며 비우면 환경 변수를 사용합니다. 이 실행도 main branch나 `v*` tag에서 시작한 경우에만 production 환경을 쓸 수 있습니다. Release 게시와 같은 main 포함 확인을 적용합니다. 같은 이름의 exe나 checksum 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 `v<버전>` 형식이 아닌 태그도 빌드를 중단합니다. 로컬 `build:win:portable` 명령은 `package.json`의 기본 버전을 사용합니다.
 
-PR 제목 scope가 `(build)`인 관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 던삐삐 Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 검색, 캡처, OCR을 확인하는 용도입니다. API는 항상 운영 API `https://api.dfragon.com`이며 빌드 변수로 바꾸지 않습니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 던삐삐와 profile이 겹치지 않습니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
+PR 제목 scope가 `(build)`인 관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 던삐삐 Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 검색, 캡처, OCR을 확인하는 용도입니다. API는 항상 운영 API `https://api.dfragon.com`이며 빌드 변수로 바꾸지 않습니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 던삐삐와 profile이 겹치지 않습니다. attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
 
 ```powershell
 gh run download <실행 ID> --repo dungeon-and-dragon/dfragon -n windows-x64-portable-test -D "$HOME\Downloads\dfragon-test-<실행 ID>"
