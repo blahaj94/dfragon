@@ -59,7 +59,7 @@ export function useAdventureSnapshot(
   const marks = active
     ? compareWithSnapshot(
         snapshot.adventures.map(
-          (adventure, seat) => adventure ?? snapshot.typedAdventures[seat].trim()
+          (adventure, seat) => adventure ?? snapshot.typedAdventures[seat].trim().normalize('NFC')
         ),
         current
       )
