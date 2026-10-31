@@ -3,7 +3,8 @@ import {
   binarizeNicknamePixels,
   binarizeRaidTextPixels,
   nicknameCenterOffset,
-  removeDetachedRaidNicknamePixels
+  removeDetachedRaidNicknamePixels,
+  removeRaidNicknameFrameLines
 } from './nickname-pixels'
 
 // OpenCV 4.12.0의 THRESH_BINARY_INV | THRESH_OTSU 출력과 대조한 회색 입력이다.
@@ -200,6 +201,19 @@ it('글자 획만큼 큰 덩어리도 본문과 떨어져 있으면 지운다', 
   removeDetachedRaidNicknamePixels(data, RAID_NICKNAME_WIDTH, 17)
 
   expect(darkColumns(data, 17)).toEqual(textColumns)
+})
+
+it('위아래 여백의 짧은 가로획은 글자 획일 수 있으므로 남긴다', () => {
+  const stroke: [number, number][] = []
+  for (let x = 20; x <= 40; x += 1) {
+    stroke.push([x, 15])
+  }
+  const data = raidNickname(17, stroke)
+  const before = data.slice()
+
+  removeRaidNicknameFrameLines(data, RAID_NICKNAME_WIDTH, 17)
+
+  expect(data).toEqual(before)
 })
 
 it('검은 픽셀이 없는 공대 닉네임 칸은 그대로 둔다', () => {
