@@ -53,6 +53,7 @@ type RenderProps = Partial<Omit<ComponentProps<typeof PartyPage>, 'slots' | 'sea
   characters?: (CardCharacter | null)[]
   nicknames?: (string | null)[]
   snapshotMarks?: (SnapshotMark | undefined)[]
+  snapshotAdventureInputs?: (string | undefined)[]
   seatOrder?: SeatOrder
   canMoveSeats?: boolean
   swapSeats?: (from: number, to: number) => boolean
@@ -63,6 +64,7 @@ async function render({
   characters,
   nicknames,
   snapshotMarks,
+  snapshotAdventureInputs,
   seatOrder = createSeatOrder(PARTY_SEAT_LAYOUT),
   canMoveSeats = true,
   swapSeats: swap = vi.fn(() => true),
@@ -76,14 +78,15 @@ async function render({
       state,
       character,
       nickname,
-      snapshotMark: snapshotMarks?.[index]
+      snapshotMark: snapshotMarks?.[index],
+      snapshotAdventureInput: snapshotAdventureInputs?.[index]
     }
   })
   await act(async () =>
     root.render(
       <PartyPage
         resetKey="party"
-        actions={{ lookupSlot: vi.fn(), pickCandidate: vi.fn() }}
+        actions={{ lookupSlot: vi.fn(), pickCandidate: vi.fn(), changeSnapshotAdventure: vi.fn() }}
         {...props}
         seats={{ layout: PARTY_SEAT_LAYOUT, seatOrder, canMoveSeats, swapSeats: swap }}
         slots={cards}
@@ -234,7 +237,7 @@ it('자리 배치대로 카드를 그리고 조회는 그 자리에 놓인 검�
     slots: ['success', 'idle', 'idle', 'idle'],
     characters: [character],
     seatOrder: swapSeats(createSeatOrder(PARTY_SEAT_LAYOUT), 0, 3),
-    actions: { lookupSlot, pickCandidate: vi.fn() }
+    actions: { lookupSlot, pickCandidate: vi.fn(), changeSnapshotAdventure: vi.fn() }
   })
 
   expect(nameOf(seats()[3])).toBe('선택된이름')
@@ -252,6 +255,23 @@ it('자리 배치대로 카드를 그리고 조회는 그 자리에 놓인 검�
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
   )
   expect(lookupSlot).toHaveBeenCalledExactlyOnceWith(0, '옮긴자리', 'cain')
+})
+
+it('스냅샷 모험단 입력은 그 슬롯이 놓인 자리 카드에 열리고 바꾼 값을 자리 번호로 알린다', async () => {
+  const changeSnapshotAdventure = vi.fn()
+  await render({
+    slots: ['failure', 'idle', 'idle', 'idle'],
+    snapshotAdventureInputs: [''],
+    seatOrder: swapSeats(createSeatOrder(PARTY_SEAT_LAYOUT), 0, 3),
+    actions: { lookupSlot: vi.fn(), pickCandidate: vi.fn(), changeSnapshotAdventure }
+  })
+
+  const field = seats()[3].querySelector<HTMLInputElement>('input[aria-label="4번 모험단"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(field, '별빛')
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  expect(changeSnapshotAdventure).toHaveBeenCalledExactlyOnceWith(3, '별빛')
 })
 
 it('맞바꿀 수 없는 동안에는 파티 카드를 끌거나 옮길 수 없다', async () => {
