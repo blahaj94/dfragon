@@ -125,7 +125,7 @@ const realLibraryPath =
         new URL(`../../../../../packages/models/score-engine/${libraryFileName}`, import.meta.url)
       )
 
-// 비공개 엔진 submodule을 받은 checkout에서만 실제 라이브러리로 확인한다.
+// 점수 엔진 submodule을 받은 checkout에서만 실제 라이브러리로 확인한다.
 describe.skipIf(realLibraryPath === null || !existsSync(realLibraryPath))(
   '실제 점수 엔진의 준비 입력',
   () => {
