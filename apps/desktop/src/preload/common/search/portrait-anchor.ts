@@ -1,6 +1,8 @@
-import type { CharacterFaceWindow } from '../../preload/common/types/search'
+import type { CharacterFaceWindow } from '../types/search'
 
 export type PortraitAnchor = Readonly<{ x: number; y: number }>
+
+export const PORTRAIT_CANVAS_WIDTH = 200
 
 // 600px 높이 기본 HUD의 얼굴 칸 크기이며 얼굴 비교가 정규화하는 크기와 같다.
 const ANCHOR_FACE_SIZE = 26

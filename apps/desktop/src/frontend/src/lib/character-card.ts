@@ -1,3 +1,4 @@
+import { portraitFaceWindowOf } from '../../../preload/common/search/portrait-anchor'
 import type { SelectedCharacterSummary } from '../../../preload/common/types/character'
 import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
 import { serverNames } from '../constants/servers'
@@ -29,7 +30,8 @@ export function toCharacterCard(
     guild: summary.guildName,
     card: summary.card,
     level: summary.level,
-    image: summary.imageUrl
+    image: summary.imageUrl,
+    face: portraitFaceWindowOf(summary.jobName)
   }
 }
 
