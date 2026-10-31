@@ -133,19 +133,41 @@ export function nicknameCenterOffset(
   return destinationLeft - left
 }
 
+type Brightness = (red: number, green: number, blue: number) => number
+
+function bt601Gray(red: number, green: number, blue: number): number {
+  return (
+    (grayWeights.red * red +
+      grayWeights.green * green +
+      grayWeights.blue * blue +
+      (1 << (grayWeights.shift - 1))) >>
+    grayWeights.shift
+  )
+}
+
+// 미카엘라 레이드 명예 보상의 노란 배경은 BT.601 회색에서 반짝이는 곳(최대 164)이 연노랑 글자의
+// 가장자리(최소 145)보다 밝아 글자로 남는다. 가장 어두운 채널은 글자 중앙값 134, 배경 72 이하로
+// 갈리므로 이 값을 밝기로 쓴다(2026-10-31 실측).
+function darkestChannel(red: number, green: number, blue: number): number {
+  return Math.min(red, green, blue)
+}
+
 export function binarizeNicknamePixels(data: Uint8ClampedArray): void {
+  binarizeTextPixels(data, bt601Gray)
+}
+
+export function binarizeRaidTextPixels(data: Uint8ClampedArray): void {
+  binarizeTextPixels(data, darkestChannel)
+}
+
+function binarizeTextPixels(data: Uint8ClampedArray, brightness: Brightness): void {
   if (data.length === 0) {
     return
   }
   const histogram = new Uint32Array(256)
   let total = 0
   for (let index = 0; index < data.length; index += 4) {
-    const gray =
-      (grayWeights.red * data[index] +
-        grayWeights.green * data[index + 1] +
-        grayWeights.blue * data[index + 2] +
-        (1 << (grayWeights.shift - 1))) >>
-      grayWeights.shift
+    const gray = brightness(data[index], data[index + 1], data[index + 2])
     data[index] = gray
     histogram[gray] += 1
     total += gray
@@ -233,9 +255,15 @@ export function toRaidNicknameCanvas(
   image: Readonly<{ width: number; height: number; rgba: ArrayLike<number> }>
 ): HTMLCanvasElement {
   return toTextCanvas(image, (pixels) => {
-    binarizeNicknamePixels(pixels.data)
+    binarizeRaidTextPixels(pixels.data)
     removeDetachedRaidNicknamePixels(pixels.data, pixels.width, pixels.height)
   })
+}
+
+export function toRaidJobCanvas(
+  image: Readonly<{ width: number; height: number; rgba: ArrayLike<number> }>
+): HTMLCanvasElement {
+  return toTextCanvas(image, (pixels) => binarizeRaidTextPixels(pixels.data))
 }
 
 /** 두 밝기 집단의 분산이 가장 커지는 임계값을 OpenCV의 확률, 평균 계산 순서로 찾는다. */
