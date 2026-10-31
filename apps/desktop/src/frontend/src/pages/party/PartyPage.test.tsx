@@ -211,6 +211,19 @@ it('파티 카드를 다른 카드에 끌어 놓으면 두 자리를 맞바꾼�
   )
 })
 
+it('이름 칸을 고치는 동안은 그 파티 카드를 끌 수 없다', async () => {
+  await render({ slots: ['idle', 'idle', 'idle', 'idle'] })
+  const [first, second] = seats()
+  const input = first.querySelector<HTMLInputElement>(CHARACTER_NAME_INPUT_SELECTOR)!
+
+  await act(async () => input.focus())
+  expect(first.getAttribute('draggable')).toBe('false')
+  expect(second.getAttribute('draggable')).toBe('true')
+
+  await act(async () => input.blur())
+  expect(first.getAttribute('draggable')).toBe('true')
+})
+
 it('파티 카드는 Alt와 왼쪽, 오른쪽 방향키로만 옆 자리와 맞바꾼다', async () => {
   const swap = vi.fn(() => true)
   await render({ slots: ['idle', 'idle', 'idle', 'idle'], swapSeats: swap })
