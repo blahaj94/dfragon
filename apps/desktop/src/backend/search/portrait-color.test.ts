@@ -1,7 +1,7 @@
 import { setImmediate } from 'node:timers/promises'
 import { describe, expect, it } from 'vitest'
 import type { CharacterImage, CharacterPortrait } from '../../preload/common/types/character'
-import type { PortraitAnchor } from './portrait-anchor'
+import type { PortraitAnchor } from '../../preload/common/search/portrait-anchor'
 import {
   createPortraitColorScorer,
   type PortraitColorInput,
