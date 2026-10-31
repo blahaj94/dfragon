@@ -1,10 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, motion, space } from '@dfragon/ui/tokens.stylex'
 
-// 이름 칸이 한글 여섯 자와 서버 선택을 담는 148, 자리 번호 26, 간격 둘 8을 먼저 남기고 직업은 나머지 폭에만
-// 그린다. 직업이 길거나 창이 좁아도 이름이 가려지지 않게 하려는 값이다.
-const NAME_FIRST_ROOM = 182
-
 export const styles = stylex.create({
   body: {
     display: 'grid',
@@ -19,10 +15,19 @@ export const styles = stylex.create({
   },
   column: { display: 'flex', flexDirection: 'column', gap: space.s4, minWidth: 0 },
   header: { display: 'flex', alignItems: 'center', gap: space.s4, minWidth: 0, height: 20 },
-  job: {
-    flex: '0 1 auto',
+  // 창이 좁아 직업이 두 글자도 들어가지 않으면 구분선만 남지 않도록 직업을 다음 줄로 넘겨 감춘다.
+  statRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    columnGap: space.s8,
     minWidth: 0,
-    maxWidth: `calc(100% - ${NAME_FIRST_ROOM}px)`,
+    height: 14,
+    overflow: 'hidden'
+  },
+  jobGroup: { display: 'flex', alignItems: 'center', gap: space.s8, flex: '1 1 0', minWidth: 48 },
+  job: {
+    minWidth: 0,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -66,7 +71,7 @@ export const styles = stylex.create({
     color: colors.cardFgAdventure
   },
   guild: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', color: colors.rarityUnique },
-  affiliationDivider: {
+  divider: {
     flexShrink: 0,
     width: 1,
     height: 10,
