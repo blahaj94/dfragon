@@ -26,8 +26,11 @@ export function createBuilderConfig(name: ChannelName): Configuration {
       'package.json',
       '!**/{.env,.env.*,.npmrc,*.pem,*.key,*.pfx,*.p12}',
       // The renderer bundles onnxruntime-web and loads its WASM from out/frontend/ocr/ort, so the
-      // installed package is never read at runtime. Leaving it out keeps about 138MB out of app.asar.
-      '!node_modules/onnxruntime-web/**'
+      // installed package and its dependencies are never read at runtime. Leaving them out keeps about
+      // 142MB out of app.asar.
+      '!node_modules/{onnxruntime-web,onnxruntime-common,protobufjs,@protobufjs,flatbuffers,long,guid-typescript,platform}/**',
+      // Node never loads source maps or TypeScript sources from dependencies (about 7MB).
+      '!node_modules/**/*.{map,ts,mts,cts}'
     ],
     // The portable exe extracts the whole app on every launch. On a Windows 10 test PC, unpacking the
     // default solid LZMA2 archive took 10.7s versus 1.9s for an uncompressed one, so trade a bigger
