@@ -64,7 +64,6 @@ export function RaidCard({
         <div {...stylex.props(styles.column)}>
           <div {...stylex.props(styles.header)}>
             <LookupField slot={slot} tone={toNameFieldTone(frameState)} draft={draft} size="raid" />
-            {characterFound && <JobLabel job={character.job} />}
             {tier !== undefined && (
               <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
             )}
@@ -81,12 +80,15 @@ export function RaidCard({
           ) : (
             <NoticeLine>{message}</NoticeLine>
           )}
-          <StatLine
-            fame={characterFound ? character.fame : null}
-            score={score}
-            vacant={isVacantSlot(state)}
-            tier={tier}
-          />
+          <div {...stylex.props(styles.statRow)}>
+            <StatLine
+              fame={characterFound ? character.fame : null}
+              score={score}
+              vacant={isVacantSlot(state)}
+              tier={tier}
+            />
+            {characterFound && <JobLabel job={character.job} />}
+          </div>
         </div>
       </div>
       {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
@@ -126,8 +128,11 @@ function JobLabel({ job }: { job: string }): React.JSX.Element {
   const label = toJobLabel(job)
 
   return (
-    <span title={label} {...stylex.props(styles.job)}>
-      {label}
+    <span {...stylex.props(styles.jobGroup)}>
+      <span aria-hidden="true" {...stylex.props(styles.divider)} />
+      <span title={label} {...stylex.props(styles.job)}>
+        {label}
+      </span>
     </span>
   )
 }
@@ -144,7 +149,7 @@ function AffiliationLine({
   return (
     <div title={children || undefined} {...stylex.props(styles.affiliation)}>
       <span {...stylex.props(styles.adventure)}>{adventure}</span>
-      <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
+      <span aria-hidden="true" {...stylex.props(styles.divider)} />
       <span {...stylex.props(styles.guild)}>{guild ?? MISSING_VALUE}</span>
       {children !== '' && <span {...stylex.props(shapes.srOnly)}>{children}</span>}
     </div>
