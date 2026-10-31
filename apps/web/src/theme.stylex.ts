@@ -8,7 +8,8 @@ export const siteColors = stylex.defineConsts({
   inkMuted: '#3B4A58',
   accent: '#157B9C',
   accentHover: '#0F5F7A',
-  onAccent: '#FFFFFF'
+  onAccent: '#FFFFFF',
+  highlight: '#FFC83D'
 })
 
 export const siteFonts = stylex.defineConsts({

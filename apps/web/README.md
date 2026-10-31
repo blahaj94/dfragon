@@ -44,6 +44,7 @@ pnpm --filter @dfragon/web preview
 - `src/App.tsx`: 상단 바(아이콘, 이름, GitHub 링크), 첫 화면, 푸터입니다. 첫 화면 배경은 방문자의 현지 시각에 따라 Desktop 창 아이콘과 같은 밤, 새벽, 낮, 오후 바다 그림으로 바뀝니다.
 - `src/download`: GitHub API `repos/dungeon-and-dragon/dfragon/releases/latest`에서 `DFragon-<버전>-x64-portable.exe`의 주소를 읽어 내려받기 버튼에 씁니다. 버튼 아래에 버전, 용량 같은 안내 줄은 두지 않습니다(2026-10-31 결정). 요청이 실패하거나, 사용량 제한에 걸리거나, 포터블 exe가 없거나, 주소가 `https://github.com/` 밖이면 버튼은 Release 페이지(`releases/latest`)로 보냅니다. GitHub의 `releases/latest`는 Pre-release를 제외합니다.
 - 창 목업: Desktop renderer가 사이트용으로 공개한 `apps/desktop/src/frontend/src/site/index.ts`를 `@dfragon/desktop-site` 별칭으로 가져옵니다. 실제 상단 바와 카드 컴포넌트를 쓰고, 캡처와 검색 IPC 대신 각본 상태로 카드를 채웁니다. Desktop의 다른 source는 직접 import하지 않습니다. 별칭은 `workspace-aliases.ts`와 `tsconfig.app.json`의 `paths`에 있습니다.
+- 창 목업 강조: `src/WindowMockup.tsx`가 목업을 감싸고 `src/mockup-highlight`가 그 위에 덮어 그립니다. 목업이 실제로 눌러진다는 걸 보이려고 처음 2초 가까이 가짜 커서가 캡처를 눌러 보이고, 검색 메뉴, 스냅샷, 복사, 캡처 버튼에 깜박이는 강조 테두리를 계속 둡니다. Desktop 컴포넌트를 고치지 않으려고 대상은 Desktop의 접근성 이름으로 찾습니다. 움직임 줄이기 설정이나 캡처 버튼이 화면 밖에 있는 좁은 화면에서는 가짜 커서를 건너뜁니다.
 
 ## 글꼴과 고지
 
@@ -57,4 +58,4 @@ pnpm --filter @dfragon/web preview
 
 ## 테스트 경계
 
-`src/download`의 테스트는 2026-10-31 v0.1.0 응답 형태로 버튼 주소와 Release 페이지로 보내는 경우를 확인합니다. 창 목업의 각본은 Desktop의 `site/WindowMockup.test.tsx`가 확인합니다. jsdom은 실제 레이아웃을 재현하지 않으므로 390px 폭의 가로 넘침, 글자 대비, 키보드 조작은 production build를 브라우저에서 확인합니다.
+`src/download`의 테스트는 2026-10-31 v0.1.0 응답 형태로 버튼 주소와 Release 페이지로 보내는 경우를 확인합니다. 창 목업의 각본은 Desktop의 `site/WindowMockup.test.tsx`가 확인합니다. 강조할 버튼을 찾는지는 `src/mockup-highlight/MockupHighlights.test.tsx`가 확인하므로, Desktop 쪽 접근성 이름이 바뀌면 이 테스트가 실패합니다. 가짜 커서의 움직임과 테두리 위치는 실제 레이아웃이 필요해 브라우저에서 확인합니다. jsdom은 실제 레이아웃을 재현하지 않으므로 390px 폭의 가로 넘침, 글자 대비, 키보드 조작은 production build를 브라우저에서 확인합니다.
